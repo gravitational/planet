@@ -2,6 +2,29 @@
 
 Installable Kubernetes delivered in Orbit containers
 
+h3.Installation
+
+*!!!IMPORTANT* this will work only on ubuntu 15.04!
+
+Installation
+```
+make
+```
+
+Running:
+```
+cd build
+sudo systemd-nspawn --boot --capability=all --register=true --uuid=51dbfeb9-59f9-4a5b-82db-0e5924202c63 --machine=cube -D rootfs
+```
+
+Entering namespace:
+
+```
+sudo nsenter --target $(machinectl status look8 | grep Leader | grep -Po '\d+') --mount --uts --ipc --net /bin/bash
+```
+
+h3. Description
+
 Initial goal of the project:
 
 1. Provide orbit images for:
