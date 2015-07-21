@@ -13,14 +13,13 @@ make
 
 Running:
 ```
-cd build
-sudo systemd-nspawn --boot --capability=all --register=true --uuid=51dbfeb9-59f9-4a5b-82db-0e5924202c63 --machine=cube -D rootfs
+make run
 ```
 
-Entering namespace:
+Entering cube's namespace:
 
 ```
-sudo nsenter --target $(machinectl status look8 | grep Leader | grep -Po '\d+') --mount --uts --ipc --net /bin/bash
+make enter
 ```
 
 h3. Description
