@@ -4,7 +4,7 @@ Installable Kubernetes delivered in Orbit containers
 
 h3.Installation
 
-*!!!IMPORTANT* this will work only on ubuntu 15.04!
+**IMPORTANT** this will work only on ubuntu 15.04!
 
 Installation
 ```
