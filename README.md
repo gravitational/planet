@@ -2,9 +2,10 @@
 
 Installable Kubernetes delivered in Orbit containers
 
-h3.Installation
+Installation
+-------------
 
-*!!!IMPORTANT* this will work only on ubuntu 15.04!
+**IMPORTANT** this will work only on ubuntu 15.04!
 
 Installation
 ```
@@ -22,7 +23,8 @@ Entering cube's namespace:
 make enter
 ```
 
-h3. Description
+Description
+-------------
 
 Initial goal of the project:
 
