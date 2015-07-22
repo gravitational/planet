@@ -3,4 +3,6 @@ Description=Etcd Service
 
 [Service]
 TimeoutStartSec=0
-ExecStart=/usr/bin/rkt/rkt --debug=true run --stage1-image=/usr/bin/rkt/stage1.aci /opt/packages/etcd.aci --insecure-skip-verify --mds-register=false --volume data-dir,kind=host,source=/var/etcd
+ExecStart=/usr/bin/etcd --data-dir=/var/etcd
+User=orbit
+Group=orbit
