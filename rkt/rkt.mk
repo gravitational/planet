@@ -3,7 +3,7 @@
 VER := v0.7.0
 DISTRO := rkt-$(VER).tar.gz
 
-all: $(BUILDDIR)/$(DISRO) rkt.mk
+all: $(BUILDDIR)/$(DISTRO) rkt.mk
 	cd $(BUILDDIR) && tar -xzf $(DISTRO)
 
 # patch stage1 to add missing libraries
