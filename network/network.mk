@@ -7,15 +7,13 @@ TARGET := $(NAME)-$(VER)
 TARGET_TAR := $(TARGET)-linux-$(ARCH).tar.gz
 
 all: $(BUILDDIR)/$(TARGET)/flanneld $(BUILDDIR)/setup-network-environment network.mk
-	mkdir -p $(BUILDDIR)/rootfs/usr/bin
-	cp -af $(BUILDDIR)/$(TARGET)/flanneld $(BUILDDIR)/rootfs/usr/bin
-	cp -af $(BUILDDIR)/setup-network-environment $(BUILDDIR)/rootfs/usr/bin
-	cp -af ./setup-network-environment.service $(BUILDDIR)/rootfs/lib/systemd/system
-	cp -af ./flanneld.service $(BUILDDIR)/rootfs/lib/systemd/system
-	install -m 0755 ./set-network.sh $(BUILDDIR)/rootfs/usr/bin
-
-	ln -sf /lib/systemd/system/setup-network-environment.service  $(BUILDDIR)/rootfs/lib/systemd/system/multi-user.target.wants/
-	ln -sf /lib/systemd/system/flanneld.service  $(BUILDDIR)/rootfs/lib/systemd/system/multi-user.target.wants/
+	mkdir -p $(ROOTFS)/usr/bin
+	cp -af $(BUILDDIR)/$(TARGET)/flanneld $(ROOTFS)/usr/bin
+	cp -af $(BUILDDIR)/setup-network-environment $(ROOTFS)/usr/bin
+	cp -af ./setup-network-environment.service $(ROOTFS)/lib/systemd/system
+	cp -af ./flanneld.service $(ROOTFS)/lib/systemd/system
+	ln -sf /lib/systemd/system/setup-network-environment.service  $(ROOTFS)/lib/systemd/system/multi-user.target.wants/
+	ln -sf /lib/systemd/system/flanneld.service  $(ROOTFS)/lib/systemd/system/multi-user.target.wants/
 
 $(BUILDDIR)/$(TARGET)/flanneld:
 	curl -L https://github.com/coreos/flannel/releases/download/v$(VER)/$(TARGET_TAR) -o $(BUILDDIR)/$(TARGET_TAR)

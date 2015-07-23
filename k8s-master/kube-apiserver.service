@@ -1,0 +1,26 @@
+[Unit]
+Description=Kubernetes API Server
+Documentation=https://github.com/GoogleCloudPlatform/kubernetes
+Requires=setup-network-environment.service etcd.service generate-serviceaccount-key.service
+After=setup-network-environment.service etcd.service generate-serviceaccount-key.service
+
+[Service]
+EnvironmentFile=/etc/network-environment
+Environment="CONTAINER_RUNTIME=rkt"
+ExecStartPre=/usr/bin/wait-for-etcd.sh
+ExecStart=/usr/bin/kube-apiserver \
+        --service_account_key_file=/opt/bin/kube-serviceaccount.key \
+        --service_account_lookup=false \
+        --admission_control=NamespaceLifecycle,NamespaceAutoProvision,LimitRanger,SecurityContextDeny,ServiceAccount,ResourceQuota \
+        --runtime_config=api/v1 \
+        --allow_privileged=true \
+        --insecure_bind_address=0.0.0.0 \
+        --insecure_port=8080 \
+        --kubelet_https=true \
+        --secure_port=6443 \
+        --service-cluster-ip-range=10.100.0.0/16 \
+        --etcd_servers=http://127.0.0.1:2379 \
+        --public_address_override=${DEFAULT_IPV4} \
+        --logtostderr=true
+Restart=always
+RestartSec=10

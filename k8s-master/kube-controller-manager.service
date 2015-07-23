@@ -1,0 +1,13 @@
+[Unit]
+Description=Kubernetes Controller Manager
+Documentation=https://github.com/GoogleCloudPlatform/kubernetes
+Requires=kube-apiserver.service
+After=kube-apiserver.service
+
+[Service]
+ExecStart=/usr/bin/kube-controller-manager \
+        --service_account_private_key_file=/opt/bin/kube-serviceaccount.key \
+        --master=127.0.0.1:8080 \
+        --logtostderr=true
+Restart=always
+RestartSec=10

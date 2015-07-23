@@ -23,6 +23,6 @@ $(IMAGE): image.mk
             -manifest ./aci-manifest\
 			-image $(IMAGE)
 	cd $(BUILDDIR) && tar -xzf ubuntu.aci
-	cp -a ./rootfs/. $(BUILDDIR)/rootfs
-	rm $(BUILDDIR)/rootfs/lib/systemd/system/sysinit.target.wants/udev-finish.service
-	rm $(BUILDDIR)/rootfs/lib/systemd/system/sysinit.target.wants/debian-fixup.service
+	cp -a ./rootfs/. $(ROOTFS)
+	rm $(ROOTFS)/lib/systemd/system/sysinit.target.wants/udev-finish.service
+	rm $(ROOTFS)/lib/systemd/system/sysinit.target.wants/debian-fixup.service
