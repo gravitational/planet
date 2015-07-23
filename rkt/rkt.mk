@@ -3,7 +3,7 @@
 VER := v0.7.0
 DISTRO := rkt-$(VER).tar.gz
 
-all: $(BUILDDIR)/$(DISRO) rkt.mk
+all: $(BUILDDIR)/$(DISTRO) rkt.mk
 	cd $(BUILDDIR) && tar -xzf $(DISTRO)
 
 # patch stage1 to add missing libraries
@@ -19,9 +19,16 @@ all: $(BUILDDIR)/$(DISRO) rkt.mk
 	cp -af ./rootfs/etc/resolv.conf $(BUILDDIR)/stage1-patch/rootfs/etc
 
 	cd $(BUILDDIR) && actool build -overwrite stage1-patch stage1.aci
-	mkdir -p $(BUILDDIR)/rootfs/usr/bin/rkt
-	cp -af $(BUILDDIR)/rkt-$(VER)/rkt $(BUILDDIR)/rootfs/usr/bin/rkt/
-	cp -af $(BUILDDIR)/stage1.aci $(BUILDDIR)/rootfs/usr/bin/rkt/
+	mkdir -p $(ROOTFS)/usr/bin/rkt
+	cp -af $(BUILDDIR)/rkt-$(VER)/rkt $(ROOTFS)/usr/bin/rkt/
+	cp -af $(BUILDDIR)/stage1.aci $(ROOTFS)/usr/bin/rkt/
+
+# install socket-activated metadata service
+	cp -af ./rkt-metadata.service $(ROOTFS)/lib/systemd/system
+	ln -sf /lib/systemd/system/rkt-metadata.service  $(ROOTFS)/lib/systemd/system/multi-user.target.wants/
+
+	cp -af ./rkt-metadata.socket $(ROOTFS)/lib/systemd/system
+	ln -sf /lib/systemd/system/rkt-metadata.socket  $(ROOTFS)/lib/systemd/system/sockets.target.wants/
 
 
 $(BUILDDIR)/$(DISTRO):

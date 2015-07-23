@@ -2,9 +2,9 @@
 
 IMAGE := $(BUILDDIR)/ubuntu.aci
 
-all: image.mk $(IMAGE)
+all: $(IMAGE)
 
-$(IMAGE):
+$(IMAGE): image.mk
 	go install github.com/klizhentas/deb2aci
 	deb2aci -pkg systemd\
             -pkg dbus\
@@ -16,9 +16,13 @@ $(IMAGE):
             -pkg findutils\
             -pkg binutils\
             -pkg less\
+            -pkg iproute2\
+            -pkg bridge-utils\
+            -pkg kmod\
+            -pkg openssl\
             -manifest ./aci-manifest\
 			-image $(IMAGE)
 	cd $(BUILDDIR) && tar -xzf ubuntu.aci
-	cp -a ./rootfs/. $(BUILDDIR)/rootfs
-	rm $(BUILDDIR)/rootfs/lib/systemd/system/sysinit.target.wants/udev-finish.service
-	rm $(BUILDDIR)/rootfs/lib/systemd/system/sysinit.target.wants/debian-fixup.service
+	cp -a ./rootfs/. $(ROOTFS)
+	rm $(ROOTFS)/lib/systemd/system/sysinit.target.wants/udev-finish.service
+	rm $(ROOTFS)/lib/systemd/system/sysinit.target.wants/debian-fixup.service
