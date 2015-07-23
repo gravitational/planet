@@ -45,4 +45,4 @@ enter-node:
 # * Kube-node needs master private IP
 # Have a unified way to generate environment for master and node in a consistent way and use one file everywhere
 # what's the problem with udevd (turn it off probably)
-
+# cgroups are mounted read only in systemd-nspawn, we should fix that by mounting them themselves I suppose.
