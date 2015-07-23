@@ -1,4 +1,4 @@
-.PHONY: all image etcd network k8s-master
+.PHONY: all image etcd network k8s-master cube
 
 BUILDDIR := $(abspath build)
 export
@@ -22,6 +22,8 @@ all:
 # build kube-node
 	ROOTFS=$(BUILDDIR)/kube-node/rootfs $(MAKE) -C k8s-node -f k8s-node.mk
 
+cube:
+	go install github.com/gravitational/cube/cube
 
 run-master:
 	sudo systemd-nspawn --boot --capability=all --register=true --uuid=51dbfeb9-59f9-4a5b-82db-0e5924202c63 --machine=kube-master -D $(BUILDDIR)/kube-master/rootfs --bind=/lib/modules
@@ -37,6 +39,9 @@ enter-master:
 
 enter-node:
 	sudo nsenter --target $$(machinectl status kube-node | grep Leader | grep -Po '\d+') --pid --mount --uts --ipc --net /bin/bash
+
+enter:
+	sudo nsenter --target $(PID) --pid --mount --uts --ipc --net /bin/bash
 
 
 # IMPORTANT NOTES for installer

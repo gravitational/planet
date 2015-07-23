@@ -10,6 +10,7 @@ all: $(BUILDDIR)/$(TARGET)/flanneld $(BUILDDIR)/setup-network-environment networ
 	mkdir -p $(ROOTFS)/usr/bin
 	cp -af $(BUILDDIR)/$(TARGET)/flanneld $(ROOTFS)/usr/bin
 	cp -af $(BUILDDIR)/setup-network-environment $(ROOTFS)/usr/bin
+	install -m 0755 ./setup-etc.sh $(ROOTFS)/usr/bin
 	cp -af ./setup-network-environment.service $(ROOTFS)/lib/systemd/system
 	cp -af ./flanneld.service $(ROOTFS)/lib/systemd/system
 	ln -sf /lib/systemd/system/setup-network-environment.service  $(ROOTFS)/lib/systemd/system/multi-user.target.wants/

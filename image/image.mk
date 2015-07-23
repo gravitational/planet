@@ -24,5 +24,30 @@ $(IMAGE): image.mk
 			-image $(IMAGE)
 	cd $(BUILDDIR) && tar -xzf ubuntu.aci
 	cp -a ./rootfs/. $(ROOTFS)
-	rm $(ROOTFS)/lib/systemd/system/sysinit.target.wants/udev-finish.service
-	rm $(ROOTFS)/lib/systemd/system/sysinit.target.wants/debian-fixup.service
+
+	rm -f $(ROOTFS)/lib/systemd/system/sysinit.target.wants/udev-finish.service
+	rm -f $(ROOTFS)/lib/systemd/system/sysinit.target.wants/systemd-udevd.service
+
+	rm -f $(ROOTFS)/lib/systemd/system/sysinit.target.wants/debian-fixup.service
+	rm -f $(ROOTFS)/lib/systemd/system/sysinit.target.wants/sys-kernel-config.mount
+	rm -f $(ROOTFS)/lib/systemd/system/sysinit.target.wants/systemd-ask-password-console.path
+	rm -f $(ROOTFS)/lib/systemd/system/sysinit.target.wants/systemd-hwdb-update.service
+	rm -f $(ROOTFS)/lib/systemd/system/sysinit.target.wants/systemd-binfmt.service
+	rm -f $(ROOTFS)/lib/systemd/system/sysinit.target.wants/sys-kernel-config.mount
+	rm -f $(ROOTFS)/lib/systemd/system/sysinit.target.wants/sys-kernel-debug.mount
+	rm -f $(ROOTFS)/lib/systemd/system/sysinit.target.wants/systemd-ask-password-console.path
+	rm -f $(ROOTFS)/lib/systemd/system/sysinit.target.wants/systemd-modules-load.service
+
+	rm -f $(ROOTFS)/lib/systemd/system/multiuser.target.wants/systemd-logind.service
+	rm -f $(ROOTFS)/lib/systemd/system/multiuser.target.wants/systemd-ask-password-wall.path
+	rm -f $(ROOTFS)/lib/systemd/system/multiuser.target.wants/systemd-user-sessions.service
+
+# turn shutdown off otherwise computer would shutdown
+	rm -f $(ROOTFS)/lib/systemd/system/systemd-halt.service
+	rm -f $(ROOTFS)/lib/systemd/system/systemd-poweroff.service
+	rm -f $(ROOTFS)/lib/systemd/system/systemd-reboot.service
+	rm -f $(ROOTFS)/lib/systemd/system/systemd-kexec.service
+
+# tell systemd it runs in virt mode
+	mkdir -p $(ROOTFS)/run/systemd/
+	echo "libcontainer" >  $(ROOTFS)/run/systemd/container

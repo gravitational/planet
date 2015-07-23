@@ -5,6 +5,7 @@ Requires=network-online.target
 After=network-online.target
 
 [Service]
+ExecStartPre=/usr/bin/setup-etc.sh
 ExecStart=/usr/bin/setup-network-environment
 RemainAfterExit=yes
 Type=oneshot
