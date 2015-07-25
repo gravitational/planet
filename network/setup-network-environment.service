@@ -5,7 +5,8 @@ Requires=network-online.target
 After=network-online.target
 
 [Service]
-ExecStartPre=/usr/bin/setup-etc.sh
+ExecStartPre=/usr/bin/scripts/setup-etc.sh
+ExecStartPre=/usr/sbin/update-ca-certificates
 ExecStart=/usr/bin/setup-network-environment
 RemainAfterExit=yes
 Type=oneshot

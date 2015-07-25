@@ -5,9 +5,9 @@ Requires=setup-network-environment.service etcd.service generate-serviceaccount-
 After=setup-network-environment.service etcd.service generate-serviceaccount-key.service
 
 [Service]
+EnvironmentFile=/etc/container-environment
 EnvironmentFile=/etc/network-environment
-Environment="CONTAINER_RUNTIME=rkt"
-ExecStartPre=/usr/bin/wait-for-etcd.sh
+ExecStartPre=/usr/bin/scripts/wait-for-etcd.sh
 ExecStart=/usr/bin/kube-apiserver \
         --service_account_key_file=/opt/bin/kube-serviceaccount.key \
         --service_account_lookup=false \

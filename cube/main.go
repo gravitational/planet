@@ -27,15 +27,36 @@ func init() {
 	}
 }
 
+func writeEnvironment(path string, env map[string]string) error {
+	f, err := os.Create(path)
+	if err != nil {
+		return err
+	}
+	defer f.Close()
+	for k, v := range env {
+		if _, err := fmt.Fprintf(f, "%v=%v\n", k, v); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
 func main() {
 	fmt.Printf("called: %v\n", os.Args)
+
+	if err := MayBeMountCgroups("/"); err != nil {
+		log.Fatal(err)
+	}
 
 	if os.Geteuid() != 0 {
 		log.Fatal("cube should be run as root")
 	}
 
-	var cname string
+	var cname, masterIP, cloud string
+
 	flag.StringVar(&cname, "name", "", "container name")
+	flag.StringVar(&masterIP, "master-ip", "127.0.0.1", "master ip")
+	flag.StringVar(&cloud, "cloud-provider", "", "cloud provider")
 	flag.Parse()
 
 	if cname == "" {
@@ -58,6 +79,17 @@ func main() {
 	}
 
 	log.Printf("starting container process in '%v'", rootfs)
+
+	log.Printf("writing environment...")
+	err = writeEnvironment(
+		filepath.Join(rootfs, "etc", "container-environment"),
+		map[string]string{
+			"KUBE_MASTER_IP":      masterIP,
+			"KUBE_CLOUD_PROVIDER": cloud,
+		})
+	if err != nil {
+		log.Fatal(err)
+	}
 
 	root, err := libcontainer.New("/var/run/cube", libcontainer.Cgroupfs)
 	if err != nil {
@@ -108,12 +140,6 @@ func main() {
 				Device:      "devpts",
 				Flags:       syscall.MS_NOSUID | syscall.MS_NOEXEC,
 				Data:        "newinstance,ptmxmode=0666,mode=0620,gid=5",
-			},
-			{
-				Device:      "bind",
-				Source:      "/home/alex/aci",
-				Destination: "/home/alex/aci",
-				Flags:       defaultMountFlags | syscall.MS_BIND,
 			},
 		},
 		Cgroups: &configs.Cgroup{

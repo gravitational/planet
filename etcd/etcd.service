@@ -1,5 +1,6 @@
 [Unit]
 Description=Etcd Service
+After=setup-network-environment.service
 
 [Service]
 TimeoutStartSec=0

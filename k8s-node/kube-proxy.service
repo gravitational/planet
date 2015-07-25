@@ -5,7 +5,7 @@ Requires=setup-network-environment.service
 After=setup-network-environment.service
 
 [Service]
-EnvironmentFile=/cluster-info/master-private-ip
-ExecStart=/usr/bin/kube-proxy --master=${MASTER_PRIVATE_IP}:8080 --logtostderr=true
+EnvironmentFile=/etc/container-environment
+ExecStart=/usr/bin/kube-proxy --master=${KUBE_MASTER_IP}:8080 --logtostderr=true
 Restart=always
 RestartSec=10

@@ -1,13 +1,16 @@
 .PHONY: all image etcd network k8s-master cube
 
+MASTER_IP := 54.68.147.206
+NODE_IP := 54.68.121.138
+
 BUILDDIR := $(abspath build)
 export
 
 all:
 	mkdir -p $(BUILDDIR)
 	ROOTFS=$(BUILDDIR)/rootfs $(MAKE) -C image -f image.mk
-	ROOTFS=$(BUILDDIR)/rootfs $(MAKE) -C rkt -f rkt.mk
 	ROOTFS=$(BUILDDIR)/rootfs $(MAKE) -C network -f network.mk
+	ROOTFS=$(BUILDDIR)/rootfs $(MAKE) -C docker -f docker.mk
 
 # at this point, $(BUILDDIR)/rootfs will contain the base Ubuntu image with rkt.
 # create two copies of this rootfs, one for master, another for node
@@ -21,12 +24,23 @@ all:
 
 # build kube-node
 	ROOTFS=$(BUILDDIR)/kube-node/rootfs $(MAKE) -C k8s-node -f k8s-node.mk
+	go install github.com/gravitational/cube/cube
+
+# compile cube binary
+	go install github.com/gravitational/cube/cube
+
+# create tarballs 
+	cp $(GOPATH)/bin/cube build/kube-master
+	cp $(GOPATH)/bin/cube build/kube-node
+
+	cd $(BUILDDIR) && tar -czf kube-master.tar.gz kube-master 
+	cd $(BUILDDIR) && tar -czf kube-node.tar.gz kube-node
 
 cube:
 	go install github.com/gravitational/cube/cube
 
 run-master:
-	sudo systemd-nspawn --boot --capability=all --register=true --uuid=51dbfeb9-59f9-4a5b-82db-0e5924202c63 --machine=kube-master -D $(BUILDDIR)/kube-master/rootfs --bind=/lib/modules
+	sudo $(shell which cube) build/kube-master/rootfs
 
 run-node: DIR := $(shell mktemp -d)
 run-node:
@@ -34,14 +48,32 @@ run-node:
 	echo -e 'MASTER_PRIVATE_IP="10.0.0.108"\n' > $(DIR)/master-private-ip
 	sudo systemd-nspawn --boot --capability=all --register=true --uuid=a2e4b457-2844-4264-9de9-cb81d01cef53 --machine=kube-node -D $(BUILDDIR)/kube-node/rootfs --bind=/lib/modules --bind=$(DIR):/cluster-info --bind=/sys
 
-enter-master:
-	sudo nsenter --target $$(machinectl status kube-master | grep Leader | grep -Po '\d+') --pid --mount --uts --ipc --net /bin/bash
-
-enter-node:
-	sudo nsenter --target $$(machinectl status kube-node | grep Leader | grep -Po '\d+') --pid --mount --uts --ipc --net /bin/bash
-
 enter:
 	sudo nsenter --target $(PID) --pid --mount --uts --ipc --net /bin/bash
+
+enter-systemd:
+	sudo nsenter --target $$(ps uax  | grep [/]bin/systemd | awk '{ print $$2 }') --pid --mount --uts --ipc --net /bin/bash
+
+kill-systemd:
+	sudo kill -9 $$(ps uax  | grep [/]bin/systemd | awk '{ print $$2 }')
+
+login-master:
+	ssh -i /home/alex/keys/aws/alex.pem ubuntu@$(MASTER_IP)
+
+login-node:
+	ssh -i /home/alex/keys/aws/alex.pem ubuntu@$(NODE_IP)
+
+deploy-master:
+	scp -i /home/alex/keys/aws/alex.pem  $(BUILDDIR)/kube-master.tar.gz ubuntu@$(MASTER_IP):/home/ubuntu
+
+deploy-node:
+	scp -i /home/alex/keys/aws/alex.pem  $(BUILDDIR)/kube-node.tar.gz ubuntu@$(NODE_IP):/home/ubuntu
+
+deploy-cube:
+	scp -i /home/alex/keys/aws/alex.pem  $(GOPATH)/bin/cube ubuntu@$(IP):/home/ubuntu/kube-master/
+
+deploy-nsenter:
+	scp -i /home/alex/keys/aws/alex.pem /usr/bin/nsenter ubuntu@$(IP):/home/ubuntu/
 
 
 # IMPORTANT NOTES for installer

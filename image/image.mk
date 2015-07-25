@@ -15,11 +15,19 @@ $(IMAGE): image.mk
             -pkg grep\
             -pkg findutils\
             -pkg binutils\
+            -pkg net-tools\
             -pkg less\
             -pkg iproute2\
             -pkg bridge-utils\
             -pkg kmod\
             -pkg openssl\
+            -pkg docker.io\
+            -pkg gawk\
+            -pkg dash\
+            -pkg iproute2\
+            -pkg ca-certificates\
+			-pkg aufs-tools\
+            -pkg sed\
             -manifest ./aci-manifest\
 			-image $(IMAGE)
 	cd $(BUILDDIR) && tar -xzf ubuntu.aci
@@ -41,6 +49,8 @@ $(IMAGE): image.mk
 	rm -f $(ROOTFS)/lib/systemd/system/multiuser.target.wants/systemd-logind.service
 	rm -f $(ROOTFS)/lib/systemd/system/multiuser.target.wants/systemd-ask-password-wall.path
 	rm -f $(ROOTFS)/lib/systemd/system/multiuser.target.wants/systemd-user-sessions.service
+
+	rm -f $(ROOTFS)/lib/systemd/system/sockets.target.wants/docker.socket
 
 # turn shutdown off otherwise computer would shutdown
 	rm -f $(ROOTFS)/lib/systemd/system/systemd-halt.service

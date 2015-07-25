@@ -8,11 +8,12 @@ Restart=always
 RestartSec=5
 Environment="TMPDIR=/var/tmp/"
 Environment="FLANNEL_VER=0.5.1"
+EnvironmentFile=/etc/container-environment
 LimitNOFILE=40000
 LimitNPROC=1048576
 ExecStartPre=/sbin/modprobe ip_tables
 ExecStartPre=/bin/mkdir -p /run/flannel
 ExecStartPre=/usr/bin/touch /run/flannel/options.env
-ExecStartPre=/usr/bin/wait-for-etcd.sh
+ExecStartPre=/usr/bin/scripts/wait-for-etcd.sh
 ExecStartPre=/usr/bin/etcdctl set /coreos.com/network/config '{"Network":"10.244.0.0/16", "Backend": {"Type": "vxlan"}}'
 ExecStart=/usr/bin/flanneld --ip-masq=true
