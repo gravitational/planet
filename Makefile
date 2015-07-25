@@ -42,12 +42,6 @@ cube:
 run-master:
 	sudo $(shell which cube) build/kube-master/rootfs
 
-run-node: DIR := $(shell mktemp -d)
-run-node:
-# todo - this should be configurable
-	echo -e 'MASTER_PRIVATE_IP="10.0.0.108"\n' > $(DIR)/master-private-ip
-	sudo systemd-nspawn --boot --capability=all --register=true --uuid=a2e4b457-2844-4264-9de9-cb81d01cef53 --machine=kube-node -D $(BUILDDIR)/kube-node/rootfs --bind=/lib/modules --bind=$(DIR):/cluster-info --bind=/sys
-
 enter:
 	sudo nsenter --target $(PID) --pid --mount --uts --ipc --net /bin/bash
 
@@ -69,17 +63,21 @@ deploy-master:
 deploy-node:
 	scp -i /home/alex/keys/aws/alex.pem  $(BUILDDIR)/kube-node.tar.gz ubuntu@$(NODE_IP):/home/ubuntu
 
-deploy-cube:
-	scp -i /home/alex/keys/aws/alex.pem  $(GOPATH)/bin/cube ubuntu@$(IP):/home/ubuntu/kube-master/
+deploy-cube-master:
+	scp -i /home/alex/keys/aws/alex.pem  $(GOPATH)/bin/cube ubuntu@$(MASTER_IP):/home/ubuntu/kube-master/
+
+deploy-cube-node:
+	scp -i /home/alex/keys/aws/alex.pem  $(GOPATH)/bin/cube ubuntu@$(NODE_IP):/home/ubuntu/kube-node/
 
 deploy-nsenter:
 	scp -i /home/alex/keys/aws/alex.pem /usr/bin/nsenter ubuntu@$(IP):/home/ubuntu/
 
 
 # IMPORTANT NOTES for installer
-# * We need to set cloud provider for kubernetes
-# * Flanneld needs NET_ADMIN and modpropbe, so we need to mount /lib/modules
-# * Kube-node needs master private IP
-# Have a unified way to generate environment for master and node in a consistent way and use one file everywhere
-# what's the problem with udevd (turn it off probably)
-# cgroups are mounted read only in systemd-nspawn, we should fix that by mounting them themselves I suppose.
+# * We need to set cloud provider for kubernetes - semi done, aws
+# * Flanneld needs NET_ADMIN and modpropbe, so we need to mount /lib/modules - done
+# * Kube-node needs master private IP - done
+# Have a unified way to generate environment for master and node in a consistent way and use one file everywhere -done
+# what's the problem with udevd (turn it off probably) ?
+# cgroups should be mounted in systemd compatible way (cpu,cpuacct)
+

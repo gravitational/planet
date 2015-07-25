@@ -44,10 +44,6 @@ func writeEnvironment(path string, env map[string]string) error {
 func main() {
 	fmt.Printf("called: %v\n", os.Args)
 
-	if err := MayBeMountCgroups("/"); err != nil {
-		log.Fatal(err)
-	}
-
 	if os.Geteuid() != 0 {
 		log.Fatal("cube should be run as root")
 	}
@@ -76,6 +72,14 @@ func main() {
 	rootfs, err := checkPath(args[0], false)
 	if err != nil {
 		log.Fatalf("cube error: %v", err)
+	}
+
+	if err := MayBeMountCgroups("/"); err != nil {
+		log.Fatal(err)
+	}
+
+	if err := MayBeMountCgroups(rootfs); err != nil {
+		log.Fatal(err)
 	}
 
 	log.Printf("starting container process in '%v'", rootfs)

@@ -14,7 +14,7 @@ import (
 )
 
 func MayBeMountCgroups(root string) error {
-	files, err := ioutil.ReadDir(filepath.Join("/sys/fs/cgroup"))
+	files, err := ioutil.ReadDir(filepath.Join(root, "sys", "fs", "cgroup"))
 	if err != nil && !os.IsNotExist(err) {
 		return err
 	}
