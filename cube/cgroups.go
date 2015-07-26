@@ -25,7 +25,7 @@ func MayBeMountCgroups(root string) error {
 	}
 
 	// try to find at least one mounted cgroup
-	for _, c := range cgroups {
+	for c, _ := range cgroups {
 		for _, f := range files {
 			if strings.Contains(f.Name(), c) {
 				log.Printf("found mounted cgroup: %v, returning", c)
@@ -40,6 +40,9 @@ func MayBeMountCgroups(root string) error {
 		return err
 	}
 
+	// group cgroups in systemd style
+	groupCgroups(cgroups)
+
 	var flags uintptr
 	flags = syscall.MS_NOSUID |
 		syscall.MS_NOEXEC |
@@ -49,7 +52,7 @@ func MayBeMountCgroups(root string) error {
 		return fmt.Errorf("error mounting %q: %v", cgroupTmpfs, err)
 	}
 
-	for _, c := range cgroups {
+	for c, _ := range cgroups {
 		cPath := filepath.Join(root, "/sys/fs/cgroup", c)
 		if err := os.MkdirAll(cPath, 0700); err != nil {
 			return err
@@ -66,7 +69,8 @@ func MayBeMountCgroups(root string) error {
 	return nil
 }
 
-func parseCgroups() (subs []string, err error) {
+func parseCgroups() (subs map[string]bool, err error) {
+	subs = make(map[string]bool)
 	// open /proc/cgroups
 	f, err := os.Open("/proc/cgroups")
 	if err != nil {
@@ -79,9 +83,18 @@ func parseCgroups() (subs []string, err error) {
 		if !strings.HasPrefix(line, "#") { // skip comments
 			fields := strings.Fields(line)
 			if len(fields) > 0 {
-				subs = append(subs, fields[0])
+				subs[fields[0]] = true
 			}
 		}
 	}
 	return subs, nil
+}
+
+// group Cgroups in systemd style
+func groupCgroups(in map[string]bool) {
+	if in["cpu"] && in["cpuacct"] {
+		in["cpu,cpuacct"] = true
+		delete(in, "cpu")
+		delete(in, "cpuacct")
+	}
 }

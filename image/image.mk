@@ -28,6 +28,8 @@ $(IMAGE): image.mk
             -pkg ca-certificates\
 			-pkg aufs-tools\
             -pkg sed\
+            -pkg curl\
+            -pkg e2fsprogs\
             -manifest ./aci-manifest\
 			-image $(IMAGE)
 	cd $(BUILDDIR) && tar -xzf ubuntu.aci

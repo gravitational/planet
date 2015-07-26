@@ -1,6 +1,7 @@
 package main
 
 import (
+	"bytes"
 	"flag"
 	"fmt"
 	"log"
@@ -47,6 +48,16 @@ func main() {
 	if os.Geteuid() != 0 {
 		log.Fatal("cube should be run as root")
 	}
+	k, m, err := parseKernel()
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	log.Printf("kernel: %v.%v\n", k, m)
+	if k*100+m < 318 {
+		log.Fatal(fmt.Errorf(
+			"min supported kernel version is 3.18. Upgrade kernel before moving on."))
+	}
 
 	var cname, masterIP, cloud string
 
@@ -75,10 +86,6 @@ func main() {
 	}
 
 	if err := MayBeMountCgroups("/"); err != nil {
-		log.Fatal(err)
-	}
-
-	if err := MayBeMountCgroups(rootfs); err != nil {
 		log.Fatal(err)
 	}
 
@@ -249,3 +256,28 @@ func checkPath(p string, executable bool) (string, error) {
 }
 
 const defaultMountFlags = syscall.MS_NOEXEC | syscall.MS_NOSUID | syscall.MS_NODEV
+
+func parseKernel() (int, int, error) {
+	uts := &syscall.Utsname{}
+
+	if err := syscall.Uname(uts); err != nil {
+		return 0, 0, err
+	}
+
+	rel := bytes.Buffer{}
+	for _, b := range uts.Release {
+		if b == 0 {
+			break
+		}
+		rel.WriteByte(byte(b))
+	}
+
+	var kernel, major int
+
+	parsed, err := fmt.Sscanf(rel.String(), "%d.%d", &kernel, &major)
+	if err != nil || parsed < 2 {
+		return 0, 0, fmt.Errorf("Can't parse kernel version")
+	}
+	return kernel, major, nil
+
+}

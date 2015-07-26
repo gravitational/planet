@@ -8,4 +8,4 @@ EnvironmentFile=/run/flannel/subnet.env
 Environment=DOCKER_NOFILE=1000000
 Environment=DOCKER_PIDFILE=/var/run/docker.pid
 ExecStartPre=/usr/bin/scripts/unmount-devmapper.sh
-ExecStart=/usr/bin/docker -d --mtu=${FLANNEL_MTU} --bridge=cbr0 --iptables=false --ip-masq=false
+ExecStart=/usr/bin/docker -d --mtu=${FLANNEL_MTU} --bridge=cbr0 --iptables=false --ip-masq=false --storage-driver=overlay

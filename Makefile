@@ -23,6 +23,7 @@ all:
 	ROOTFS=$(BUILDDIR)/kube-master/rootfs $(MAKE) -C k8s-master -f k8s-master.mk
 
 # build kube-node
+	ROOTFS=$(BUILDDIR)/kube-node/rootfs $(MAKE) -C etcdctl -f etcdctl.mk
 	ROOTFS=$(BUILDDIR)/kube-node/rootfs $(MAKE) -C k8s-node -f k8s-node.mk
 	go install github.com/gravitational/cube/cube
 
@@ -77,7 +78,11 @@ deploy-nsenter:
 # * We need to set cloud provider for kubernetes - semi done, aws
 # * Flanneld needs NET_ADMIN and modpropbe, so we need to mount /lib/modules - done
 # * Kube-node needs master private IP - done
+
 # Have a unified way to generate environment for master and node in a consistent way and use one file everywhere -done
 # what's the problem with udevd (turn it off probably) ?
 # cgroups should be mounted in systemd compatible way (cpu,cpuacct)
 
+# kernel version on ubuntu 14.04, docker with overlayfs needs new kernel. Devicemapper is not stable.
+# sudo apt-get install linux-headers-generic-lts-vivid linux-image-generic-lts-vivid
+# check kernel version, and if it's less than 3.18 back off
