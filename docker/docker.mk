@@ -11,4 +11,4 @@ all: docker.mk
 # install the unmount cleanup script
 	mkdir -p $(ROOTFS)/usr/bin/scripts
 	install -m 0755 ./unmount-devmapper.sh $(ROOTFS)/usr/bin/scripts
-	install -m 0755 ./wait-for-flanneld.sh $(ROOTFS)/usr/bin/scripts
+

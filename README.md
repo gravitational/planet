@@ -23,6 +23,24 @@ Entering cube's namespace:
 make enter
 ```
 
+AWS
+---
+Master:
+
+```
+kube-master/cube --cloud-provider=aws --env AWS_ACCESS_KEY_ID=AKIAJY6HPQAX6CJJUAHQ --env AWS_SECRET_ACCESS_KEY=<key>  kube-master/rootfs/
+
+```
+
+Node:
+
+```
+kube-node/cube --master-ip=172.31.15.90 --cloud-provider=aws --env AWS_ACCESS_KEY_ID=AKIAJY6HPQAX6CJJUAHQ --env AWS_SECRET_ACCESS_KEY=<key>  kube-node/rootfs/
+```
+
+
+
+
 Description
 -------------
 

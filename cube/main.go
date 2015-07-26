@@ -4,10 +4,12 @@ import (
 	"bytes"
 	"flag"
 	"fmt"
+	"io/ioutil"
 	"log"
 	"os"
 	"path/filepath"
 	"runtime"
+	"strings"
 	"syscall"
 
 	"code.google.com/p/go-uuid/uuid"
@@ -28,14 +30,14 @@ func init() {
 	}
 }
 
-func writeEnvironment(path string, env map[string]string) error {
+func writeEnvironment(path string, env envVars) error {
 	f, err := os.Create(path)
 	if err != nil {
 		return err
 	}
 	defer f.Close()
-	for k, v := range env {
-		if _, err := fmt.Fprintf(f, "%v=%v\n", k, v); err != nil {
+	for _, v := range env {
+		if _, err := fmt.Fprintf(f, "%v=%v\n", v.k, v.v); err != nil {
 			return err
 		}
 	}
@@ -59,11 +61,14 @@ func main() {
 			"min supported kernel version is 3.18. Upgrade kernel before moving on."))
 	}
 
-	var cname, masterIP, cloud string
+	var cname, masterIP, cloud, cloudConfig string
+	vals := envVars{}
 
 	flag.StringVar(&cname, "name", "", "container name")
 	flag.StringVar(&masterIP, "master-ip", "127.0.0.1", "master ip")
 	flag.StringVar(&cloud, "cloud-provider", "", "cloud provider")
+	flag.StringVar(&cloudConfig, "cloud-config", "", "cloud config")
+	flag.Var(&vals, "env", "set environment variable")
 	flag.Parse()
 
 	if cname == "" {
@@ -92,12 +97,18 @@ func main() {
 	log.Printf("starting container process in '%v'", rootfs)
 
 	log.Printf("writing environment...")
+	vals = append(vals,
+		envPair{k: "KUBE_MASTER_IP", v: masterIP},
+		envPair{k: "KUBE_CLOUD_PROVIDER", v: cloud})
 	err = writeEnvironment(
 		filepath.Join(rootfs, "etc", "container-environment"),
-		map[string]string{
-			"KUBE_MASTER_IP":      masterIP,
-			"KUBE_CLOUD_PROVIDER": cloud,
-		})
+		vals)
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	err = writeConfig(filepath.Join(rootfs, "etc", "cloud-config"),
+		cloudConfig)
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -280,4 +291,48 @@ func parseKernel() (int, int, error) {
 	}
 	return kernel, major, nil
 
+}
+
+func writeConfig(target, source string) error {
+	bytes := []byte{}
+	var err error
+	if source != "" {
+		bytes, err = ioutil.ReadFile(source)
+		if err != nil {
+			return err
+		}
+	} else {
+	}
+	return ioutil.WriteFile(target, bytes, 0644)
+}
+
+type envPair struct {
+	k string
+	v string
+}
+
+type envVars []envPair
+
+func (vars *envVars) Set(v string) error {
+	vals := strings.Split(v, "=")
+	if len(vals) != 2 {
+		return fmt.Errorf(
+			"set environment variable separated by '=', e.g. KEY=VAL")
+	}
+	*vars = append(*vars, envPair{k: vals[0], v: vals[1]})
+	return nil
+}
+
+func (vars *envVars) String() string {
+	if len(*vars) == 0 {
+		return ""
+	}
+	b := &bytes.Buffer{}
+	for i, v := range *vars {
+		fmt.Fprintf(b, "%v=%v", v.k, v.v)
+		if i != len(*vars)-1 {
+			fmt.Fprintf(b, " ")
+		}
+	}
+	return b.String()
 }

@@ -13,5 +13,6 @@ ExecStart=/usr/bin/kube-controller-manager \
         --logtostderr=true\
         --allocate-node-cidrs=false\
         --cloud-provider=${KUBE_CLOUD_PROVIDER}
+        --cloud-config=/etc/cloud-config
 Restart=always
 RestartSec=10
