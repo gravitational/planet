@@ -1,12 +1,14 @@
 package main
 
 import (
+	"bufio"
 	"bytes"
 	"flag"
 	"fmt"
 	"io/ioutil"
 	"log"
 	"os"
+	"os/exec"
 	"path/filepath"
 	"runtime"
 	"strings"
@@ -56,9 +58,13 @@ func main() {
 	}
 
 	log.Printf("kernel: %v.%v\n", k, m)
-	if k*100+m < 318 {
+	if k*100+m != 313 {
 		log.Fatal(fmt.Errorf(
-			"min supported kernel version is 3.18. Upgrade kernel before moving on."))
+			"current supported kernel version is 3.13. Upgrade kernel before moving on."))
+	}
+
+	if err := supportsAufs(); err != nil {
+		log.Fatal(err)
 	}
 
 	var cname, masterIP, cloud, cloudConfig string
@@ -335,4 +341,27 @@ func (vars *envVars) String() string {
 		}
 	}
 	return b.String()
+}
+
+// Return a nil error if the kernel supports aufs
+// We cannot modprobe because inside dind modprobe fails
+// to run
+func supportsAufs() error {
+	// We can try to modprobe aufs first before looking at
+	// proc/filesystems for when aufs is supported
+	exec.Command("modprobe", "aufs").Run()
+
+	f, err := os.Open("/proc/filesystems")
+	if err != nil {
+		return err
+	}
+	defer f.Close()
+
+	s := bufio.NewScanner(f)
+	for s.Scan() {
+		if strings.Contains(s.Text(), "aufs") {
+			return nil
+		}
+	}
+	return fmt.Errorf("please install aufs driver support. If it's Ubuntu 'sudo apt-get install linux-image-extra-$(uname -r)'")
 }

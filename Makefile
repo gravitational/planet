@@ -1,8 +1,8 @@
 .PHONY: all image etcd network k8s-master cube
 
-MASTER_IP := 54.68.147.206
-NODE_IP := 54.68.121.138
-
+MASTER_IP := 54.149.35.97
+NODE_IP := 54.149.186.124
+NODE2_IP := 54.68.41.110
 BUILDDIR := $(abspath build)
 export
 
@@ -47,7 +47,7 @@ enter:
 	sudo nsenter --target $(PID) --pid --mount --uts --ipc --net /bin/bash
 
 enter-systemd:
-	sudo nsenter --target $$(ps uax  | grep [/]bin/systemd | awk '{ print $$2 }') --pid --mount --uts --ipc --net /bin/bash
+	sudo nsenter --target $$(ps uax  | grep [/]bin/systemd | awk '{ print $$2 }') --pid --mount --uts --ipc --net /bin/bash	
 
 kill-systemd:
 	sudo kill -9 $$(ps uax  | grep [/]bin/systemd | awk '{ print $$2 }')
@@ -58,11 +58,17 @@ login-master:
 login-node:
 	ssh -i /home/alex/keys/aws/alex.pem ubuntu@$(NODE_IP)
 
+login-node2:
+	ssh -i /home/alex/keys/aws/alex.pem ubuntu@$(NODE2_IP)
+
 deploy-master:
 	scp -i /home/alex/keys/aws/alex.pem  $(BUILDDIR)/kube-master.tar.gz ubuntu@$(MASTER_IP):/home/ubuntu
 
 deploy-node:
 	scp -i /home/alex/keys/aws/alex.pem  $(BUILDDIR)/kube-node.tar.gz ubuntu@$(NODE_IP):/home/ubuntu
+
+deploy-node2:
+	scp -i /home/alex/keys/aws/alex.pem  $(BUILDDIR)/kube-node.tar.gz ubuntu@$(NODE2_IP):/home/ubuntu
 
 deploy-cube-master:
 	scp -i /home/alex/keys/aws/alex.pem  $(GOPATH)/bin/cube ubuntu@$(MASTER_IP):/home/ubuntu/kube-master/
@@ -71,8 +77,16 @@ deploy-cube-node:
 	scp -i /home/alex/keys/aws/alex.pem  $(GOPATH)/bin/cube ubuntu@$(NODE_IP):/home/ubuntu/kube-node/
 
 deploy-nsenter:
-	scp -i /home/alex/keys/aws/alex.pem /usr/bin/nsenter ubuntu@$(IP):/home/ubuntu/
+	scp -i /home/alex/keys/aws/alex.pem /usr/bin/nsenter ubuntu@$(MASTER_IP):/home/ubuntu/
 
+deploy-nsenter-node:
+	scp -i /home/alex/keys/aws/alex.pem /usr/bin/nsenter ubuntu@$(NODE_IP):/home/ubuntu/
+
+deploy-nsenter-node2:
+	scp -i /home/alex/keys/aws/alex.pem /usr/bin/nsenter ubuntu@$(NODE2_IP):/home/ubuntu/
+
+deploy-kubectl:
+	scp -i /home/alex/keys/aws/alex.pem $(BUILDDIR)/kubectl ubuntu@$(MASTER_IP):/home/ubuntu/
 
 # IMPORTANT NOTES for installer
 # * We need to set cloud provider for kubernetes - semi done, aws

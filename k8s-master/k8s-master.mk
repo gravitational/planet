@@ -5,7 +5,7 @@ OS := linux
 ARCH := amd64
 URL := https://storage.googleapis.com/kubernetes-release/release
 
-BINARIES := $(BUILDDIR)/kube-apiserver $(BUILDDIR)/kube-controller-manager $(BUILDDIR)/kube-scheduler
+BINARIES := $(BUILDDIR)/kube-apiserver $(BUILDDIR)/kube-controller-manager $(BUILDDIR)/kube-scheduler $(BUILDDIR)/kubectl
 
 all: k8s-master.mk $(BINARIES)
 	cp -af ./generate-serviceaccount-key.service $(ROOTFS)/lib/systemd/system
