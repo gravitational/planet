@@ -30,6 +30,8 @@ $(IMAGE): image.mk
             -pkg sed\
             -pkg curl\
             -pkg e2fsprogs\
+			-pkg libncurses5\
+            -pkg ncurses-base\
             -manifest ./aci-manifest\
 			-image $(IMAGE)
 	cd $(BUILDDIR) && tar -xzf ubuntu.aci
@@ -37,6 +39,8 @@ $(IMAGE): image.mk
 
 	rm -f $(ROOTFS)/lib/systemd/system/sysinit.target.wants/udev-finish.service
 	rm -f $(ROOTFS)/lib/systemd/system/sysinit.target.wants/systemd-udevd.service
+
+	rm -f $(ROOTFS)/lib/systemd/system/getty.target.wants/getty-static.service
 
 	rm -f $(ROOTFS)/lib/systemd/system/sysinit.target.wants/debian-fixup.service
 	rm -f $(ROOTFS)/lib/systemd/system/sysinit.target.wants/sys-kernel-config.mount

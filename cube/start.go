@@ -151,7 +151,7 @@ func start(cfg CubeConfig) error {
 
 	process := &libcontainer.Process{
 		Args:   []string{"/bin/systemd"},
-		Env:    []string{"container=libcontainer"},
+		Env:    []string{"container=libcontainer", "TERM=xterm"},
 		User:   "root",
 		Stdin:  os.Stdin,
 		Stdout: os.Stdout,
@@ -345,5 +345,5 @@ func startServer(path string, c libcontainer.Container) error {
 }
 
 func serverSockPath(p string) string {
-	return filepath.Join(p, "cube.sock")
+	return filepath.Join(p, "run", "cube.socket")
 }

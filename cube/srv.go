@@ -10,7 +10,7 @@ import (
 
 	"github.com/julienschmidt/httprouter"
 	"github.com/opencontainers/runc/libcontainer"
-	_ "github.com/opencontainers/runc/libcontainer/nsenter"
+
 	"golang.org/x/net/websocket"
 )
 
@@ -65,32 +65,8 @@ func (w *enterHandler) handle(ws *websocket.Conn) {
 func (w *enterHandler) enter(ws *websocket.Conn) error {
 	log.Printf("enter command: %v", w.cmd)
 
-	p := &libcontainer.Process{
-		Args:   []string{w.cmd},
-		User:   "root",
-		Stdin:  ws,
-		Stdout: ws,
-		Stderr: ws,
-	}
-
-	log.Printf("about to enter container: %v", w.cmd)
-	// this will cause libcontainer to exec this binary again
-	// with "init" command line argument.  (this is the default setting)
-	// then our init() function comes into play
-	if err := w.c.Start(p); err != nil {
-		return trace.Wrap(err)
-	}
-
-	log.Printf("started process just okay")
-
-	// wait for the process to finish.
-	s, err := p.Wait()
-	if err != nil {
-		return trace.Wrap(err)
-	}
-
-	log.Printf("process status: %v %v", s, err)
-	return err
+	defer ws.Close()
+	return startProcess(w.c, []string{w.cmd}, ws)
 }
 
 func (w *enterHandler) Handler() http.Handler {

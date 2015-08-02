@@ -43,9 +43,6 @@ cube:
 run-master:
 	sudo $(shell which cube) build/kube-master/rootfs
 
-enter:
-	sudo nsenter --target $(PID) --pid --mount --uts --ipc --net /bin/bash
-
 enter-systemd:
 	sudo nsenter --target $$(ps uax  | grep [/]bin/systemd | awk '{ print $$2 }') --pid --mount --uts --ipc --net /bin/bash	
 
@@ -105,13 +102,13 @@ deploy-kubectl:
 # sudo apt-get install linux-headers-generic-lts-vivid linux-image-generic-lts-vivid
 # check kernel version, and if it's less than 3.18 back off
 
-run: clean
+run: clean cube
 	sudo $(GOPATH)/bin/cube start --force build/kube-master/rootfs
 
 
-enter: clean
+enter:
 	sudo $(GOPATH)/bin/cube enter build/kube-master/rootfs
 
 clean:
-	rm -rf build/kube-master/rootfs/cube.sock
+	rm -rf build/kube-master/rootfs/run/cube.socket
 
