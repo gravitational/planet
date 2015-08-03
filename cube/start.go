@@ -13,6 +13,7 @@ import (
 	"path/filepath"
 	"strings"
 	"syscall"
+	"time"
 
 	"github.com/gravitational/trace"
 
@@ -169,6 +170,8 @@ func start(cfg CubeConfig) error {
 		return err
 	}
 
+	go monitorMasterUnits(container)
+
 	// wait for the process to finish.
 	status, err := process.Wait()
 	if err != nil {
@@ -179,6 +182,57 @@ func start(cfg CubeConfig) error {
 
 	container.Destroy()
 	return nil
+}
+
+func monitorMasterUnits(c libcontainer.Container) {
+	units := map[string]string{
+		"docker.service":                  "",
+		"flanneld.service":                "",
+		"etcd.service":                    "",
+		"kube-apiserver.service":          "",
+		"kube-controller-manager.service": "",
+		"kube-scheduler.service":          "",
+	}
+
+	for i := 0; i < 10; i++ {
+		for u := range units {
+			status, err := getStatus(c, u)
+
+			if err != nil {
+				log.Printf("error getting status: %v", err)
+			}
+			units[u] = status
+		}
+
+		for u, s := range units {
+			log.Printf("%v[%v]", strings.ToUpper(u), strings.ToUpper(s))
+		}
+		if allUnitsActive(units) {
+			log.Printf("all units are up")
+			return
+		}
+		time.Sleep(time.Second)
+	}
+}
+
+func allUnitsActive(units map[string]string) bool {
+	for _, s := range units {
+		if s != "active" {
+			return false
+		}
+	}
+	return true
+}
+
+func getStatus(c libcontainer.Container, unit string) (string, error) {
+	out, err := combinedOutput(
+		c, ProcessConfig{
+			User: "root",
+			Args: []string{"/bin/systemctl", "is-active", unit}})
+	if err != nil {
+		return "", err
+	}
+	return strings.TrimSpace(string(out)), nil
 }
 
 func writeEnvironment(path string, env EnvVars) error {

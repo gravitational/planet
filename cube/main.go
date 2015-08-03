@@ -2,18 +2,16 @@ package main
 
 import (
 	"flag"
-	"fmt"
 	"log"
 	"os"
 	"runtime"
 
+	"github.com/docker/docker/pkg/term"
 	"github.com/gravitational/trace"
 	"github.com/opencontainers/runc/libcontainer"
 )
 
 func main() {
-	fmt.Printf("called: %v\n", os.Args)
-
 	if len(os.Args) < 2 {
 		log.Fatalf("specify a command, one of 'start', 'enter', 'stop'")
 	}
@@ -41,15 +39,38 @@ func main() {
 
 func enterCmd() error {
 	args := os.Args[2:]
-	if len(args) < 1 {
+	fs := flag.FlagSet{}
+
+	cfg := ProcessConfig{}
+	var tty bool
+
+	fs.BoolVar(&tty, "tty", true, "attach terminal (for interactive sessions)")
+	fs.StringVar(&cfg.User, "user", "root", "user running the process")
+	if err := fs.Parse(args); err != nil {
+		return trace.Wrap(err)
+	}
+
+	posArgs := fs.Args()
+	log.Printf("args: %v", posArgs)
+
+	if len(posArgs) < 1 {
 		return trace.Errorf("cube enter path [command]")
 	}
-	path := args[0]
-	command := "/bin/bash"
+	path := posArgs[0]
+	cfg.Args = []string{"/bin/bash"}
 	if len(args) > 1 {
-		command = args[1]
+		cfg.Args = posArgs[1:]
 	}
-	return enter(path, command)
+
+	if tty {
+		s, err := term.GetWinsize(os.Stdin.Fd())
+		if err != nil {
+			return trace.Wrap(err)
+		}
+		cfg.TTY = &TTY{H: int(s.Height), W: int(s.Width)}
+	}
+
+	return enter(path, cfg)
 }
 
 func startCmd() error {
@@ -84,7 +105,6 @@ func initCmd() error {
 	runtime.GOMAXPROCS(1)
 	runtime.LockOSThread()
 	factory, _ := libcontainer.New("")
-	log.Printf("initCmd")
 	if err := factory.StartInitialization(); err != nil {
 		log.Fatal(err)
 	}

@@ -1,7 +1,9 @@
 package main
 
 import (
+	"bytes"
 	"encoding/hex"
+	"encoding/json"
 	"io"
 	"log"
 	"net"
@@ -18,20 +20,27 @@ import (
 // enter initiates the process in the namespaces of the container
 // managed by the cube master process and mantains websocket connection
 // to proxy input and output
-func enter(p, cmd string) error {
+func enter(path string, cfg ProcessConfig) error {
 	oldState, err := term.SetRawTerminal(os.Stdin.Fd())
 	if err != nil {
 		return err
 	}
 	defer term.RestoreTerminal(os.Stdin.Fd(), oldState)
 
-	path, err := checkPath(serverSockPath(p), false)
+	path, err = checkPath(serverSockPath(path), false)
 	if err != nil {
 		return err
 	}
-	u := url.URL{Host: "cube", Scheme: "ws", Path: "/enter/" + hex.EncodeToString([]byte(cmd))}
+	u := url.URL{Host: "cube", Scheme: "ws", Path: "/enter"}
+	data, err := json.Marshal(cfg)
+	if err != nil {
+		return trace.Wrap(err)
+	}
+	q := u.Query()
+	q.Set("params", hex.EncodeToString(data))
+	u.RawQuery = q.Encode()
 
-	cfg, err := websocket.NewConfig(u.String(), "http://localhost")
+	wscfg, err := websocket.NewConfig(u.String(), "http://localhost")
 	if err != nil {
 		return trace.Wrap(err, "failed to enter container")
 	}
@@ -39,7 +48,7 @@ func enter(p, cmd string) error {
 	if err != nil {
 		return trace.Wrap(err, "failed to connect to cube socket")
 	}
-	c, err := websocket.NewClient(cfg, conn)
+	c, err := websocket.NewClient(wscfg, conn)
 	if err != nil {
 		return trace.Wrap(err)
 	}
@@ -63,31 +72,68 @@ func enter(p, cmd string) error {
 	return nil
 }
 
-func startProcess(c libcontainer.Container, args []string, rw io.ReadWriter) error {
-	log.Printf("start process in the container: %v", args)
+type TTY struct {
+	W int
+	H int
+}
+
+type ProcessConfig struct {
+	In   io.Reader `json:-`
+	Out  io.Writer `json:-`
+	TTY  *TTY      `json:"tty"`
+	Args []string  `json:"args"`
+	User string    `json:"user"`
+}
+
+func combinedOutput(c libcontainer.Container, cfg ProcessConfig) ([]byte, error) {
+	var b bytes.Buffer
+	cfg.Out = &b
+	st, err := startProcess(c, cfg)
+	if err != nil {
+		return b.Bytes(), err
+	}
+	if !st.Success() {
+		return nil, trace.Errorf("process failed with status: %v", st)
+	}
+	return b.Bytes(), nil
+}
+
+func startProcess(c libcontainer.Container, cfg ProcessConfig) (*os.ProcessState, error) {
+	log.Printf("start process in the container: %v", cfg)
+
+	if cfg.TTY != nil {
+		return startProcessTTY(c, cfg)
+	} else {
+		return startProcessStdout(c, cfg)
+	}
+
+}
+
+func startProcessTTY(c libcontainer.Container, cfg ProcessConfig) (*os.ProcessState, error) {
+	log.Printf("start process in the container: %#v", cfg)
 
 	p := &libcontainer.Process{
-		Args: args,
-		User: "root",
+		Args: cfg.Args,
+		User: cfg.User,
 		Env:  []string{"TERM=xterm"},
 	}
 
 	cs, err := p.NewConsole(0)
 	if err != nil {
-		return trace.Wrap(err)
+		return nil, trace.Wrap(err)
 	}
 
 	term.SetWinsize(cs.Fd(),
-		&term.Winsize{Height: uint16(120), Width: uint16(100)})
+		&term.Winsize{Height: uint16(cfg.TTY.H), Width: uint16(cfg.TTY.W)})
 
 	exitC := make(chan error, 2)
 	go func() {
-		_, err := io.Copy(rw, cs)
+		_, err := io.Copy(cfg.Out, cs)
 		exitC <- err
 	}()
 
 	go func() {
-		_, err := io.Copy(cs, rw)
+		_, err := io.Copy(cs, cfg.In)
 		exitC <- err
 	}()
 
@@ -95,7 +141,7 @@ func startProcess(c libcontainer.Container, args []string, rw io.ReadWriter) err
 	// with "init" command line argument.  (this is the default setting)
 	// then our init() function comes into play
 	if err := c.Start(p); err != nil {
-		return trace.Wrap(err)
+		return nil, trace.Wrap(err)
 	}
 
 	log.Printf("started process just okay")
@@ -103,9 +149,39 @@ func startProcess(c libcontainer.Container, args []string, rw io.ReadWriter) err
 	// wait for the process to finish.
 	s, err := p.Wait()
 	if err != nil {
-		return trace.Wrap(err)
+		return nil, trace.Wrap(err)
 	}
 
 	log.Printf("process status: %v %v", s, err)
-	return err
+	return s, nil
+}
+
+func startProcessStdout(c libcontainer.Container, cfg ProcessConfig) (*os.ProcessState, error) {
+	log.Printf("start process in the container: %v", cfg)
+
+	p := &libcontainer.Process{
+		Args:   cfg.Args,
+		User:   cfg.User,
+		Stdout: cfg.Out,
+		Stdin:  cfg.In,
+		Stderr: cfg.Out,
+	}
+
+	// this will cause libcontainer to exec this binary again
+	// with "init" command line argument.  (this is the default setting)
+	// then our init() function comes into play
+	if err := c.Start(p); err != nil {
+		return nil, trace.Wrap(err)
+	}
+
+	log.Printf("started process just okay")
+
+	// wait for the process to finish.
+	s, err := p.Wait()
+	if err != nil {
+		return nil, trace.Wrap(err)
+	}
+
+	log.Printf("process status: %v %v", s, err)
+	return s, nil
 }

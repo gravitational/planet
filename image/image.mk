@@ -37,9 +37,10 @@ $(IMAGE): image.mk
 	cd $(BUILDDIR) && tar -xzf ubuntu.aci
 	cp -a ./rootfs/. $(ROOTFS)
 
+	rm -rf $(ROOTFS)/lib/systemd/system-generators/systemd-getty-generator
+
 	rm -f $(ROOTFS)/lib/systemd/system/sysinit.target.wants/udev-finish.service
 	rm -f $(ROOTFS)/lib/systemd/system/sysinit.target.wants/systemd-udevd.service
-
 	rm -f $(ROOTFS)/lib/systemd/system/getty.target.wants/getty-static.service
 
 	rm -f $(ROOTFS)/lib/systemd/system/sysinit.target.wants/debian-fixup.service
