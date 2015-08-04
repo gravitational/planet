@@ -26,6 +26,8 @@ func main() {
 		err = initCmd()
 	case "enter":
 		err = enterCmd()
+	case "stop":
+		err = stopCmd()
 	default:
 		err = trace.Errorf("unsupported command: %v", cmd)
 	}
@@ -35,6 +37,22 @@ func main() {
 	}
 
 	log.Printf("cube: execution completed successfully")
+}
+
+func stopCmd() error {
+	args := os.Args[2:]
+	fs := flag.FlagSet{} // want to add wait flag later
+	if err := fs.Parse(args); err != nil {
+		return trace.Wrap(err)
+	}
+
+	posArgs := fs.Args()
+	log.Printf("args: %v", posArgs)
+
+	if len(posArgs) < 1 {
+		return trace.Errorf("cube enter path [command]")
+	}
+	return stop(posArgs[0])
 }
 
 func enterCmd() error {

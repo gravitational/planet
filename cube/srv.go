@@ -29,7 +29,7 @@ func NewServer(c libcontainer.Container) *ContainerServer {
 	// it has to be GET because we use websockets,
 	// so we are using the weird argument passing in query
 	// string here
-	s.GET("/enter", s.handle(s.enter))
+	s.GET("/v1/enter", s.handle(s.enter))
 	return s
 }
 

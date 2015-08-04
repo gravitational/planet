@@ -109,6 +109,9 @@ run: clean cube
 enter:
 	sudo $(GOPATH)/bin/cube enter build/kube-master/rootfs
 
+stop:
+	sudo $(GOPATH)/bin/cube stop build/kube-master/rootfs
+
 clean:
 	rm -rf build/kube-master/rootfs/run/cube.socket
 

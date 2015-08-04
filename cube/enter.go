@@ -31,7 +31,7 @@ func enter(path string, cfg ProcessConfig) error {
 	if err != nil {
 		return err
 	}
-	u := url.URL{Host: "cube", Scheme: "ws", Path: "/enter"}
+	u := url.URL{Host: "cube", Scheme: "ws", Path: "/v1/enter"}
 	data, err := json.Marshal(cfg)
 	if err != nil {
 		return trace.Wrap(err)
