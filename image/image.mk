@@ -30,13 +30,18 @@ $(IMAGE): image.mk
             -pkg sed\
             -pkg curl\
             -pkg e2fsprogs\
+			-pkg libncurses5\
+            -pkg ncurses-base\
             -manifest ./aci-manifest\
 			-image $(IMAGE)
 	cd $(BUILDDIR) && tar -xzf ubuntu.aci
 	cp -a ./rootfs/. $(ROOTFS)
 
+	rm -rf $(ROOTFS)/lib/systemd/system-generators/systemd-getty-generator
+
 	rm -f $(ROOTFS)/lib/systemd/system/sysinit.target.wants/udev-finish.service
 	rm -f $(ROOTFS)/lib/systemd/system/sysinit.target.wants/systemd-udevd.service
+	rm -f $(ROOTFS)/lib/systemd/system/getty.target.wants/getty-static.service
 
 	rm -f $(ROOTFS)/lib/systemd/system/sysinit.target.wants/debian-fixup.service
 	rm -f $(ROOTFS)/lib/systemd/system/sysinit.target.wants/sys-kernel-config.mount
@@ -54,8 +59,6 @@ $(IMAGE): image.mk
 
 	rm -f $(ROOTFS)/lib/systemd/system/sockets.target.wants/docker.socket
 
-# turn shutdown off otherwise computer would shutdown
-	rm -f $(ROOTFS)/lib/systemd/system/systemd-halt.service
 	rm -f $(ROOTFS)/lib/systemd/system/systemd-poweroff.service
 	rm -f $(ROOTFS)/lib/systemd/system/systemd-reboot.service
 	rm -f $(ROOTFS)/lib/systemd/system/systemd-kexec.service

@@ -34,17 +34,14 @@ all:
 	cp $(GOPATH)/bin/cube build/kube-master
 	cp $(GOPATH)/bin/cube build/kube-node
 
-	cd $(BUILDDIR) && tar -czf kube-master.tar.gz kube-master 
-	cd $(BUILDDIR) && tar -czf kube-node.tar.gz kube-node
+#	cd $(BUILDDIR) && tar -czf kube-master.tar.gz kube-master 
+#	cd $(BUILDDIR) && tar -czf kube-node.tar.gz kube-node
 
 cube:
 	go install github.com/gravitational/cube/cube
 
 run-master:
 	sudo $(shell which cube) build/kube-master/rootfs
-
-enter:
-	sudo nsenter --target $(PID) --pid --mount --uts --ipc --net /bin/bash
 
 enter-systemd:
 	sudo nsenter --target $$(ps uax  | grep [/]bin/systemd | awk '{ print $$2 }') --pid --mount --uts --ipc --net /bin/bash	
@@ -63,6 +60,10 @@ login-node2:
 
 deploy-master:
 	scp -i /home/alex/keys/aws/alex.pem  $(BUILDDIR)/kube-master.tar.gz ubuntu@$(MASTER_IP):/home/ubuntu
+
+deploy-experiment:
+	scp -i /home/alex/keys/aws/alex.pem start.sh ubuntu@$(MASTER_IP):/home/ubuntu
+#	scp -i /home/alex/keys/aws/alex.pem  ./image.tar.gz ubuntu@$(MASTER_IP):/home/ubuntu
 
 deploy-node:
 	scp -i /home/alex/keys/aws/alex.pem  $(BUILDDIR)/kube-node.tar.gz ubuntu@$(NODE_IP):/home/ubuntu
@@ -100,3 +101,17 @@ deploy-kubectl:
 # kernel version on ubuntu 14.04, docker with overlayfs needs new kernel. Devicemapper is not stable.
 # sudo apt-get install linux-headers-generic-lts-vivid linux-image-generic-lts-vivid
 # check kernel version, and if it's less than 3.18 back off
+
+run: clean cube
+	sudo $(GOPATH)/bin/cube start --force build/kube-master/rootfs
+
+
+enter:
+	sudo $(GOPATH)/bin/cube enter build/kube-master/rootfs
+
+stop:
+	sudo $(GOPATH)/bin/cube stop build/kube-master/rootfs
+
+clean:
+	rm -rf build/kube-master/rootfs/run/cube.socket
+
