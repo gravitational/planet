@@ -103,7 +103,8 @@ deploy-kubectl:
 # check kernel version, and if it's less than 3.18 back off
 
 run: clean cube
-	sudo $(GOPATH)/bin/cube start --force build/kube-master/rootfs
+	mkdir -p /tmp/data
+	sudo $(GOPATH)/bin/cube start --volume /tmp/data:/var/test/data --force build/kube-master/rootfs 
 
 
 enter:

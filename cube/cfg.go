@@ -14,6 +14,7 @@ type CubeConfig struct {
 	CloudProvider string
 	CloudConfig   string
 	Env           EnvVars
+	Mounts        Mounts
 	Force         bool
 }
 
@@ -42,6 +43,37 @@ func (vars *EnvVars) String() string {
 	for i, v := range *vars {
 		fmt.Fprintf(b, "%v=%v", v.k, v.v)
 		if i != len(*vars)-1 {
+			fmt.Fprintf(b, " ")
+		}
+	}
+	return b.String()
+}
+
+type Mount struct {
+	src string
+	dst string
+}
+
+type Mounts []Mount
+
+func (m *Mounts) Set(v string) error {
+	vals := strings.Split(v, ":")
+	if len(vals) != 2 {
+		return trace.Errorf(
+			"set mounts separated by : e.g. src:dst")
+	}
+	*m = append(*m, Mount{src: vals[0], dst: vals[1]})
+	return nil
+}
+
+func (m *Mounts) String() string {
+	if len(*m) == 0 {
+		return ""
+	}
+	b := &bytes.Buffer{}
+	for i, v := range *m {
+		fmt.Fprintf(b, "%v:%v", v.src, v.dst)
+		if i != len(*m)-1 {
 			fmt.Fprintf(b, " ")
 		}
 	}

@@ -94,6 +94,7 @@ func enterCmd() error {
 func startCmd() error {
 	var cfg CubeConfig
 	cfg.Env = EnvVars{}
+	cfg.Mounts = Mounts{}
 
 	args := os.Args[2:]
 	fs := flag.FlagSet{}
@@ -103,6 +104,7 @@ func startCmd() error {
 	fs.StringVar(&cfg.CloudConfig, "cloud-config", "", "cloud config")
 	fs.BoolVar(&cfg.Force, "force", true, "force start")
 	fs.Var(&cfg.Env, "env", "set environment variable")
+	fs.Var(&cfg.Mounts, "volume", "volume in form src:dst")
 	if err := fs.Parse(args); err != nil {
 		return trace.Wrap(err)
 	}

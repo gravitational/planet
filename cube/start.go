@@ -139,6 +139,19 @@ func start(cfg CubeConfig) error {
 		Hostname: containerID,
 	}
 
+	for _, m := range cfg.Mounts {
+		src, err := checkPath(m.src, false)
+		if err != nil {
+			return trace.Wrap(err)
+		}
+		config.Mounts = append(config.Mounts, &configs.Mount{
+			Device:      "bind",
+			Source:      src,
+			Destination: m.dst,
+			Flags:       syscall.MS_BIND,
+		})
+	}
+
 	container, err := root.Create(containerID, config)
 	if err != nil {
 		return trace.Wrap(err)
