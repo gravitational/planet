@@ -1,0 +1,78 @@
+{
+	"ImportPath": "github.com/gravitational/cube",
+	"GoVersion": "go1.4.2",
+	"Packages": [
+		"./cube/..."
+	],
+	"Deps": [
+		{
+			"ImportPath": "code.google.com/p/go-uuid/uuid",
+			"Comment": "null-15",
+			"Rev": "35bc42037350f0078e3c974c6ea690f1926603ab"
+		},
+		{
+			"ImportPath": "github.com/Sirupsen/logrus",
+			"Comment": "v0.8.3-3-g07d998d",
+			"Rev": "07d998d174c4e2dc90e2f1989a20724220bca1ff"
+		},
+		{
+			"ImportPath": "github.com/coreos/go-systemd/dbus",
+			"Comment": "v2",
+			"Rev": "f743bc15d6bddd23662280b4ad20f7c874cdd5ad"
+		},
+		{
+			"ImportPath": "github.com/docker/docker/pkg/mount",
+			"Comment": "v1.4.1-4715-ga893700",
+			"Rev": "a89370039a65f235d3dde5d36f20d0f463c615e9"
+		},
+		{
+			"ImportPath": "github.com/docker/docker/pkg/symlink",
+			"Comment": "v1.4.1-4715-ga893700",
+			"Rev": "a89370039a65f235d3dde5d36f20d0f463c615e9"
+		},
+		{
+			"ImportPath": "github.com/docker/docker/pkg/term",
+			"Comment": "v1.4.1-4715-ga893700",
+			"Rev": "a89370039a65f235d3dde5d36f20d0f463c615e9"
+		},
+		{
+			"ImportPath": "github.com/docker/docker/pkg/units",
+			"Comment": "v1.4.1-4715-ga893700",
+			"Rev": "a89370039a65f235d3dde5d36f20d0f463c615e9"
+		},
+		{
+			"ImportPath": "github.com/godbus/dbus",
+			"Comment": "v2-6-ga5942de",
+			"Rev": "a5942dec6340eb0d57f43f2003c190ce06e43dea"
+		},
+		{
+			"ImportPath": "github.com/golang/protobuf/proto",
+			"Rev": "aece6fb931241ad332956db4f62798dfbea944b3"
+		},
+		{
+			"ImportPath": "github.com/gravitational/roundtrip",
+			"Rev": "e7bee8354256fe4ae0d847e4c5d946d3e86f22af"
+		},
+		{
+			"ImportPath": "github.com/gravitational/trace",
+			"Rev": "a2e1dddd4f3fa799922c2aa2ef65d783355839fc"
+		},
+		{
+			"ImportPath": "github.com/julienschmidt/httprouter",
+			"Rev": "8c199fb6259ffc1af525cc3ad52ee60ba8359669"
+		},
+		{
+			"ImportPath": "github.com/opencontainers/runc/libcontainer",
+			"Comment": "v0.0.2",
+			"Rev": "1eeb86fbf2ec75661b9d843fd46679c868bc242d"
+		},
+		{
+			"ImportPath": "github.com/syndtr/gocapability/capability",
+			"Rev": "2c00daeb6c3b45114c80ac44119e7b8801fdd852"
+		},
+		{
+			"ImportPath": "golang.org/x/net/websocket",
+			"Rev": "e0403b4e005737430c05a57aac078479844f919c"
+		}
+	]
+}

@@ -11,7 +11,7 @@ import (
 	"strings"
 	"syscall"
 
-	"github.com/gravitational/trace"
+	"github.com/gravitational/cube/Godeps/_workspace/src/github.com/gravitational/trace"
 )
 
 func mayBeMountCgroups(root string) error {

@@ -10,11 +10,11 @@ import (
 	"net/url"
 	"os"
 
-	"github.com/docker/docker/pkg/term"
-	"github.com/gravitational/trace"
-	"github.com/opencontainers/runc/libcontainer"
-	_ "github.com/opencontainers/runc/libcontainer/nsenter" // this line is important for enter, nothing will work without it
-	"golang.org/x/net/websocket"
+	"github.com/gravitational/cube/Godeps/_workspace/src/github.com/docker/docker/pkg/term"
+	"github.com/gravitational/cube/Godeps/_workspace/src/github.com/gravitational/trace"
+	"github.com/gravitational/cube/Godeps/_workspace/src/github.com/opencontainers/runc/libcontainer"
+	_ "github.com/gravitational/cube/Godeps/_workspace/src/github.com/opencontainers/runc/libcontainer/nsenter" // this line is important for enter, nothing will work without it
+	"github.com/gravitational/cube/Godeps/_workspace/src/golang.org/x/net/websocket"
 )
 
 // enter initiates the process in the namespaces of the container

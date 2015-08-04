@@ -6,9 +6,9 @@ import (
 	"os"
 	"runtime"
 
-	"github.com/docker/docker/pkg/term"
-	"github.com/gravitational/trace"
-	"github.com/opencontainers/runc/libcontainer"
+	"github.com/gravitational/cube/Godeps/_workspace/src/github.com/docker/docker/pkg/term"
+	"github.com/gravitational/cube/Godeps/_workspace/src/github.com/gravitational/trace"
+	"github.com/gravitational/cube/Godeps/_workspace/src/github.com/opencontainers/runc/libcontainer"
 )
 
 func main() {
