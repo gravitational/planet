@@ -4,14 +4,15 @@ package main
 
 import (
 	"bufio"
+
 	"io/ioutil"
-	"log"
 	"os"
 	"path/filepath"
 	"strings"
 	"syscall"
 
-	"github.com/gravitational/trace"
+	"github.com/gravitational/cube/Godeps/_workspace/src/github.com/gravitational/trace"
+	"github.com/gravitational/log"
 )
 
 func mayBeMountCgroups(root string) error {
@@ -29,7 +30,7 @@ func mayBeMountCgroups(root string) error {
 	for c, _ := range cgroups {
 		for _, f := range files {
 			if strings.Contains(f.Name(), c) {
-				log.Printf("found mounted cgroup: %v, returning", c)
+				log.Infof("found mounted cgroup: %v, returning", c)
 				return nil
 			}
 		}
@@ -62,7 +63,7 @@ func mayBeMountCgroups(root string) error {
 		flags = syscall.MS_NOSUID |
 			syscall.MS_NOEXEC |
 			syscall.MS_NODEV
-		log.Printf("mount: %v %v %v %v %v", "cgroup", cPath, "cgroup", flags, c)
+		log.Infof("mount: %v %v %v %v %v", "cgroup", cPath, "cgroup", flags, c)
 		if err := syscall.Mount("cgroup", cPath, "cgroup", flags, c); err != nil {
 			return trace.Errorf("error mounting %q: %v", cPath, err)
 		}

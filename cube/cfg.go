@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/gravitational/trace"
+	"github.com/gravitational/cube/Godeps/_workspace/src/github.com/gravitational/trace"
 )
 
 type CubeConfig struct {
@@ -16,6 +16,9 @@ type CubeConfig struct {
 	Env           EnvVars
 	Mounts        Mounts
 	Force         bool
+
+	Log         string
+	LogSeverity string
 }
 
 type EnvPair struct {

@@ -4,8 +4,8 @@ import (
 	"net"
 	"net/http"
 
-	"github.com/gravitational/roundtrip"
-	"github.com/gravitational/trace"
+	"github.com/gravitational/cube/Godeps/_workspace/src/github.com/gravitational/roundtrip"
+	"github.com/gravitational/cube/Godeps/_workspace/src/github.com/gravitational/trace"
 )
 
 func getClient(path string) (*roundtrip.Client, error) {
