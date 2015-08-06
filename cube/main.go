@@ -5,7 +5,7 @@ import (
 	"os"
 	"runtime"
 
-	"github.com/gravitational/log"
+	"github.com/gravitational/cube/Godeps/_workspace/src/github.com/gravitational/log"
 
 	"github.com/gravitational/cube/Godeps/_workspace/src/github.com/docker/docker/pkg/term"
 	"github.com/gravitational/cube/Godeps/_workspace/src/github.com/gravitational/trace"

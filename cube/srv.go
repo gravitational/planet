@@ -3,7 +3,7 @@ package main
 import (
 	"encoding/hex"
 	"encoding/json"
-	"github.com/gravitational/log"
+	"github.com/gravitational/cube/Godeps/_workspace/src/github.com/gravitational/log"
 	"net/http"
 	"os"
 

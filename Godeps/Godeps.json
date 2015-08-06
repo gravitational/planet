@@ -50,6 +50,10 @@
 			"Rev": "aece6fb931241ad332956db4f62798dfbea944b3"
 		},
 		{
+			"ImportPath": "github.com/gravitational/log",
+			"Rev": "8e1bbf1bba0515719dbb17adf1da20b5390ac8da"
+		},
+		{
 			"ImportPath": "github.com/gravitational/roundtrip",
 			"Rev": "e7bee8354256fe4ae0d847e4c5d946d3e86f22af"
 		},

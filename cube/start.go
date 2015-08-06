@@ -4,7 +4,7 @@ import (
 	"bufio"
 	"bytes"
 	"fmt"
-	"github.com/gravitational/log"
+	"github.com/gravitational/cube/Godeps/_workspace/src/github.com/gravitational/log"
 	"io/ioutil"
 	"net"
 	"net/http"
