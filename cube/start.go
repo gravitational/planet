@@ -35,9 +35,9 @@ func start(cfg CubeConfig) error {
 	}
 
 	log.Infof("kernel: %v.%v\n", k, m)
-	if k*100+m != 313 {
+	if k*100+m < 313 {
 		err := trace.Errorf(
-			"current supported kernel version is 3.13. Upgrade kernel before moving on.")
+			"current minimum supported kernel version is 3.13. Upgrade kernel before moving on.")
 		if !cfg.Force {
 			return err
 		}
@@ -184,7 +184,11 @@ func start(cfg CubeConfig) error {
 		return err
 	}
 
-	go monitorMasterUnits(container)
+	if cfg.Role == "master" {
+		go monitorMasterUnits(container)
+	} else {
+		go monitorNodeUnits(container)
+	}
 
 	// wait for the process to finish.
 	status, err := process.Wait()
@@ -235,12 +239,47 @@ func monitorMasterUnits(c libcontainer.Container) {
 	}
 }
 
+func monitorNodeUnits(c libcontainer.Container) {
+	units := map[string]string{
+		"docker.service":     "",
+		"flanneld.service":   "",
+		"kube-proxy.service": "",
+		"kubelet.service":    "",
+	}
+
+	for i := 0; i < 10; i++ {
+		for u := range units {
+			status, err := getStatus(c, u)
+
+			if err != nil {
+				log.Infof("error getting status: %v", err)
+			}
+			units[u] = status
+		}
+
+		for u, s := range units {
+			if s != "" {
+				fmt.Printf("* %v[OK]\n", u)
+				delete(units, u)
+			}
+
+		}
+		if len(units) == 0 {
+			fmt.Printf("all units are up\n")
+			return
+		} else {
+			fmt.Printf("waiting for %v\n", unitNames(units))
+		}
+		time.Sleep(time.Second)
+	}
+}
+
 func unitNames(units map[string]string) []string {
 	out := []string{}
 	for u := range units {
 		out = append(out, u)
 	}
-	sort.StringSlice(out)
+	sort.StringSlice(out).Sort()
 	return out
 }
 

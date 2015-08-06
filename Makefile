@@ -58,10 +58,10 @@ deploy-node2:
 	scp -i /home/alex/keys/aws/alex.pem  $(BUILDDIR)/kube-node.tar.gz ubuntu@$(NODE2_IP):/home/ubuntu
 
 deploy-cube-master:
-	scp -i /home/alex/keys/aws/alex.pem  $(GOPATH)/bin/cube ubuntu@$(MASTER_IP):/home/ubuntu/kube-master/
+	scp -i /home/alex/keys/aws/alex.pem  $(BUILDDIR)/cube ubuntu@$(MASTER_IP):/home/ubuntu/
 
 deploy-cube-node:
-	scp -i /home/alex/keys/aws/alex.pem  $(GOPATH)/bin/cube ubuntu@$(NODE_IP):/home/ubuntu/kube-node/
+	scp -i /home/alex/keys/aws/alex.pem  $(BUILDDIR)/cube ubuntu@$(NODE_IP):/home/ubuntu
 
 deploy-nsenter:
 	scp -i /home/alex/keys/aws/alex.pem /usr/bin/nsenter ubuntu@$(MASTER_IP):/home/ubuntu/

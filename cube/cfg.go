@@ -9,6 +9,7 @@ import (
 )
 
 type CubeConfig struct {
+	Role          string
 	Rootfs        string
 	MasterIP      string
 	CloudProvider string
@@ -16,9 +17,6 @@ type CubeConfig struct {
 	Env           EnvVars
 	Mounts        Mounts
 	Force         bool
-
-	Log         string
-	LogSeverity string
 }
 
 type EnvPair struct {

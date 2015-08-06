@@ -1,14 +1,14 @@
 .PHONY: all
 
-VER := 0.5.1
+VER := e11687885d28cdcee8c5c203f3b25a67421a69d8
 ARCH := amd64
 NAME := flannel
 TARGET := $(NAME)-$(VER)
 TARGET_TAR := $(TARGET)-linux-$(ARCH).tar.gz
 
-all: $(BUILDDIR)/$(TARGET)/flanneld $(BUILDDIR)/setup-network-environment network.mk
+all: $(BUILDDIR)/flanneld $(BUILDDIR)/setup-network-environment network.mk
 	mkdir -p $(ROOTFS)/usr/bin
-	cp -af $(BUILDDIR)/$(TARGET)/flanneld $(ROOTFS)/usr/bin
+	cp -af $(BUILDDIR)/flanneld $(ROOTFS)/usr/bin
 	cp -af $(BUILDDIR)/setup-network-environment $(ROOTFS)/usr/bin
 
 	cp -af ./setup-network-environment.service $(ROOTFS)/lib/systemd/system
@@ -28,9 +28,17 @@ all: $(BUILDDIR)/$(TARGET)/flanneld $(BUILDDIR)/setup-network-environment networ
 	cp -af ./ca-certificates.conf $(ROOTFS)/etc
 
 
-$(BUILDDIR)/$(TARGET)/flanneld:
-	curl -L https://github.com/coreos/flannel/releases/download/v$(VER)/$(TARGET_TAR) -o $(BUILDDIR)/$(TARGET_TAR)
-	cd $(BUILDDIR) && tar -xzf $(TARGET_TAR)
+
+$(BUILDDIR)/flanneld: DIR := $(shell mktemp -d)
+$(BUILDDIR)/flanneld: GOPATH := $(DIR)
+$(BUILDDIR)/flanneld:
+	mkdir -p $(DIR)/src/github.com/coreos
+	cd $(DIR)/src/github.com/coreos && git clone https://github.com/coreos/flannel
+	cd $(DIR)/src/github.com/coreos/flannel && git checkout $(VER)
+	cd $(DIR)/src/github.com/coreos/flannel && go build -o flanneld .
+	cp $(DIR)/src/github.com/coreos/flannel/flanneld $(BUILDDIR)
+	rm -rf $(DIR)
+
 
 $(BUILDDIR)/setup-network-environment: DIR := $(shell mktemp -d)
 $(BUILDDIR)/setup-network-environment: GOPATH := $(DIR)

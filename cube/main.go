@@ -12,7 +12,27 @@ import (
 	"github.com/gravitational/cube/Godeps/_workspace/src/github.com/opencontainers/runc/libcontainer"
 )
 
+func initLogging() {
+	fs := flag.FlagSet{}
+
+	var logOutput, logSeverity string
+
+	flag.StringVar(
+		&logOutput, "log", "console",
+		"log output, currently 'console' or 'syslog'")
+
+	flag.StringVar(
+		&logSeverity, "log-severity", "WARN",
+		"log severity, INFO or WARN or ERROR")
+
+	fs.Parse(os.Args)
+
+	log.Initialize(logOutput, logSeverity)
+}
+
 func main() {
+	initLogging()
+
 	if len(os.Args) < 2 {
 		log.Fatalf("specify a command, one of 'start', 'enter', 'stop'")
 	}
@@ -63,23 +83,11 @@ func enterCmd() error {
 	cfg := ProcessConfig{}
 	var tty bool
 
-	var logOutput, logSeverity string
-
-	flag.StringVar(
-		&logOutput, "log", "console",
-		"log output, currently 'console' or 'syslog'")
-
-	flag.StringVar(
-		&logSeverity, "log-severity", "WARN",
-		"log severity, INFO or WARN or ERROR")
-
 	fs.BoolVar(&tty, "tty", true, "attach terminal (for interactive sessions)")
 	fs.StringVar(&cfg.User, "user", "root", "user running the process")
 	if err := fs.Parse(args); err != nil {
 		return trace.Wrap(err)
 	}
-
-	log.Initialize(logOutput, logSeverity)
 
 	posArgs := fs.Args()
 	log.Infof("args: %v", posArgs)
@@ -112,13 +120,7 @@ func startCmd() error {
 	args := os.Args[2:]
 	fs := flag.FlagSet{}
 
-	flag.StringVar(
-		&cfg.Log, "log", "console",
-		"log output, currently 'console' or 'syslog'")
-	flag.StringVar(
-		&cfg.LogSeverity, "log-severity", "WARN",
-		"log severity, INFO or WARN or ERROR")
-
+	fs.StringVar(&cfg.Role, "role", "master", "role, node or master")
 	fs.StringVar(&cfg.MasterIP, "master-ip", "127.0.0.1", "master ip")
 	fs.StringVar(&cfg.CloudProvider, "cloud-provider", "", "cloud provider")
 	fs.StringVar(&cfg.CloudConfig, "cloud-config", "", "cloud config")
@@ -128,8 +130,6 @@ func startCmd() error {
 	if err := fs.Parse(args); err != nil {
 		return trace.Wrap(err)
 	}
-
-	log.Initialize(cfg.Log, cfg.LogSeverity)
 
 	posArgs := fs.Args()
 	log.Infof("args: %v", posArgs)
