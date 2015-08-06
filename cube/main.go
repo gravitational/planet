@@ -12,26 +12,8 @@ import (
 	"github.com/gravitational/cube/Godeps/_workspace/src/github.com/opencontainers/runc/libcontainer"
 )
 
-func initLogging() {
-	fs := flag.FlagSet{}
-
-	var logOutput, logSeverity string
-
-	flag.StringVar(
-		&logOutput, "log", "console",
-		"log output, currently 'console' or 'syslog'")
-
-	flag.StringVar(
-		&logSeverity, "log-severity", "WARN",
-		"log severity, INFO or WARN or ERROR")
-
-	fs.Parse(os.Args)
-
-	log.Initialize(logOutput, logSeverity)
-}
-
 func main() {
-	initLogging()
+	log.Initialize("console", "WARN")
 
 	if len(os.Args) < 2 {
 		log.Fatalf("specify a command, one of 'start', 'enter', 'stop'")
