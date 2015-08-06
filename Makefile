@@ -6,39 +6,25 @@ NODE2_IP := 54.68.41.110
 BUILDDIR := $(abspath build)
 export
 
-all:
-	mkdir -p $(BUILDDIR)
-	ROOTFS=$(BUILDDIR)/rootfs $(MAKE) -C image -f image.mk
-	ROOTFS=$(BUILDDIR)/rootfs $(MAKE) -C network -f network.mk
-	ROOTFS=$(BUILDDIR)/rootfs $(MAKE) -C docker -f docker.mk
-
-# at this point, $(BUILDDIR)/rootfs will contain the base Ubuntu image with rkt.
-# create two copies of this rootfs, one for master, another for node
-	mkdir -p $(BUILDDIR)/kube-master $(BUILDDIR)/kube-node
-	cp -r $(BUILDDIR)/rootfs $(BUILDDIR)/kube-master
-	cp -r $(BUILDDIR)/rootfs $(BUILDDIR)/kube-node
-
-# build kube-master
-	ROOTFS=$(BUILDDIR)/kube-master/rootfs $(MAKE) -C etcd -f etcd.mk
-	ROOTFS=$(BUILDDIR)/kube-master/rootfs $(MAKE) -C k8s-master -f k8s-master.mk
-
-# build kube-node
-	ROOTFS=$(BUILDDIR)/kube-node/rootfs $(MAKE) -C etcdctl -f etcdctl.mk
-	ROOTFS=$(BUILDDIR)/kube-node/rootfs $(MAKE) -C k8s-node -f k8s-node.mk
-	go install github.com/gravitational/cube/cube
-
-# compile cube binary
-	go install github.com/gravitational/cube/cube
-
-# create tarballs 
-	cp $(GOPATH)/bin/cube build/kube-master
-	cp $(GOPATH)/bin/cube build/kube-node
-
-#	cd $(BUILDDIR) && tar -czf kube-master.tar.gz kube-master 
-#	cd $(BUILDDIR) && tar -czf kube-node.tar.gz kube-node
+all: cube-base cube-master cube-node cube
 
 cube:
-	go install github.com/gravitational/cube/cube
+	go build -o build/cube github.com/gravitational/cube/cube
+
+cube-base:
+	cd makefiles/cube-base && sudo docker build -t cube/base .
+
+cube-master:
+	cd makefiles/cube-master && sudo docker build -t cube/master .
+	mkdir -p build
+	rm -rf build/kube-master.tar.gz
+	id=$$(sudo docker create cube/master:latest) && sudo docker cp $$id:/build/kube-master.tar.gz build/
+
+cube-node:
+	cd makefiles/cube-node && sudo docker build -t cube/node .
+	mkdir -p build
+	rm -rf build/kube-node.tar.gz
+	id=$$(sudo docker create cube/node:latest) && sudo docker cp $$id:/build/kube-node.tar.gz build/
 
 run-master:
 	sudo $(shell which cube) build/kube-master/rootfs
@@ -115,4 +101,6 @@ stop:
 
 clean:
 	rm -rf build/kube-master/rootfs/run/cube.socket
+
+
 

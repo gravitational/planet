@@ -4,8 +4,8 @@ import (
 	"bytes"
 	"encoding/hex"
 	"encoding/json"
+	"github.com/gravitational/log"
 	"io"
-	"log"
 	"net"
 	"net/url"
 	"os"
@@ -64,7 +64,7 @@ func enter(path string, cfg ProcessConfig) error {
 		exitC <- err
 	}()
 
-	log.Printf("connected to container namespace")
+	log.Infof("connected to container namespace")
 
 	for i := 0; i < 2; i++ {
 		<-exitC
@@ -99,7 +99,7 @@ func combinedOutput(c libcontainer.Container, cfg ProcessConfig) ([]byte, error)
 }
 
 func startProcess(c libcontainer.Container, cfg ProcessConfig) (*os.ProcessState, error) {
-	log.Printf("start process in the container: %v", cfg)
+	log.Infof("start process in the container: %v", cfg)
 
 	if cfg.TTY != nil {
 		return startProcessTTY(c, cfg)
@@ -110,7 +110,7 @@ func startProcess(c libcontainer.Container, cfg ProcessConfig) (*os.ProcessState
 }
 
 func startProcessTTY(c libcontainer.Container, cfg ProcessConfig) (*os.ProcessState, error) {
-	log.Printf("start process in the container: %#v", cfg)
+	log.Infof("start process in the container: %#v", cfg)
 
 	p := &libcontainer.Process{
 		Args: cfg.Args,
@@ -144,7 +144,7 @@ func startProcessTTY(c libcontainer.Container, cfg ProcessConfig) (*os.ProcessSt
 		return nil, trace.Wrap(err)
 	}
 
-	log.Printf("started process just okay")
+	log.Infof("started process just okay")
 
 	// wait for the process to finish.
 	s, err := p.Wait()
@@ -152,12 +152,12 @@ func startProcessTTY(c libcontainer.Container, cfg ProcessConfig) (*os.ProcessSt
 		return nil, trace.Wrap(err)
 	}
 
-	log.Printf("process status: %v %v", s, err)
+	log.Infof("process status: %v %v", s, err)
 	return s, nil
 }
 
 func startProcessStdout(c libcontainer.Container, cfg ProcessConfig) (*os.ProcessState, error) {
-	log.Printf("start process in the container: %v", cfg)
+	log.Infof("start process in the container: %v", cfg)
 
 	p := &libcontainer.Process{
 		Args:   cfg.Args,
@@ -174,7 +174,7 @@ func startProcessStdout(c libcontainer.Container, cfg ProcessConfig) (*os.Proces
 		return nil, trace.Wrap(err)
 	}
 
-	log.Printf("started process just okay")
+	log.Infof("started process just okay")
 
 	// wait for the process to finish.
 	s, err := p.Wait()
@@ -182,6 +182,6 @@ func startProcessStdout(c libcontainer.Container, cfg ProcessConfig) (*os.Proces
 		return nil, trace.Wrap(err)
 	}
 
-	log.Printf("process status: %v %v", s, err)
+	log.Infof("process status: %v %v", s, err)
 	return s, nil
 }

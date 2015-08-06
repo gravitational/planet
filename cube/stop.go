@@ -3,8 +3,8 @@ package main
 import (
 	"encoding/hex"
 	"encoding/json"
+	"github.com/gravitational/log"
 	"io"
-	"log"
 	"net"
 	"net/url"
 	"os"
@@ -55,7 +55,7 @@ func stop(path string) error {
 		exitC <- err
 	}()
 
-	log.Printf("connected to container namespace")
+	log.Infof("connected to container namespace")
 
 	for i := 0; i < 2; i++ {
 		<-exitC

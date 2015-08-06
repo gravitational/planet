@@ -4,13 +4,14 @@ import (
 	"bufio"
 	"bytes"
 	"fmt"
+	"github.com/gravitational/log"
 	"io/ioutil"
-	"log"
 	"net"
 	"net/http"
 	"os"
 	"os/exec"
 	"path/filepath"
+	"sort"
 	"strings"
 	"syscall"
 	"time"
@@ -23,7 +24,7 @@ import (
 )
 
 func start(cfg CubeConfig) error {
-	log.Printf("starting with config: %v", cfg)
+	log.Infof("starting with config: %v", cfg)
 
 	if os.Geteuid() != 0 {
 		trace.Errorf("should be run as root")
@@ -33,14 +34,14 @@ func start(cfg CubeConfig) error {
 		return err
 	}
 
-	log.Printf("kernel: %v.%v\n", k, m)
+	log.Infof("kernel: %v.%v\n", k, m)
 	if k*100+m != 313 {
 		err := trace.Errorf(
 			"current supported kernel version is 3.13. Upgrade kernel before moving on.")
 		if !cfg.Force {
 			return err
 		}
-		log.Printf("warning: %v", err)
+		log.Infof("warning: %v", err)
 	}
 
 	if err := supportsAufs(); err != nil {
@@ -56,9 +57,9 @@ func start(cfg CubeConfig) error {
 		return err
 	}
 
-	log.Printf("starting container process in '%v'", rootfs)
+	log.Infof("starting container process in '%v'", rootfs)
 
-	log.Printf("writing environment...")
+	log.Infof("writing environment...")
 	cfg.Env = append(cfg.Env,
 		EnvPair{k: "KUBE_MASTER_IP", v: cfg.MasterIP},
 		EnvPair{k: "KUBE_CLOUD_PROVIDER", v: cfg.CloudProvider})
@@ -161,7 +162,7 @@ func start(cfg CubeConfig) error {
 	if err != nil {
 		return trace.Wrap(err)
 	}
-	log.Printf("container status: %v %v", st, err)
+	log.Infof("container status: %v %v", st, err)
 
 	process := &libcontainer.Process{
 		Args:   []string{"/bin/systemd"},
@@ -191,7 +192,7 @@ func start(cfg CubeConfig) error {
 		return trace.Wrap(err)
 	}
 
-	log.Printf("process status: %v %v", status, err)
+	log.Infof("process status: %v %v", status, err)
 
 	container.Destroy()
 	return nil
@@ -212,29 +213,35 @@ func monitorMasterUnits(c libcontainer.Container) {
 			status, err := getStatus(c, u)
 
 			if err != nil {
-				log.Printf("error getting status: %v", err)
+				log.Infof("error getting status: %v", err)
 			}
 			units[u] = status
 		}
 
 		for u, s := range units {
-			log.Printf("%v[%v]", strings.ToUpper(u), strings.ToUpper(s))
+			if s != "" {
+				fmt.Printf("* %v[OK]\n", u)
+				delete(units, u)
+			}
+
 		}
-		if allUnitsActive(units) {
-			log.Printf("all units are up")
+		if len(units) == 0 {
+			fmt.Printf("all units are up\n")
 			return
+		} else {
+			fmt.Printf("waiting for %v\n", unitNames(units))
 		}
 		time.Sleep(time.Second)
 	}
 }
 
-func allUnitsActive(units map[string]string) bool {
-	for _, s := range units {
-		if s != "active" {
-			return false
-		}
+func unitNames(units map[string]string) []string {
+	out := []string{}
+	for u := range units {
+		out = append(out, u)
 	}
-	return true
+	sort.StringSlice(out)
+	return out
 }
 
 func getStatus(c libcontainer.Container, unit string) (string, error) {
@@ -400,12 +407,12 @@ func startServer(path string, c libcontainer.Container) error {
 	}
 	go func() {
 		defer func() {
-			if err := os.Remove(path); err != nil {
-				log.Printf("failed to remove socket file: %v", err)
+			if err := l.Close(); err != nil {
+				log.Warningf("failed to remove socket file: %v", err)
 			}
 		}()
 		if err := srv.Serve(l); err != nil {
-			log.Printf("server stopped with: %v", err)
+			log.Infof("server stopped with: %v", err)
 		}
 	}()
 	return nil

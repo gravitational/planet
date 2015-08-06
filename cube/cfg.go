@@ -16,6 +16,9 @@ type CubeConfig struct {
 	Env           EnvVars
 	Mounts        Mounts
 	Force         bool
+
+	Log         string
+	LogSeverity string
 }
 
 type EnvPair struct {
