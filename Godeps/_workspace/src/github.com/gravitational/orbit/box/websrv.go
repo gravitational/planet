@@ -1,12 +1,12 @@
-package main
+package box
 
 import (
 	"encoding/hex"
 	"encoding/json"
-	"github.com/gravitational/cube/Godeps/_workspace/src/github.com/gravitational/log"
 	"net/http"
 	"os"
 
+	"github.com/gravitational/cube/Godeps/_workspace/src/github.com/gravitational/log"
 	"github.com/gravitational/cube/Godeps/_workspace/src/github.com/gravitational/roundtrip"
 	"github.com/gravitational/cube/Godeps/_workspace/src/github.com/gravitational/trace"
 
@@ -16,13 +16,13 @@ import (
 	"github.com/gravitational/cube/Godeps/_workspace/src/golang.org/x/net/websocket"
 )
 
-type ContainerServer struct {
+type webServer struct {
 	httprouter.Router
 	c libcontainer.Container
 }
 
-func NewServer(c libcontainer.Container) *ContainerServer {
-	s := &ContainerServer{
+func NewWebServer(c libcontainer.Container) *webServer {
+	s := &webServer{
 		c: c,
 	}
 
@@ -33,10 +33,10 @@ func NewServer(c libcontainer.Container) *ContainerServer {
 	return s
 }
 
-func (h *ContainerServer) handle(fn handler) httprouter.Handle {
+func (h *webServer) handle(fn handler) httprouter.Handle {
 	return func(w http.ResponseWriter, r *http.Request, p httprouter.Params) {
 		if err := fn(w, r, p); err != nil {
-			log.Infof("error in handler: %v", err)
+			log.Errorf("error in handler: %v", err)
 			roundtrip.ReplyJSON(
 				w, http.StatusInternalServerError, err.Error())
 			return
@@ -45,7 +45,7 @@ func (h *ContainerServer) handle(fn handler) httprouter.Handle {
 	return nil
 }
 
-func (s *ContainerServer) enter(w http.ResponseWriter, r *http.Request, p httprouter.Params) error {
+func (s *webServer) enter(w http.ResponseWriter, r *http.Request, p httprouter.Params) error {
 	q := r.URL.Query()
 
 	log.Infof("query: %v", q)
@@ -95,7 +95,7 @@ func (w *enterHandler) enter(ws *websocket.Conn) (*os.ProcessState, error) {
 	defer ws.Close()
 	w.cfg.In = ws
 	w.cfg.Out = ws
-	return startProcess(w.c, w.cfg)
+	return StartProcess(w.c, w.cfg)
 }
 
 func (w *enterHandler) Handler() http.Handler {

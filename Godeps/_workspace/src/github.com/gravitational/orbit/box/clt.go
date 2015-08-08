@@ -1,27 +1,30 @@
-package main
+package box
 
 import (
 	"encoding/hex"
 	"encoding/json"
-	"github.com/gravitational/cube/Godeps/_workspace/src/github.com/gravitational/log"
 	"io"
 	"net"
 	"net/url"
-	"os"
 
+	"github.com/gravitational/cube/Godeps/_workspace/src/github.com/gravitational/log"
 	"github.com/gravitational/cube/Godeps/_workspace/src/github.com/gravitational/trace"
 	"github.com/gravitational/cube/Godeps/_workspace/src/golang.org/x/net/websocket"
 )
 
-func stop(path string) error {
-	cfg := ProcessConfig{
-		User: "root",
-		Args: []string{"/bin/systemctl", "halt"},
-	}
+type client struct {
+	path string
+}
+
+func Connect(path string) (ContainerServer, error) {
 	path, err := checkPath(serverSockPath(path), false)
 	if err != nil {
-		return err
+		return nil, err
 	}
+	return &client{path: path}, nil
+}
+
+func (c *client) Enter(cfg ProcessConfig) error {
 	u := url.URL{Host: "cube", Scheme: "ws", Path: "/v1/enter"}
 	data, err := json.Marshal(cfg)
 	if err != nil {
@@ -35,23 +38,24 @@ func stop(path string) error {
 	if err != nil {
 		return trace.Wrap(err, "failed to enter container")
 	}
-	conn, err := net.Dial("unix", path)
+	conn, err := net.Dial("unix", c.path)
 	if err != nil {
 		return trace.Wrap(err, "failed to connect to cube socket")
 	}
-	c, err := websocket.NewClient(wscfg, conn)
+	clt, err := websocket.NewClient(wscfg, conn)
 	if err != nil {
 		return trace.Wrap(err)
 	}
+	defer clt.Close()
 
 	exitC := make(chan error, 2)
 	go func() {
-		_, err := io.Copy(os.Stdout, c)
+		_, err := io.Copy(cfg.Out, clt)
 		exitC <- err
 	}()
 
 	go func() {
-		_, err := io.Copy(c, os.Stdin)
+		_, err := io.Copy(clt, cfg.In)
 		exitC <- err
 	}()
 

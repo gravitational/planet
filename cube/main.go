@@ -5,9 +5,10 @@ import (
 	"os"
 	"runtime"
 
-	"github.com/gravitational/cube/Godeps/_workspace/src/github.com/gravitational/log"
+	"github.com/gravitational/cube/Godeps/_workspace/src/github.com/gravitational/orbit/box"
 
 	"github.com/gravitational/cube/Godeps/_workspace/src/github.com/docker/docker/pkg/term"
+	"github.com/gravitational/cube/Godeps/_workspace/src/github.com/gravitational/log"
 	"github.com/gravitational/cube/Godeps/_workspace/src/github.com/gravitational/trace"
 	"github.com/gravitational/cube/Godeps/_workspace/src/github.com/opencontainers/runc/libcontainer"
 )
@@ -36,7 +37,7 @@ func main() {
 	}
 
 	if err != nil {
-		log.Fatalf("cube error: %v", err)
+		log.Fatalf("cube error: %v %T", err, err)
 	}
 
 	log.Infof("cube: execution completed successfully")
@@ -62,7 +63,10 @@ func enterCmd() error {
 	args := os.Args[2:]
 	fs := flag.FlagSet{}
 
-	cfg := ProcessConfig{}
+	cfg := box.ProcessConfig{
+		In:  os.Stdin,
+		Out: os.Stdout,
+	}
 	var tty bool
 
 	fs.BoolVar(&tty, "tty", true, "attach terminal (for interactive sessions)")
@@ -88,7 +92,7 @@ func enterCmd() error {
 		if err != nil {
 			return trace.Wrap(err)
 		}
-		cfg.TTY = &TTY{H: int(s.Height), W: int(s.Width)}
+		cfg.TTY = &box.TTY{H: int(s.Height), W: int(s.Width)}
 	}
 
 	return enter(path, cfg)
@@ -96,8 +100,8 @@ func enterCmd() error {
 
 func startCmd() error {
 	var cfg CubeConfig
-	cfg.Env = EnvVars{}
-	cfg.Mounts = Mounts{}
+	cfg.Env = box.EnvVars{}
+	cfg.Mounts = box.Mounts{}
 
 	args := os.Args[2:]
 	fs := flag.FlagSet{}
