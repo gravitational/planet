@@ -55,11 +55,11 @@
 		},
 		{
 			"ImportPath": "github.com/gravitational/orbit/box",
-			"Rev": "31a2a49419ef30e3e31904745d678fb9a271ce16"
+			"Rev": "1b843a6541c2cb6b5c1e88185409f4f6338ddfb7"
 		},
 		{
 			"ImportPath": "github.com/gravitational/orbit/check",
-			"Rev": "31a2a49419ef30e3e31904745d678fb9a271ce16"
+			"Rev": "1b843a6541c2cb6b5c1e88185409f4f6338ddfb7"
 		},
 		{
 			"ImportPath": "github.com/gravitational/roundtrip",
