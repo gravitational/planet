@@ -5,7 +5,7 @@ Installable Kubernetes delivered in Orbit containers
 Installation
 -------------
 
-**IMPORTANT** this will work only on ubuntu 15.04!
+**IMPORTANT** the build process relies on Docker. Install docker to make sure your build succeeds
 
 Installation
 ```
