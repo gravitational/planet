@@ -97,10 +97,14 @@ clean:
 
 
 start-dev:
-	sudo mkdir -p /var/cube/registry /var/cube/etcd
-	sudo ./build/cube start -role=master\
-          -role=node -volume=/var/cube/etcd:/var/etcd\
-          -volume=/var/cube/registry:/var/registry build/rootfs
+	sudo mkdir -p /var/cube/registry /var/cube/etcd /var/cube/docker
+	sudo ./build/cube start\
+		-role=master\
+		-role=node\
+		-volume=/var/cube/etcd:/ext/etcd\
+		-volume=/var/cube/registry:/ext/registry\
+		-volume=/var/cube/docker:/ext/docker\
+		build/rootfs
 
 stop:
 	sudo ./build/cube stop build/rootfs

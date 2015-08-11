@@ -88,8 +88,9 @@ func start(conf CubeConfig) error {
 
 func checkMounts(cfg CubeConfig) error {
 	expected := map[string]bool{
-		"/var/etcd":     false,
-		"/var/registry": false,
+		"/ext/etcd":     false,
+		"/ext/registry": false,
+		"/ext/docker":   false,
 	}
 	for _, m := range cfg.Mounts {
 		dst := filepath.Clean(m.Dst)
