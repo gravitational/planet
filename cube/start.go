@@ -2,6 +2,7 @@ package main
 
 import (
 	"fmt"
+	"path/filepath"
 	"sort"
 	"strings"
 	"time"
@@ -38,6 +39,10 @@ func start(conf CubeConfig) error {
 		return trace.Errorf("need aufs support on the machine")
 	}
 
+	if err := checkMounts(conf); err != nil {
+		return err
+	}
+
 	conf.Env = append(conf.Env,
 		box.EnvPair{Name: "KUBE_MASTER_IP", Val: conf.MasterIP},
 		box.EnvPair{Name: "KUBE_CLOUD_PROVIDER", Val: conf.CloudProvider},
@@ -64,9 +69,10 @@ func start(conf CubeConfig) error {
 		return err
 	}
 
-	if conf.Role == "master" {
+	if conf.hasRole("master") {
 		go monitorMasterUnits(b.Container)
-	} else {
+	}
+	if conf.hasRole("node") {
 		go monitorNodeUnits(b.Container)
 	}
 
@@ -77,6 +83,26 @@ func start(conf CubeConfig) error {
 	}
 
 	log.Infof("process status: %v %v", status, err)
+	return nil
+}
+
+func checkMounts(cfg CubeConfig) error {
+	expected := map[string]bool{
+		"/var/etcd":     false,
+		"/var/registry": false,
+	}
+	for _, m := range cfg.Mounts {
+		dst := filepath.Clean(m.Dst)
+		if _, ok := expected[dst]; ok {
+			expected[dst] = true
+		}
+	}
+	for k, v := range expected {
+		if !v {
+			return trace.Errorf(
+				"please supply mount source for data directory '%v'", k)
+		}
+	}
 	return nil
 }
 
@@ -108,10 +134,10 @@ func monitorMasterUnits(c libcontainer.Container) {
 
 		}
 		if len(units) == 0 {
-			fmt.Printf("all units are up\n")
+			fmt.Printf("[cube-master] all units are up\n")
 			return
 		} else {
-			fmt.Printf("waiting for %v\n", unitNames(units))
+			fmt.Printf("[cube-master] waiting for %v\n", unitNames(units))
 		}
 		time.Sleep(time.Second)
 	}
@@ -119,10 +145,10 @@ func monitorMasterUnits(c libcontainer.Container) {
 
 func monitorNodeUnits(c libcontainer.Container) {
 	units := map[string]string{
-		"docker.service":     "",
-		"flanneld.service":   "",
-		"kube-proxy.service": "",
-		"kubelet.service":    "",
+		"docker.service":       "",
+		"flanneld.service":     "",
+		"kube-proxy.service":   "",
+		"kube-kubelet.service": "",
 	}
 
 	for i := 0; i < 10; i++ {
@@ -143,10 +169,10 @@ func monitorNodeUnits(c libcontainer.Container) {
 
 		}
 		if len(units) == 0 {
-			fmt.Printf("all units are up\n")
+			fmt.Printf("[cube-node] all units are up\n")
 			return
 		} else {
-			fmt.Printf("waiting for %v\n", unitNames(units))
+			fmt.Printf("[cube-node] waiting for %v\n", unitNames(units))
 		}
 		time.Sleep(time.Second)
 	}

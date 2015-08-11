@@ -14,23 +14,23 @@ cube:
 cube-base:
 	cd makefiles/cube-base && sudo docker build -t cube/base .
 
+cube-dev:
+	cd makefiles && sudo docker build -t cube/dev .
+	mkdir -p build
+	rm -rf build/kube-dev.tar.gz
+	id=$$(sudo docker create cube/dev:latest) && sudo docker cp $$id:/build/kube-dev.tar.gz build/
+
 cube-master:
 	cd makefiles/cube-master && sudo docker build -t cube/master .
 	mkdir -p build
 	rm -rf build/kube-master.tar.gz
-	id=$$(sudo docker create cube/master:latest) && sudo docker cp $$id:/build/kube-master.tar.gz build/
+	id=$$(sudo docker create cube/dev:latest) && sudo docker cp $$id:/build/kube-dev.tar.gz build/
 
 cube-node:
 	cd makefiles/cube-node && sudo docker build -t cube/node .
 	mkdir -p build
 	rm -rf build/kube-node.tar.gz
 	id=$$(sudo docker create cube/node:latest) && sudo docker cp $$id:/build/kube-node.tar.gz build/
-
-run-master:
-	sudo $(shell which cube) build/kube-master/rootfs
-
-enter-systemd:
-	sudo nsenter --target $$(ps uax  | grep [/]bin/systemd | awk '{ print $$2 }') --pid --mount --uts --ipc --net /bin/bash	
 
 kill-systemd:
 	sudo kill -9 $$(ps uax  | grep [/]bin/systemd | awk '{ print $$2 }')
@@ -88,19 +88,19 @@ deploy-kubectl:
 # sudo apt-get install linux-headers-generic-lts-vivid linux-image-generic-lts-vivid
 # check kernel version, and if it's less than 3.18 back off
 
-run: clean cube
-	mkdir -p /tmp/data
-	sudo $(GOPATH)/bin/cube start --volume /tmp/data:/var/test/data --force build/kube-master/rootfs 
-
-
 enter:
-	sudo $(GOPATH)/bin/cube enter build/kube-master/rootfs
+	sudo ./build/cube enter build/rootfs
 
-stop:
-	sudo $(GOPATH)/bin/cube stop build/kube-master/rootfs
 
 clean:
 	rm -rf build/kube-master/rootfs/run/cube.socket
 
 
+start-dev:
+	sudo mkdir -p /var/cube/registry /var/cube/etcd
+	sudo ./build/cube start -role=master\
+          -role=node -volume=/var/cube/etcd:/var/etcd\
+          -volume=/var/cube/registry:/var/registry build/rootfs
 
+stop:
+	sudo ./build/cube stop build/rootfs

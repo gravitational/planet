@@ -85,8 +85,8 @@ func (vars *EnvVars) String() string {
 }
 
 type Mount struct {
-	src string
-	dst string
+	Src string
+	Dst string
 }
 
 type Mounts []Mount
@@ -97,7 +97,7 @@ func (m *Mounts) Set(v string) error {
 		return trace.Errorf(
 			"set mounts separated by : e.g. src:dst")
 	}
-	*m = append(*m, Mount{src: vals[0], dst: vals[1]})
+	*m = append(*m, Mount{Src: vals[0], Dst: vals[1]})
 	return nil
 }
 
@@ -107,7 +107,7 @@ func (m *Mounts) String() string {
 	}
 	b := &bytes.Buffer{}
 	for i, v := range *m {
-		fmt.Fprintf(b, "%v:%v", v.src, v.dst)
+		fmt.Fprintf(b, "%v:%v", v.Src, v.Dst)
 		if i != len(*m)-1 {
 			fmt.Fprintf(b, " ")
 		}

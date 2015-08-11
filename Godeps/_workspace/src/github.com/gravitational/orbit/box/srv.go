@@ -142,14 +142,14 @@ func Start(cfg Config) (*Box, error) {
 	}
 
 	for _, m := range cfg.Mounts {
-		src, err := checkPath(m.src, false)
+		src, err := checkPath(m.Src, false)
 		if err != nil {
 			return nil, trace.Wrap(err)
 		}
 		config.Mounts = append(config.Mounts, &configs.Mount{
 			Device:      "bind",
 			Source:      src,
-			Destination: m.dst,
+			Destination: m.Dst,
 			Flags:       syscall.MS_BIND,
 		})
 	}

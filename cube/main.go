@@ -37,7 +37,8 @@ func main() {
 	}
 
 	if err != nil {
-		log.Fatalf("cube error: %v %T", err, err)
+		log.Errorf("cube error: %v", err)
+		os.Exit(255)
 	}
 
 	log.Infof("cube: execution completed successfully")
@@ -106,13 +107,13 @@ func startCmd() error {
 	args := os.Args[2:]
 	fs := flag.FlagSet{}
 
-	fs.StringVar(&cfg.Role, "role", "master", "role, node or master")
 	fs.StringVar(&cfg.MasterIP, "master-ip", "127.0.0.1", "master ip")
 	fs.StringVar(&cfg.CloudProvider, "cloud-provider", "", "cloud provider")
 	fs.StringVar(&cfg.CloudConfig, "cloud-config", "", "cloud config")
 	fs.BoolVar(&cfg.Force, "force", true, "force start")
 	fs.Var(&cfg.Env, "env", "set environment variable")
 	fs.Var(&cfg.Mounts, "volume", "volume in form src:dst")
+	fs.Var(&cfg.Roles, "role", "list of roles assigned to the cube instance")
 	if err := fs.Parse(args); err != nil {
 		return trace.Wrap(err)
 	}
