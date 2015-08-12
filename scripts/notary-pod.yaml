@@ -1,0 +1,15 @@
+apiVersion: v1
+kind: Pod
+metadata:
+  name: notary
+spec:
+  containers:
+  - name: notary-server
+    image: localhost:5000/notary-server
+    env:
+    - name: SERVICE_NAME
+      value: notary    
+  - name: notary-signer
+    image: localhost:5000/notary-signer
+  - name: notary-mysql
+    image: localhost:5000/notary-mysql

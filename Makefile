@@ -12,7 +12,7 @@ cube:
 	go build -o build/cube github.com/gravitational/cube/cube
 
 cube-base:
-	cd makefiles/cube-base && sudo docker build -t cube/base .
+	cd makefiles/cube-base && sudo docker build --no-cache=true -t cube/base .
 
 cube-dev:
 	cd makefiles && sudo docker build -t cube/dev .

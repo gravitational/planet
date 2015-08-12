@@ -20,7 +20,17 @@ $(IMAGE): image.mk
             -pkg bridge-utils\
             -pkg kmod\
             -pkg openssl\
-            -pkg docker.io\
+            -pkg adduser\
+            -pkg iptables\
+            -pkg init-system-helpers\
+            -pkg lsb-base\
+            -pkg perl\
+            -pkg libc6\
+            -pkg libdevmapper1.02.1\
+            -pkg libsqlite3-0\
+            -pkg git\
+            -pkg aufs-tools\
+            -pkg xz-utils\
             -pkg gawk\
             -pkg dash\
             -pkg iproute2\

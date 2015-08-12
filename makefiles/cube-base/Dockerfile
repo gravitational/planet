@@ -1,6 +1,6 @@
 FROM ubuntu:15.04
 
-RUN sed -i 's/mirror.pnl.gov/archive.ubuntu.com/g' /etc/apt/sources.list
+RUN sed -i 's/archive.ubuntu.com/mirror.pnl.gov/g' /etc/apt/sources.list
 RUN apt-get update
 RUN apt-get install -y curl make git libc6-dev gcc tar gzip
 RUN mkdir -p /opt && cd /opt && curl https://storage.googleapis.com/golang/go1.4.2.linux-amd64.tar.gz | tar xz

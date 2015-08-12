@@ -4,6 +4,6 @@ Requires=docker.service
 After=docker.service
 
 [Service]
-ExecStart=/usr/bin/docker run -p 5000:5000 --restart=always --name registry -v /ext/registry:/var/lib/registry registry:2
+ExecStart=/usr/bin/docker run -p 5000:5000 --restart=always --name local-registry -v /ext/registry:/var/lib/registry registry:2
 Restart=always
 RestartSec=10
