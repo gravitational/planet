@@ -2,7 +2,7 @@
 
 ARCH := x86_64
 OS := Linux
-VER := 1.8.0
+VER := 1.6.2
 
 all: docker.mk
 # install socket-activated metadata service
