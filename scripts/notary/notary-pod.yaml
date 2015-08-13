@@ -5,11 +5,13 @@ metadata:
 spec:
   containers:
   - name: notary-server
-    image: localhost:5000/notary-server
+    image: localhost:5000/notary-server:2
     env:
     - name: SERVICE_NAME
-      value: notary    
+      value: notary
+    ports:
+      - containerPort: 4443
   - name: notary-signer
-    image: localhost:5000/notary-signer
+    image: localhost:5000/notary-signer:2
   - name: notary-mysql
     image: localhost:5000/notary-mysql
