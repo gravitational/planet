@@ -3,34 +3,34 @@
 MASTER_IP := 54.149.35.97
 NODE_IP := 54.149.186.124
 NODE2_IP := 54.68.41.110
-BUILDDIR := $(abspath build)
+BUILDDIR := $(HOME)/build
 export
 
 all: cube-base cube-master cube-node cube
 
 cube:
-	go build -o build/cube github.com/gravitational/cube/cube
+	go $(BUILDDIR) -o $(BUILDDIR)/cube github.com/gravitational/cube/cube
 
 cube-base:
-	cd makefiles/cube-base && sudo docker build --no-cache=true -t cube/base .
+	sudo docker build --no-cache=true -t cube/base -f makefiles/cube-base/cube-base.dockerfile .
 
 cube-dev:
-	cd makefiles && sudo docker build -t cube/dev .
-	mkdir -p build
-	rm -rf build/kube-dev.tar.gz
-	id=$$(sudo docker create cube/dev:latest) && sudo docker cp $$id:/build/kube-dev.tar.gz build/
+	sudo docker build -t cube/dev -f makefiles/cube-dev/cube-dev.dockerfile .
+	mkdir -p $(BUILDDIR)
+	rm -rf $(BUILDDIR)/cube-dev.aci
+	id=$$(sudo docker create cube/dev:latest) && sudo docker cp $$id:/build/cube-dev.aci $(BUILDDIR)
 
 cube-master:
-	cd makefiles/cube-master && sudo docker build -t cube/master .
-	mkdir -p build
-	rm -rf build/kube-master.tar.gz
-	id=$$(sudo docker create cube/dev:latest) && sudo docker cp $$id:/build/kube-dev.tar.gz build/
+	sudo docker build -t cube/master -f makefiles/cube-master/cube-master.dockerfile .
+	mkdir -p $(BUILDDIR)
+	rm -rf $(BUILDDIR)/cube-master.aci
+	id=$$(sudo docker create cube/master:latest) && sudo docker cp $$id:/build/cube-master.aci $(BUILDDIR)
 
 cube-node:
-	cd makefiles/cube-node && sudo docker build -t cube/node .
-	mkdir -p build
-	rm -rf build/kube-node.tar.gz
-	id=$$(sudo docker create cube/node:latest) && sudo docker cp $$id:/build/kube-node.tar.gz build/
+	sudo docker build -t cube/node -f makefiles/cube-node/cube-node.dockerfile .
+	mkdir -p $(BUILDDIR)
+	rm -rf $(BUILDDIR)/cube-node.aci
+	id=$$(sudo docker create cube/node:latest) && sudo docker cp $$id:/build/cube-node.aci $(BUILDDIR)/
 
 kill-systemd:
 	sudo kill -9 $$(ps uax  | grep [/]bin/systemd | awk '{ print $$2 }')
@@ -45,23 +45,23 @@ login-node2:
 	ssh -i /home/alex/keys/aws/alex.pem ubuntu@$(NODE2_IP)
 
 deploy-master:
-	scp -i /home/alex/keys/aws/alex.pem  $(BUILDDIR)/kube-master.tar.gz ubuntu@$(MASTER_IP):/home/ubuntu
+	scp -i /home/alex/keys/aws/alex.pem  $($(BUILDDIR)DIR)/kube-master.tar.gz ubuntu@$(MASTER_IP):/home/ubuntu
 
 deploy-experiment:
 	scp -i /home/alex/keys/aws/alex.pem start.sh ubuntu@$(MASTER_IP):/home/ubuntu
 #	scp -i /home/alex/keys/aws/alex.pem  ./image.tar.gz ubuntu@$(MASTER_IP):/home/ubuntu
 
 deploy-node:
-	scp -i /home/alex/keys/aws/alex.pem  $(BUILDDIR)/kube-node.tar.gz ubuntu@$(NODE_IP):/home/ubuntu
+	scp -i /home/alex/keys/aws/alex.pem  $($(BUILDDIR)DIR)/kube-node.tar.gz ubuntu@$(NODE_IP):/home/ubuntu
 
 deploy-node2:
-	scp -i /home/alex/keys/aws/alex.pem  $(BUILDDIR)/kube-node.tar.gz ubuntu@$(NODE2_IP):/home/ubuntu
+	scp -i /home/alex/keys/aws/alex.pem  $($(BUILDDIR)DIR)/kube-node.tar.gz ubuntu@$(NODE2_IP):/home/ubuntu
 
 deploy-cube-master:
-	scp -i /home/alex/keys/aws/alex.pem  $(BUILDDIR)/cube ubuntu@$(MASTER_IP):/home/ubuntu/
+	scp -i /home/alex/keys/aws/alex.pem  $($(BUILDDIR)DIR)/cube ubuntu@$(MASTER_IP):/home/ubuntu/
 
 deploy-cube-node:
-	scp -i /home/alex/keys/aws/alex.pem  $(BUILDDIR)/cube ubuntu@$(NODE_IP):/home/ubuntu
+	scp -i /home/alex/keys/aws/alex.pem  $($(BUILDDIR)DIR)/cube ubuntu@$(NODE_IP):/home/ubuntu
 
 deploy-nsenter:
 	scp -i /home/alex/keys/aws/alex.pem /usr/bin/nsenter ubuntu@$(MASTER_IP):/home/ubuntu/
@@ -73,7 +73,7 @@ deploy-nsenter-node2:
 	scp -i /home/alex/keys/aws/alex.pem /usr/bin/nsenter ubuntu@$(NODE2_IP):/home/ubuntu/
 
 deploy-kubectl:
-	scp -i /home/alex/keys/aws/alex.pem $(BUILDDIR)/kubectl ubuntu@$(MASTER_IP):/home/ubuntu/
+	scp -i /home/alex/keys/aws/alex.pem $($(BUILDDIR)DIR)/kubectl ubuntu@$(MASTER_IP):/home/ubuntu/
 
 # IMPORTANT NOTES for installer
 # * We need to set cloud provider for kubernetes - semi done, aws
@@ -89,22 +89,23 @@ deploy-kubectl:
 # check kernel version, and if it's less than 3.18 back off
 
 enter:
-	sudo ./build/cube enter build/rootfs
+	sudo $(BUILDDIR)/rootfs/usr/bin/cube enter $(BUILDDIR)/rootfs
 
 
 clean:
-	rm -rf build/kube-master/rootfs/run/cube.socket
+	rm -rf $(BUILDDIR)/kube-master/rootfs/run/cube.socket
 
 
 start-dev:
-	sudo mkdir -p /var/cube/registry /var/cube/etcd /var/cube/docker
-	sudo ./build/cube start\
+	sudo mkdir -p /var/cube/registry /var/cube/etcd /var/cube/docker /var/cube/mysql
+	sudo $(BUILDDIR)/rootfs/usr/bin/cube start\
 		-role=master\
 		-role=node\
 		-volume=/var/cube/etcd:/ext/etcd\
 		-volume=/var/cube/registry:/ext/registry\
 		-volume=/var/cube/docker:/ext/docker\
-		build/rootfs
+        -volume=/var/cube/mysql:/ext/mysql\
+		$(BUILDDIR)/rootfs
 
 stop:
-	sudo ./build/cube stop build/rootfs
+	sudo $(BUILDDIR)/rootfs/usr/bin/cube stop $(BUILDDIR)/rootfs

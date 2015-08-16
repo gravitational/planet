@@ -15,3 +15,10 @@ spec:
     image: localhost:5000/notary-signer:2
   - name: notary-mysql
     image: localhost:5000/notary-mysql
+    volumeMounts:
+      - mountPath: /var/lib/mysql
+        name: mysql-data
+  volumes:
+    - name: mysql-data
+      hostPath:
+        path: /ext/mysql

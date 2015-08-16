@@ -1,0 +1,33 @@
+{
+    "acKind": "ImageManifest",
+    "acVersion": "0.6.1",
+    "name": "gravitational.com/runtime",
+    "labels": [
+        {
+            "name": "version",
+            "value": "0.0.1"
+        },
+        {
+            "name": "arch",
+            "value": "amd64"
+        },
+        {
+            "name": "os",
+            "value": "linux"
+        }
+    ],
+    "annotations": [
+        {
+            "name": "gravitational.com/runtime/start",
+            "value": "/usr/bin/cube start"
+        },
+        {
+            "name": "gravitational.com/runtime/enter",
+            "value": "/usr/bin/cube stop"
+        },
+        {
+            "name": "gravitational.com/runtime/stop",
+            "value": "/usr/bin/cube stop"
+        }
+    ]
+}

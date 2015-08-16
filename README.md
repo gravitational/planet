@@ -5,7 +5,7 @@ Installable Kubernetes delivered in Orbit containers
 Installation
 -------------
 
-**IMPORTANT** the build process relies on Docker. Install docker to make sure your build succeeds
+**IMPORTANT** the build process relies on Docker > 1.6.2. Install docker to make sure your build succeeds.
 
 Installation
 ```

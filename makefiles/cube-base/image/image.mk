@@ -43,7 +43,7 @@ $(IMAGE): image.mk
             -pkg ncurses-base\
             -manifest ./aci-manifest\
 			-image $(IMAGE)
-	cd $(BUILDDIR) && tar -xzf ubuntu.aci
+	cd $(BUILDDIR) && tar -xzf ubuntu.aci && mv ./rootfs $(ROOTFS)
 	cp -a ./rootfs/. $(ROOTFS)
 
 	rm -rf $(ROOTFS)/lib/systemd/system-generators/systemd-getty-generator
