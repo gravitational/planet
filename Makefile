@@ -9,7 +9,11 @@ export
 all: cube-base cube-master cube-node cube
 
 cube:
-	go $(BUILDDIR) -o $(BUILDDIR)/cube github.com/gravitational/cube/cube
+	go build -o $(BUILDDIR)/cube github.com/gravitational/cube/cube
+	go build -o $(BUILDDIR)/rootfs/usr/bin/cube github.com/gravitational/cube/cube
+
+cube-os:
+	sudo docker build --no-cache=true -t cube/os -f makefiles/cube-os/cube-os.dockerfile .
 
 cube-base:
 	sudo docker build --no-cache=true -t cube/base -f makefiles/cube-base/cube-base.dockerfile .
@@ -89,7 +93,7 @@ deploy-kubectl:
 # check kernel version, and if it's less than 3.18 back off
 
 enter:
-	sudo $(BUILDDIR)/rootfs/usr/bin/cube enter $(BUILDDIR)/rootfs
+	sudo $(BUILDDIR)/rootfs/usr/bin/cube enter --debug $(BUILDDIR)/rootfs
 
 
 clean:
@@ -99,13 +103,17 @@ clean:
 start-dev:
 	sudo mkdir -p /var/cube/registry /var/cube/etcd /var/cube/docker /var/cube/mysql
 	sudo $(BUILDDIR)/rootfs/usr/bin/cube start\
-		-role=master\
-		-role=node\
-		-volume=/var/cube/etcd:/ext/etcd\
-		-volume=/var/cube/registry:/ext/registry\
-		-volume=/var/cube/docker:/ext/docker\
-        -volume=/var/cube/mysql:/ext/mysql\
+		--role=master\
+		--role=node\
+		--volume=/var/cube/etcd:/ext/etcd\
+		--volume=/var/cube/registry:/ext/registry\
+		--volume=/var/cube/docker:/ext/docker\
+        --volume=/var/cube/mysql:/ext/mysql\
 		$(BUILDDIR)/rootfs
 
 stop:
 	sudo $(BUILDDIR)/rootfs/usr/bin/cube stop $(BUILDDIR)/rootfs
+
+status:
+	sudo $(BUILDDIR)/rootfs/usr/bin/cube status --debug $(BUILDDIR)/rootfs
+

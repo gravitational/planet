@@ -16,6 +16,14 @@
 			"Rev": "07d998d174c4e2dc90e2f1989a20724220bca1ff"
 		},
 		{
+			"ImportPath": "github.com/alecthomas/template",
+			"Rev": "b867cc6ab45cece8143cfcc6fc9c77cf3f2c23c0"
+		},
+		{
+			"ImportPath": "github.com/alecthomas/units",
+			"Rev": "6b4e7dc5e3143b85ea77909c72caf89416fc2915"
+		},
+		{
 			"ImportPath": "github.com/coreos/go-systemd/dbus",
 			"Comment": "v2",
 			"Rev": "f743bc15d6bddd23662280b4ad20f7c874cdd5ad"
@@ -85,6 +93,11 @@
 		{
 			"ImportPath": "golang.org/x/net/websocket",
 			"Rev": "e0403b4e005737430c05a57aac078479844f919c"
+		},
+		{
+			"ImportPath": "gopkg.in/alecthomas/kingpin.v2",
+			"Comment": "v2.0.11",
+			"Rev": "3eb8ffbc54a2f5e806181081e23098b67fe06d06"
 		}
 	]
 }

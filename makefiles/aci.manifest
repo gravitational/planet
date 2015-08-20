@@ -23,11 +23,15 @@
         },
         {
             "name": "gravitational.com/runtime/enter",
-            "value": "/usr/bin/cube stop"
+            "value": "/usr/bin/cube enter"
         },
         {
             "name": "gravitational.com/runtime/stop",
             "value": "/usr/bin/cube stop"
+        },
+        {
+            "name": "gravitational.com/runtime/status",
+            "value": "/usr/bin/cube status"
         }
     ]
 }

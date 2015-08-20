@@ -1,37 +1,86 @@
 package main
 
 import (
-	"flag"
+	"fmt"
 	"os"
 	"runtime"
 
-	"github.com/gravitational/cube/Godeps/_workspace/src/github.com/gravitational/orbit/box"
-
 	"github.com/gravitational/cube/Godeps/_workspace/src/github.com/docker/docker/pkg/term"
 	"github.com/gravitational/cube/Godeps/_workspace/src/github.com/gravitational/log"
+	"github.com/gravitational/cube/Godeps/_workspace/src/github.com/gravitational/orbit/box"
 	"github.com/gravitational/cube/Godeps/_workspace/src/github.com/gravitational/trace"
 	"github.com/gravitational/cube/Godeps/_workspace/src/github.com/opencontainers/runc/libcontainer"
+	"github.com/gravitational/cube/Godeps/_workspace/src/gopkg.in/alecthomas/kingpin.v2"
 )
 
 func main() {
-	log.Initialize("console", "WARN")
+	var (
+		app   = kingpin.New("cube", "Cube is a Kubernetes delivered as an orbit container")
+		debug = app.Flag("debug", "Enable debug mode").Bool()
 
-	if len(os.Args) < 2 {
-		log.Fatalf("specify a command, one of 'start', 'enter', 'stop'")
+		// internal init command used by libcontainer
+		cinit = app.Command("init", "Internal init command").Hidden()
+
+		// start the container with cube
+		cstart              = app.Command("start", "Start orbit container")
+		cstartRootfs        = cstart.Arg("rootfs", "Path to root filesystem").ExistingDir()
+		cstartMasterIP      = cstart.Flag("master-ip", "ip of the master pod").Default("127.0.0.1").IP()
+		cstartCloudProvider = cstart.Flag("cloud-provider", "cloud provider name, e.g. 'aws' or 'gce'").String()
+		cstartCloudConfig   = cstart.Flag("cloud-config", "cloud config path").String()
+		cstartForce         = cstart.Flag("force", "Force start ignoring some failed host checks (e.g. kernel version)").Bool()
+		cstartEnv           = EnvVars(cstart.Flag("env", "Set environment variable"))
+		cstartMounts        = Mounts(cstart.Flag("volume", "External volume to mount"))
+		cstartRoles         = Roles(cstart.Flag("role", "Roles such as 'master' or 'node'"))
+
+		// stop a running container
+		cstop       = app.Command("stop", "Stop cube container")
+		cstopRootfs = cstop.Arg("rootfs", "Path to root filesystem").ExistingDir()
+
+		// enter a running container
+		center       = app.Command("enter", "Enter running cube container")
+		centerRootfs = center.Arg("rootfs", "Path to root filesystem").ExistingDir()
+		centerArgs   = center.Arg("cmd", "command to execute").Default("/bin/bash").String()
+		centerNoTTY  = center.Flag("not-tty", "do not attach TTY to this process").Bool()
+		centerUser   = center.Flag("user", "user to execute the command").Default("root").String()
+
+		// report status of a running container
+		cstatus       = app.Command("status", "Get status of a running container")
+		cstatusRootfs = cstatus.Arg("rootfs", "Path to root filesystem").ExistingDir()
+	)
+
+	cmd, err := app.Parse(os.Args[1:])
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "cube error: %v\n", err)
+		os.Exit(-1)
 	}
 
-	cmd := os.Args[1]
+	if *debug == true {
+		log.Initialize("console", "INFO")
+	} else {
+		log.Initialize("console", "WARN")
+	}
 
-	var err error
 	switch cmd {
-	case "start":
-		err = startCmd()
-	case "init":
-		err = initCmd()
-	case "enter":
-		err = enterCmd()
-	case "stop":
-		err = stopCmd()
+	case cstart.FullCommand():
+		err = start(CubeConfig{
+			Rootfs:        *cstartRootfs,
+			Env:           *cstartEnv,
+			Mounts:        *cstartMounts,
+			Force:         *cstartForce,
+			Roles:         *cstartRoles,
+			MasterIP:      cstartMasterIP.String(),
+			CloudProvider: *cstartCloudProvider,
+			CloudConfig:   *cstartCloudConfig,
+		})
+	case cinit.FullCommand():
+		err = initLibcontainer()
+	case center.FullCommand():
+		err = enterConsole(
+			*centerRootfs, *centerArgs, *centerUser, !*centerNoTTY)
+	case cstop.FullCommand():
+		err = stop(*cstopRootfs)
+	case cstatus.FullCommand():
+		err = status(*cstatusRootfs)
 	default:
 		err = trace.Errorf("unsupported command: %v", cmd)
 	}
@@ -44,48 +93,29 @@ func main() {
 	log.Infof("cube: execution completed successfully")
 }
 
-func stopCmd() error {
-	args := os.Args[2:]
-	fs := flag.FlagSet{} // want to add wait flag later
-	if err := fs.Parse(args); err != nil {
-		return trace.Wrap(err)
-	}
-
-	posArgs := fs.Args()
-	log.Infof("args: %v", posArgs)
-
-	if len(posArgs) < 1 {
-		return trace.Errorf("cube enter path [command]")
-	}
-	return stop(posArgs[0])
+func EnvVars(s kingpin.Settings) *box.EnvVars {
+	vars := new(box.EnvVars)
+	s.SetValue(vars)
+	return vars
 }
 
-func enterCmd() error {
-	args := os.Args[2:]
-	fs := flag.FlagSet{}
+func Mounts(s kingpin.Settings) *box.Mounts {
+	vars := new(box.Mounts)
+	s.SetValue(vars)
+	return vars
+}
 
+func Roles(s kingpin.Settings) *roles {
+	r := new(roles)
+	s.SetValue(r)
+	return r
+}
+
+func enterConsole(rootfs, cmd, user string, tty bool) error {
 	cfg := box.ProcessConfig{
-		In:  os.Stdin,
-		Out: os.Stdout,
-	}
-	var tty bool
-
-	fs.BoolVar(&tty, "tty", true, "attach terminal (for interactive sessions)")
-	fs.StringVar(&cfg.User, "user", "root", "user running the process")
-	if err := fs.Parse(args); err != nil {
-		return trace.Wrap(err)
-	}
-
-	posArgs := fs.Args()
-	log.Infof("args: %v", posArgs)
-
-	if len(posArgs) < 1 {
-		return trace.Errorf("cube enter path [command]")
-	}
-	path := posArgs[0]
-	cfg.Args = []string{"/bin/bash"}
-	if len(args) > 1 {
-		cfg.Args = posArgs[1:]
+		In:   os.Stdin,
+		Out:  os.Stdout,
+		Args: []string{cmd},
 	}
 
 	if tty {
@@ -96,42 +126,12 @@ func enterCmd() error {
 		cfg.TTY = &box.TTY{H: int(s.Height), W: int(s.Width)}
 	}
 
-	return enter(path, cfg)
-}
-
-func startCmd() error {
-	var cfg CubeConfig
-	cfg.Env = box.EnvVars{}
-	cfg.Mounts = box.Mounts{}
-
-	args := os.Args[2:]
-	fs := flag.FlagSet{}
-
-	fs.StringVar(&cfg.MasterIP, "master-ip", "127.0.0.1", "master ip")
-	fs.StringVar(&cfg.CloudProvider, "cloud-provider", "", "cloud provider")
-	fs.StringVar(&cfg.CloudConfig, "cloud-config", "", "cloud config")
-	fs.BoolVar(&cfg.Force, "force", true, "force start")
-	fs.Var(&cfg.Env, "env", "set environment variable")
-	fs.Var(&cfg.Mounts, "volume", "volume in form src:dst")
-	fs.Var(&cfg.Roles, "role", "list of roles assigned to the cube instance")
-	if err := fs.Parse(args); err != nil {
-		return trace.Wrap(err)
-	}
-
-	posArgs := fs.Args()
-	log.Infof("args: %v", posArgs)
-	if len(posArgs) < 1 {
-		return trace.Errorf("need path to root filesystem")
-	}
-
-	cfg.Rootfs = posArgs[0]
-
-	return start(cfg)
+	return enter(rootfs, cfg)
 }
 
 // initCmd is implicitly called by the libcontainer logic and is used to start
 // a process in the new namespaces and cgroups
-func initCmd() error {
+func initLibcontainer() error {
 	runtime.GOMAXPROCS(1)
 	runtime.LockOSThread()
 	factory, _ := libcontainer.New("")

@@ -15,7 +15,7 @@ import (
 )
 
 func start(conf CubeConfig) error {
-	log.Infof("starting with config: %v", conf)
+	log.Infof("starting with config: %#v", conf)
 
 	v, err := check.KernelVersion()
 	if err != nil {
