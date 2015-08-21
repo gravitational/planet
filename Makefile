@@ -1,4 +1,4 @@
-.PHONY: all image etcd network k8s-master cube
+.PHONY: all image etcd network k8s-master cube notary
 
 MASTER_IP := 54.149.35.97
 NODE_IP := 54.149.186.124
@@ -6,7 +6,10 @@ NODE2_IP := 54.68.41.110
 BUILDDIR := $(HOME)/build
 export
 
-all: cube-base cube-master cube-node cube
+all: cube-base cube-master cube-node cube notary
+
+notary:
+	$(MAKE) -C makefiles/notary -f notary.mk
 
 cube:
 	go build -o $(BUILDDIR)/cube github.com/gravitational/cube/cube
