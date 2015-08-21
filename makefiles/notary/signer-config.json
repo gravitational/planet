@@ -13,6 +13,6 @@
 	},
 	"storage": {
 		"backend": "mysql",
-		"db_url": "notary:notary@tcp(localhost:3306)/notary"
+		"db_url": "notary:notary@tcp(localhost:3306)/notary?parseTime=true"
 	}
 }
