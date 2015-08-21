@@ -6,6 +6,7 @@ import (
 	"io"
 	"net"
 	"net/url"
+	"os"
 
 	"github.com/gravitational/cube/Godeps/_workspace/src/github.com/gravitational/log"
 	"github.com/gravitational/cube/Godeps/_workspace/src/github.com/gravitational/trace"
@@ -19,7 +20,7 @@ type client struct {
 func Connect(path string) (ContainerServer, error) {
 	path, err := checkPath(serverSockPath(path), false)
 	if err != nil {
-		return nil, err
+		return nil, checkError(err)
 	}
 	return &client{path: path}, nil
 }
@@ -40,7 +41,8 @@ func (c *client) Enter(cfg ProcessConfig) error {
 	}
 	conn, err := net.Dial("unix", c.path)
 	if err != nil {
-		return trace.Wrap(err, "failed to connect to cube socket")
+		return checkError(
+			trace.Wrap(err, "failed to connect to cube socket"))
 	}
 	clt, err := websocket.NewClient(wscfg, conn)
 	if err != nil {
@@ -65,4 +67,27 @@ func (c *client) Enter(cfg ProcessConfig) error {
 		<-exitC
 	}
 	return nil
+}
+
+func checkError(err error) error {
+	var o error // original error
+	if e, ok := err.(*trace.TraceErr); ok {
+		o = e.OrigError()
+	} else {
+		o = err
+	}
+
+	if os.IsNotExist(o) {
+		return &ErrConnect{Err: err}
+	}
+	if _, ok := err.(*net.OpError); ok {
+		return &ErrConnect{Err: err}
+	}
+	return err
+}
+
+// IsConnectError returns true if it was a connection error
+func IsConnectError(e error) bool {
+	_, ok := e.(*ErrConnect)
+	return ok
 }

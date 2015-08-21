@@ -2,6 +2,7 @@ package main
 
 import (
 	"bytes"
+	"encoding/json"
 	"os"
 	"strings"
 
@@ -55,15 +56,33 @@ func status(rootfs string) error {
 		Out:  out,
 	}
 
-	if err := enter(rootfs, cfg); err != nil {
-		return err
+	var s box.Status
+	err := enter(rootfs, cfg)
+	if err != nil {
+		if box.IsConnectError(err) {
+			s.Status = box.StatusStopped
+		} else {
+			return err
+		}
+	} else {
+		d := out.String()
+		if !strings.Contains(d, "0 loaded units listed") {
+			s.Status = box.StatusDegraded
+			s.Info = d
+		} else {
+			s.Status = box.StatusRunning
+			s.Info = d
+		}
 	}
 
-	d := out.String()
-	if !strings.Contains(d, "0 loaded units listed") {
-		return trace.Errorf("error: %v", d)
+	bytes, err := json.Marshal(s)
+	if err != nil {
+		return trace.Wrap(err, "failed to serialize status")
 	}
 
-	log.Infof("all units are operational:\n %v", d)
+	if _, err := os.Stdout.Write(bytes); err != nil {
+		return trace.Wrap(err, "failed to output status")
+	}
+
 	return nil
 }

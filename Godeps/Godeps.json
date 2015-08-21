@@ -63,11 +63,11 @@
 		},
 		{
 			"ImportPath": "github.com/gravitational/orbit/box",
-			"Rev": "f179dea3de6ca31044421bad6d2e2276c8bb86e1"
+			"Rev": "431eaec757e6ffcf80405d32c331ca012f6c4c59"
 		},
 		{
 			"ImportPath": "github.com/gravitational/orbit/check",
-			"Rev": "f179dea3de6ca31044421bad6d2e2276c8bb86e1"
+			"Rev": "431eaec757e6ffcf80405d32c331ca012f6c4c59"
 		},
 		{
 			"ImportPath": "github.com/gravitational/roundtrip",
@@ -75,7 +75,7 @@
 		},
 		{
 			"ImportPath": "github.com/gravitational/trace",
-			"Rev": "a2e1dddd4f3fa799922c2aa2ef65d783355839fc"
+			"Rev": "aafc41a649dce0c72f5081ef6f3ec749cb10b979"
 		},
 		{
 			"ImportPath": "github.com/julienschmidt/httprouter",

@@ -118,5 +118,5 @@ stop:
 	sudo $(BUILDDIR)/rootfs/usr/bin/cube stop $(BUILDDIR)/rootfs
 
 status:
-	sudo $(BUILDDIR)/rootfs/usr/bin/cube status --debug $(BUILDDIR)/rootfs
+	sudo $(BUILDDIR)/rootfs/usr/bin/cube status $(BUILDDIR)/rootfs
 

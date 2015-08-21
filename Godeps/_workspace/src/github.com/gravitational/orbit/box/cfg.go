@@ -9,6 +9,17 @@ import (
 	"github.com/gravitational/cube/Godeps/_workspace/src/github.com/gravitational/trace"
 )
 
+const (
+	StatusRunning  = "running"
+	StatusDegraded = "degraded"
+	StatusStopped  = "stopped"
+)
+
+type Status struct {
+	Status string      `json:"status"` // Status of the running container, one of 'running', 'stopped', 'degraded'
+	Info   interface{} `json:"info"`   // App-specific information about the container
+}
+
 type Config struct {
 	//InitArgs list of arguments to exec as an init process
 	InitArgs []string
