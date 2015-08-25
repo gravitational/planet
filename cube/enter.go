@@ -17,13 +17,13 @@ import (
 // to proxy input and output
 func enter(rootfs string, cfg box.ProcessConfig) error {
 	log.Infof("enter: %v %#v", rootfs, cfg)
-
-	oldState, err := term.SetRawTerminal(os.Stdin.Fd())
-	if err != nil {
-		return err
+	if cfg.TTY != nil {
+		oldState, err := term.SetRawTerminal(os.Stdin.Fd())
+		if err != nil {
+			return err
+		}
+		defer term.RestoreTerminal(os.Stdin.Fd(), oldState)
 	}
-	defer term.RestoreTerminal(os.Stdin.Fd(), oldState)
-
 	s, err := box.Connect(rootfs)
 	if err != nil {
 		return err
