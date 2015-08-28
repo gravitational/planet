@@ -6,7 +6,7 @@ NODE2_IP := 54.68.41.110
 BUILDDIR := $(HOME)/build
 export
 
-all: cube-base cube-master cube-node cube notary
+all: cube-os cube-base cube-master cube-node cube notary
 
 notary:
 	$(MAKE) -C makefiles/notary -f notary.mk
@@ -26,6 +26,9 @@ cube-os:
 
 cube-base:
 	sudo docker build --no-cache=true -t cube/base -f makefiles/cube-base/cube-base.dockerfile .
+
+cube-os:
+	sudo docker build --no-cache=true -t cube/os -f makefiles/cube-os/cube-os.dockerfile .
 
 cube-dev:
 	sudo docker build -t cube/dev -f makefiles/cube-dev/cube-dev.dockerfile .
