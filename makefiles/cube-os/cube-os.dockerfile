@@ -20,5 +20,5 @@ RUN mkdir -p $BUILDDIR/aci
 
 ADD ./makefiles/ $BUILDDIR/makefiles
 
-RUN ROOTFS=${BUILDDIR}/aci/rootfs make -C $BUILDDIR/makefiles/cube-base/image -f image.mk
+RUN ROOTFS=${BUILDDIR}/aci/rootfs make -C $BUILDDIR/makefiles/cube-os/image -f image.mk
 
