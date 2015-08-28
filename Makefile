@@ -11,9 +11,15 @@ all: cube-base cube-master cube-node cube notary
 notary:
 	$(MAKE) -C makefiles/notary -f notary.mk
 
+dev:
+	cd $(BUILDDIR) && tar -xzf cube-dev.aci
+
 cube:
 	go build -o $(BUILDDIR)/cube github.com/gravitational/cube/cube
 	go build -o $(BUILDDIR)/rootfs/usr/bin/cube github.com/gravitational/cube/cube
+
+cube-inside:
+	go build -o /var/orbit/render/gravitational.com/cube-dev/0.0.2/c61cb786ea66c515c090477eb15b0807c8aa89d64eece0785e61a0a849366d30/rootfs/usr/bin/cube  github.com/gravitational/cube/cube
 
 cube-os:
 	sudo docker build --no-cache=true -t cube/os -f makefiles/cube-os/cube-os.dockerfile .

@@ -10,11 +10,12 @@ Installation
 Installation
 ```
 make
+make dev
 ```
 
-Running:
+Running in dev mode:
 ```
-make run
+make start-dev
 ```
 
 Entering cube's namespace:
