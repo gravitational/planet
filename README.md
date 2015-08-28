@@ -7,7 +7,15 @@ Installation
 
 **IMPORTANT** the build process relies on Docker > 1.6.2. Install docker to make sure your build succeeds.
 
-Installation
+
+If this is your first time building the project:
+
+```
+make cube-os
+```
+
+Then:
+
 ```
 make
 make dev
