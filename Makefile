@@ -11,7 +11,7 @@ all: cube-base cube-master cube-node cube notary
 notary:
 	$(MAKE) -C makefiles/notary -f notary.mk
 
-dev:
+dev: cube-dev
 	cd $(BUILDDIR) && tar -xzf cube-dev.aci
 
 cube:

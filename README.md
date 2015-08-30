@@ -18,11 +18,11 @@ Then:
 
 ```
 make
-make dev
 ```
 
 Running in dev mode:
 ```
+make dev
 make start-dev
 ```
 
