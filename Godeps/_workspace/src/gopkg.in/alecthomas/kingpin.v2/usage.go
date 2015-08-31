@@ -7,7 +7,7 @@ import (
 	"io"
 	"strings"
 
-	"github.com/gravitational/cube/Godeps/_workspace/src/github.com/alecthomas/template"
+	"github.com/gravitational/planet/Godeps/_workspace/src/github.com/alecthomas/template"
 )
 
 var (

@@ -6,7 +6,7 @@ import (
 	"os"
 	"testing"
 
-	"github.com/gravitational/cube/Godeps/_workspace/src/github.com/opencontainers/runc/libcontainer/xattr"
+	"github.com/gravitational/planet/Godeps/_workspace/src/github.com/opencontainers/runc/libcontainer/xattr"
 )
 
 func testXattr(t *testing.T) {

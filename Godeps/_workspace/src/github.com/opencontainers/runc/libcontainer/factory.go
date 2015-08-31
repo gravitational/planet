@@ -1,7 +1,7 @@
 package libcontainer
 
 import (
-	"github.com/gravitational/cube/Godeps/_workspace/src/github.com/opencontainers/runc/libcontainer/configs"
+	"github.com/gravitational/planet/Godeps/_workspace/src/github.com/opencontainers/runc/libcontainer/configs"
 )
 
 type Factory interface {

@@ -6,7 +6,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/gravitational/cube/Godeps/_workspace/src/github.com/opencontainers/runc/libcontainer/selinux"
+	"github.com/gravitational/planet/Godeps/_workspace/src/github.com/opencontainers/runc/libcontainer/selinux"
 )
 
 func TestInit(t *testing.T) {

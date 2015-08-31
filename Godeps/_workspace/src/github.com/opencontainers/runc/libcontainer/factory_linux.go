@@ -13,12 +13,12 @@ import (
 	"strconv"
 	"syscall"
 
-	"github.com/gravitational/cube/Godeps/_workspace/src/github.com/docker/docker/pkg/mount"
-	"github.com/gravitational/cube/Godeps/_workspace/src/github.com/opencontainers/runc/libcontainer/cgroups"
-	"github.com/gravitational/cube/Godeps/_workspace/src/github.com/opencontainers/runc/libcontainer/cgroups/fs"
-	"github.com/gravitational/cube/Godeps/_workspace/src/github.com/opencontainers/runc/libcontainer/cgroups/systemd"
-	"github.com/gravitational/cube/Godeps/_workspace/src/github.com/opencontainers/runc/libcontainer/configs"
-	"github.com/gravitational/cube/Godeps/_workspace/src/github.com/opencontainers/runc/libcontainer/configs/validate"
+	"github.com/gravitational/planet/Godeps/_workspace/src/github.com/docker/docker/pkg/mount"
+	"github.com/gravitational/planet/Godeps/_workspace/src/github.com/opencontainers/runc/libcontainer/cgroups"
+	"github.com/gravitational/planet/Godeps/_workspace/src/github.com/opencontainers/runc/libcontainer/cgroups/fs"
+	"github.com/gravitational/planet/Godeps/_workspace/src/github.com/opencontainers/runc/libcontainer/cgroups/systemd"
+	"github.com/gravitational/planet/Godeps/_workspace/src/github.com/opencontainers/runc/libcontainer/configs"
+	"github.com/gravitational/planet/Godeps/_workspace/src/github.com/opencontainers/runc/libcontainer/configs/validate"
 )
 
 const (

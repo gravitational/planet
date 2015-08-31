@@ -39,10 +39,10 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/gravitational/cube/Godeps/_workspace/src/github.com/golang/protobuf/proto"
+	"github.com/gravitational/planet/Godeps/_workspace/src/github.com/golang/protobuf/proto"
 
-	proto3pb "github.com/gravitational/cube/Godeps/_workspace/src/github.com/golang/protobuf/proto/proto3_proto"
-	pb "github.com/gravitational/cube/Godeps/_workspace/src/github.com/golang/protobuf/proto/testdata"
+	proto3pb "github.com/gravitational/planet/Godeps/_workspace/src/github.com/golang/protobuf/proto/proto3_proto"
+	pb "github.com/gravitational/planet/Godeps/_workspace/src/github.com/golang/protobuf/proto/testdata"
 )
 
 // textMessage implements the methods that allow it to marshal and unmarshal

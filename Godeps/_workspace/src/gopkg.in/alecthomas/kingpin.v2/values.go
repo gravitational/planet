@@ -11,7 +11,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/gravitational/cube/Godeps/_workspace/src/github.com/alecthomas/units"
+	"github.com/gravitational/planet/Godeps/_workspace/src/github.com/alecthomas/units"
 )
 
 // NOTE: Most of the base type values were lifted from:

@@ -6,7 +6,7 @@ import (
 	"fmt"
 	"os"
 
-	"github.com/gravitational/cube/Godeps/_workspace/src/github.com/opencontainers/runc/libcontainer/system"
+	"github.com/gravitational/planet/Godeps/_workspace/src/github.com/opencontainers/runc/libcontainer/system"
 )
 
 func newRestoredProcess(pid int, fds []string) (*restoredProcess, error) {

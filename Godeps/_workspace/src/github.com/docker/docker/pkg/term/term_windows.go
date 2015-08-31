@@ -6,8 +6,8 @@ import (
 	"io"
 	"os"
 
-	"github.com/gravitational/cube/Godeps/_workspace/src/github.com/Sirupsen/logrus"
-	"github.com/gravitational/cube/Godeps/_workspace/src/github.com/docker/docker/pkg/term/winconsole"
+	"github.com/gravitational/planet/Godeps/_workspace/src/github.com/Sirupsen/logrus"
+	"github.com/gravitational/planet/Godeps/_workspace/src/github.com/docker/docker/pkg/term/winconsole"
 )
 
 // State holds the console mode for the terminal.

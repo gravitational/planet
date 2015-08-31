@@ -8,7 +8,7 @@ import (
 	"io"
 	"net/http"
 
-	"github.com/gravitational/cube/Godeps/_workspace/src/golang.org/x/net/websocket"
+	"github.com/gravitational/planet/Godeps/_workspace/src/golang.org/x/net/websocket"
 )
 
 // Echo the data received on the WebSocket.

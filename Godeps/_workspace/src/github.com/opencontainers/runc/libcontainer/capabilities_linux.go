@@ -6,7 +6,7 @@ import (
 	"fmt"
 	"os"
 
-	"github.com/gravitational/cube/Godeps/_workspace/src/github.com/syndtr/gocapability/capability"
+	"github.com/gravitational/planet/Godeps/_workspace/src/github.com/syndtr/gocapability/capability"
 )
 
 const allCapabilityTypes = capability.CAPS | capability.BOUNDS

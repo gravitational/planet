@@ -34,9 +34,9 @@ package proto_test
 import (
 	"testing"
 
-	"github.com/gravitational/cube/Godeps/_workspace/src/github.com/golang/protobuf/proto"
+	"github.com/gravitational/planet/Godeps/_workspace/src/github.com/golang/protobuf/proto"
 
-	pb "github.com/gravitational/cube/Godeps/_workspace/src/github.com/golang/protobuf/proto/testdata"
+	pb "github.com/gravitational/planet/Godeps/_workspace/src/github.com/golang/protobuf/proto/testdata"
 )
 
 var cloneTestMessage = &pb.MyMessage{

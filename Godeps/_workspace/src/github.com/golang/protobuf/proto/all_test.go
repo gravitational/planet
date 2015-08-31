@@ -44,8 +44,8 @@ import (
 	"testing"
 	"time"
 
-	. "github.com/gravitational/cube/Godeps/_workspace/src/github.com/golang/protobuf/proto"
-	. "github.com/gravitational/cube/Godeps/_workspace/src/github.com/golang/protobuf/proto/testdata"
+	. "github.com/gravitational/planet/Godeps/_workspace/src/github.com/golang/protobuf/proto"
+	. "github.com/gravitational/planet/Godeps/_workspace/src/github.com/golang/protobuf/proto/testdata"
 )
 
 var globalO *Buffer

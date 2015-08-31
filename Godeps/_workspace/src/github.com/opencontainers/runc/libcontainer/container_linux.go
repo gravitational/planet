@@ -13,11 +13,11 @@ import (
 	"sync"
 	"syscall"
 
-	"github.com/gravitational/cube/Godeps/_workspace/src/github.com/Sirupsen/logrus"
-	"github.com/gravitational/cube/Godeps/_workspace/src/github.com/golang/protobuf/proto"
-	"github.com/gravitational/cube/Godeps/_workspace/src/github.com/opencontainers/runc/libcontainer/cgroups"
-	"github.com/gravitational/cube/Godeps/_workspace/src/github.com/opencontainers/runc/libcontainer/configs"
-	"github.com/gravitational/cube/Godeps/_workspace/src/github.com/opencontainers/runc/libcontainer/criurpc"
+	"github.com/gravitational/planet/Godeps/_workspace/src/github.com/Sirupsen/logrus"
+	"github.com/gravitational/planet/Godeps/_workspace/src/github.com/golang/protobuf/proto"
+	"github.com/gravitational/planet/Godeps/_workspace/src/github.com/opencontainers/runc/libcontainer/cgroups"
+	"github.com/gravitational/planet/Godeps/_workspace/src/github.com/opencontainers/runc/libcontainer/configs"
+	"github.com/gravitational/planet/Godeps/_workspace/src/github.com/opencontainers/runc/libcontainer/criurpc"
 )
 
 const stdioFdCount = 3

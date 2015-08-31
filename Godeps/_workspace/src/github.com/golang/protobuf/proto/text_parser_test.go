@@ -36,9 +36,9 @@ import (
 	"reflect"
 	"testing"
 
-	. "github.com/gravitational/cube/Godeps/_workspace/src/github.com/golang/protobuf/proto"
-	proto3pb "github.com/gravitational/cube/Godeps/_workspace/src/github.com/golang/protobuf/proto/proto3_proto"
-	. "github.com/gravitational/cube/Godeps/_workspace/src/github.com/golang/protobuf/proto/testdata"
+	. "github.com/gravitational/planet/Godeps/_workspace/src/github.com/golang/protobuf/proto"
+	proto3pb "github.com/gravitational/planet/Godeps/_workspace/src/github.com/golang/protobuf/proto/proto3_proto"
+	. "github.com/gravitational/planet/Godeps/_workspace/src/github.com/golang/protobuf/proto/testdata"
 )
 
 type UnmarshalTextTest struct {

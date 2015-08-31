@@ -1,6 +1,6 @@
 package libcontainer
 
-import "github.com/gravitational/cube/Godeps/_workspace/src/github.com/opencontainers/runc/libcontainer/cgroups"
+import "github.com/gravitational/planet/Godeps/_workspace/src/github.com/opencontainers/runc/libcontainer/cgroups"
 
 type Stats struct {
 	Interfaces  []*NetworkInterface

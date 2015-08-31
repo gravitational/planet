@@ -5,7 +5,7 @@ package xattr
 import (
 	"syscall"
 
-	"github.com/gravitational/cube/Godeps/_workspace/src/github.com/opencontainers/runc/libcontainer/system"
+	"github.com/gravitational/planet/Godeps/_workspace/src/github.com/opencontainers/runc/libcontainer/system"
 )
 
 func XattrEnabled(path string) bool {
