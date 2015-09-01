@@ -8,7 +8,7 @@ import (
 	"fmt"
 	"log"
 
-	"github.com/gravitational/cube/Godeps/_workspace/src/golang.org/x/net/websocket"
+	"github.com/gravitational/planet/Godeps/_workspace/src/golang.org/x/net/websocket"
 )
 
 // This example demonstrates a trivial client.

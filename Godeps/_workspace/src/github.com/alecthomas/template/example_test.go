@@ -5,7 +5,7 @@
 package template_test
 
 import (
-	"github.com/gravitational/cube/Godeps/_workspace/src/github.com/alecthomas/template"
+	"github.com/gravitational/planet/Godeps/_workspace/src/github.com/alecthomas/template"
 	"log"
 	"os"
 )

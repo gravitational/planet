@@ -18,7 +18,7 @@ package dbus
 
 import (
 	"errors"
-	"github.com/gravitational/cube/Godeps/_workspace/src/github.com/godbus/dbus"
+	"github.com/gravitational/planet/Godeps/_workspace/src/github.com/godbus/dbus"
 )
 
 func (c *Conn) initJobs() {

@@ -5,12 +5,12 @@ import (
 	"io"
 	"os"
 
-	"github.com/gravitational/cube/Godeps/_workspace/src/github.com/docker/docker/pkg/term"
-	"github.com/gravitational/cube/Godeps/_workspace/src/github.com/gravitational/log"
-	"github.com/gravitational/cube/Godeps/_workspace/src/github.com/gravitational/trace"
+	"github.com/gravitational/planet/Godeps/_workspace/src/github.com/docker/docker/pkg/term"
+	"github.com/gravitational/planet/Godeps/_workspace/src/github.com/gravitational/log"
+	"github.com/gravitational/planet/Godeps/_workspace/src/github.com/gravitational/trace"
 
-	"github.com/gravitational/cube/Godeps/_workspace/src/github.com/opencontainers/runc/libcontainer"
-	_ "github.com/gravitational/cube/Godeps/_workspace/src/github.com/opencontainers/runc/libcontainer/nsenter" // this line is important for enter, nothing will work without it
+	"github.com/gravitational/planet/Godeps/_workspace/src/github.com/opencontainers/runc/libcontainer"
+	_ "github.com/gravitational/planet/Godeps/_workspace/src/github.com/opencontainers/runc/libcontainer/nsenter" // this line is important for enter, nothing will work without it
 )
 
 func CombinedOutput(c libcontainer.Container, cfg ProcessConfig) ([]byte, error) {

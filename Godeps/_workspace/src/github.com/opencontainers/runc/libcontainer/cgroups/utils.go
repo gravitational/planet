@@ -13,8 +13,8 @@ import (
 	"strings"
 	"time"
 
-	"github.com/gravitational/cube/Godeps/_workspace/src/github.com/docker/docker/pkg/mount"
-	"github.com/gravitational/cube/Godeps/_workspace/src/github.com/docker/docker/pkg/units"
+	"github.com/gravitational/planet/Godeps/_workspace/src/github.com/docker/docker/pkg/mount"
+	"github.com/gravitational/planet/Godeps/_workspace/src/github.com/docker/docker/pkg/units"
 )
 
 const cgroupNamePrefix = "name="

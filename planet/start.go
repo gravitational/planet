@@ -7,11 +7,11 @@ import (
 	"strings"
 	"time"
 
-	"github.com/gravitational/cube/Godeps/_workspace/src/github.com/gravitational/log"
-	"github.com/gravitational/cube/Godeps/_workspace/src/github.com/gravitational/orbit/box"
-	"github.com/gravitational/cube/Godeps/_workspace/src/github.com/gravitational/orbit/check"
-	"github.com/gravitational/cube/Godeps/_workspace/src/github.com/gravitational/trace"
-	"github.com/gravitational/cube/Godeps/_workspace/src/github.com/opencontainers/runc/libcontainer"
+	"github.com/gravitational/planet/Godeps/_workspace/src/github.com/gravitational/log"
+	"github.com/gravitational/planet/Godeps/_workspace/src/github.com/gravitational/orbit/box"
+	"github.com/gravitational/planet/Godeps/_workspace/src/github.com/gravitational/orbit/check"
+	"github.com/gravitational/planet/Godeps/_workspace/src/github.com/gravitational/trace"
+	"github.com/gravitational/planet/Godeps/_workspace/src/github.com/opencontainers/runc/libcontainer"
 )
 
 func start(conf CubeConfig) error {

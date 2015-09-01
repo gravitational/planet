@@ -5,10 +5,10 @@ import (
 	"runtime"
 	"testing"
 
-	"github.com/gravitational/cube/Godeps/_workspace/src/github.com/Sirupsen/logrus"
-	"github.com/gravitational/cube/Godeps/_workspace/src/github.com/opencontainers/runc/libcontainer"
-	"github.com/gravitational/cube/Godeps/_workspace/src/github.com/opencontainers/runc/libcontainer/cgroups/systemd"
-	_ "github.com/gravitational/cube/Godeps/_workspace/src/github.com/opencontainers/runc/libcontainer/nsenter"
+	"github.com/gravitational/planet/Godeps/_workspace/src/github.com/Sirupsen/logrus"
+	"github.com/gravitational/planet/Godeps/_workspace/src/github.com/opencontainers/runc/libcontainer"
+	"github.com/gravitational/planet/Godeps/_workspace/src/github.com/opencontainers/runc/libcontainer/cgroups/systemd"
+	_ "github.com/gravitational/planet/Godeps/_workspace/src/github.com/opencontainers/runc/libcontainer/nsenter"
 )
 
 // init runs the libcontainer initialization code because of the busybox style needs

@@ -6,14 +6,14 @@ import (
 	"net/http"
 	"os"
 
-	"github.com/gravitational/cube/Godeps/_workspace/src/github.com/gravitational/log"
-	"github.com/gravitational/cube/Godeps/_workspace/src/github.com/gravitational/roundtrip"
-	"github.com/gravitational/cube/Godeps/_workspace/src/github.com/gravitational/trace"
+	"github.com/gravitational/planet/Godeps/_workspace/src/github.com/gravitational/log"
+	"github.com/gravitational/planet/Godeps/_workspace/src/github.com/gravitational/roundtrip"
+	"github.com/gravitational/planet/Godeps/_workspace/src/github.com/gravitational/trace"
 
-	"github.com/gravitational/cube/Godeps/_workspace/src/github.com/julienschmidt/httprouter"
-	"github.com/gravitational/cube/Godeps/_workspace/src/github.com/opencontainers/runc/libcontainer"
+	"github.com/gravitational/planet/Godeps/_workspace/src/github.com/julienschmidt/httprouter"
+	"github.com/gravitational/planet/Godeps/_workspace/src/github.com/opencontainers/runc/libcontainer"
 
-	"github.com/gravitational/cube/Godeps/_workspace/src/golang.org/x/net/websocket"
+	"github.com/gravitational/planet/Godeps/_workspace/src/golang.org/x/net/websocket"
 )
 
 type webServer struct {

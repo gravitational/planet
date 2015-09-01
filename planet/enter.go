@@ -6,10 +6,10 @@ import (
 	"os"
 	"strings"
 
-	"github.com/gravitational/cube/Godeps/_workspace/src/github.com/docker/docker/pkg/term"
-	"github.com/gravitational/cube/Godeps/_workspace/src/github.com/gravitational/log"
-	"github.com/gravitational/cube/Godeps/_workspace/src/github.com/gravitational/orbit/box"
-	"github.com/gravitational/cube/Godeps/_workspace/src/github.com/gravitational/trace"
+	"github.com/gravitational/planet/Godeps/_workspace/src/github.com/docker/docker/pkg/term"
+	"github.com/gravitational/planet/Godeps/_workspace/src/github.com/gravitational/log"
+	"github.com/gravitational/planet/Godeps/_workspace/src/github.com/gravitational/orbit/box"
+	"github.com/gravitational/planet/Godeps/_workspace/src/github.com/gravitational/trace"
 )
 
 // enter initiates the process in the namespaces of the container

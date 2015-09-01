@@ -6,7 +6,7 @@ package template
 
 import (
 	"fmt"
-	"github.com/gravitational/cube/Godeps/_workspace/src/github.com/alecthomas/template/parse"
+	"github.com/gravitational/planet/Godeps/_workspace/src/github.com/alecthomas/template/parse"
 	"reflect"
 )
 

@@ -6,7 +6,7 @@ import (
 	"io"
 	"strings"
 
-	"github.com/gravitational/cube/Godeps/_workspace/src/github.com/gravitational/trace"
+	"github.com/gravitational/planet/Godeps/_workspace/src/github.com/gravitational/trace"
 )
 
 const (

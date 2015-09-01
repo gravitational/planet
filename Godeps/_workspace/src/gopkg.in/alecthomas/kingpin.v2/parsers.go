@@ -8,7 +8,7 @@ import (
 	"os"
 	"time"
 
-	"github.com/gravitational/cube/Godeps/_workspace/src/github.com/alecthomas/units"
+	"github.com/gravitational/planet/Godeps/_workspace/src/github.com/alecthomas/units"
 )
 
 type Settings interface {

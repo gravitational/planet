@@ -2,7 +2,7 @@ package introspect
 
 import (
 	"encoding/xml"
-	"github.com/gravitational/cube/Godeps/_workspace/src/github.com/godbus/dbus"
+	"github.com/gravitational/planet/Godeps/_workspace/src/github.com/godbus/dbus"
 	"reflect"
 	"strings"
 )

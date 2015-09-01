@@ -1,7 +1,7 @@
 package devices
 
 import (
-	"github.com/gravitational/cube/Godeps/_workspace/src/github.com/opencontainers/runc/libcontainer/configs"
+	"github.com/gravitational/planet/Godeps/_workspace/src/github.com/opencontainers/runc/libcontainer/configs"
 )
 
 // TODO Windows. This can be factored out further - Devices are not supported

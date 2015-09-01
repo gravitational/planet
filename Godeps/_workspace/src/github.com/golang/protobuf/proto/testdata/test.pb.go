@@ -38,7 +38,7 @@ It has these top-level messages:
 */
 package testdata
 
-import proto "github.com/gravitational/cube/Godeps/_workspace/src/github.com/golang/protobuf/proto"
+import proto "github.com/gravitational/planet/Godeps/_workspace/src/github.com/golang/protobuf/proto"
 import math "math"
 
 // Reference imports to suppress errors if they are not otherwise used.

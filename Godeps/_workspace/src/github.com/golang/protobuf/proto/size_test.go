@@ -36,9 +36,9 @@ import (
 	"strings"
 	"testing"
 
-	. "github.com/gravitational/cube/Godeps/_workspace/src/github.com/golang/protobuf/proto"
-	proto3pb "github.com/gravitational/cube/Godeps/_workspace/src/github.com/golang/protobuf/proto/proto3_proto"
-	pb "github.com/gravitational/cube/Godeps/_workspace/src/github.com/golang/protobuf/proto/testdata"
+	. "github.com/gravitational/planet/Godeps/_workspace/src/github.com/golang/protobuf/proto"
+	proto3pb "github.com/gravitational/planet/Godeps/_workspace/src/github.com/golang/protobuf/proto/proto3_proto"
+	pb "github.com/gravitational/planet/Godeps/_workspace/src/github.com/golang/protobuf/proto/testdata"
 )
 
 var messageWithExtension1 = &pb.MyMessage{Count: Int32(7)}

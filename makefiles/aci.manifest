@@ -19,19 +19,19 @@
     "annotations": [
         {
             "name": "gravitational.com/runtime/start",
-            "value": "/usr/bin/cube start"
+            "value": "/usr/bin/planet start"
         },
         {
             "name": "gravitational.com/runtime/enter",
-            "value": "/usr/bin/cube enter"
+            "value": "/usr/bin/planet enter"
         },
         {
             "name": "gravitational.com/runtime/stop",
-            "value": "/usr/bin/cube stop"
+            "value": "/usr/bin/planet stop"
         },
         {
             "name": "gravitational.com/runtime/status",
-            "value": "/usr/bin/cube status"
+            "value": "/usr/bin/planet status"
         }
     ]
 }

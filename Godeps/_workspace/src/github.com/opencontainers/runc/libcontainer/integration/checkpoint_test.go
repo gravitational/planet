@@ -7,7 +7,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/gravitational/cube/Godeps/_workspace/src/github.com/opencontainers/runc/libcontainer"
+	"github.com/gravitational/planet/Godeps/_workspace/src/github.com/opencontainers/runc/libcontainer"
 )
 
 func TestCheckpoint(t *testing.T) {
