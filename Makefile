@@ -15,36 +15,43 @@ notary:
 dev: planet-dev
 	cd $(BUILDDIR) && tar -xzf planet-dev.aci
 
+# Builds 'planet' binary
 planet:
 	go build -o $(BUILDDIR)/planet github.com/gravitational/planet/planet
 	go build -o $(BUILDDIR)/rootfs/usr/bin/planet github.com/gravitational/planet/planet
 
-planet-inside:
-	go build -o /var/orbit/render/gravitational.com/planet-dev/0.0.2/c61cb786ea66c515c090477eb15b0807c8aa89d64eece0785e61a0a849366d30/rootfs/usr/bin/planet  github.com/gravitational/planet/planet
-
-planet-base:
-	sudo docker build --no-cache=true -t planet/base -f makefiles/base/base.dockerfile .
-
+# Builds systemd-based "distro" using Ubuntu 15.04 This distro is used as a base OS image
+# for building and running Kubernetes.
 os-image:
 	sudo docker build --no-cache=true -t planet/os -f makefiles/os/os.dockerfile . ;\
 
-planet-dev:
-	sudo docker build -t planet/dev -f makefiles/dev/dev.dockerfile .
-	mkdir -p $(BUILDDIR)
-	rm -rf $(BUILDDIR)/planet-dev.aci
-	id=$$(sudo docker create planet/dev:latest) && sudo docker cp $$id:/build/planet-dev.aci $(BUILDDIR)
+# This target builds on top of os-image step above. It builds a new docker image, using planet/os
+# and adds docker registry, docker and flannel
+planet-base:
+	sudo docker build --no-cache=true -t planet/base -f makefiles/base/base.dockerfile .
 
+# Uses planet/base docker image as a foundation, it downloads and installs Kubernetes
+# master components: API, etcd, etc.
 planet-master:
 	sudo docker build -t planet/master -f makefiles/master/master.dockerfile .
 	mkdir -p $(BUILDDIR)
 	rm -rf $(BUILDDIR)/planet-master.aci
 	id=$$(sudo docker create planet/master:latest) && sudo docker cp $$id:/build/planet-master.aci $(BUILDDIR)
 
+# Uses planet/base docker image as a foundation, it downloads and installs Kubernetes
+# node components: kubelet and kube-proxy
 planet-node:
 	sudo docker build -t planet/node -f makefiles/node/node.dockerfile .
 	mkdir -p $(BUILDDIR)
 	rm -rf $(BUILDDIR)/planet-node.aci
 	id=$$(sudo docker create planet/node:latest) && sudo docker cp $$id:/build/planet-node.aci $(BUILDDIR)/
+
+# Uses planet/base docker image as a foundation, combines 'master' and 'node' into a single image
+planet-dev:
+	sudo docker build -t planet/dev -f makefiles/dev/dev.dockerfile .
+	mkdir -p $(BUILDDIR)
+	rm -rf $(BUILDDIR)/planet-dev.aci
+	id=$$(sudo docker create planet/dev:latest) && sudo docker cp $$id:/build/planet-dev.aci $(BUILDDIR)
 
 kill-systemd:
 	sudo kill -9 $$(ps uax  | grep [/]bin/systemd | awk '{ print $$2 }')
