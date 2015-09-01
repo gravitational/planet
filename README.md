@@ -1,15 +1,17 @@
 # Planet
 
-Planet is a Kubernetes installer. It runs Kubernetes inside of a containerized Ubuntu 15.04 image.
+Planet is a containerized Kubernetes environment, it is a self-containerizing Ubuntu 15.04 image with
+Kubernetes services running inside. 
+
 There are [official ways](http://kubernetes.io/v1.0/docs/getting-started-guides/README.html) to install and 
 play with Kubernetes, but `Planet` differs from those because:
 
-* Planet is built to be self-updating.
-* Planet allows us to packge our own services running under/alongside Kubernetes.
-* Planet hides the underlying infrastructure/cloud provider from the end user.
+* Planet creates a "bubble of consistency" for every Kubernetes cluster we deploy.
+* Planet allows to packge our own services running under/alongside Kubernetes.
+* Planet facilitates easier remote updating of itself and for Kubernetes (because it uses [Orbit containers](https://github.com/gravitational/orbit))
 
-In other words, Planet is our "OS" we use to run Kubernetes on top of.
 It also happens to be a great way to play with Kubernetes!
+Also check out the [developer documentation](docs/README.md).
 
 Installation
 -------------
@@ -30,6 +32,9 @@ By default `make` with no argumnets builds the production image. Here's how to b
 make
 make dev
 ```
+
+**NOTE** the output of make command is usually a container image. For example `make dev` 
+creates `$HOME/build/planet-dev.aci`
 
 Development Mode
 ----------------
@@ -68,49 +73,43 @@ Production Mode
 ---------------
 
 To start Planet on a real cloud in production mode you'll have to start Kubernetes-master and Kubernetes-node instances
-separately. Here's how you do this for AWS (add more providers in the future):
+separately. Here's how you do this for AWS (add more providers in the future).
 
-Master:
+First, create more than two AWS instances. You'll need one istance for Kubernetes master image, and one for each 
+of Kubernets nodes.
 
-```
-kube-master/planet --cloud-provider=aws --env AWS_ACCESS_KEY_ID=AKIAJY6HPQAX6CJJUAHQ --env AWS_SECRET_ACCESS_KEY=<key>  kube-master/rootfs/
-
-```
-
-Node:
+Upload `$BUILD/planet-master.aci` to the master AWS instance, untar it using `tar -xzf` and find `planet` executable
+inside of `rootfs` directory of the image. Then you can start Planet and it will containerize itself:
 
 ```
-kube-node/planet --master-ip=172.31.15.90 --cloud-provider=aws --env AWS_ACCESS_KEY_ID=AKIAJY6HPQAX6CJJUAHQ --env AWS_SECRET_ACCESS_KEY=<key>  kube-node/rootfs/
+.rootfs/usr/bin/planet --cloud-provider=aws --env AWS_ACCESS_KEY_ID=AKIAJY6HPQAX6CJJUAHQ --env AWS_SECRET_ACCESS_KEY=<key>  kube-master/rootfs/
+
 ```
 
-Description
------------
+Similarly, upload & untar the planet-node image onto each AWS node instance and run:
 
-Initial goal of the project:
+```
+.rootfs/usr/bin/planet --master-ip=172.31.15.90 --cloud-provider=aws --env AWS_ACCESS_KEY_ID=AKIAJY6HPQAX6CJJUAHQ --env AWS_SECRET_ACCESS_KEY=<key>  kube-node/rootfs/
+```
 
-1. Provide orbit images for:
+Using Planet
+------------
 
-* Kubernetes master (etcd2, docker, flanneld, api-service, scheduler)
-* Kubernetes node (docker, flanneld, kube-proxy, kube-node)
+Planet is a generic `container image`. Right now we're using CoreOS ACI format, but it's basically
+tarballed and gzipped rootfs. Usually these images are distributed and updated 
+by [Orbit](https://github.com/gravitational/orbit).
 
-2. Give clear way to "deploy" real application into our embedded cluster
+Inside a container image there are Kubernetes components and the Planet binary in `rootfs/usr/bin/planet`.
+When you launch that binary, it will self-containerize within its RootFS and will launch all Kubernetes
+components using systemd.
 
-let's use wordpress as a test example: https://github.com/GoogleCloudPlatform/kubernetes/tree/v1.0.1/examples/mysql-wordpress-pd
-It has enough moving parts.
+If you start it without any commands, it will show the usage info:
 
-3. Write an installer that installs Planet-powered Kubernetes cluster to various environments:
-
-* Your laptop
-* AWS
-* GCE
-* Rackspace Bare-Metal
-
-Resume:
-
-At the end of this project we will have installable kubernetes with a real word-press application that can be distributed
-to various providers as an installable app.
-
-Notes:
-
-Use this guide to build a custom release of Kubernetes for orbit.
-https://github.com/GoogleCloudPlatform/kubernetes/blob/v1.0.1/docs/getting-started-guides/scratch.md
+```
+Commands:
+  help   [<command>...]               Show help.
+  start  [<flags>] [<rootfs>]         Start orbit container
+  stop   [<rootfs>]                   Stop the container
+  enter  [<flags>] [<rootfs>] [<cmd>] Enter running the container
+  status [<rootfs>]                   Get status of a running container
+```
