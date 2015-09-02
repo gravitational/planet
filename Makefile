@@ -1,5 +1,5 @@
 SHELL:=/bin/bash
-.PHONY: all image etcd network k8s-master planet notary
+.PHONY: all dev planet planet-os planet-base planet-master planet-node planet-dev kill-systemd enter clean start-dev stop status remove-godeps
 
 BUILDDIR := $(HOME)/build
 export
