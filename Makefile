@@ -1,9 +1,6 @@
 SHELL:=/bin/bash
 .PHONY: all image etcd network k8s-master planet notary
 
-MASTER_IP := 54.149.35.97
-NODE_IP := 54.149.186.124
-NODE2_IP := 54.68.41.110
 BUILDDIR := $(HOME)/build
 export
 
@@ -53,14 +50,10 @@ planet-dev: planet-base
 	rm -f $(BUILDDIR)/planet-dev.tar.gz
 	id=$$(sudo docker create planet/dev:latest) && sudo docker cp $$id:/build/planet-dev.tar.gz $(BUILDDIR)
 
+# In case if something goes wrong, use this program to kill systemd that runs the whole setup
 kill-systemd:
 	sudo kill -9 $$(ps uax  | grep [/]bin/systemd | awk '{ print $$2 }')
 
-login-master:
-	ssh -i /home/alex/keys/aws/alex.pem ubuntu@$(MASTER_IP)
-
-login-node:
-	ssh -i /home/alex/keys/aws/alex.pem ubuntu@$(NODE_IP)
 
 # IMPORTANT NOTES for installer
 # * We need to set cloud provider for kubernetes - semi done, aws
@@ -78,10 +71,8 @@ login-node:
 enter:
 	cd $(BUILDDIR) && sudo $(BUILDDIR)/rootfs/usr/bin/planet enter --debug
 
-
 clean:
 	rm -rf $(BUILDDIR)/master/rootfs/run/planet.socket
-
 
 start-dev:
 	@sudo mkdir -p /var/planet/registry /var/planet/etcd /var/planet/docker /var/planet/mysql
