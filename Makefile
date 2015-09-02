@@ -76,7 +76,7 @@ login-node:
 # check kernel version, and if it's less than 3.18 back off
 
 enter:
-	sudo $(BUILDDIR)/rootfs/usr/bin/planet enter --debug $(BUILDDIR)/rootfs
+	cd $(BUILDDIR) && sudo $(BUILDDIR)/rootfs/usr/bin/planet enter --debug
 
 
 clean:
@@ -85,7 +85,7 @@ clean:
 
 start-dev:
 	@sudo mkdir -p /var/planet/registry /var/planet/etcd /var/planet/docker /var/planet/mysql
-	@cd $(BUILDDIR) && sudo $(BUILDDIR)/rootfs/usr/bin/planet start\
+	cd $(BUILDDIR) && sudo $(BUILDDIR)/rootfs/usr/bin/planet start\
 		--role=master\
 		--role=node\
 		--volume=/var/planet/etcd:/ext/etcd\
@@ -94,7 +94,7 @@ start-dev:
         --volume=/var/planet/mysql:/ext/mysql
 
 stop:
-	sudo $(BUILDDIR)/rootfs/usr/bin/planet stop $(BUILDDIR)/rootfs
+	cd $(BUILDDIR) && sudo $(BUILDDIR)/rootfs/usr/bin/planet stop
 
 status:
 	sudo $(BUILDDIR)/rootfs/usr/bin/planet status $(BUILDDIR)/rootfs

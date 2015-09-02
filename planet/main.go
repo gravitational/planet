@@ -15,6 +15,14 @@ import (
 )
 
 func main() {
+	if err := run(); err != nil {
+		fmt.Fprintf(os.Stderr, "planet error: %v\n", err)
+		os.Exit(-1)
+	}
+	log.Infof("planet: execution completed successfully")
+}
+
+func run() error {
 	var (
 		app   = kingpin.New("planet", "Planet is a Kubernetes delivered as an orbit container")
 		debug = app.Flag("debug", "Enable debug mode").Bool()
@@ -48,14 +56,7 @@ func main() {
 
 	cmd, err := app.Parse(os.Args[1:])
 	if err != nil {
-		fmt.Fprintf(os.Stderr, "planet error: %v\n", err)
-		os.Exit(-1)
-	}
-
-	rootfs, err := findRootfs()
-	if err != nil {
-		fmt.Fprintf(os.Stderr, "planet error: %v\n", err)
-		os.Exit(-1)
+		return err
 	}
 
 	if *debug == true {
@@ -66,6 +67,10 @@ func main() {
 
 	switch cmd {
 	case cstart.FullCommand():
+		rootfs, err := findRootfs()
+		if err != nil {
+			return err
+		}
 		err = start(Config{
 			Rootfs:        rootfs,
 			Env:           *cstartEnv,
@@ -79,22 +84,29 @@ func main() {
 	case cinit.FullCommand():
 		err = initLibcontainer()
 	case center.FullCommand():
+		rootfs, err := findRootfs()
+		if err != nil {
+			return err
+		}
 		err = enterConsole(
 			rootfs, *centerArgs, *centerUser, !*centerNoTTY)
 	case cstop.FullCommand():
+		rootfs, err := findRootfs()
+		if err != nil {
+			return err
+		}
 		err = stop(rootfs)
 	case cstatus.FullCommand():
+		rootfs, err := findRootfs()
+		if err != nil {
+			return err
+		}
 		err = status(rootfs)
 	default:
 		err = trace.Errorf("unsupported command: %v", cmd)
 	}
 
-	if err != nil {
-		log.Errorf("planet error: %v", err)
-		os.Exit(255)
-	}
-
-	log.Infof("cube: execution completed successfully")
+	return err
 }
 
 func EnvVars(s kingpin.Settings) *box.EnvVars {
@@ -160,5 +172,6 @@ func findRootfs() (string, error) {
 	if !s.IsDir() {
 		return "", trace.Errorf("rootfs is not a directory")
 	}
+
 	return rootfs, nil
 }

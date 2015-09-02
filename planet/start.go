@@ -146,7 +146,7 @@ func monitorUnits(c libcontainer.Container, units []string) {
 	for _, u := range units {
 		us[u] = ""
 	}
-
+	start := time.Now()
 	for i := 0; i < 30; i++ {
 		for _, u := range units {
 			status, err := getStatus(c, u)
@@ -157,6 +157,7 @@ func monitorUnits(c libcontainer.Container, units []string) {
 		}
 
 		out := &bytes.Buffer{}
+		fmt.Fprintf(out, "%v", time.Now().Sub(start))
 		for _, u := range units {
 			if us[u] != "" {
 				fmt.Fprintf(out, " %v \x1b[32m[OK]\x1b[0m", u)
