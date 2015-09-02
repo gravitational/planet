@@ -3,10 +3,11 @@ package main
 import (
 	"fmt"
 
-	"github.com/gravitational/planet/Godeps/_workspace/src/github.com/gravitational/orbit/box"
+	"github.com/gravitational/planet/Godeps/_workspace/src/github.com/gravitational/orbit/lib/box"
+	"github.com/gravitational/planet/Godeps/_workspace/src/github.com/gravitational/orbit/lib/utils"
 )
 
-type CubeConfig struct {
+type Config struct {
 	Roles         roles
 	Rootfs        string
 	MasterIP      string
@@ -17,7 +18,7 @@ type CubeConfig struct {
 	Force         bool
 }
 
-func (cfg *CubeConfig) hasRole(r string) bool {
+func (cfg *Config) hasRole(r string) bool {
 	for _, rs := range cfg.Roles {
 		if rs == r {
 			return true
@@ -28,11 +29,13 @@ func (cfg *CubeConfig) hasRole(r string) bool {
 
 type roles []string
 
-func (r *roles) Set(role string) error {
-	*r = append(*r, role)
+func (rs *roles) Set(role string) error {
+	for _, r := range utils.SplitComma(role) {
+		*rs = append(*rs, r)
+	}
 	return nil
 }
 
-func (r *roles) String() string {
-	return fmt.Sprintf("%v", []string(*r))
+func (rs *roles) String() string {
+	return fmt.Sprintf("%v", []string(*rs))
 }

@@ -6,6 +6,7 @@ import (
 	"io"
 	"strings"
 
+	"github.com/gravitational/planet/Godeps/_workspace/src/github.com/gravitational/orbit/lib/utils"
 	"github.com/gravitational/planet/Godeps/_workspace/src/github.com/gravitational/trace"
 )
 
@@ -72,10 +73,19 @@ type EnvPair struct {
 type EnvVars []EnvPair
 
 func (vars *EnvVars) Set(v string) error {
-	vals := strings.Split(v, "=")
+	for _, i := range utils.SplitComma(v) {
+		if err := vars.setItem(i); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+func (vars *EnvVars) setItem(v string) error {
+	vals := strings.Split(v, ":")
 	if len(vals) != 2 {
 		return trace.Errorf(
-			"set environment variable separated by '=', e.g. KEY=VAL")
+			"set environment variable separated by ':', e.g. KEY:VAL")
 	}
 	*vars = append(*vars, EnvPair{Name: vals[0], Val: vals[1]})
 	return nil
@@ -103,6 +113,15 @@ type Mount struct {
 type Mounts []Mount
 
 func (m *Mounts) Set(v string) error {
+	for _, i := range utils.SplitComma(v) {
+		if err := m.setItem(i); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+func (m *Mounts) setItem(v string) error {
 	vals := strings.Split(v, ":")
 	if len(vals) != 2 {
 		return trace.Errorf(
