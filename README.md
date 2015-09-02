@@ -92,52 +92,6 @@ Similarly, upload & untar the planet-node image onto each AWS node instance and 
 .rootfs/usr/bin/planet --master-ip=172.31.15.90 --cloud-provider=aws --env AWS_ACCESS_KEY_ID=AKIAJY6HPQAX6CJJUAHQ --env AWS_SECRET_ACCESS_KEY=<key>  kube-node/rootfs/
 ```
 
-Planet and Orbit
-----------------
-
-Orbit is a package manager that helps to distribute arbitrary files, with versioning, across many Linux clusters (like AWS accounts). Planet tarball already contains Orbit manifest, so no extra actions are necessary.
-
-Example of using orbit and planet (assuming orbit is installed)
-
-**Import planet tarball**
-
-```bash
-orbit import planet-dev.tar.gz planet/dev#0.0.1
-```
-
-**Configure planet package***
-
-Configure local planet package by using `orbit configure` command. It will capture and validate the arguments and
-will generate a special configuration package `planet/dev-cfg#0.0.1`
-
-```bash
-orbit configure planet/dev#0.0.1 \
-    planet/dev-cfg#0.0.1 args\
-    --role=master --role=node\
-    --volume=/var/planet/etcd:/ext/etcd\
-    --volume=/var/planet/registry:/ext/registry\
-    --volume=/var/planet/docker:/ext/docker\
-    --volume=/var/planet/mysql:/ext/mysql
-```
-
-**Start planet**
-
-This command will execute `start` command supplied by `planet/dev#0.0.1` and will use configuration from `planet/dev-cfg#0.0.1` that
-we've just generated
-
-```bash
-orbit exec-config start planet/dev#0.0.1 planet/cfg#0.0.1
-```
-
-**Other commands**
-
-Execute enter, status and stop commands using the same pattern as above:
-
-```bash
-orbit exec-config stop planet/dev#0.0.1 planet/cfg#0.0.1
-```
-
-
 Using Planet
 ------------
 
@@ -158,3 +112,59 @@ Commands:
   enter  [<flags>] [<rootfs>] [<cmd>] Enter running the container
   status [<rootfs>]                   Get status of a running container
 ```
+
+Distributing Planet
+-------------------
+
+Planet images are distributed to remote sites via [Gravitational Orbit](https://github.com/gravitational/orbit/blob/master/README.md).
+
+Orbit is a package manager that helps to distribute arbitrary files, with versioning, 
+across many Linux clusters (like AWS accounts). Planet tarball already contains Orbit manifest, 
+which makes it an Orbit package.
+
+**Publishing a new Planet build**
+
+This adds a new Planet build (orbit package) into the local Orbit repository:
+
+```bash
+orbit import planet-dev.tar.gz planet/dev#0.0.1
+```
+
+Now when you have Planet in your local Orbit repo, you can push it to remote Orbit repository by running `orbit push`,
+and install it onto any site with `orbit pull`.
+
+**Site Configuration**
+
+Planet needs a site-specific configuration to run. Orbit allows users to specify configuration as 
+key-value pairs and store it as another, _site-local_ package. This allows independent upgrades of 
+packages and their configuration.
+
+Configure planet package and store the output as a _local configuration package_ `planet/dev-cfg#0.0.1`
+
+```bash
+orbit configure planet/dev#0.0.1 \
+    planet/dev-cfg#0.0.1 args\
+    --role=master --role=node\
+    --volume=/var/planet/etcd:/ext/etcd\
+    --volume=/var/planet/registry:/ext/registry\
+    --volume=/var/planet/docker:/ext/docker
+```
+
+**Start planet**
+
+This command will execute `start` command supplied by `planet/dev#0.0.1` and will use configuration from `planet/dev-cfg#0.0.1` that
+we've just generated
+
+```bash
+orbit exec-config start planet/dev#0.0.1 planet/cfg#0.0.1
+```
+
+**Other commands**
+
+Execute enter, status and stop commands using the same pattern as above:
+
+```bash
+orbit exec-config stop planet/dev#0.0.1 planet/cfg#0.0.1
+```
+
+`Planet` is no different than any other Orbit package. Consult [Orbit documentation](https://github.com/gravitational/orbit/blob/master/README.md) to learn more.
