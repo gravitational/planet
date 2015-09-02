@@ -7,7 +7,7 @@ NODE2_IP := 54.68.41.110
 BUILDDIR := $(HOME)/build
 export
 
-all: planet-base planet-master planet-node planet notary
+all: planet-os planet-master planet-node planet notary
 
 notary:
 	$(MAKE) -C makefiles/notary -f notary.mk
@@ -22,7 +22,7 @@ planet:
 
 # Builds systemd-based "distro" using Ubuntu 15.04 This distro is used as a base OS image
 # for building and running Kubernetes.
-os-image:
+planet-os:
 	sudo docker build --no-cache=true -t planet/os -f makefiles/os/os.dockerfile . ;\
 
 # This target builds on top of os-image step above. It builds a new docker image, using planet/os
@@ -32,26 +32,26 @@ planet-base:
 
 # Uses planet/base docker image as a foundation, it downloads and installs Kubernetes
 # master components: API, etcd, etc.
-planet-master:
+planet-master: planet-base
 	sudo docker build -t planet/master -f makefiles/master/master.dockerfile .
 	mkdir -p $(BUILDDIR)
-	rm -rf $(BUILDDIR)/planet-master.aci
-	id=$$(sudo docker create planet/master:latest) && sudo docker cp $$id:/build/planet-master.aci $(BUILDDIR)
+	rm -rf $(BUILDDIR)/planet-master.tar.gz
+	id=$$(sudo docker create planet/master:latest) && sudo docker cp $$id:/build/planet-master.tar.gz $(BUILDDIR)
 
 # Uses planet/base docker image as a foundation, it downloads and installs Kubernetes
 # node components: kubelet and kube-proxy
-planet-node:
+planet-node: planet-base
 	sudo docker build -t planet/node -f makefiles/node/node.dockerfile .
 	mkdir -p $(BUILDDIR)
-	rm -rf $(BUILDDIR)/planet-node.aci
-	id=$$(sudo docker create planet/node:latest) && sudo docker cp $$id:/build/planet-node.aci $(BUILDDIR)/
+	rm -f $(BUILDDIR)/planet-node.tar.gz
+	id=$$(sudo docker create planet/node:latest) && sudo docker cp $$id:/build/planet-node.tar.gz $(BUILDDIR)/
 
 # Uses planet/base docker image as a foundation, combines 'master' and 'node' into a single image
-planet-dev:
+planet-dev: planet-base
 	sudo docker build -t planet/dev -f makefiles/dev/dev.dockerfile .
 	mkdir -p $(BUILDDIR)
-	rm -rf $(BUILDDIR)/planet-dev.aci
-	id=$$(sudo docker create planet/dev:latest) && sudo docker cp $$id:/build/planet-dev.aci $(BUILDDIR)
+	rm -f $(BUILDDIR)/planet-dev.tar.gz
+	id=$$(sudo docker create planet/dev:latest) && sudo docker cp $$id:/build/planet-dev.tar.gz $(BUILDDIR)
 
 kill-systemd:
 	sudo kill -9 $$(ps uax  | grep [/]bin/systemd | awk '{ print $$2 }')
@@ -61,39 +61,6 @@ login-master:
 
 login-node:
 	ssh -i /home/alex/keys/aws/alex.pem ubuntu@$(NODE_IP)
-
-login-node2:
-	ssh -i /home/alex/keys/aws/alex.pem ubuntu@$(NODE2_IP)
-
-deploy-master:
-	scp -i /home/alex/keys/aws/alex.pem  $($(BUILDDIR)DIR)/kube-master.tar.gz ubuntu@$(MASTER_IP):/home/ubuntu
-
-deploy-experiment:
-	scp -i /home/alex/keys/aws/alex.pem start.sh ubuntu@$(MASTER_IP):/home/ubuntu
-
-deploy-node:
-	scp -i /home/alex/keys/aws/alex.pem  $($(BUILDDIR)DIR)/planet-node.tar.gz ubuntu@$(NODE_IP):/home/ubuntu
-
-deploy-node2:
-	scp -i /home/alex/keys/aws/alex.pem  $($(BUILDDIR)DIR)/planet-node.tar.gz ubuntu@$(NODE2_IP):/home/ubuntu
-
-deploy-master:
-	scp -i /home/alex/keys/aws/alex.pem  $($(BUILDDIR)DIR)/planet ubuntu@$(MASTER_IP):/home/ubuntu/
-
-deploy-node:
-	scp -i /home/alex/keys/aws/alex.pem  $($(BUILDDIR)DIR)/planet ubuntu@$(NODE_IP):/home/ubuntu
-
-deploy-nsenter:
-	scp -i /home/alex/keys/aws/alex.pem /usr/bin/nsenter ubuntu@$(MASTER_IP):/home/ubuntu/
-
-deploy-nsenter-node:
-	scp -i /home/alex/keys/aws/alex.pem /usr/bin/nsenter ubuntu@$(NODE_IP):/home/ubuntu/
-
-deploy-nsenter-node2:
-	scp -i /home/alex/keys/aws/alex.pem /usr/bin/nsenter ubuntu@$(NODE2_IP):/home/ubuntu/
-
-deploy-kubectl:
-	scp -i /home/alex/keys/aws/alex.pem $($(BUILDDIR)DIR)/kubectl ubuntu@$(MASTER_IP):/home/ubuntu/
 
 # IMPORTANT NOTES for installer
 # * We need to set cloud provider for kubernetes - semi done, aws
@@ -117,15 +84,14 @@ clean:
 
 
 start-dev:
-	sudo mkdir -p /var/planet/registry /var/planet/etcd /var/planet/docker /var/planet/mysql
-	sudo $(BUILDDIR)/rootfs/usr/bin/planet start\
+	@sudo mkdir -p /var/planet/registry /var/planet/etcd /var/planet/docker /var/planet/mysql
+	@cd $(BUILDDIR) && sudo $(BUILDDIR)/rootfs/usr/bin/planet start\
 		--role=master\
 		--role=node\
 		--volume=/var/planet/etcd:/ext/etcd\
 		--volume=/var/planet/registry:/ext/registry\
 		--volume=/var/planet/docker:/ext/docker\
-        --volume=/var/planet/mysql:/ext/mysql\
-		$(BUILDDIR)/rootfs
+        --volume=/var/planet/mysql:/ext/mysql
 
 stop:
 	sudo $(BUILDDIR)/rootfs/usr/bin/planet stop $(BUILDDIR)/rootfs
@@ -133,3 +99,6 @@ stop:
 status:
 	sudo $(BUILDDIR)/rootfs/usr/bin/planet status $(BUILDDIR)/rootfs
 
+remove-godeps:
+	rm -rf Godeps/
+	find . -iregex .*go | xargs sed -i 's:".*Godeps/_workspace/src/:":g'
