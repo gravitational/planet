@@ -95,8 +95,7 @@ Similarly, upload & untar the planet-node image onto each AWS node instance and 
 Planet and Orbit
 ----------------
 
-Orbit is a package manager that helps to distribute various blobs across the infrastructure. Planet tarball already contains Orbit manifest, so no
-extra actions are necessary.
+Orbit is a package manager that helps to distribute arbitrary files, with versioning, across many Linux clusters (like AWS accounts). Planet tarball already contains Orbit manifest, so no extra actions are necessary.
 
 Example of using orbit and planet (assuming orbit is installed)
 
