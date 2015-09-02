@@ -4,10 +4,7 @@ SHELL:=/bin/bash
 BUILDDIR := $(HOME)/build
 export
 
-all: planet-os planet-master planet-node planet notary
-
-notary:
-	$(MAKE) -C makefiles/notary -f notary.mk
+all: planet-os planet-master planet-node planet
 
 dev: planet-dev
 	cd $(BUILDDIR) && tar -xzf planet-dev.aci
