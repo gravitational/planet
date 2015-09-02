@@ -3,11 +3,12 @@ package main
 import (
 	"fmt"
 	"os"
+	"path/filepath"
 	"runtime"
 
 	"github.com/gravitational/planet/Godeps/_workspace/src/github.com/docker/docker/pkg/term"
 	"github.com/gravitational/planet/Godeps/_workspace/src/github.com/gravitational/log"
-	"github.com/gravitational/planet/Godeps/_workspace/src/github.com/gravitational/orbit/box"
+	"github.com/gravitational/planet/Godeps/_workspace/src/github.com/gravitational/orbit/lib/box"
 	"github.com/gravitational/planet/Godeps/_workspace/src/github.com/gravitational/trace"
 	"github.com/gravitational/planet/Godeps/_workspace/src/github.com/opencontainers/runc/libcontainer"
 	"github.com/gravitational/planet/Godeps/_workspace/src/gopkg.in/alecthomas/kingpin.v2"
@@ -15,42 +16,45 @@ import (
 
 func main() {
 	var (
-		app   = kingpin.New("cube", "Cube is a Kubernetes delivered as an orbit container")
+		app   = kingpin.New("planet", "Planet is a Kubernetes delivered as an orbit container")
 		debug = app.Flag("debug", "Enable debug mode").Bool()
 
 		// internal init command used by libcontainer
 		cinit = app.Command("init", "Internal init command").Hidden()
 
-		// start the container with cube
-		cstart              = app.Command("start", "Start orbit container")
-		cstartRootfs        = cstart.Arg("rootfs", "Path to root filesystem").ExistingDir()
-		cstartMasterIP      = cstart.Flag("master-ip", "ip of the master pod").Default("127.0.0.1").IP()
-		cstartCloudProvider = cstart.Flag("cloud-provider", "cloud provider name, e.g. 'aws' or 'gce'").String()
-		cstartCloudConfig   = cstart.Flag("cloud-config", "cloud config path").String()
-		cstartForce         = cstart.Flag("force", "Force start ignoring some failed host checks (e.g. kernel version)").Bool()
-		cstartEnv           = EnvVars(cstart.Flag("env", "Set environment variable"))
-		cstartMounts        = Mounts(cstart.Flag("volume", "External volume to mount"))
-		cstartRoles         = Roles(cstart.Flag("role", "Roles such as 'master' or 'node'"))
+		// start the container with planet
+		cstart = app.Command("start", "Start Planet container")
+
+		cstartMasterIP      = cstart.Flag("master-ip", "ip of the master pod").Default("127.0.0.1").OverrideDefaultFromEnvar("PLANET_MASTER_IP").IP()
+		cstartCloudProvider = cstart.Flag("cloud-provider", "cloud provider name, e.g. 'aws' or 'gce'").OverrideDefaultFromEnvar("PLANET_CLOUD_PROVIDER").String()
+		cstartCloudConfig   = cstart.Flag("cloud-config", "cloud config path").OverrideDefaultFromEnvar("PLANET_CLOUD_CONFIG").String()
+		cstartForce         = cstart.Flag("force", "Force start ignoring some failed host checks (e.g. kernel version)").OverrideDefaultFromEnvar("PLANET_FORCE").Bool()
+		cstartEnv           = EnvVars(cstart.Flag("env", "Set environment variable").OverrideDefaultFromEnvar("PLANET_ENV"))
+		cstartMounts        = Mounts(cstart.Flag("volume", "External volume to mount").OverrideDefaultFromEnvar("PLANET_VOLUME"))
+		cstartRoles         = Roles(cstart.Flag("role", "Roles such as 'master' or 'node'").OverrideDefaultFromEnvar("PLANET_ROLE"))
 
 		// stop a running container
-		cstop       = app.Command("stop", "Stop cube container")
-		cstopRootfs = cstop.Arg("rootfs", "Path to root filesystem").ExistingDir()
+		cstop = app.Command("stop", "Stop cube container")
 
 		// enter a running container
-		center       = app.Command("enter", "Enter running cube container")
-		centerRootfs = center.Arg("rootfs", "Path to root filesystem").ExistingDir()
-		centerArgs   = center.Arg("cmd", "command to execute").Default("/bin/bash").String()
-		centerNoTTY  = center.Flag("not-tty", "do not attach TTY to this process").Bool()
-		centerUser   = center.Flag("user", "user to execute the command").Default("root").String()
+		center      = app.Command("enter", "Enter running cube container")
+		centerArgs  = center.Arg("cmd", "command to execute").Default("/bin/bash").String()
+		centerNoTTY = center.Flag("not-tty", "do not attach TTY to this process").Bool()
+		centerUser  = center.Flag("user", "user to execute the command").Default("root").String()
 
 		// report status of a running container
-		cstatus       = app.Command("status", "Get status of a running container")
-		cstatusRootfs = cstatus.Arg("rootfs", "Path to root filesystem").ExistingDir()
+		cstatus = app.Command("status", "Get status of a running container")
 	)
 
 	cmd, err := app.Parse(os.Args[1:])
 	if err != nil {
-		fmt.Fprintf(os.Stderr, "cube error: %v\n", err)
+		fmt.Fprintf(os.Stderr, "planet error: %v\n", err)
+		os.Exit(-1)
+	}
+
+	rootfs, err := findRootfs()
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "planet error: %v\n", err)
 		os.Exit(-1)
 	}
 
@@ -62,8 +66,8 @@ func main() {
 
 	switch cmd {
 	case cstart.FullCommand():
-		err = start(CubeConfig{
-			Rootfs:        *cstartRootfs,
+		err = start(Config{
+			Rootfs:        rootfs,
 			Env:           *cstartEnv,
 			Mounts:        *cstartMounts,
 			Force:         *cstartForce,
@@ -76,17 +80,17 @@ func main() {
 		err = initLibcontainer()
 	case center.FullCommand():
 		err = enterConsole(
-			*centerRootfs, *centerArgs, *centerUser, !*centerNoTTY)
+			rootfs, *centerArgs, *centerUser, !*centerNoTTY)
 	case cstop.FullCommand():
-		err = stop(*cstopRootfs)
+		err = stop(rootfs)
 	case cstatus.FullCommand():
-		err = status(*cstatusRootfs)
+		err = status(rootfs)
 	default:
 		err = trace.Errorf("unsupported command: %v", cmd)
 	}
 
 	if err != nil {
-		log.Errorf("cube error: %v", err)
+		log.Errorf("planet error: %v", err)
 		os.Exit(255)
 	}
 
@@ -139,4 +143,22 @@ func initLibcontainer() error {
 		log.Fatalf("error: %v", err)
 	}
 	return trace.Errorf("this line should have never been executed")
+}
+
+func findRootfs() (string, error) {
+	cwd, err := os.Getwd()
+	if err != nil {
+		return "", trace.Wrap(err, "failed to get current directory")
+	}
+
+	rootfs := filepath.Join(cwd, "rootfs")
+	s, err := os.Stat(rootfs)
+	if err != nil {
+		return "", trace.Wrap(err, "rootfs error")
+	}
+
+	if !s.IsDir() {
+		return "", trace.Errorf("rootfs is not a directory")
+	}
+	return rootfs, nil
 }

@@ -1,8 +1,8 @@
 {
-	"ImportPath": "github.com/gravitational/cube",
+	"ImportPath": "github.com/gravitational/planet",
 	"GoVersion": "go1.4.2",
 	"Packages": [
-		"./cube/..."
+		"./planet/..."
 	],
 	"Deps": [
 		{
@@ -62,12 +62,16 @@
 			"Rev": "8e1bbf1bba0515719dbb17adf1da20b5390ac8da"
 		},
 		{
-			"ImportPath": "github.com/gravitational/orbit/box",
-			"Rev": "431eaec757e6ffcf80405d32c331ca012f6c4c59"
+			"ImportPath": "github.com/gravitational/orbit/lib/box",
+			"Rev": "4ce5f07fe35ea6f99dda5997f51fa8aed400032f"
 		},
 		{
-			"ImportPath": "github.com/gravitational/orbit/check",
-			"Rev": "431eaec757e6ffcf80405d32c331ca012f6c4c59"
+			"ImportPath": "github.com/gravitational/orbit/lib/check",
+			"Rev": "4ce5f07fe35ea6f99dda5997f51fa8aed400032f"
+		},
+		{
+			"ImportPath": "github.com/gravitational/orbit/lib/utils",
+			"Rev": "4ce5f07fe35ea6f99dda5997f51fa8aed400032f"
 		},
 		{
 			"ImportPath": "github.com/gravitational/roundtrip",

@@ -78,11 +78,11 @@ separately. Here's how you do this for AWS (add more providers in the future).
 First, create more than two AWS instances. You'll need one istance for Kubernetes master image, and one for each 
 of Kubernets nodes.
 
-Upload `$BUILD/planet-master.aci` to the master AWS instance, untar it using `tar -xzf` and find `planet` executable
+Upload `$BUILD/planet-master.tar.gz` to the master AWS instance, untar it using `tar -xzf` and find `planet` executable
 inside of `rootfs` directory of the image. Then you can start Planet and it will containerize itself:
 
 ```
-.rootfs/usr/bin/planet --cloud-provider=aws --env AWS_ACCESS_KEY_ID=AKIAJY6HPQAX6CJJUAHQ --env AWS_SECRET_ACCESS_KEY=<key>  kube-master/rootfs/
+./rootfs/usr/bin/planet --cloud-provider=aws --env AWS_ACCESS_KEY_ID=AKIAJY6HPQAX6CJJUAHQ --env AWS_SECRET_ACCESS_KEY=<key>  kube-master/rootfs/
 
 ```
 
@@ -91,6 +91,53 @@ Similarly, upload & untar the planet-node image onto each AWS node instance and 
 ```
 .rootfs/usr/bin/planet --master-ip=172.31.15.90 --cloud-provider=aws --env AWS_ACCESS_KEY_ID=AKIAJY6HPQAX6CJJUAHQ --env AWS_SECRET_ACCESS_KEY=<key>  kube-node/rootfs/
 ```
+
+Planet and Orbit
+----------------
+
+Orbit is a package manager that helps to distribute various blobs across the infrastructure. Planet tarball already contains Orbit manifest, so no
+extra actions are necessary.
+
+Example of using orbit and planet (assuming orbit is installed)
+
+**Import planet tarball**
+
+```bash
+orbit import planet-dev.tar.gz planet/dev#0.0.1
+```
+
+**Configure planet package***
+
+Configure local planet package by using `orbit configure` command. It will capture and validate the arguments and
+will generate a special configuration package `planet/dev-cfg#0.0.1`
+
+```bash
+orbit configure planet/dev#0.0.1 \
+    planet/dev-cfg#0.0.1 args\
+    --role=master --role=node\
+    --volume=/var/planet/etcd:/ext/etcd\
+    --volume=/var/planet/registry:/ext/registry\
+    --volume=/var/planet/docker:/ext/docker\
+    --volume=/var/planet/mysql:/ext/mysql
+```
+
+**Start planet**
+
+This command will execute `start` command supplied by `planet/dev#0.0.1` and will use configuration from `planet/dev-cfg#0.0.1` that
+we've just generated
+
+```bash
+orbit exec-config start planet/dev#0.0.1 planet/cfg#0.0.1
+```
+
+**Other commands**
+
+Execute enter, status and stop commands using the same pattern as above:
+
+```bash
+orbit exec-config stop planet/dev#0.0.1 planet/cfg#0.0.1
+```
+
 
 Using Planet
 ------------

@@ -1,6 +1,7 @@
 package main
 
 import (
+	"bytes"
 	"fmt"
 	"path/filepath"
 	"sort"
@@ -8,13 +9,13 @@ import (
 	"time"
 
 	"github.com/gravitational/planet/Godeps/_workspace/src/github.com/gravitational/log"
-	"github.com/gravitational/planet/Godeps/_workspace/src/github.com/gravitational/orbit/box"
-	"github.com/gravitational/planet/Godeps/_workspace/src/github.com/gravitational/orbit/check"
+	"github.com/gravitational/planet/Godeps/_workspace/src/github.com/gravitational/orbit/lib/box"
+	"github.com/gravitational/planet/Godeps/_workspace/src/github.com/gravitational/orbit/lib/check"
 	"github.com/gravitational/planet/Godeps/_workspace/src/github.com/gravitational/trace"
 	"github.com/gravitational/planet/Godeps/_workspace/src/github.com/opencontainers/runc/libcontainer"
 )
 
-func start(conf CubeConfig) error {
+func start(conf Config) error {
 	log.Infof("starting with config: %#v", conf)
 
 	v, err := check.KernelVersion()
@@ -69,12 +70,16 @@ func start(conf CubeConfig) error {
 		return err
 	}
 
+	units := []string{}
+
 	if conf.hasRole("master") {
-		go monitorMasterUnits(b.Container)
+		units = append(units, masterUnits...)
 	}
 	if conf.hasRole("node") {
-		go monitorNodeUnits(b.Container)
+		units = appendUnique(units, nodeUnits)
 	}
+
+	go monitorUnits(b.Container, units)
 
 	// wait for the process to finish.
 	status, err := b.Wait()
@@ -86,7 +91,7 @@ func start(conf CubeConfig) error {
 	return nil
 }
 
-func checkMounts(cfg CubeConfig) error {
+func checkMounts(cfg Config) error {
 	expected := map[string]bool{
 		"/ext/etcd":     false,
 		"/ext/registry": false,
@@ -107,76 +112,76 @@ func checkMounts(cfg CubeConfig) error {
 	return nil
 }
 
-func monitorMasterUnits(c libcontainer.Container) {
-	units := map[string]string{
-		"docker.service":                  "",
-		"flanneld.service":                "",
-		"etcd.service":                    "",
-		"kube-apiserver.service":          "",
-		"kube-controller-manager.service": "",
-		"kube-scheduler.service":          "",
-	}
-
-	for i := 0; i < 10; i++ {
-		for u := range units {
-			status, err := getStatus(c, u)
-
-			if err != nil {
-				log.Infof("error getting status: %v", err)
-			}
-			units[u] = status
-		}
-
-		for u, s := range units {
-			if s != "" {
-				fmt.Printf("* %v[OK]\n", u)
-				delete(units, u)
-			}
-
-		}
-		if len(units) == 0 {
-			fmt.Printf("[cube-master] all units are up\n")
-			return
-		} else {
-			fmt.Printf("[cube-master] waiting for %v\n", unitNames(units))
-		}
-		time.Sleep(time.Second)
-	}
+var masterUnits = []string{
+	"etcd",
+	"flanneld",
+	"docker",
+	"kube-apiserver",
+	"kube-controller-manager",
+	"kube-scheduler",
 }
 
-func monitorNodeUnits(c libcontainer.Container) {
-	units := map[string]string{
-		"docker.service":       "",
-		"flanneld.service":     "",
-		"kube-proxy.service":   "",
-		"kube-kubelet.service": "",
+var nodeUnits = []string{
+	"flanneld",
+	"docker",
+	"kube-proxy",
+	"kube-kubelet",
+}
+
+func appendUnique(a, b []string) []string {
+	as := make(map[string]bool, len(a))
+	for _, i := range a {
+		as[i] = true
+	}
+	for _, i := range b {
+		if _, ok := as[i]; !ok {
+			a = append(a, i)
+		}
+	}
+	return a
+}
+
+func monitorUnits(c libcontainer.Container, units []string) {
+	us := make(map[string]string, len(units))
+	for _, u := range units {
+		us[u] = ""
 	}
 
-	for i := 0; i < 10; i++ {
-		for u := range units {
+	for i := 0; i < 30; i++ {
+		for _, u := range units {
 			status, err := getStatus(c, u)
-
 			if err != nil {
 				log.Infof("error getting status: %v", err)
 			}
-			units[u] = status
+			us[u] = status
 		}
 
-		for u, s := range units {
-			if s != "" {
-				fmt.Printf("* %v[OK]\n", u)
-				delete(units, u)
+		out := &bytes.Buffer{}
+		for _, u := range units {
+			if us[u] != "" {
+				fmt.Fprintf(out, " %v \x1b[32m[OK]\x1b[0m", u)
+			} else {
+				fmt.Fprintf(out, " %v[  ]", u)
 			}
-
 		}
-		if len(units) == 0 {
-			fmt.Printf("[cube-node] all units are up\n")
+		fmt.Printf("\r %v", out.String())
+		if allUp(us) {
+			fmt.Printf("\nall units are up\n")
 			return
-		} else {
-			fmt.Printf("[cube-node] waiting for %v\n", unitNames(units))
 		}
 		time.Sleep(time.Second)
 	}
+
+	fmt.Printf("\nsome units have not started.\n Run `planet enter` and check journalctl for details\n")
+}
+
+func allUp(us map[string]string) bool {
+	for _, v := range us {
+		if v == "" {
+			return false
+		}
+	}
+	return true
 }
 
 func unitNames(units map[string]string) []string {
@@ -192,7 +197,10 @@ func getStatus(c libcontainer.Container, unit string) (string, error) {
 	out, err := box.CombinedOutput(
 		c, box.ProcessConfig{
 			User: "root",
-			Args: []string{"/bin/systemctl", "is-active", unit}})
+			Args: []string{
+				"/bin/systemctl", "is-active",
+				fmt.Sprintf("%v.service", unit),
+			}})
 	if err != nil {
 		return "", err
 	}
