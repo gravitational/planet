@@ -142,9 +142,8 @@ orbit exec-config stop planet/dev#0.0.1 planet/cfg#0.0.1
 Using Planet
 ------------
 
-Planet is a generic `container image`. Right now we're using CoreOS ACI format, but it's basically
-tarballed and gzipped rootfs. Usually these images are distributed and updated 
-by [Orbit](https://github.com/gravitational/orbit).
+Planet is a generic `container image`. It is basically tarballed and gzipped rootfs.
+Usually these images are distributed and updated by [Orbit](https://github.com/gravitational/orbit).
 
 Inside a container image there are Kubernetes components and the Planet binary in `rootfs/usr/bin/planet`.
 When you launch that binary, it will self-containerize within its RootFS and will launch all Kubernetes
