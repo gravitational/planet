@@ -8,8 +8,9 @@ import (
 
 	"github.com/gravitational/planet/Godeps/_workspace/src/github.com/docker/docker/pkg/term"
 	"github.com/gravitational/planet/Godeps/_workspace/src/github.com/gravitational/log"
-	"github.com/gravitational/planet/Godeps/_workspace/src/github.com/gravitational/orbit/lib/box"
+	"github.com/gravitational/planet/Godeps/_workspace/src/github.com/gravitational/orbit/lib/pkg"
 	"github.com/gravitational/planet/Godeps/_workspace/src/github.com/gravitational/trace"
+	"github.com/gravitational/planet/lib/box"
 )
 
 // enter initiates the process in the namespaces of the container
@@ -56,21 +57,21 @@ func status(rootfs string) error {
 		Out:  out,
 	}
 
-	var s box.Status
+	var s pkg.Status
 	err := enter(rootfs, cfg)
 	if err != nil {
 		if box.IsConnectError(err) {
-			s.Status = box.StatusStopped
+			s.Status = pkg.StatusStopped
 		} else {
 			return err
 		}
 	} else {
 		d := out.String()
 		if !strings.Contains(d, "0 loaded units listed") {
-			s.Status = box.StatusDegraded
+			s.Status = pkg.StatusDegraded
 			s.Info = d
 		} else {
-			s.Status = box.StatusRunning
+			s.Status = pkg.StatusRunning
 			s.Info = d
 		}
 	}

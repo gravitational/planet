@@ -8,10 +8,10 @@ import (
 
 	"github.com/gravitational/planet/Godeps/_workspace/src/github.com/docker/docker/pkg/term"
 	"github.com/gravitational/planet/Godeps/_workspace/src/github.com/gravitational/log"
-	"github.com/gravitational/planet/Godeps/_workspace/src/github.com/gravitational/orbit/lib/box"
 	"github.com/gravitational/planet/Godeps/_workspace/src/github.com/gravitational/trace"
 	"github.com/gravitational/planet/Godeps/_workspace/src/github.com/opencontainers/runc/libcontainer"
 	"github.com/gravitational/planet/Godeps/_workspace/src/gopkg.in/alecthomas/kingpin.v2"
+	"github.com/gravitational/planet/lib/box"
 )
 
 func main() {
@@ -36,7 +36,7 @@ func run() error {
 		cstartMasterIP      = cstart.Flag("master-ip", "ip of the master pod").Default("127.0.0.1").OverrideDefaultFromEnvar("PLANET_MASTER_IP").IP()
 		cstartCloudProvider = cstart.Flag("cloud-provider", "cloud provider name, e.g. 'aws' or 'gce'").OverrideDefaultFromEnvar("PLANET_CLOUD_PROVIDER").String()
 		cstartCloudConfig   = cstart.Flag("cloud-config", "cloud config path").OverrideDefaultFromEnvar("PLANET_CLOUD_CONFIG").String()
-		cstartForce         = cstart.Flag("force", "Force start ignoring some failed host checks (e.g. kernel version)").OverrideDefaultFromEnvar("PLANET_FORCE").Bool()
+		cstartIgnoreChecks  = cstart.Flag("ignore-checks", "Force start ignoring some failed host checks (e.g. kernel version)").OverrideDefaultFromEnvar("PLANET_FORCE").Bool()
 		cstartEnv           = EnvVars(cstart.Flag("env", "Set environment variable").OverrideDefaultFromEnvar("PLANET_ENV"))
 		cstartMounts        = Mounts(cstart.Flag("volume", "External volume to mount").OverrideDefaultFromEnvar("PLANET_VOLUME"))
 		cstartRoles         = Roles(cstart.Flag("role", "Roles such as 'master' or 'node'").OverrideDefaultFromEnvar("PLANET_ROLE"))
@@ -65,9 +65,10 @@ func run() error {
 		log.Initialize("console", "WARN")
 	}
 
+	var rootfs string
 	switch cmd {
 	case cstart.FullCommand():
-		rootfs, err := findRootfs()
+		rootfs, err = findRootfs()
 		if err != nil {
 			return err
 		}
@@ -75,7 +76,7 @@ func run() error {
 			Rootfs:        rootfs,
 			Env:           *cstartEnv,
 			Mounts:        *cstartMounts,
-			Force:         *cstartForce,
+			IgnoreChecks:  *cstartIgnoreChecks,
 			Roles:         *cstartRoles,
 			MasterIP:      cstartMasterIP.String(),
 			CloudProvider: *cstartCloudProvider,
@@ -84,20 +85,20 @@ func run() error {
 	case cinit.FullCommand():
 		err = initLibcontainer()
 	case center.FullCommand():
-		rootfs, err := findRootfs()
+		rootfs, err = findRootfs()
 		if err != nil {
 			return err
 		}
 		err = enterConsole(
 			rootfs, *centerArgs, *centerUser, !*centerNoTTY)
 	case cstop.FullCommand():
-		rootfs, err := findRootfs()
+		rootfs, err = findRootfs()
 		if err != nil {
 			return err
 		}
 		err = stop(rootfs)
 	case cstatus.FullCommand():
-		rootfs, err := findRootfs()
+		rootfs, err = findRootfs()
 		if err != nil {
 			return err
 		}

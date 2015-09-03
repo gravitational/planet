@@ -9,10 +9,10 @@ import (
 	"time"
 
 	"github.com/gravitational/planet/Godeps/_workspace/src/github.com/gravitational/log"
-	"github.com/gravitational/planet/Godeps/_workspace/src/github.com/gravitational/orbit/lib/box"
 	"github.com/gravitational/planet/Godeps/_workspace/src/github.com/gravitational/orbit/lib/check"
 	"github.com/gravitational/planet/Godeps/_workspace/src/github.com/gravitational/trace"
 	"github.com/gravitational/planet/Godeps/_workspace/src/github.com/opencontainers/runc/libcontainer"
+	"github.com/gravitational/planet/lib/box"
 )
 
 func start(conf Config) error {
@@ -26,7 +26,7 @@ func start(conf Config) error {
 	if v < 313 {
 		err := trace.Errorf(
 			"current minimum supported kernel version is 3.13. Upgrade kernel before moving on.")
-		if !conf.Force {
+		if !conf.IgnoreChecks {
 			return err
 		}
 		log.Infof("warning: %v", err)
@@ -39,11 +39,10 @@ func start(conf Config) error {
 	if !ok {
 		return trace.Errorf("need aufs support on the machine")
 	}
-
 	if err := checkMounts(conf); err != nil {
+		log.Infof("err: %v", err)
 		return err
 	}
-
 	conf.Env = append(conf.Env,
 		box.EnvPair{Name: "KUBE_MASTER_IP", Val: conf.MasterIP},
 		box.EnvPair{Name: "KUBE_CLOUD_PROVIDER", Val: conf.CloudProvider},
@@ -64,12 +63,10 @@ func start(conf Config) error {
 		InitEnv:      []string{"container=libcontainer"},
 		Capabilities: allCaps,
 	}
-
 	b, err := box.Start(cfg)
 	if err != nil {
 		return err
 	}
-
 	units := []string{}
 
 	if conf.hasRole("master") {

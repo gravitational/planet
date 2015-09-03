@@ -1,5 +1,5 @@
 SHELL:=/bin/bash
-.PHONY: all dev planet planet-os planet-base planet-master planet-node planet-dev kill-systemd enter clean start-dev stop status remove-godeps
+.PHONY: all dev planet planet-os planet-base planet-master planet-node planet-dev kill-systemd enter clean start-dev stop status remove-godeps remove-temp-files
 
 BUILDDIR := $(HOME)/build
 export
@@ -10,9 +10,12 @@ dev: planet-dev
 	cd $(BUILDDIR) && tar -xzf planet-dev.aci
 
 # Builds 'planet' binary
-planet:
-	go build -o $(BUILDDIR)/planet github.com/gravitational/planet/planet
-	go build -o $(BUILDDIR)/rootfs/usr/bin/planet github.com/gravitational/planet/planet
+planet: remove-temp-files
+	go build -o $(BUILDDIR)/planet github.com/gravitational/planet/tool/planet
+	go build -o $(BUILDDIR)/rootfs/usr/bin/planet github.com/gravitational/planet/tool/planet
+
+remove-temp-files:
+	find . -name flymake_* -delete
 
 # Builds systemd-based "distro" using Ubuntu 15.04 This distro is used as a base OS image
 # for building and running Kubernetes.

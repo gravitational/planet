@@ -3,8 +3,8 @@ package main
 import (
 	"fmt"
 
-	"github.com/gravitational/planet/Godeps/_workspace/src/github.com/gravitational/orbit/lib/box"
 	"github.com/gravitational/planet/Godeps/_workspace/src/github.com/gravitational/orbit/lib/utils"
+	"github.com/gravitational/planet/lib/box"
 )
 
 type Config struct {
@@ -15,7 +15,7 @@ type Config struct {
 	CloudConfig   string
 	Env           box.EnvVars
 	Mounts        box.Mounts
-	Force         bool
+	IgnoreChecks  bool
 }
 
 func (cfg *Config) hasRole(r string) bool {

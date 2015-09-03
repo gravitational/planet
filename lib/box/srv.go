@@ -51,9 +51,8 @@ func (b *Box) Wait() (*os.ProcessState, error) {
 
 func Start(cfg Config) (*Box, error) {
 	log.Infof("starting with config: %v", cfg)
-
 	if os.Geteuid() != 0 {
-		trace.Errorf("should be run as root")
+		return nil, trace.Errorf("should be run as root")
 	}
 
 	rootfs, err := checkPath(cfg.Rootfs, false)
@@ -61,7 +60,7 @@ func Start(cfg Config) (*Box, error) {
 		return nil, err
 	}
 
-	if err := mayBeMountCgroups("/"); err != nil {
+	if err := mountCgroups("/"); err != nil {
 		return nil, err
 	}
 

@@ -1,7 +1,7 @@
 FROM planet/os
 
 ADD . $GOPATH/src/github.com/gravitational/planet
-RUN go install github.com/gravitational/planet/planet
+RUN go install github.com/gravitational/planet/tool/planet
 
 ADD ./makefiles/ $BUILDDIR/makefiles
 
