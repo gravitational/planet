@@ -7,7 +7,7 @@ export
 all: planet-os planet-master planet-node planet
 
 dev: planet-dev
-	cd $(BUILDDIR) && tar -xzf planet-dev.aci
+	cd $(BUILDDIR) && tar -xzf planet-dev.tar.gz
 
 # Builds 'planet' binary
 planet:
