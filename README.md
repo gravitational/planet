@@ -19,14 +19,7 @@ Installation
 **IMPORTANT** the build process relies on Docker > 1.6.2. When installing Docker on Virtualbox/vagrant you may 
 end up with a VM which doesn't boot (hangs during shared volume mounting). Do `apt-get dist-upgrade` to fix that.
 
-If this is your first time building the project, create a docker OS image (slow):
-
-```
-make os-image
-```
-
-Then you can build Planet itself. There are two builds: "development" and "production".
-By default `make` with no argumnets builds the production image. Here's how to build both:
+There are two builds: "development" and "production".  By default, `make` with no argumnets builds the production image. Here's how to build both:
 
 ```
 make
@@ -127,7 +120,7 @@ which makes it an Orbit package.
 This adds a new Planet build (orbit package) into the local Orbit repository:
 
 ```bash
-orbit import planet-dev.tar.gz planet/dev#0.0.1
+orbit import planet-dev.tar.gz planet/dev:0.0.1
 ```
 
 Now when you have Planet in your local Orbit repo, you can push it to remote Orbit repository by running `orbit push`,
@@ -139,11 +132,11 @@ Planet needs a site-specific configuration to run. Orbit allows users to specify
 key-value pairs and store it as another, _site-local_ package. This allows independent upgrades of 
 packages and their configuration.
 
-Configure planet package and store the output as a _local configuration package_ `planet/dev-cfg#0.0.1`
+Configure planet package and store the output as a _local configuration package_ `planet/cfg:0.0.1`
 
 ```bash
-orbit configure planet/dev#0.0.1 \
-    planet/dev-cfg#0.0.1 args\
+orbit configure planet/dev:0.0.1 \
+    planet/cfg:0.0.1 args\
     --role=master --role=node\
     --volume=/var/planet/etcd:/ext/etcd\
     --volume=/var/planet/registry:/ext/registry\
@@ -152,11 +145,11 @@ orbit configure planet/dev#0.0.1 \
 
 **Start planet**
 
-This command will execute `start` command supplied by `planet/dev#0.0.1` and will use configuration from `planet/dev-cfg#0.0.1` that
+This command will execute `start` command supplied by `planet/dev:0.0.1` and will use configuration from `planet/cfg:0.0.1` that
 we've just generated
 
 ```bash
-orbit exec-config start planet/dev#0.0.1 planet/cfg#0.0.1
+orbit exec-config start planet/dev:0.0.1 planet/cfg:0.0.1
 ```
 
 **Other commands**
@@ -164,7 +157,7 @@ orbit exec-config start planet/dev#0.0.1 planet/cfg#0.0.1
 Execute enter, status and stop commands using the same pattern as above:
 
 ```bash
-orbit exec-config stop planet/dev#0.0.1 planet/cfg#0.0.1
+orbit exec-config stop planet/dev:0.0.1 planet/cfg:0.0.1
 ```
 
 `Planet` is no different than any other Orbit package. Consult [Orbit documentation](https://github.com/gravitational/orbit/blob/master/README.md) to learn more.
