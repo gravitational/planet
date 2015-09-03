@@ -19,14 +19,7 @@ Installation
 **IMPORTANT** the build process relies on Docker > 1.6.2. When installing Docker on Virtualbox/vagrant you may 
 end up with a VM which doesn't boot (hangs during shared volume mounting). Do `apt-get dist-upgrade` to fix that.
 
-If this is your first time building the project, create a docker OS image (slow):
-
-```
-make os-image
-```
-
-Then you can build Planet itself. There are two builds: "development" and "production".
-By default `make` with no argumnets builds the production image. Here's how to build both:
+There are two builds: "development" and "production".  By default, `make` with no argumnets builds the production image. Here's how to build both:
 
 ```
 make
@@ -139,11 +132,11 @@ Planet needs a site-specific configuration to run. Orbit allows users to specify
 key-value pairs and store it as another, _site-local_ package. This allows independent upgrades of 
 packages and their configuration.
 
-Configure planet package and store the output as a _local configuration package_ `planet/dev-cfg#0.0.1`
+Configure planet package and store the output as a _local configuration package_ `planet/cfg#0.0.1`
 
 ```bash
 orbit configure planet/dev#0.0.1 \
-    planet/dev-cfg#0.0.1 args\
+    planet/cfg#0.0.1 args\
     --role=master --role=node\
     --volume=/var/planet/etcd:/ext/etcd\
     --volume=/var/planet/registry:/ext/registry\
@@ -152,7 +145,7 @@ orbit configure planet/dev#0.0.1 \
 
 **Start planet**
 
-This command will execute `start` command supplied by `planet/dev#0.0.1` and will use configuration from `planet/dev-cfg#0.0.1` that
+This command will execute `start` command supplied by `planet/dev#0.0.1` and will use configuration from `planet/cfg#0.0.1` that
 we've just generated
 
 ```bash
