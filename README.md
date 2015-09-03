@@ -19,14 +19,7 @@ Installation
 **IMPORTANT** the build process relies on Docker > 1.6.2. When installing Docker on Virtualbox/vagrant you may 
 end up with a VM which doesn't boot (hangs during shared volume mounting). Do `apt-get dist-upgrade` to fix that.
 
-If this is your first time building the project, create a docker OS image (slow):
-
-```
-make os-image
-```
-
-Then you can build Planet itself. There are two builds: "development" and "production".
-By default `make` with no argumnets builds the production image. Here's how to build both:
+There are two builds: "development" and "production".  By default, `make` with no argumnets builds the production image. Here's how to build both:
 
 ```
 make
