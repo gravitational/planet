@@ -82,14 +82,14 @@ Upload `$BUILD/planet-master.tar.gz` to the master AWS instance, untar it using 
 inside of `rootfs` directory of the image. Then you can start Planet and it will containerize itself:
 
 ```
-./rootfs/usr/bin/planet --cloud-provider=aws --env AWS_ACCESS_KEY_ID=AKIAJY6HPQAX6CJJUAHQ --env AWS_SECRET_ACCESS_KEY=<key>  kube-master/rootfs/
+./rootfs/usr/bin/planet --role=master --cloud-provider=aws --env AWS_ACCESS_KEY_ID:<key-id> --env AWS_SECRET_ACCESS_KEY:<key>
 
 ```
 
 Similarly, upload & untar the planet-node image onto each AWS node instance and run:
 
 ```
-.rootfs/usr/bin/planet --master-ip=172.31.15.90 --cloud-provider=aws --env AWS_ACCESS_KEY_ID=AKIAJY6HPQAX6CJJUAHQ --env AWS_SECRET_ACCESS_KEY=<key>  kube-node/rootfs/
+.rootfs/usr/bin/planet --role=node --master-ip=<master-ip> --cloud-provider=aws --env AWS_ACCESS_KEY_ID:<key-id> --env AWS_SECRET_ACCESS_KEY:<key>
 ```
 
 Using Planet
