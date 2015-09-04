@@ -14,30 +14,22 @@
             {
                 "type": "String",
                 "name": "masterip",
-                "spec": {
-                    "env": "PLANET_MASTER_IP"
-                }
+                "env": "PLANET_MASTER_IP"
             },
                         {
                 "type": "String",
                 "name": "cloudprovider",
-                "spec": {
-                    "env": "PLANET_CLOUD_PROVIDER"
-                }
+                "env": "PLANET_CLOUD_PROVIDER"
             },
             {
                 "type": "Path",
                 "name": "cloudconfig",
-                "spec": {
-                    "env": "PLANET_CLOUD_CONFIG"
-                }
+                "env": "PLANET_CLOUD_CONFIG"
             },
             {
                 "type": "Bool",
                 "name": "force",
-                "spec": {
-                    "env": "PLANET_FORCE"
-                }
+                "env": "PLANET_FORCE"
             },
             {
                 "type": "List",
