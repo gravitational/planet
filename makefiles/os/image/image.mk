@@ -75,3 +75,6 @@ $(IMAGE): image.mk
 # tell systemd it runs in virt mode
 	mkdir -p $(ROOTFS)/run/systemd/
 	echo "libcontainer" >  $(ROOTFS)/run/systemd/container
+
+# make sure systemd is owned by root
+	chown root:root -R $(ROOTFS)/bin/
