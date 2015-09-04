@@ -39,10 +39,13 @@ func start(conf Config) error {
 	if !ok {
 		return trace.Errorf("need aufs support on the machine")
 	}
-	if err := checkMounts(conf); err != nil {
-		log.Infof("err: %v", err)
-		return err
+
+	if conf.hasRole("master") {
+		if err := checkMounts(conf); err != nil {
+			return err
+		}
 	}
+
 	conf.Env = append(conf.Env,
 		box.EnvPair{Name: "KUBE_MASTER_IP", Val: conf.MasterIP},
 		box.EnvPair{Name: "KUBE_CLOUD_PROVIDER", Val: conf.CloudProvider},
