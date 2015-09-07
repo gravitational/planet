@@ -13,8 +13,90 @@ play with Kubernetes, but `Planet` differs from those because:
 It also happens to be a great way to play with Kubernetes!
 Also check out the [developer documentation](docs/README.md).
 
-Installation
--------------
+## Installation
+
+Planet images are distributed to remote sites via [Gravitational Orbit](https://github.com/gravitational/orbit/blob/master/README.md).
+
+Orbit is a package manager that helps to distribute arbitrary files, with versioning, 
+across many Linux clusters (like AWS accounts). Planet tarball already contains Orbit manifest, 
+which makes it an Orbit package.
+
+### Installing Planet from Orbit
+
+We have an `Orbit` repository running on AWS. It is actually the easiest (and recommended) way to 
+install Planet. To see which builds/versions are available, run:
+
+`orbit list-remote -m http://notary-1916887043.us-west-2.elb.amazonaws.com:4443 planet-dev`
+
+To install:
+
+```
+orbit -m "http://notary-1916887043.us-west-2.elb.amazonaws.com:4443" \
+      -r "http://registry-1284667016.us-west-2.elb.amazonaws.com:5000" \
+      pull planet-dev:0.0.14
+```
+
+Verify that you have it:
+
+```
+> orbit list
+* planet-dev:0.0.14
+```
+
+## Start planet
+
+Planet needs a site-specific configuration to run. Orbit allows users to specify configuration as 
+key-value pairs and store it as another, _site-local_ package. This allows independent upgrades of 
+packages and their configuration.
+
+Configure planet package and store the output as a _local configuration package_ `planet/cfg:0.0.1`
+
+```bash
+orbit configure planet/dev:0.0.1 \
+    planet/cfg:0.0.1 args\
+    --role=master --role=node\
+    --volume=/var/planet/etcd:/ext/etcd\
+    --volume=/var/planet/registry:/ext/registry\
+    --volume=/var/planet/docker:/ext/docker
+```
+
+This command will execute `start` command supplied by `planet/dev:0.0.1` and will use configuration from `planet/cfg:0.0.1` that we've just generated
+
+```bash
+orbit exec-config start planet/dev:0.0.1 planet/cfg:0.0.1
+```
+
+## Other Planet Commands
+
+Planet is a generic `container image`. It is basically tarballed and gzipped rootfs.
+Usually these images are distributed and updated by [Orbit](https://github.com/gravitational/orbit).
+
+Inside a container image there are Kubernetes components and the Planet binary in `rootfs/usr/bin/planet`.
+When you launch that binary, it will self-containerize within its RootFS and will launch all Kubernetes
+components using systemd.
+
+If you start it without any commands, it will show the usage info:
+
+```
+Commands:
+  help   [<command>...]               Show help.
+  start  [<flags>] [<rootfs>]         Start orbit container
+  stop   [<rootfs>]                   Stop the container
+  enter  [<flags>] [<rootfs>] [<cmd>] Enter running the container
+  status [<rootfs>]                   Get status of a running container
+```
+
+Here's how to stop Planet, for example:
+
+```bash
+orbit exec-config stop planet/dev:0.0.1 planet/cfg:0.0.1
+```
+
+# Hacking on Planet
+
+The section below is for developers who want to make changes to `Planet`.
+
+## Building (installing from source)
 
 **IMPORTANT** the build process relies on Docker > 1.6.2. When installing Docker on Virtualbox/vagrant you may 
 end up with a VM which doesn't boot (hangs during shared volume mounting). Do `apt-get dist-upgrade` to fix that.
@@ -29,8 +111,8 @@ make dev
 **NOTE** the output of make command is usually a container image. For example `make dev` 
 creates `$HOME/build/planet-dev.aci`
 
-Development Mode
-----------------
+### Development Mode
+
 Planet can run in "development mode" when a single container contains both 
 Kubernetes master and Kubernetes node. This allows to launch a fully functional 
 single-node "cluster" on your laptop:
@@ -62,8 +144,7 @@ You're inside of a container now which runs all Kubernetes components, run `ps -
  4726 ?        00:00:00 kube-controller
 ```
 
-Production Mode
----------------
+### Production Mode
 
 To start Planet on a real cloud in production mode you'll have to start Kubernetes-master and Kubernetes-node instances
 separately. Here's how you do this for AWS (add more providers in the future).
@@ -90,97 +171,14 @@ Similarly, upload & untar the planet-node image onto each AWS node instance and 
     --env AWS_SECRET_ACCESS_KEY:<key>
 ```
 
-Using Planet
-------------
+## Publishing your own Planet build
 
-Planet is a generic `container image`. It is basically tarballed and gzipped rootfs.
-Usually these images are distributed and updated by [Orbit](https://github.com/gravitational/orbit).
-
-Inside a container image there are Kubernetes components and the Planet binary in `rootfs/usr/bin/planet`.
-When you launch that binary, it will self-containerize within its RootFS and will launch all Kubernetes
-components using systemd.
-
-If you start it without any commands, it will show the usage info:
-
-```
-Commands:
-  help   [<command>...]               Show help.
-  start  [<flags>] [<rootfs>]         Start orbit container
-  stop   [<rootfs>]                   Stop the container
-  enter  [<flags>] [<rootfs>] [<cmd>] Enter running the container
-  status [<rootfs>]                   Get status of a running container
-```
-
-Distributing Planet
--------------------
-
-Planet images are distributed to remote sites via [Gravitational Orbit](https://github.com/gravitational/orbit/blob/master/README.md).
-
-Orbit is a package manager that helps to distribute arbitrary files, with versioning, 
-across many Linux clusters (like AWS accounts). Planet tarball already contains Orbit manifest, 
-which makes it an Orbit package.
-
-**Installing Planet from Orbit**
-
-We have an `Orbit` repository running on AWS. It is actually the easiest (and recommended) way to 
-install Planet. To see which builds/versions are available, run:
-
-`orbit list-remote -m http://notary-1916887043.us-west-2.elb.amazonaws.com:4443 planet-dev`
-
-To install:
-
-```
-orbit -m "http://notary-1916887043.us-west-2.elb.amazonaws.com:4443" \
-      -r "http://registry-1284667016.us-west-2.elb.amazonaws.com:5000" \
-      pull planet-dev:0.0.14
-```
-
-Verify that you have it:
-
-```
-> orbit list
-* planet-dev:0.0.14
-```
-
-**Start planet**
-
-Planet needs a site-specific configuration to run. Orbit allows users to specify configuration as 
-key-value pairs and store it as another, _site-local_ package. This allows independent upgrades of 
-packages and their configuration.
-
-Configure planet package and store the output as a _local configuration package_ `planet/cfg:0.0.1`
-
-```bash
-orbit configure planet/dev:0.0.1 \
-    planet/cfg:0.0.1 args\
-    --role=master --role=node\
-    --volume=/var/planet/etcd:/ext/etcd\
-    --volume=/var/planet/registry:/ext/registry\
-    --volume=/var/planet/docker:/ext/docker
-```
-
-This command will execute `start` command supplied by `planet/dev:0.0.1` and will use configuration from `planet/cfg:0.0.1` that we've just generated
-
-```bash
-orbit exec-config start planet/dev:0.0.1 planet/cfg:0.0.1
-```
-
-**Publishing your own Planet build**
-
-This adds a new Planet build (orbit package) into the local Orbit repository:
+If you're hacking on Planet and have a new build, this is how to add it (as an Orbit package) into your local Orbit repository:
 
 ```bash
 orbit import planet-dev.tar.gz planet/dev:0.0.1
 ```
 Now when you have Planet in your local Orbit repo, you can push it to remote Orbit repository by running `orbit push`,
 and install it onto any site with `orbit pull` as shown above.
-
-**Other commands**
-
-Execute enter, status and stop commands using the same pattern as above:
-
-```bash
-orbit exec-config stop planet/dev:0.0.1 planet/cfg:0.0.1
-```
 
 `Planet` is no different than any other Orbit package. Consult [Orbit documentation](https://github.com/gravitational/orbit/blob/master/README.md) to learn more.
