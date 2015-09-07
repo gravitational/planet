@@ -47,11 +47,11 @@ Planet needs a site-specific configuration to run. Orbit allows users to specify
 key-value pairs and store it as another, _site-local_ package. This allows independent upgrades of 
 packages and their configuration.
 
-Configure planet package and store the output as a _local configuration package_ `planet/cfg:0.0.1`
+Configure planet package (`planet-dev:0.0.1`) and store the output as a _local configuration package_ `planet-cfg:0.0.1`
 
 ```bash
-orbit configure planet/dev:0.0.1 \
-    planet/cfg:0.0.1 args\
+orbit configure planet-dev:0.0.1 \
+    planet-cfg:0.0.1 args\
     --role=master --role=node\
     --volume=/var/planet/etcd:/ext/etcd\
     --volume=/var/planet/registry:/ext/registry\
