@@ -75,14 +75,19 @@ Upload `$BUILD/planet-master.tar.gz` to the master AWS instance, untar it using 
 inside of `rootfs` directory of the image. Then you can start Planet and it will containerize itself:
 
 ```
-./rootfs/usr/bin/planet --role=master --cloud-provider=aws --env AWS_ACCESS_KEY_ID:<key-id> --env AWS_SECRET_ACCESS_KEY:<key>
-
+./rootfs/usr/bin/planet --role=master --cloud-provider=aws \
+        --env AWS_ACCESS_KEY_ID:<key-id> \
+        --env AWS_SECRET_ACCESS_KEY:<key>
 ```
 
 Similarly, upload & untar the planet-node image onto each AWS node instance and run:
 
 ```
-.rootfs/usr/bin/planet --role=node --master-ip=<master-ip> --cloud-provider=aws --env AWS_ACCESS_KEY_ID:<key-id> --env AWS_SECRET_ACCESS_KEY:<key>
+.rootfs/usr/bin/planet --role=node \
+    --master-ip=<master-ip> \
+    --cloud-provider=aws \
+    --env AWS_ACCESS_KEY_ID:<key-id> \
+    --env AWS_SECRET_ACCESS_KEY:<key>
 ```
 
 Using Planet
@@ -115,18 +120,29 @@ Orbit is a package manager that helps to distribute arbitrary files, with versio
 across many Linux clusters (like AWS accounts). Planet tarball already contains Orbit manifest, 
 which makes it an Orbit package.
 
-**Publishing a new Planet build**
+**Installing Planet from Orbit**
 
-This adds a new Planet build (orbit package) into the local Orbit repository:
+We have an `Orbit` repository running on AWS. It is actually the easiest (and recommended) way to 
+install Planet. To see which builds/versions are available, run:
 
-```bash
-orbit import planet-dev.tar.gz planet/dev:0.0.1
+`orbit list-remote -m http://notary-1916887043.us-west-2.elb.amazonaws.com:4443 planet-dev`
+
+To install:
+
+```
+orbit -m "http://notary-1916887043.us-west-2.elb.amazonaws.com:4443" \
+      -r "http://registry-1284667016.us-west-2.elb.amazonaws.com:5000" \
+      pull planet-dev:0.0.14
 ```
 
-Now when you have Planet in your local Orbit repo, you can push it to remote Orbit repository by running `orbit push`,
-and install it onto any site with `orbit pull`.
+Verify that you have it:
 
-**Site Configuration**
+```
+> orbit list
+* planet-dev:0.0.14
+```
+
+**Start planet**
 
 Planet needs a site-specific configuration to run. Orbit allows users to specify configuration as 
 key-value pairs and store it as another, _site-local_ package. This allows independent upgrades of 
@@ -143,14 +159,21 @@ orbit configure planet/dev:0.0.1 \
     --volume=/var/planet/docker:/ext/docker
 ```
 
-**Start planet**
-
-This command will execute `start` command supplied by `planet/dev:0.0.1` and will use configuration from `planet/cfg:0.0.1` that
-we've just generated
+This command will execute `start` command supplied by `planet/dev:0.0.1` and will use configuration from `planet/cfg:0.0.1` that we've just generated
 
 ```bash
 orbit exec-config start planet/dev:0.0.1 planet/cfg:0.0.1
 ```
+
+**Publishing your own Planet build**
+
+This adds a new Planet build (orbit package) into the local Orbit repository:
+
+```bash
+orbit import planet-dev.tar.gz planet/dev:0.0.1
+```
+Now when you have Planet in your local Orbit repo, you can push it to remote Orbit repository by running `orbit push`,
+and install it onto any site with `orbit pull` as shown above.
 
 **Other commands**
 
