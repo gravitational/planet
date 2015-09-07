@@ -21,8 +21,6 @@ Orbit is a package manager that helps to distribute arbitrary files, with versio
 across many Linux clusters (like AWS accounts). Planet tarball already contains Orbit manifest, 
 which makes it an Orbit package.
 
-### Installing Planet from Orbit
-
 We have an `Orbit` repository running on AWS. It is actually the easiest (and recommended) way to 
 install Planet. To see which builds/versions are available, run:
 
@@ -43,7 +41,7 @@ Verify that you have it:
 * planet-dev:0.0.14
 ```
 
-## Start planet
+## Start Planet
 
 Planet needs a site-specific configuration to run. Orbit allows users to specify configuration as 
 key-value pairs and store it as another, _site-local_ package. This allows independent upgrades of 
@@ -66,7 +64,7 @@ This command will execute `start` command supplied by `planet/dev:0.0.1` and wil
 orbit exec-config start planet/dev:0.0.1 planet/cfg:0.0.1
 ```
 
-## Other Planet Commands
+## Other Commands
 
 Planet is a generic `container image`. It is basically tarballed and gzipped rootfs.
 Usually these images are distributed and updated by [Orbit](https://github.com/gravitational/orbit).
@@ -92,11 +90,11 @@ Here's how to stop Planet, for example:
 orbit exec-config stop planet/dev:0.0.1 planet/cfg:0.0.1
 ```
 
-# Hacking on Planet
+## Hacking on Planet
 
 The section below is for developers who want to make changes to `Planet`.
 
-## Building (installing from source)
+### Building (installing from source)
 
 **IMPORTANT** the build process relies on Docker > 1.6.2. When installing Docker on Virtualbox/vagrant you may 
 end up with a VM which doesn't boot (hangs during shared volume mounting). Do `apt-get dist-upgrade` to fix that.
@@ -171,7 +169,7 @@ Similarly, upload & untar the planet-node image onto each AWS node instance and 
     --env AWS_SECRET_ACCESS_KEY:<key>
 ```
 
-## Publishing your own Planet build
+### Publishing your own Planet build
 
 If you're hacking on Planet and have a new build, this is how to add it (as an Orbit package) into your local Orbit repository:
 
