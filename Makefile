@@ -17,6 +17,9 @@ planet: remove-temp-files
 remove-temp-files:
 	find . -name flymake_* -delete
 
+test-package: remove-temp-files
+	go test -v ./$(p)
+
 # Builds systemd-based "distro" using Ubuntu 15.04 This distro is used as a base OS image
 # for building and running Kubernetes.
 planet-os:

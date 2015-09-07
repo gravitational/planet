@@ -5,6 +5,7 @@ import (
 	"bufio"
 	"bytes"
 	"fmt"
+	"io"
 	"os"
 	"path/filepath"
 	"strings"
@@ -16,6 +17,11 @@ import (
 
 func mountCgroups(root string) error {
 	cgroups, err := mountedCgroups(root)
+	if err != nil {
+		return err
+	}
+
+	available, err := parseHostCgroups()
 	if err != nil {
 		return err
 	}
@@ -37,6 +43,13 @@ func mountCgroups(root string) error {
 			log.Infof("%v is already mounted", c)
 			continue
 		}
+
+		// skip unavaliable cgroups
+		if !available[c] {
+			log.Infof("%v is not available, skip mounting")
+			continue
+		}
+
 		cPath := filepath.Join(root, "/sys/fs/cgroup", c)
 		if err := os.MkdirAll(cPath, 0700); err != nil {
 			return trace.Wrap(err)
@@ -76,7 +89,7 @@ func mountCgroupFS(root string) error {
 }
 
 func mountedCgroups(root string) (map[string]bool, error) {
-	cs, err := parseCgroups()
+	cs, err := parseHostCgroups()
 	if err != nil {
 		return nil, err
 	}
@@ -92,14 +105,19 @@ func mountedCgroups(root string) (map[string]bool, error) {
 	return cs, nil
 }
 
-func parseCgroups() (map[string]bool, error) {
-	subs := make(map[string]bool)
+func parseHostCgroups() (map[string]bool, error) {
 	f, err := os.Open("/proc/cgroups")
 	if err != nil {
 		return nil, trace.Wrap(err)
 	}
 	defer f.Close()
-	sc := bufio.NewScanner(f)
+	return parseCgroups(f)
+}
+
+func parseCgroups(r io.Reader) (map[string]bool, error) {
+	subs := make(map[string]bool)
+
+	sc := bufio.NewScanner(r)
 
 	cgroups := make(map[int][]string)
 	for sc.Scan() {
