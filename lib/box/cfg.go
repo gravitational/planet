@@ -61,6 +61,24 @@ type EnvPair struct {
 
 type EnvVars []EnvPair
 
+func (vars *EnvVars) Get(v string) string {
+	for _, p := range *vars {
+		if p.Name == v {
+			return p.Val
+		}
+	}
+	return ""
+}
+
+func (vars *EnvVars) Upsert(k, v string) {
+	for i, p := range *vars {
+		if p.Name == v {
+			(*vars)[i].Val = v
+		}
+	}
+	*vars = append(*vars, EnvPair{Name: k, Val: v})
+}
+
 func (vars *EnvVars) Set(v string) error {
 	for _, i := range utils.SplitComma(v) {
 		if err := vars.setItem(i); err != nil {

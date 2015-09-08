@@ -8,14 +8,15 @@ import (
 )
 
 type Config struct {
-	Roles         roles
-	Rootfs        string
-	MasterIP      string
-	CloudProvider string
-	CloudConfig   string
-	Env           box.EnvVars
-	Mounts        box.Mounts
-	IgnoreChecks  bool
+	Roles              list
+	InsecureRegistries list
+	Rootfs             string
+	MasterIP           string
+	CloudProvider      string
+	CloudConfig        string
+	Env                box.EnvVars
+	Mounts             box.Mounts
+	IgnoreChecks       bool
 }
 
 func (cfg *Config) hasRole(r string) bool {
@@ -27,15 +28,15 @@ func (cfg *Config) hasRole(r string) bool {
 	return false
 }
 
-type roles []string
+type list []string
 
-func (rs *roles) Set(role string) error {
-	for _, r := range utils.SplitComma(role) {
-		*rs = append(*rs, r)
+func (l *list) Set(val string) error {
+	for _, r := range utils.SplitComma(val) {
+		*l = append(*l, r)
 	}
 	return nil
 }
 
-func (rs *roles) String() string {
-	return fmt.Sprintf("%v", []string(*rs))
+func (l *list) String() string {
+	return fmt.Sprintf("%v", []string(*l))
 }

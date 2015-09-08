@@ -51,6 +51,12 @@ func start(conf Config) error {
 		box.EnvPair{Name: "KUBE_CLOUD_PROVIDER", Val: conf.CloudProvider},
 		box.EnvPair{Name: "KUBE_CLOUD_CONFIG", Val: conf.CloudConfig})
 
+	// Always trust local registry (for now)
+	conf.InsecureRegistries = append(
+		conf.InsecureRegistries, fmt.Sprintf("%v:5000", conf.MasterIP))
+
+	conf.Env = addInsecureRegistries(conf.Env, conf.InsecureRegistries)
+
 	cfg := box.Config{
 		Rootfs: conf.Rootfs,
 		EnvFiles: []box.EnvFile{
@@ -89,6 +95,25 @@ func start(conf Config) error {
 
 	log.Infof("process status: %v %v", status, err)
 	return nil
+}
+
+func addInsecureRegistries(vars box.EnvVars, rs []string) box.EnvVars {
+	if len(rs) == 0 {
+		return vars
+	}
+
+	out := make([]string, len(rs))
+	for i, r := range rs {
+		out[i] = fmt.Sprintf("--insecure-registry=%v", r)
+	}
+	opts := strings.Join(out, " ")
+	if dopts := vars.Get("DOCKER_OPTS"); dopts != "" {
+		vars.Upsert("DOCKER_OPTS", strings.Join([]string{dopts, opts}, " "))
+	} else {
+		vars.Upsert("DOCKER_OPTS", opts)
+	}
+
+	return vars
 }
 
 func checkMounts(cfg Config) error {

@@ -33,13 +33,14 @@ func run() error {
 		// start the container with planet
 		cstart = app.Command("start", "Start Planet container")
 
-		cstartMasterIP      = cstart.Flag("master-ip", "ip of the master pod").Default("127.0.0.1").OverrideDefaultFromEnvar("PLANET_MASTER_IP").IP()
-		cstartCloudProvider = cstart.Flag("cloud-provider", "cloud provider name, e.g. 'aws' or 'gce'").OverrideDefaultFromEnvar("PLANET_CLOUD_PROVIDER").String()
-		cstartCloudConfig   = cstart.Flag("cloud-config", "cloud config path").OverrideDefaultFromEnvar("PLANET_CLOUD_CONFIG").String()
-		cstartIgnoreChecks  = cstart.Flag("ignore-checks", "Force start ignoring some failed host checks (e.g. kernel version)").OverrideDefaultFromEnvar("PLANET_FORCE").Bool()
-		cstartEnv           = EnvVars(cstart.Flag("env", "Set environment variable").OverrideDefaultFromEnvar("PLANET_ENV"))
-		cstartMounts        = Mounts(cstart.Flag("volume", "External volume to mount").OverrideDefaultFromEnvar("PLANET_VOLUME"))
-		cstartRoles         = Roles(cstart.Flag("role", "Roles such as 'master' or 'node'").OverrideDefaultFromEnvar("PLANET_ROLE"))
+		cstartMasterIP           = cstart.Flag("master-ip", "ip of the master pod").Default("127.0.0.1").OverrideDefaultFromEnvar("PLANET_MASTER_IP").IP()
+		cstartCloudProvider      = cstart.Flag("cloud-provider", "cloud provider name, e.g. 'aws' or 'gce'").OverrideDefaultFromEnvar("PLANET_CLOUD_PROVIDER").String()
+		cstartCloudConfig        = cstart.Flag("cloud-config", "cloud config path").OverrideDefaultFromEnvar("PLANET_CLOUD_CONFIG").String()
+		cstartIgnoreChecks       = cstart.Flag("ignore-checks", "Force start ignoring some failed host checks (e.g. kernel version)").OverrideDefaultFromEnvar("PLANET_FORCE").Bool()
+		cstartEnv                = EnvVars(cstart.Flag("env", "Set environment variable").OverrideDefaultFromEnvar("PLANET_ENV"))
+		cstartMounts             = Mounts(cstart.Flag("volume", "External volume to mount").OverrideDefaultFromEnvar("PLANET_VOLUME"))
+		cstartRoles              = List(cstart.Flag("role", "Roles such as 'master' or 'node'").OverrideDefaultFromEnvar("PLANET_ROLE"))
+		cstartInsecureRegistries = List(cstart.Flag("insecure-registry", "Optional insecure registries").OverrideDefaultFromEnvar("PLANET_INSECURE_REGISTRY"))
 
 		// stop a running container
 		cstop = app.Command("stop", "Stop cube container")
@@ -73,14 +74,15 @@ func run() error {
 			return err
 		}
 		err = start(Config{
-			Rootfs:        rootfs,
-			Env:           *cstartEnv,
-			Mounts:        *cstartMounts,
-			IgnoreChecks:  *cstartIgnoreChecks,
-			Roles:         *cstartRoles,
-			MasterIP:      cstartMasterIP.String(),
-			CloudProvider: *cstartCloudProvider,
-			CloudConfig:   *cstartCloudConfig,
+			Rootfs:             rootfs,
+			Env:                *cstartEnv,
+			Mounts:             *cstartMounts,
+			IgnoreChecks:       *cstartIgnoreChecks,
+			Roles:              *cstartRoles,
+			InsecureRegistries: *cstartInsecureRegistries,
+			MasterIP:           cstartMasterIP.String(),
+			CloudProvider:      *cstartCloudProvider,
+			CloudConfig:        *cstartCloudConfig,
 		})
 	case cinit.FullCommand():
 		err = initLibcontainer()
@@ -122,10 +124,10 @@ func Mounts(s kingpin.Settings) *box.Mounts {
 	return vars
 }
 
-func Roles(s kingpin.Settings) *roles {
-	r := new(roles)
-	s.SetValue(r)
-	return r
+func List(s kingpin.Settings) *list {
+	l := new(list)
+	s.SetValue(l)
+	return l
 }
 
 func enterConsole(rootfs, cmd, user string, tty bool) error {

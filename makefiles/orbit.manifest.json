@@ -33,6 +33,15 @@
             },
             {
                 "type": "List",
+                "name": "insecureregistries",
+                "spec": {
+                    "name": "insecureregistry",
+                    "env": "PLANET_INSECURE_REGISTRY",
+                    "type": "String"
+                }
+            },
+            {
+                "type": "List",
                 "name": "roles",
                 "spec": {
                     "name": "role",
