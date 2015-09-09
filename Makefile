@@ -12,7 +12,7 @@ dev: planet-dev
 # Builds 'planet' binary
 planet: remove-temp-files
 	go build -o $(BUILDDIR)/planet github.com/gravitational/planet/tool/planet
-	go build -o /var/orbit/unpack/planet-dev/0.0.17/bd9fb/rootfs/usr/bin/planet github.com/gravitational/planet/tool/planet
+	go build -o /var/orbit/unpack/planet-dev/0.0.18/3ff44/rootfs/usr/bin/planet github.com/gravitational/planet/tool/planet
 
 remove-temp-files:
 	find . -name flymake_* -delete
