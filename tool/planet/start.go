@@ -46,6 +46,13 @@ func start(conf Config) error {
 		}
 	}
 
+	// check cloud provider settings
+	if conf.CloudProvider == "aws" {
+		if conf.Env.Get("AWS_ACCESS_KEY_ID") == "" || conf.Env.Get("AWS_SECRET_ACCESS_KEY") == "" {
+			return trace.Errorf("Cloud provider set to AWS, but AWS_KEY_ID and AWS_SECRET_ACCESS_KEY are not specified")
+		}
+	}
+
 	conf.Env = append(conf.Env,
 		box.EnvPair{Name: "KUBE_MASTER_IP", Val: conf.MasterIP},
 		box.EnvPair{Name: "KUBE_CLOUD_PROVIDER", Val: conf.CloudProvider},
@@ -55,7 +62,8 @@ func start(conf Config) error {
 	conf.InsecureRegistries = append(
 		conf.InsecureRegistries, fmt.Sprintf("%v:5000", conf.MasterIP))
 
-	conf.Env = addInsecureRegistries(conf.Env, conf.InsecureRegistries)
+	addInsecureRegistries(&conf)
+	setupFlannel(&conf)
 
 	cfg := box.Config{
 		Rootfs: conf.Rootfs,
@@ -97,23 +105,28 @@ func start(conf Config) error {
 	return nil
 }
 
-func addInsecureRegistries(vars box.EnvVars, rs []string) box.EnvVars {
-	if len(rs) == 0 {
-		return vars
+func addInsecureRegistries(c *Config) {
+	if len(c.InsecureRegistries) == 0 {
+		return
 	}
-
-	out := make([]string, len(rs))
-	for i, r := range rs {
+	out := make([]string, len(c.InsecureRegistries))
+	for i, r := range c.InsecureRegistries {
 		out[i] = fmt.Sprintf("--insecure-registry=%v", r)
 	}
 	opts := strings.Join(out, " ")
-	if dopts := vars.Get("DOCKER_OPTS"); dopts != "" {
-		vars.Upsert("DOCKER_OPTS", strings.Join([]string{dopts, opts}, " "))
+	if dopts := c.Env.Get("DOCKER_OPTS"); dopts != "" {
+		c.Env.Upsert("DOCKER_OPTS", strings.Join([]string{dopts, opts}, " "))
 	} else {
-		vars.Upsert("DOCKER_OPTS", opts)
+		c.Env.Upsert("DOCKER_OPTS", opts)
 	}
+}
 
-	return vars
+func setupFlannel(c *Config) {
+	if c.CloudProvider == "aws" {
+		c.Env.Upsert("FLANNEL_BACKEND", "aws-vpc")
+	} else {
+		c.Env.Upsert("FLANNEL_BACKEND", "vxlan")
+	}
 }
 
 func checkMounts(cfg Config) error {
