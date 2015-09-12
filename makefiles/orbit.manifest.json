@@ -16,15 +16,15 @@
                 "name": "masterip",
                 "env": "PLANET_MASTER_IP"
             },
-                        {
+            {
                 "type": "String",
                 "name": "cloudprovider",
                 "env": "PLANET_CLOUD_PROVIDER"
             },
             {
-                "type": "Path",
-                "name": "cloudconfig",
-                "env": "PLANET_CLOUD_CONFIG"
+                "type": "String",
+                "name": "clusterid",
+                "env": "PLANET_CLUSTER_ID"
             },
             {
                 "type": "Bool",

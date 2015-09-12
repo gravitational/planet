@@ -2,6 +2,7 @@ package box
 
 import (
 	"fmt"
+	"io"
 	"io/ioutil"
 	"net"
 	"net/http"
@@ -69,8 +70,16 @@ func Start(cfg Config) (*Box, error) {
 	if len(cfg.EnvFiles) != 0 {
 		for _, ef := range cfg.EnvFiles {
 			log.Infof("writing environment file: %v", ef.Env)
-			err = writeEnvironment(filepath.Join(rootfs, ef.Path), ef.Env)
-			if err != nil {
+			if err := writeEnvironment(filepath.Join(rootfs, ef.Path), ef.Env); err != nil {
+				return nil, err
+			}
+		}
+	}
+
+	if len(cfg.Files) != 0 {
+		for _, f := range cfg.Files {
+			log.Infof("writing file: %v", f.Path)
+			if err := writeFile(filepath.Join(rootfs, f.Path), f); err != nil {
 				return nil, err
 			}
 		}
@@ -198,6 +207,31 @@ func getEnvironment(env EnvVars) []string {
 		out[i] = fmt.Sprintf("%v=%v\n", v.Name, v.Val)
 	}
 	return out
+}
+
+func writeFile(path string, fi File) error {
+	if err := os.MkdirAll(filepath.Dir(path), 0755); err != nil {
+		return trace.Wrap(err)
+	}
+	f, err := os.Create(path)
+	if err != nil {
+		return trace.Wrap(err)
+	}
+	defer f.Close()
+	if _, err := io.Copy(f, fi.Contents); err != nil {
+		return trace.Wrap(err)
+	}
+	if fi.Mode != 0 {
+		if err := f.Chmod(fi.Mode); err != nil {
+			return trace.Wrap(err)
+		}
+	}
+	if fi.Owners != nil {
+		if err := f.Chown(fi.Owners.UID, fi.Owners.GID); err != nil {
+			return trace.Wrap(err)
+		}
+	}
+	return nil
 }
 
 func writeEnvironment(path string, env EnvVars) error {

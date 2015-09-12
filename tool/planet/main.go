@@ -35,7 +35,7 @@ func run() error {
 
 		cstartMasterIP           = cstart.Flag("master-ip", "ip of the master pod").Default("127.0.0.1").OverrideDefaultFromEnvar("PLANET_MASTER_IP").IP()
 		cstartCloudProvider      = cstart.Flag("cloud-provider", "cloud provider name, e.g. 'aws' or 'gce'").OverrideDefaultFromEnvar("PLANET_CLOUD_PROVIDER").String()
-		cstartCloudConfig        = cstart.Flag("cloud-config", "cloud config path").OverrideDefaultFromEnvar("PLANET_CLOUD_CONFIG").String()
+		cstartClusterID          = cstart.Flag("cluster-id", "id of the cluster").OverrideDefaultFromEnvar("PLANET_CLUSTER_ID").String()
 		cstartIgnoreChecks       = cstart.Flag("ignore-checks", "Force start ignoring some failed host checks (e.g. kernel version)").OverrideDefaultFromEnvar("PLANET_FORCE").Bool()
 		cstartEnv                = EnvVars(cstart.Flag("env", "Set environment variable").OverrideDefaultFromEnvar("PLANET_ENV"))
 		cstartMounts             = Mounts(cstart.Flag("volume", "External volume to mount").OverrideDefaultFromEnvar("PLANET_VOLUME"))
@@ -82,7 +82,7 @@ func run() error {
 			InsecureRegistries: *cstartInsecureRegistries,
 			MasterIP:           cstartMasterIP.String(),
 			CloudProvider:      *cstartCloudProvider,
-			CloudConfig:        *cstartCloudConfig,
+			ClusterID:          *cstartClusterID,
 		})
 	case cinit.FullCommand():
 		err = initLibcontainer()

@@ -13,9 +13,10 @@ type Config struct {
 	Rootfs             string
 	MasterIP           string
 	CloudProvider      string
-	CloudConfig        string
+	ClusterID          string
 	Env                box.EnvVars
 	Mounts             box.Mounts
+	Files              []box.File
 	IgnoreChecks       bool
 }
 

@@ -46,17 +46,9 @@ func start(conf Config) error {
 		}
 	}
 
-	// check cloud provider settings
-	if conf.CloudProvider == "aws" {
-		if conf.Env.Get("AWS_ACCESS_KEY_ID") == "" || conf.Env.Get("AWS_SECRET_ACCESS_KEY") == "" {
-			return trace.Errorf("Cloud provider set to AWS, but AWS_KEY_ID and AWS_SECRET_ACCESS_KEY are not specified")
-		}
-	}
-
 	conf.Env = append(conf.Env,
 		box.EnvPair{Name: "KUBE_MASTER_IP", Val: conf.MasterIP},
-		box.EnvPair{Name: "KUBE_CLOUD_PROVIDER", Val: conf.CloudProvider},
-		box.EnvPair{Name: "KUBE_CLOUD_CONFIG", Val: conf.CloudConfig})
+		box.EnvPair{Name: "KUBE_CLOUD_PROVIDER", Val: conf.CloudProvider})
 
 	// Always trust local registry (for now)
 	conf.InsecureRegistries = append(
@@ -64,6 +56,9 @@ func start(conf Config) error {
 
 	addInsecureRegistries(&conf)
 	setupFlannel(&conf)
+	if err := setupCloudOptions(&conf); err != nil {
+		return err
+	}
 
 	cfg := box.Config{
 		Rootfs: conf.Rootfs,
@@ -73,6 +68,7 @@ func start(conf Config) error {
 				Env:  conf.Env,
 			},
 		},
+		Files:        conf.Files,
 		Mounts:       conf.Mounts,
 		DataDir:      "/var/run/cube",
 		InitUser:     "root",
@@ -80,6 +76,9 @@ func start(conf Config) error {
 		InitEnv:      []string{"container=libcontainer"},
 		Capabilities: allCaps,
 	}
+
+	log.Infof("starting with config:\n%#v\n", cfg)
+
 	b, err := box.Start(cfg)
 	if err != nil {
 		return err
@@ -102,6 +101,38 @@ func start(conf Config) error {
 	}
 
 	log.Infof("process status: %v %v", status, err)
+	return nil
+}
+
+// setupCloudOptions sets up cloud flags and files passed to kubernetes
+// binaries, sets up container environment files
+func setupCloudOptions(c *Config) error {
+	if c.CloudProvider == "" {
+		return nil
+	}
+
+	// check cloud provider settings
+	if c.CloudProvider == "aws" {
+		if c.Env.Get("AWS_ACCESS_KEY_ID") == "" || c.Env.Get("AWS_SECRET_ACCESS_KEY") == "" {
+			return trace.Errorf("Cloud provider set to AWS, but AWS_KEY_ID and AWS_SECRET_ACCESS_KEY are not specified")
+		}
+	}
+
+	flags := []string{fmt.Sprintf("--cloud-provider=%v", c.CloudProvider)}
+
+	// generate AWS cloud config for kubernetes cluster
+	if c.CloudProvider == "aws" && c.ClusterID != "" {
+		flags = append(flags,
+			"--cloud-config=/etc/cloud-config.conf")
+		c.Files = append(c.Files, box.File{
+			Path: "/etc/cloud-config.conf",
+			Contents: strings.NewReader(
+				fmt.Sprintf(awsCloudConfig, c.ClusterID)),
+		})
+	}
+
+	c.Env.Upsert("KUBE_CLOUD_FLAGS", strings.Join(flags, " "))
+
 	return nil
 }
 
@@ -149,6 +180,10 @@ func checkMounts(cfg Config) error {
 	}
 	return nil
 }
+
+const awsCloudConfig = `[Global]
+KubernetesClusterTag=%v
+`
 
 var masterUnits = []string{
 	"etcd",

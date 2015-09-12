@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"fmt"
 	"io"
+	"os"
 	"strings"
 
 	"github.com/gravitational/planet/Godeps/_workspace/src/github.com/gravitational/orbit/lib/utils"
@@ -20,6 +21,9 @@ type Config struct {
 
 	// EnvFiles has a list of files that will generated when process starts
 	EnvFiles []EnvFile
+	// Files is an optional list of files that will be placed
+	// in the container when started
+	Files []File
 
 	// Rootfs is a root filesystem of the container
 	Rootfs string
@@ -30,6 +34,19 @@ type Config struct {
 	Capabilities []string
 	// DataDir is a directory where libcontainer stores the container state
 	DataDir string
+}
+
+// File is a file that will be placed in the container before start
+type File struct {
+	Path     string
+	Contents io.Reader
+	Mode     os.FileMode
+	Owners   *FileOwner
+}
+
+type FileOwner struct {
+	UID int
+	GID int
 }
 
 // environment file to write when container starts
