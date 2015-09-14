@@ -99,6 +99,8 @@ The section below is for developers who want to make changes to `Planet`.
 **IMPORTANT** the build process relies on Docker > 1.6.2. When installing Docker on Virtualbox/vagrant you may 
 end up with a VM which doesn't boot (hangs during shared volume mounting). Do `apt-get dist-upgrade` to fix that.
 
+Also, if using [Vagrant](https://www.vagrantup.com/downloads.html), make sure you have Vagrant version `1.7.4` or newer. This building process has been tested on `Debian 8`, `CentOS 7` and `Ubuntu 15.04`.
+
 There are two builds: "development" and "production".  By default, `make` with no argumnets builds the production image. Here's how to build both:
 
 ```
