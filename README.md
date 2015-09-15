@@ -92,43 +92,34 @@ orbit exec-config stop planet/dev:0.0.1 planet/cfg:0.0.1
 
 ## Hacking on Planet
 
-The section below is for developers who want to make changes to `Planet`.
+The section below is for developers who want to make changes to `Planet`. Orbit is not needed in this case,
+you will be running planet directly.
 
 ### Building (installing from source)
 
 **IMPORTANT** the build process relies on Docker > 1.6.2. When installing Docker on Virtualbox/vagrant you may 
 end up with a VM which doesn't boot (hangs during shared volume mounting). Do `apt-get dist-upgrade` to fix that.
 
-Also, if using [Vagrant](https://www.vagrantup.com/downloads.html), make sure you have Vagrant version `1.7.4` or newer. This building process has been tested on `Debian 8`, `CentOS 7` and `Ubuntu 15.04`.
+Also, if using [Vagrant](https://www.vagrantup.com/downloads.html), make sure you have Vagrant version `1.7.4` or newer. 
+This building process has been tested on `Debian 8` and `Ubuntu 15.04`.
 
-There are two builds: "development" and "production".  By default, `make` with no argumnets builds the production image. Here's how to build both:
+The output of Planet build is a tarball: an Orbit package. There are three targets:
 
-```
-make
-make dev
-```
+* `make planet-master` builds an image containing only Kubernetes master components (kube-api, etcd, etc)
+* `make planet-node` builds an image containing only Kubernets node components (kubelet, kube-proxy)
+* `make planet-dev` builds an image with everything (master+node). it is a single-machine Kubernetes cluster
 
-**NOTE** the output of make command is usually a container image. For example `make dev` 
-creates `$HOME/build/planet-dev.aci`
-
-### Development Mode
-
-Planet can run in "development mode" when a single container contains both 
-Kubernetes master and Kubernetes node. This allows to launch a fully functional 
-single-node "cluster" on your laptop:
+These take a while to build, especially the first time. Usually you would want planet-dev for regular
+development, and when it's done you can start planet:
 
 ```
-make start-dev
+make start
 ```
 
-You'll see how various services are starting and then it will stop. To play with this tiny "cluster" you'll need
-to enter it (use another terminal session):
+You will need another terminal to interact with it. To enter into Planet container, you'll need to
+execute `make enter`.
 
-```
-make enter
-```
-
-You're inside of a container now which runs all Kubernetes components, run `ps -e` and you'll see something like:
+When you enter a container, you will see Kubernetes components running, with `ps -e` showing something like:
 
 ```
   PID TTY          TIME CMD
