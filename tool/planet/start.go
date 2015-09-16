@@ -70,7 +70,7 @@ func start(conf Config) error {
 		},
 		Files:        conf.Files,
 		Mounts:       conf.Mounts,
-		DataDir:      "/var/run/cube",
+		DataDir:      "/var/run/planet",
 		InitUser:     "root",
 		InitArgs:     []string{"/bin/systemd"},
 		InitEnv:      []string{"container=libcontainer"},
