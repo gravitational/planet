@@ -3,8 +3,10 @@ package main
 import (
 	"fmt"
 	"os"
+	"os/signal"
 	"path/filepath"
 	"runtime"
+	"syscall"
 
 	"github.com/gravitational/planet/Godeps/_workspace/src/github.com/docker/docker/pkg/term"
 	"github.com/gravitational/planet/Godeps/_workspace/src/github.com/gravitational/log"
@@ -68,11 +70,14 @@ func run() error {
 
 	var rootfs string
 	switch cmd {
+
+	// "start" command
 	case cstart.FullCommand():
 		rootfs, err = findRootfs()
 		if err != nil {
 			return err
 		}
+		setupSignalHanlders()
 		err = start(Config{
 			Rootfs:             rootfs,
 			Env:                *cstartEnv,
@@ -84,8 +89,12 @@ func run() error {
 			CloudProvider:      *cstartCloudProvider,
 			ClusterID:          *cstartClusterID,
 		})
+
+	// "init" command
 	case cinit.FullCommand():
 		err = initLibcontainer()
+
+	// "enter" command
 	case center.FullCommand():
 		rootfs, err = findRootfs()
 		if err != nil {
@@ -93,12 +102,16 @@ func run() error {
 		}
 		err = enterConsole(
 			rootfs, *centerArgs, *centerUser, !*centerNoTTY)
+
+	// "stop" command
 	case cstop.FullCommand():
 		rootfs, err = findRootfs()
 		if err != nil {
 			return err
 		}
 		err = stop(rootfs)
+
+	// "status" command
 	case cstatus.FullCommand():
 		rootfs, err = findRootfs()
 		if err != nil {
@@ -177,4 +190,24 @@ func findRootfs() (string, error) {
 	}
 
 	return rootfs, nil
+}
+
+// setupSignalHanlders sets up a handler to interrupt SIGTERM and SIGINT
+// allowing for a graceful shutdown via executing "stop" command
+func setupSignalHanlders() {
+	c := make(chan os.Signal, 1)
+	go func() {
+		sig := <-c
+		log.Infof("received a signal %v. stopping...\n", sig)
+		rootfs, err := findRootfs()
+		if err != nil {
+			log.Errorf("error: %v", err)
+			return
+		}
+		err = stop(rootfs)
+		if err != nil {
+			log.Errorf("error: %v", err)
+		}
+	}()
+	signal.Notify(c, os.Interrupt, os.Kill, syscall.SIGTERM)
 }
