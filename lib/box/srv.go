@@ -308,5 +308,5 @@ func startWebServer(path string, c libcontainer.Container) (net.Listener, error)
 }
 
 func serverSockPath(p string) string {
-	return filepath.Join(p, "run", "cube.socket")
+	return filepath.Join(p, "run", "planet.socket")
 }
