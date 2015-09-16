@@ -3,6 +3,7 @@ package main
 import (
 	"fmt"
 	"os"
+	"os/signal"
 	"path/filepath"
 	"runtime"
 
@@ -65,6 +66,8 @@ func run() error {
 	} else {
 		log.Initialize("console", "WARN")
 	}
+
+	setupSignalHanlders()
 
 	var rootfs string
 	switch cmd {
@@ -177,4 +180,22 @@ func findRootfs() (string, error) {
 	}
 
 	return rootfs, nil
+}
+
+func setupSignalHanlders() {
+	c := make(chan os.Signal, 1)
+	go func() {
+		sig := <-c
+		fmt.Printf("received a signal %v. stopping...\n", sig)
+		rootfs, err := findRootfs()
+		if err != nil {
+			log.Errorf("error: %v", err)
+			return
+		}
+		err = stop(rootfs)
+		if err != nil {
+			log.Errorf("error: %v", err)
+		}
+	}()
+	signal.Notify(c, os.Interrupt, os.Kill)
 }
