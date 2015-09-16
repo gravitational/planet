@@ -97,13 +97,13 @@ you will be running planet directly.
 
 ### Building (installing from source)
 
-**IMPORTANT** the build process relies on Docker > 1.6.2. When installing Docker on Virtualbox/vagrant you may 
+You must have Docker > 1.8.0 installed to continue. When installing Docker on Virtualbox/vagrant you may 
 end up with a VM which doesn't boot (hangs during shared volume mounting). Do `apt-get dist-upgrade` to fix that.
 
 Also, if using [Vagrant](https://www.vagrantup.com/downloads.html), make sure you have Vagrant version `1.7.4` or newer. 
 This building process has been tested on `Debian 8` and `Ubuntu 15.04`.
 
-The output of Planet build is a tarball: an Orbit package. There are three targets:
+The output of Planet build is a tarball that goes into `~/planet.build`. There are three targets and _you have to build one of them before you can continue_:
 
 * `make planet-master` builds an image containing only Kubernetes master components (kube-api, etcd, etc)
 * `make planet-node` builds an image containing only Kubernets node components (kubelet, kube-proxy)
@@ -134,6 +134,15 @@ When you enter a container, you will see Kubernetes components running, with `ps
  4725 ?        00:00:00 kube-scheduler
  4726 ?        00:00:00 kube-controller
 ```
+
+### Making changes
+
+If you have completed the steps above, you can iterate on Planet by repeating the following steps:
+
+1. `make` to compile changes
+2. `make start` to run
+3. `make stop` to stop
+4. repeat
 
 ### Production Mode
 
