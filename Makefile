@@ -7,7 +7,7 @@ export
 # Builds 'planet' binary
 planet: remove-temp-files
 	go install github.com/gravitational/planet/tool/planet
-	go build -o $(BUILDDIR)/planet github.com/gravitational/planet/tool/planet
+	@ln -sf $$GOPATH/bin/planet $(BUILDDIR)/rootfs/usr/bin/planet
 
 remove-temp-files:
 	@mkdir -p $(BUILDDIR)
