@@ -1,8 +1,8 @@
-# Planet Design Doc
+# Planet Design
 
 #### Intro
 
-Planet is a small Golang executable. It is distributed as a part of a container image, i.e. it 
+Planet is a small Golang executable. It is distributed as a part of an Orbit image, i.e. it 
 expects to reside in `rootfs/usr/bin/planet`
 
 When Planet starts, it:
@@ -12,12 +12,11 @@ When Planet starts, it:
 * `systemd` instantiates Kubernetes services
 * `systemd` also instantiates any other services we decide to run alongside Kubernetes
 
-#### Building
+#### Planet Daemon
 
-To build `planet` you need Docker > 1.6.2. The build process is split into 4 stages:
+Once all of the above happen, Planet starts waiting for `systemd` to exit (see `Box` module).
+Meanwhile, Planet also startsa web server which listens on a `/var/run/planet.sock` socket 
+and is capable of serving requests like `stop`.
 
-1. Download and prepare a base OS image. This is done via `make planet-os` and it uses Ubuntu 15.04. Everything will be built inside of (and based upon) it. The output of this step is `planet/os` Docker image.
-2. Build the "base", this is done via `make planet-base` target. It adds docker registry, docker itself and Flannel to the base image and saves the output as `planet/base` docker image.
-3. Copy the source of Planet into `planet/base` image and building it inside of it.
-4. Download and install Kubernetes inside of a Docker image, then prepare our own [Orbit image](https://github.com/gravitational/orbit) using dependencies from the base image and. The output is an `tar.gz` file.
-
+When another instance of Planet executes with `stop` command line argument, it connects to 
+the socket to tell the running copy to stop.
