@@ -26,7 +26,7 @@ func Connect(path string) (ContainerServer, error) {
 }
 
 func (c *client) Enter(cfg ProcessConfig) error {
-	u := url.URL{Host: "cube", Scheme: "ws", Path: "/v1/enter"}
+	u := url.URL{Host: "planet", Scheme: "ws", Path: "/v1/enter"}
 	data, err := json.Marshal(cfg)
 	if err != nil {
 		return trace.Wrap(err)
@@ -42,7 +42,7 @@ func (c *client) Enter(cfg ProcessConfig) error {
 	conn, err := net.Dial("unix", c.path)
 	if err != nil {
 		return checkError(
-			trace.Wrap(err, "failed to connect to cube socket"))
+			trace.Wrap(err, "failed to connect to planet socket"))
 	}
 	clt, err := websocket.NewClient(wscfg, conn)
 	if err != nil {
@@ -51,6 +51,7 @@ func (c *client) Enter(cfg ProcessConfig) error {
 	defer clt.Close()
 
 	exitC := make(chan error, 2)
+
 	go func() {
 		_, err := io.Copy(cfg.Out, clt)
 		exitC <- err
@@ -64,6 +65,7 @@ func (c *client) Enter(cfg ProcessConfig) error {
 	log.Infof("connected to container namespace")
 
 	for i := 0; i < 2; i++ {
+		<-exitC
 		<-exitC
 	}
 	return nil
