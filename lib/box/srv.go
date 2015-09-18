@@ -176,6 +176,13 @@ func Start(cfg Config) (*Box, error) {
 	}
 	log.Infof("container status: %v %v", st, err)
 
+	// start the API webserver (the sooner the better, so if it can't start we can
+	// fail sooner)
+	socketListener, err := startWebServer(serverSockPath(cfg.Rootfs), container)
+	if err != nil {
+		return nil, err
+	}
+
 	process := &libcontainer.Process{
 		Args:   cfg.InitArgs,
 		Env:    cfg.InitEnv,
@@ -190,11 +197,6 @@ func Start(cfg Config) (*Box, error) {
 	// then our init() function comes into play
 	if err := container.Start(process); err != nil {
 		return nil, trace.Wrap(err)
-	}
-
-	socketListener, err := startWebServer(serverSockPath(cfg.Rootfs), container)
-	if err != nil {
-		return nil, err
 	}
 
 	return &Box{

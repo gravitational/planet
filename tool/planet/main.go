@@ -145,9 +145,10 @@ func List(s kingpin.Settings) *list {
 
 func enterConsole(rootfs, cmd, user string, tty bool) error {
 	cfg := box.ProcessConfig{
-		In:   os.Stdin,
-		Out:  os.Stdout,
-		Args: []string{cmd},
+		In:     os.Stdin,
+		Out:    os.Stdout,
+		Args:   []string{cmd},
+		NoWait: false,
 	}
 
 	if tty {

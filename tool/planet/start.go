@@ -90,6 +90,8 @@ func start(conf Config) error {
 		units = appendUnique(units, nodeUnits)
 	}
 
+	return nil
+
 	go monitorUnits(b.Container, units)
 
 	// wait for the process to finish.
@@ -99,10 +101,7 @@ func start(conf Config) error {
 	}
 
 	b.Close()
-
 	log.Infof("process status: %v %v, lets sleep now", status, err)
-	time.Sleep(10 * time.Second)
-	log.Infof("done sleeping")
 	return nil
 }
 
@@ -276,7 +275,8 @@ func getStatus(c libcontainer.Container, unit string) (string, error) {
 			Args: []string{
 				"/bin/systemctl", "is-active",
 				fmt.Sprintf("%v.service", unit),
-			}})
+			},
+			NoWait: false})
 	if err != nil {
 		return "", err
 	}
