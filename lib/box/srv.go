@@ -34,10 +34,10 @@ func (b *Box) Close() error {
 	defer log.Infof("Box.Close() is done")
 	var err error
 	if err = b.Container.Destroy(); err != nil {
-		log.Errorf("error:%v", err)
+		log.Errorf("box.Close() :%v", err)
 	}
 	if err = b.socketListener.Close(); err != nil {
-		log.Warningf("error:%v", err)
+		log.Warningf("box.Close(): %v", err)
 	}
 	return err
 }
@@ -45,7 +45,6 @@ func (b *Box) Close() error {
 func (b *Box) Wait() (*os.ProcessState, error) {
 	log.Infof("box.Wait() is called")
 	defer log.Infof("box.Wait() is done")
-	defer b.Close()
 	st, err := b.Process.Wait()
 	if e, ok := err.(*exec.ExitError); ok {
 		return e.ProcessState, nil

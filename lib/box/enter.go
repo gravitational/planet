@@ -44,24 +44,28 @@ func StartProcessTTY(c libcontainer.Container, cfg ProcessConfig) (*os.ProcessSt
 		Env:  []string{"TERM=xterm"},
 	}
 
-	cs, err := p.NewConsole(0)
+	containerConsole, err := p.NewConsole(0)
 	if err != nil {
 		return nil, trace.Wrap(err)
 	}
 
-	term.SetWinsize(cs.Fd(),
+	term.SetWinsize(containerConsole.Fd(),
 		&term.Winsize{Height: uint16(cfg.TTY.H), Width: uint16(cfg.TTY.W)})
 
-	exitC := make(chan error, 2)
-	go func() {
-		_, err := io.Copy(cfg.Out, cs)
-		exitC <- err
-	}()
+	// start copying output from the process of the container's console
+	// into the caller's output:
+	if cfg.Out != nil {
+		go func() {
+			io.Copy(cfg.Out, containerConsole)
+		}()
+	}
 
-	go func() {
-		_, err := io.Copy(cs, cfg.In)
-		exitC <- err
-	}()
+	// start copying caller's input into container's console:
+	if cfg.In != nil {
+		go func() {
+			io.Copy(containerConsole, cfg.In)
+		}()
+	}
 
 	// this will cause libcontainer to exec this binary again
 	// with "init" command line argument.  (this is the default setting)

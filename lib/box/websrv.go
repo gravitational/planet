@@ -64,7 +64,7 @@ func (s *webServer) enter(w http.ResponseWriter, r *http.Request, p httprouter.P
 	// use websocket server to establish a bidirectional communication:
 	s.socketServer.Handler = func(conn *websocket.Conn) {
 		conn.Close()
-		//cfg.In = conn
+		cfg.In = conn
 		cfg.Out = conn
 		cfg.NoWait = false
 		if status, err := StartProcess(s.container, *cfg); err != nil {

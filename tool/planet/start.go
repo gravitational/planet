@@ -76,13 +76,16 @@ func start(conf Config) error {
 		InitEnv:      []string{"container=libcontainer"},
 		Capabilities: allCaps,
 	}
+	defer log.Infof("start() is done!")
 
+	// start the container:
 	b, err := box.Start(cfg)
 	if err != nil {
 		return err
 	}
-	units := []string{}
+	defer b.Close()
 
+	units := []string{}
 	if conf.hasRole("master") {
 		units = append(units, masterUnits...)
 	}
@@ -90,18 +93,15 @@ func start(conf Config) error {
 		units = appendUnique(units, nodeUnits)
 	}
 
-	return nil
-
-	go monitorUnits(b.Container, units)
+	//go monitorUnits(b.Container, units)
 
 	// wait for the process to finish.
 	status, err := b.Wait()
 	if err != nil {
 		return trace.Wrap(err)
 	}
+	log.Infof("box.Wait() returned status %v", status)
 
-	b.Close()
-	log.Infof("process status: %v %v, lets sleep now", status, err)
 	return nil
 }
 
