@@ -5,8 +5,8 @@ import (
 	"bufio"
 	"bytes"
 	"fmt"
-	"io"
 	"os"
+	"path"
 	"path/filepath"
 	"strings"
 	"syscall"
@@ -15,46 +15,77 @@ import (
 	"github.com/gravitational/planet/Godeps/_workspace/src/github.com/gravitational/trace"
 )
 
+var expectedSet = map[string]bool{
+	"blkio":            true,
+	"cpu,cpuacct":      true,
+	"cpuset":           true,
+	"devices":          true,
+	"freezer":          true,
+	"hugetlb":          true,
+	"memory":           true,
+	"net_cls,net_prio": true,
+	"perf_event":       true,
+}
+
+const cgroupRootDir = "/sys/fs/cgroup"
+
 func mountCgroups(root string) error {
-	cgroups, err := mountedCgroups(root)
+	// read /proc/cgroups:
+	foundCgroups, err := parseHostCgroups()
 	if err != nil {
 		return err
 	}
 
-	available, err := parseHostCgroups()
+	// read /proc/mounts
+	mounts, err := parseMounts()
 	if err != nil {
 		return err
 	}
+
+	// find cgroups that have been mounted:
+	mountedCgroups := make(map[string]bool)
+	for group, _ := range foundCgroups {
+		if mounts[path.Join(cgroupRootDir, group)] {
+			mountedCgroups[group] = true
+		}
+	}
+	log.Infof("Mounted cgroups: %v", mountedCgroups)
 
 	// find potential cgroup conflicts
-	cs := findConflicts(expectedSet, cgroups)
+	cs := findConflicts(expectedSet, mountedCgroups)
 	if len(cs) != 0 {
 		return trace.Wrap(&CgroupConflictError{C: cs})
 	}
 
-	// mount cgroupfs if it has not been mounted already
-	if err := mountCgroupFS(root); err != nil {
-		return err
+	// mount cgroupfs (tmpfs root dir for cgroups) if it has not
+	// been mounted already
+	tmpfsRootDir := filepath.Join(root, cgroupRootDir)
+	if !mounts[tmpfsRootDir] {
+		if err := mountCgroupFS(tmpfsRootDir); err != nil {
+			return err
+		}
+	} else {
+		log.Infof("cgroup root (%v) is already mounted", cgroupRootDir)
 	}
 
 	var flags uintptr
 	for c, _ := range expectedSet {
-		if cgroups[c] {
+		if mountedCgroups[c] {
 			log.Infof("%v is already mounted", c)
 			continue
 		}
 
 		// skip unavaliable cgroups
-		if !available[c] {
-			log.Infof("%v is not available, skip mounting")
+		if !foundCgroups[c] {
+			log.Infof("%v is not available, skip mounting", c)
 			continue
 		}
 
-		cPath := filepath.Join(root, "/sys/fs/cgroup", c)
+		// mount!
+		cPath := filepath.Join(root, cgroupRootDir, c)
 		if err := os.MkdirAll(cPath, 0700); err != nil {
 			return trace.Wrap(err)
 		}
-
 		flags = syscall.MS_NOSUID |
 			syscall.MS_NOEXEC |
 			syscall.MS_NODEV
@@ -67,8 +98,9 @@ func mountCgroups(root string) error {
 }
 
 // mountCgroupFS mounts /sys/fs/cgroup
-func mountCgroupFS(root string) error {
-	cgroupTmpfs := filepath.Join(root, "/sys/fs/cgroup")
+func mountCgroupFS(cgroupTmpfs string) error {
+	log.Infof("creating tmpfs for cgrups in %v", cgroupTmpfs)
+
 	if err := os.MkdirAll(cgroupTmpfs, 0700); err != nil {
 		return trace.Wrap(err)
 	}
@@ -88,49 +120,28 @@ func mountCgroupFS(root string) error {
 	return nil
 }
 
-func mountedCgroups(root string) (map[string]bool, error) {
-	cs, err := parseHostCgroups()
-	if err != nil {
-		return nil, err
-	}
-	ms, err := parseMounts()
-	if err != nil {
-		return nil, err
-	}
-	for g, _ := range cs {
-		if !ms[g] {
-			delete(cs, g)
-		}
-	}
-	return cs, nil
-}
-
+// parseHostCgroups opens and parses the cgroup file (/proc/cgroups)
 func parseHostCgroups() (map[string]bool, error) {
 	f, err := os.Open("/proc/cgroups")
 	if err != nil {
 		return nil, trace.Wrap(err)
 	}
 	defer f.Close()
-	return parseCgroups(f)
-}
 
-func parseCgroups(r io.Reader) (map[string]bool, error) {
-	subs := make(map[string]bool)
-
-	sc := bufio.NewScanner(r)
-
+	var (
+		controller              string
+		hierarchy, num, enabled int
+	)
 	cgroups := make(map[int][]string)
+
+	subs := make(map[string]bool)
+	sc := bufio.NewScanner(f)
 	for sc.Scan() {
 		line := sc.Text()
 		if strings.HasPrefix(line, "#") { // skip comments
 			continue
 		}
-		var controller string
-		var hierarchy int
-		var num int
-		var enabled int
 		fmt.Sscanf(line, "%s %d %d %d", &controller, &hierarchy, &num, &enabled)
-
 		if enabled == 1 {
 			if _, ok := cgroups[hierarchy]; !ok {
 				cgroups[hierarchy] = []string{controller}
@@ -139,19 +150,16 @@ func parseCgroups(r io.Reader) (map[string]bool, error) {
 			}
 		}
 	}
-
 	if err := sc.Err(); err != nil {
 		return nil, trace.Wrap(err)
 	}
-
 	for _, gs := range cgroups {
 		subs[strings.Join(gs, ",")] = true
 	}
-
-	log.Infof("parsed active hierarchies: %v", cgroups)
 	return subs, nil
 }
 
+// parseMounts reads and parses /proc/mounts file
 func parseMounts() (map[string]bool, error) {
 	mounts := make(map[string]bool)
 	f, err := os.Open("/proc/mounts")
@@ -169,27 +177,13 @@ func parseMounts() (map[string]bool, error) {
 		fields := strings.Fields(line)
 		mounts[fields[1]] = true
 	}
-
 	if err := sc.Err(); err != nil {
 		return nil, trace.Wrap(err)
 	}
-
 	return mounts, nil
 }
 
-var expectedSet = map[string]bool{
-	"blkio":            true,
-	"cpu,cpuacct":      true,
-	"cpuset":           true,
-	"devices":          true,
-	"freezer":          true,
-	"hugetlb":          true,
-	"memory":           true,
-	"net_cls,net_prio": true,
-	"perf_event":       true,
-}
-
-func findConflicts(a, b groupset) conflicts {
+func findConflicts(a, b map[string]bool) conflicts {
 	c := make(map[string][]string)
 	for g1, _ := range a {
 		for g2, _ := range b {
@@ -222,8 +216,6 @@ func makeSet(a []string) map[string]bool {
 	}
 	return out
 }
-
-type groupset map[string]bool
 
 type CgroupConflictError struct {
 	C conflicts

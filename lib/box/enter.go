@@ -27,43 +27,45 @@ func CombinedOutput(c libcontainer.Container, cfg ProcessConfig) ([]byte, error)
 }
 
 func StartProcess(c libcontainer.Container, cfg ProcessConfig) (*os.ProcessState, error) {
-	log.Infof("start process in the container: %v", cfg)
+	log.Infof("StartProcess(%v)", cfg)
+	defer log.Infof("StartProcess(%v) is gone!", cfg)
 
 	if cfg.TTY != nil {
 		return StartProcessTTY(c, cfg)
 	} else {
 		return StartProcessStdout(c, cfg)
 	}
-
 }
 
 func StartProcessTTY(c libcontainer.Container, cfg ProcessConfig) (*os.ProcessState, error) {
-	log.Infof("start process in the container: %#v", cfg)
-
 	p := &libcontainer.Process{
 		Args: cfg.Args,
 		User: cfg.User,
 		Env:  []string{"TERM=xterm"},
 	}
 
-	cs, err := p.NewConsole(0)
+	containerConsole, err := p.NewConsole(0)
 	if err != nil {
 		return nil, trace.Wrap(err)
 	}
 
-	term.SetWinsize(cs.Fd(),
+	term.SetWinsize(containerConsole.Fd(),
 		&term.Winsize{Height: uint16(cfg.TTY.H), Width: uint16(cfg.TTY.W)})
 
-	exitC := make(chan error, 2)
-	go func() {
-		_, err := io.Copy(cfg.Out, cs)
-		exitC <- err
-	}()
+	// start copying output from the process of the container's console
+	// into the caller's output:
+	if cfg.Out != nil {
+		go func() {
+			io.Copy(cfg.Out, containerConsole)
+		}()
+	}
 
-	go func() {
-		_, err := io.Copy(cs, cfg.In)
-		exitC <- err
-	}()
+	// start copying caller's input into container's console:
+	if cfg.In != nil {
+		go func() {
+			io.Copy(containerConsole, cfg.In)
+		}()
+	}
 
 	// this will cause libcontainer to exec this binary again
 	// with "init" command line argument.  (this is the default setting)
@@ -85,8 +87,6 @@ func StartProcessTTY(c libcontainer.Container, cfg ProcessConfig) (*os.ProcessSt
 }
 
 func StartProcessStdout(c libcontainer.Container, cfg ProcessConfig) (*os.ProcessState, error) {
-	log.Infof("start process in the container: %v", cfg)
-
 	p := &libcontainer.Process{
 		Args:   cfg.Args,
 		User:   cfg.User,
@@ -102,14 +102,12 @@ func StartProcessStdout(c libcontainer.Container, cfg ProcessConfig) (*os.Proces
 		return nil, trace.Wrap(err)
 	}
 
-	log.Infof("started process just okay")
-
-	// wait for the process to finish.
+	// wait for the process to finish
+	log.Infof("Waiting for StartProcessStdout(%v)...", cfg.Args)
+	log.Infof("StartProcessStdout(%v) completed", cfg.Args)
 	s, err := p.Wait()
 	if err != nil {
 		return nil, trace.Wrap(err)
 	}
-
-	log.Infof("process status: %v %v", s, err)
 	return s, nil
 }

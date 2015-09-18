@@ -14,7 +14,7 @@ import (
 )
 
 // enter initiates the process in the namespaces of the container
-// managed by the cube master process and mantains websocket connection
+// managed by the planet master process and mantains websocket connection
 // to proxy input and output
 func enter(rootfs string, cfg box.ProcessConfig) error {
 	log.Infof("enter: %v %#v", rootfs, cfg)

@@ -45,10 +45,10 @@ func run() error {
 		cstartInsecureRegistries = List(cstart.Flag("insecure-registry", "Optional insecure registries").OverrideDefaultFromEnvar("PLANET_INSECURE_REGISTRY"))
 
 		// stop a running container
-		cstop = app.Command("stop", "Stop cube container")
+		cstop = app.Command("stop", "Stop planet container")
 
 		// enter a running container
-		center      = app.Command("enter", "Enter running cube container")
+		center      = app.Command("enter", "Enter running planet container")
 		centerArgs  = center.Arg("cmd", "command to execute").Default("/bin/bash").String()
 		centerNoTTY = center.Flag("not-tty", "do not attach TTY to this process").Bool()
 		centerUser  = center.Flag("user", "user to execute the command").Default("root").String()
@@ -77,7 +77,7 @@ func run() error {
 		if err != nil {
 			return err
 		}
-		setupSignalHanlders()
+		setupSignalHanlders(rootfs)
 		err = start(Config{
 			Rootfs:             rootfs,
 			Env:                *cstartEnv,
@@ -194,17 +194,12 @@ func findRootfs() (string, error) {
 
 // setupSignalHanlders sets up a handler to interrupt SIGTERM and SIGINT
 // allowing for a graceful shutdown via executing "stop" command
-func setupSignalHanlders() {
+func setupSignalHanlders(rootfs string) {
 	c := make(chan os.Signal, 1)
 	go func() {
 		sig := <-c
 		log.Infof("received a signal %v. stopping...\n", sig)
-		rootfs, err := findRootfs()
-		if err != nil {
-			log.Errorf("error: %v", err)
-			return
-		}
-		err = stop(rootfs)
+		err := stop(rootfs)
 		if err != nil {
 			log.Errorf("error: %v", err)
 		}

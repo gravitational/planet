@@ -27,22 +27,24 @@ type Box struct {
 	Process     *libcontainer.Process
 	Container   libcontainer.Container
 	ContainerID string
-	l           net.Listener
+	listener    net.Listener
 }
 
 func (b *Box) Close() error {
+	defer log.Infof("Box.Close() is done")
 	var err error
 	if err = b.Container.Destroy(); err != nil {
-		log.Errorf("error:%v", err)
+		log.Errorf("box.Close() :%v", err)
 	}
-	if err = b.l.Close(); err != nil {
-		log.Errorf("error:%v", err)
+	if err = b.listener.Close(); err != nil {
+		log.Warningf("box.Close(): %v", err)
 	}
 	return err
 }
 
 func (b *Box) Wait() (*os.ProcessState, error) {
-	defer b.Close()
+	log.Infof("box.Wait() is called")
+	defer log.Infof("box.Wait() is done")
 	st, err := b.Process.Wait()
 	if e, ok := err.(*exec.ExitError); ok {
 		return e.ProcessState, nil
@@ -173,6 +175,13 @@ func Start(cfg Config) (*Box, error) {
 	}
 	log.Infof("container status: %v %v", st, err)
 
+	// start the API webserver (the sooner the better, so if it can't start we can
+	// fail sooner)
+	listener, err := startWebServer(serverSockPath(cfg.Rootfs), container)
+	if err != nil {
+		return nil, err
+	}
+
 	process := &libcontainer.Process{
 		Args:   cfg.InitArgs,
 		Env:    cfg.InitEnv,
@@ -189,16 +198,11 @@ func Start(cfg Config) (*Box, error) {
 		return nil, trace.Wrap(err)
 	}
 
-	l, err := startWebServer(serverSockPath(cfg.Rootfs), container)
-	if err != nil {
-		return nil, err
-	}
-
 	return &Box{
 		Process:     process,
 		ContainerID: containerID,
 		Container:   container,
-		l:           l}, nil
+		listener:    listener}, nil
 }
 
 func getEnvironment(env EnvVars) []string {
@@ -286,8 +290,10 @@ func writeConfig(target, source string) error {
 	return nil
 }
 
-func startWebServer(path string, c libcontainer.Container) (net.Listener, error) {
-	l, err := net.Listen("unix", path)
+// startWebServer creates a listening socket on a given path (like /var/run/planet.sock)
+// this function leaves a running goroutine behind
+func startWebServer(socketPath string, c libcontainer.Container) (net.Listener, error) {
+	l, err := net.Listen("unix", socketPath)
 	if err != nil {
 		return nil, trace.Wrap(err)
 	}

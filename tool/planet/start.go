@@ -70,21 +70,22 @@ func start(conf Config) error {
 		},
 		Files:        conf.Files,
 		Mounts:       conf.Mounts,
-		DataDir:      "/var/run/cube",
+		DataDir:      "/var/run/planet",
 		InitUser:     "root",
 		InitArgs:     []string{"/bin/systemd"},
 		InitEnv:      []string{"container=libcontainer"},
 		Capabilities: allCaps,
 	}
+	defer log.Infof("start() is done!")
 
-	log.Infof("starting with config:\n%#v\n", cfg)
-
+	// start the container:
 	b, err := box.Start(cfg)
 	if err != nil {
 		return err
 	}
-	units := []string{}
+	defer b.Close()
 
+	units := []string{}
 	if conf.hasRole("master") {
 		units = append(units, masterUnits...)
 	}
@@ -99,8 +100,8 @@ func start(conf Config) error {
 	if err != nil {
 		return trace.Wrap(err)
 	}
+	log.Infof("box.Wait() returned status %v", status)
 
-	log.Infof("process status: %v %v", status, err)
 	return nil
 }
 

@@ -1,3 +1,10 @@
+/*
+client.go implements the client interface to Planet box. When a user runs any command, like
+"planet stop", it connects to the running instance of itself via a POSIX socket.
+
+It is done via client.Enter(), which executes the command (any process name) and
+proxies stdin/stdout to it.
+*/
 package box
 
 import (
@@ -8,7 +15,6 @@ import (
 	"net/url"
 	"os"
 
-	"github.com/gravitational/planet/Godeps/_workspace/src/github.com/gravitational/log"
 	"github.com/gravitational/planet/Godeps/_workspace/src/github.com/gravitational/trace"
 	"github.com/gravitational/planet/Godeps/_workspace/src/golang.org/x/net/websocket"
 )
@@ -25,8 +31,9 @@ func Connect(path string) (ContainerServer, error) {
 	return &client{path: path}, nil
 }
 
+// Enter connects to a socket and
 func (c *client) Enter(cfg ProcessConfig) error {
-	u := url.URL{Host: "cube", Scheme: "ws", Path: "/v1/enter"}
+	u := url.URL{Host: "planet", Scheme: "ws", Path: "/v1/enter"}
 	data, err := json.Marshal(cfg)
 	if err != nil {
 		return trace.Wrap(err)
@@ -42,7 +49,7 @@ func (c *client) Enter(cfg ProcessConfig) error {
 	conn, err := net.Dial("unix", c.path)
 	if err != nil {
 		return checkError(
-			trace.Wrap(err, "failed to connect to cube socket"))
+			trace.Wrap(err, "failed to connect to planet socket"))
 	}
 	clt, err := websocket.NewClient(wscfg, conn)
 	if err != nil {
@@ -50,22 +57,24 @@ func (c *client) Enter(cfg ProcessConfig) error {
 	}
 	defer clt.Close()
 
-	exitC := make(chan error, 2)
+	// this goroutine copies the output of a container into (usually) stdout,
+	// it sends a signal via exitC when it's done (it means the container exited
+	// and closed its stdout)
+	exitC := make(chan error)
 	go func() {
 		_, err := io.Copy(cfg.Out, clt)
 		exitC <- err
 	}()
 
+	// this goroutine copies stdin into a container. it doesn't exit unless
+	// a user hits "Enter" (which causes it to exit io.Copy() loop because it will
+	// fail writing to container's closed handle).
 	go func() {
-		_, err := io.Copy(clt, cfg.In)
-		exitC <- err
+		io.Copy(clt, cfg.In)
 	}()
 
-	log.Infof("connected to container namespace")
-
-	for i := 0; i < 2; i++ {
-		<-exitC
-	}
+	// only wait for output handle to be closed
+	<-exitC
 	return nil
 }
 
