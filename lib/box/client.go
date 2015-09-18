@@ -15,7 +15,6 @@ import (
 	"net/url"
 	"os"
 
-	"github.com/gravitational/planet/Godeps/_workspace/src/github.com/gravitational/log"
 	"github.com/gravitational/planet/Godeps/_workspace/src/github.com/gravitational/trace"
 	"github.com/gravitational/planet/Godeps/_workspace/src/golang.org/x/net/websocket"
 )
@@ -58,28 +57,17 @@ func (c *client) Enter(cfg ProcessConfig) error {
 	}
 	defer clt.Close()
 
-	exitC := make(chan error, 2)
-
+	exitC := make(chan error)
 	go func() {
 		_, err := io.Copy(cfg.Out, clt)
-		log.Infof("oops! output is done!")
-		os.Stdin.Close()
 		exitC <- err
 	}()
 
 	go func() {
-		_, err := io.Copy(clt, cfg.In)
-		log.Infof("oops! input is done!")
-		exitC <- err
+		io.Copy(clt, cfg.In)
 	}()
 
-	log.Infof("connected to container namespace")
-
-	for i := 0; i < 2; i++ {
-		<-exitC
-	}
-	//<-exitC
-	//<-exitC
+	<-exitC
 	return nil
 }
 
