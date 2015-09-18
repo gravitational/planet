@@ -29,13 +29,13 @@ func NewWebServer(c libcontainer.Container) *webServer {
 	// it has to be GET because we use websockets,
 	// so we are using the weird argument passing in query
 	// string here
-	s.GET("/v1/enter", s.makeJsonHandler(s.enter))
+	s.GET("/v1/enter", s.makeJSONHandler(s.enter))
 	return s
 }
 
 // makeJsonHandler wraps a standard HTTP handler and adds unified
 // error checking and JSON encoding of the output.
-func (h *webServer) makeJsonHandler(fn handler) httprouter.Handle {
+func (h *webServer) makeJSONHandler(fn handler) httprouter.Handle {
 	return func(w http.ResponseWriter, r *http.Request, p httprouter.Params) {
 		if err := fn(w, r, p); err != nil {
 			log.Errorf("error in handler: %v", err)
@@ -63,6 +63,7 @@ func (s *webServer) enter(w http.ResponseWriter, r *http.Request, p httprouter.P
 
 	// use websocket server to establish a bidirectional communication:
 	s.socketServer.Handler = func(conn *websocket.Conn) {
+		defer conn.Close()
 		cfg.In = conn
 		cfg.Out = conn
 		if status, err := StartProcess(s.container, *cfg); err != nil {

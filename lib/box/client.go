@@ -57,16 +57,23 @@ func (c *client) Enter(cfg ProcessConfig) error {
 	}
 	defer clt.Close()
 
+	// this goroutine copies the output of a container into (usually) stdout,
+	// it sends a signal via exitC when it's done (it means the container exited
+	// and closed its stdout)
 	exitC := make(chan error)
 	go func() {
 		_, err := io.Copy(cfg.Out, clt)
 		exitC <- err
 	}()
 
+	// this goroutine copies stdin into a container. it doesn't exit unless
+	// a user hits "Enter" (which causes it to exit io.Copy() loop because it will
+	// fail writing to container's closed handle).
 	go func() {
 		io.Copy(clt, cfg.In)
 	}()
 
+	// only wait for output handle to be closed
 	<-exitC
 	return nil
 }

@@ -24,10 +24,10 @@ type ContainerServer interface {
 }
 
 type Box struct {
-	Process        *libcontainer.Process
-	Container      libcontainer.Container
-	ContainerID    string
-	socketListener net.Listener
+	Process     *libcontainer.Process
+	Container   libcontainer.Container
+	ContainerID string
+	listener    net.Listener
 }
 
 func (b *Box) Close() error {
@@ -36,7 +36,7 @@ func (b *Box) Close() error {
 	if err = b.Container.Destroy(); err != nil {
 		log.Errorf("box.Close() :%v", err)
 	}
-	if err = b.socketListener.Close(); err != nil {
+	if err = b.listener.Close(); err != nil {
 		log.Warningf("box.Close(): %v", err)
 	}
 	return err
@@ -177,7 +177,7 @@ func Start(cfg Config) (*Box, error) {
 
 	// start the API webserver (the sooner the better, so if it can't start we can
 	// fail sooner)
-	socketListener, err := startWebServer(serverSockPath(cfg.Rootfs), container)
+	listener, err := startWebServer(serverSockPath(cfg.Rootfs), container)
 	if err != nil {
 		return nil, err
 	}
@@ -199,10 +199,10 @@ func Start(cfg Config) (*Box, error) {
 	}
 
 	return &Box{
-		Process:        process,
-		ContainerID:    containerID,
-		Container:      container,
-		socketListener: socketListener}, nil
+		Process:     process,
+		ContainerID: containerID,
+		Container:   container,
+		listener:    listener}, nil
 }
 
 func getEnvironment(env EnvVars) []string {

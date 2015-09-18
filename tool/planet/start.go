@@ -93,7 +93,7 @@ func start(conf Config) error {
 		units = appendUnique(units, nodeUnits)
 	}
 
-	//go monitorUnits(b.Container, units)
+	go monitorUnits(b.Container, units)
 
 	// wait for the process to finish.
 	status, err := b.Wait()
