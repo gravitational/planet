@@ -1,3 +1,10 @@
+/*
+client.go implements the client interface to Planet box. When a user runs any command, like
+"planet stop", it connects to the running instance of itself via a POSIX socket.
+
+It is done via client.Enter(), which executes the command (any process name) and
+proxies stdin/stdout to it.
+*/
 package box
 
 import (
@@ -25,6 +32,7 @@ func Connect(path string) (ContainerServer, error) {
 	return &client{path: path}, nil
 }
 
+// Enter connects to a socket and
 func (c *client) Enter(cfg ProcessConfig) error {
 	u := url.URL{Host: "planet", Scheme: "ws", Path: "/v1/enter"}
 	data, err := json.Marshal(cfg)
@@ -54,11 +62,14 @@ func (c *client) Enter(cfg ProcessConfig) error {
 
 	go func() {
 		_, err := io.Copy(cfg.Out, clt)
+		log.Infof("oops! output is done!")
+		os.Stdin.Close()
 		exitC <- err
 	}()
 
 	go func() {
 		_, err := io.Copy(clt, cfg.In)
+		log.Infof("oops! input is done!")
 		exitC <- err
 	}()
 
@@ -66,8 +77,9 @@ func (c *client) Enter(cfg ProcessConfig) error {
 
 	for i := 0; i < 2; i++ {
 		<-exitC
-		<-exitC
 	}
+	//<-exitC
+	//<-exitC
 	return nil
 }
 

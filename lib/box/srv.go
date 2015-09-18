@@ -24,24 +24,27 @@ type ContainerServer interface {
 }
 
 type Box struct {
-	Process     *libcontainer.Process
-	Container   libcontainer.Container
-	ContainerID string
-	l           net.Listener
+	Process        *libcontainer.Process
+	Container      libcontainer.Container
+	ContainerID    string
+	socketListener net.Listener
 }
 
 func (b *Box) Close() error {
+	defer log.Infof("Box.Close() is done")
 	var err error
 	if err = b.Container.Destroy(); err != nil {
 		log.Errorf("error:%v", err)
 	}
-	if err = b.l.Close(); err != nil {
-		log.Errorf("error:%v", err)
+	if err = b.socketListener.Close(); err != nil {
+		log.Warningf("error:%v", err)
 	}
 	return err
 }
 
 func (b *Box) Wait() (*os.ProcessState, error) {
+	log.Infof("box.Wait() is called")
+	defer log.Infof("box.Wait() is done")
 	defer b.Close()
 	st, err := b.Process.Wait()
 	if e, ok := err.(*exec.ExitError); ok {
@@ -189,16 +192,16 @@ func Start(cfg Config) (*Box, error) {
 		return nil, trace.Wrap(err)
 	}
 
-	l, err := startWebServer(serverSockPath(cfg.Rootfs), container)
+	socketListener, err := startWebServer(serverSockPath(cfg.Rootfs), container)
 	if err != nil {
 		return nil, err
 	}
 
 	return &Box{
-		Process:     process,
-		ContainerID: containerID,
-		Container:   container,
-		l:           l}, nil
+		Process:        process,
+		ContainerID:    containerID,
+		Container:      container,
+		socketListener: socketListener}, nil
 }
 
 func getEnvironment(env EnvVars) []string {
@@ -286,8 +289,10 @@ func writeConfig(target, source string) error {
 	return nil
 }
 
-func startWebServer(path string, c libcontainer.Container) (net.Listener, error) {
-	l, err := net.Listen("unix", path)
+// startWebServer creates a listening socket on a given path (like /var/run/planet.sock)
+// this function leaves a running goroutine behind
+func startWebServer(socketPath string, c libcontainer.Container) (net.Listener, error) {
+	l, err := net.Listen("unix", socketPath)
 	if err != nil {
 		return nil, trace.Wrap(err)
 	}

@@ -80,7 +80,7 @@ enter:
 start:
 	@sudo mkdir -p /var/planet/registry /var/planet/etcd /var/planet/docker 
 	@sudo chown $$USER:$$USER /var/planet/etcd -R
-	cd $(BUILDDIR) && sudo $(BUILDDIR)/rootfs/usr/bin/planet start\
+	cd $(BUILDDIR) && sudo $(BUILDDIR)/rootfs/usr/bin/planet --debug start\
 		--role=master\
 		--role=node\
 		--volume=/var/planet/etcd:/ext/etcd\
@@ -88,7 +88,7 @@ start:
 		--volume=/var/planet/docker:/ext/docker
 
 stop:
-	cd $(BUILDDIR) && sudo $(BUILDDIR)/rootfs/usr/bin/planet stop
+	cd $(BUILDDIR) && sudo $(BUILDDIR)/rootfs/usr/bin/planet --debug stop
 
 status:
 	sudo $(BUILDDIR)/rootfs/usr/bin/planet status $(BUILDDIR)/rootfs

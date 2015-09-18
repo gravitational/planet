@@ -27,19 +27,17 @@ func CombinedOutput(c libcontainer.Container, cfg ProcessConfig) ([]byte, error)
 }
 
 func StartProcess(c libcontainer.Container, cfg ProcessConfig) (*os.ProcessState, error) {
-	log.Infof("start process in the container: %v", cfg)
+	log.Infof("StartProcess() in the container : %v", cfg)
+	defer log.Infof("StartProcess() is gone!")
 
 	if cfg.TTY != nil {
 		return StartProcessTTY(c, cfg)
 	} else {
 		return StartProcessStdout(c, cfg)
 	}
-
 }
 
 func StartProcessTTY(c libcontainer.Container, cfg ProcessConfig) (*os.ProcessState, error) {
-	log.Infof("start process in the container: %#v", cfg)
-
 	p := &libcontainer.Process{
 		Args: cfg.Args,
 		User: cfg.User,
@@ -85,8 +83,6 @@ func StartProcessTTY(c libcontainer.Container, cfg ProcessConfig) (*os.ProcessSt
 }
 
 func StartProcessStdout(c libcontainer.Container, cfg ProcessConfig) (*os.ProcessState, error) {
-	log.Infof("start process in the container: %v", cfg)
-
 	p := &libcontainer.Process{
 		Args:   cfg.Args,
 		User:   cfg.User,
@@ -102,7 +98,7 @@ func StartProcessStdout(c libcontainer.Container, cfg ProcessConfig) (*os.Proces
 		return nil, trace.Wrap(err)
 	}
 
-	log.Infof("started process just okay")
+	log.Infof("StartProcessStdout() : started, about to wait")
 
 	// wait for the process to finish.
 	s, err := p.Wait()
@@ -110,6 +106,6 @@ func StartProcessStdout(c libcontainer.Container, cfg ProcessConfig) (*os.Proces
 		return nil, trace.Wrap(err)
 	}
 
-	log.Infof("process status: %v %v", s, err)
+	log.Infof("StartProcessStdout() : process is gone, status: %v %v", s, err)
 	return s, nil
 }

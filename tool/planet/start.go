@@ -77,8 +77,6 @@ func start(conf Config) error {
 		Capabilities: allCaps,
 	}
 
-	log.Infof("starting with config:\n%#v\n", cfg)
-
 	b, err := box.Start(cfg)
 	if err != nil {
 		return err
@@ -100,7 +98,11 @@ func start(conf Config) error {
 		return trace.Wrap(err)
 	}
 
-	log.Infof("process status: %v %v", status, err)
+	b.Close()
+
+	log.Infof("process status: %v %v, lets sleep now", status, err)
+	time.Sleep(10 * time.Second)
+	log.Infof("done sleeping")
 	return nil
 }
 
