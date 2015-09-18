@@ -64,12 +64,11 @@ type TTY struct {
 // ProcessConfig is a configuration passed to the process started
 // in the namespace of the container
 type ProcessConfig struct {
-	In     io.Reader `json:"-"`
-	Out    io.Writer `json:"-"`
-	TTY    *TTY      `json:"tty"`
-	Args   []string  `json:"args"`
-	User   string    `json:"user"`
-	NoWait bool      `json:"nowait"`
+	In   io.Reader `json:"-"`
+	Out  io.Writer `json:"-"`
+	TTY  *TTY      `json:"tty"`
+	Args []string  `json:"args"`
+	User string    `json:"user"`
 }
 
 type EnvPair struct {

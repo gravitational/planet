@@ -102,17 +102,12 @@ func StartProcessStdout(c libcontainer.Container, cfg ProcessConfig) (*os.Proces
 		return nil, trace.Wrap(err)
 	}
 
-	// wait for the process to finish, if asked
-	if !cfg.NoWait {
-		log.Infof("Waiting for StartProcessStdout(%v)...", cfg.Args)
-		log.Infof("StartProcessStdout(%v) completed", cfg.Args)
-		s, err := p.Wait()
-		if err != nil {
-			return nil, trace.Wrap(err)
-		}
-		return s, nil
-	} else {
-		log.Infof("StartProcessStdout(%v) started, no need to wait", cfg.Args)
-		return nil, nil
+	// wait for the process to finish
+	log.Infof("Waiting for StartProcessStdout(%v)...", cfg.Args)
+	log.Infof("StartProcessStdout(%v) completed", cfg.Args)
+	s, err := p.Wait()
+	if err != nil {
+		return nil, trace.Wrap(err)
 	}
+	return s, nil
 }

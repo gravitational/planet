@@ -275,8 +275,7 @@ func getStatus(c libcontainer.Container, unit string) (string, error) {
 			Args: []string{
 				"/bin/systemctl", "is-active",
 				fmt.Sprintf("%v.service", unit),
-			},
-			NoWait: false})
+			}})
 	if err != nil {
 		return "", err
 	}

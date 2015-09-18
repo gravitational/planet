@@ -66,7 +66,6 @@ func (s *webServer) enter(w http.ResponseWriter, r *http.Request, p httprouter.P
 		conn.Close()
 		cfg.In = conn
 		cfg.Out = conn
-		cfg.NoWait = false
 		if status, err := StartProcess(s.container, *cfg); err != nil {
 			log.Errorf("StartProcess failed with %v, %v", status, err)
 		}

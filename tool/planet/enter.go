@@ -37,11 +37,10 @@ func enter(rootfs string, cfg box.ProcessConfig) error {
 func stop(path string) error {
 	log.Infof("stop: %v", path)
 	cfg := box.ProcessConfig{
-		User:   "root",
-		Args:   []string{"/bin/systemctl", "halt"},
-		In:     os.Stdin,
-		Out:    os.Stdout,
-		NoWait: true,
+		User: "root",
+		Args: []string{"/bin/systemctl", "halt"},
+		In:   os.Stdin,
+		Out:  os.Stdout,
 	}
 
 	return enter(path, cfg)
@@ -52,11 +51,10 @@ func status(rootfs string) error {
 	out := &bytes.Buffer{}
 	log.Infof("status: %v", rootfs)
 	cfg := box.ProcessConfig{
-		User:   "root",
-		Args:   []string{"/bin/systemctl", "--failed"},
-		In:     os.Stdin,
-		Out:    out,
-		NoWait: false,
+		User: "root",
+		Args: []string{"/bin/systemctl", "--failed"},
+		In:   os.Stdin,
+		Out:  out,
 	}
 
 	var s pkg.Status
