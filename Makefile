@@ -5,7 +5,7 @@ BUILDDIR := $(HOME)/planet.build
 export
 
 # Builds 'planet' binary
-planet: remove-temp-files
+planet: check-rootfs
 	go install github.com/gravitational/planet/tool/planet
 	@ln -sf $$GOPATH/bin/planet $(BUILDDIR)/rootfs/usr/bin/planet
 
@@ -25,7 +25,7 @@ planet-os:
 
 # This target builds on top of os-image step above. It builds a new docker image, using planet/os
 # and adds docker registry, docker and flannel
-planet-base: planet-os
+planet-base: planet-os remove-temp-files
 	@if [[ ! $$(docker images | grep planet/base) ]]; then \
 		docker build --no-cache=true -t planet/base -f makefiles/base/base.dockerfile . ; \
 	fi
@@ -34,19 +34,24 @@ planet-base: planet-os
 # Uses planet/base docker image as a foundation, it downloads and installs Kubernetes
 # master components: API, etcd, etc.
 planet-master: planet-base
+	sudo rm -rf $(BUILDDIR)/rootfs
 	docker build -t planet/master -f makefiles/master/master.dockerfile . ; \
 	rm -rf $(BUILDDIR)/planet-master.tar.gz
 	id=$$(docker create planet/master:latest) && docker cp $$id:/build/planet-master.tar.gz $(BUILDDIR)
+	cd $(BUILDDIR) && tar -xzf planet-master.tar.gz
 
 # Uses planet/base docker image as a foundation, it downloads and installs Kubernetes
 # node components: kubelet and kube-proxy
 planet-node: planet-base
+	sudo rm -rf $(BUILDDIR)/rootfs
 	docker build -t planet/node -f makefiles/node/node.dockerfile . ; \
 	rm -f $(BUILDDIR)/planet-node.tar.gz
 	id=$$(docker create planet/node:latest) && docker cp $$id:/build/planet-node.tar.gz $(BUILDDIR)/
+	cd $(BUILDDIR) && tar -xzf planet-node.tar.gz
 
 # Uses planet/base docker image as a foundation, combines 'master' and 'node' into a single image
 planet-dev: planet-base
+	sudo rm -rf $(BUILDDIR)/rootfs
 	docker build -t planet/dev -f makefiles/dev/dev.dockerfile .
 	rm -f $(BUILDDIR)/planet-dev.tar.gz
 	id=$$(docker create planet/dev:latest) && docker cp $$id:/build/planet-dev.tar.gz $(BUILDDIR)
@@ -55,6 +60,12 @@ planet-dev: planet-base
 clean:
 	@bash makefiles/remove-docker-image planet/os planet/base planet/node planet/master planet/dev
 	rm -rf $(BUILDDIR)
+
+check-rootfs:
+	@if [ ! -d $(BUILDDIR)/rootfs/bin ] ; then \
+		echo -e "\nDid you select a build first?\nRun 'make planet-dev' or 'make node' or 'make master' before running 'make'\n" ;\
+		exit 1 ; \
+	fi
 
 # In case if something goes wrong, use this program to kill systemd that runs the whole setup
 kill-systemd:
