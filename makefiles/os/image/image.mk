@@ -6,10 +6,14 @@ all: $(IMAGE)
 
 $(IMAGE): image.mk
 	deb2aci -pkg systemd\
+            -pkg keyboard-configuration\
+            -pkg locales\
             -pkg dbus\
+            -pkg libc-bin\
             -pkg liblzma5\
             -pkg bash\
             -pkg iptables\
+            -pkg init-system-helpers\
             -pkg coreutils\
             -pkg grep\
             -pkg findutils\
@@ -22,7 +26,6 @@ $(IMAGE): image.mk
             -pkg openssl\
             -pkg adduser\
             -pkg iptables\
-            -pkg init-system-helpers\
             -pkg lsb-base\
             -pkg perl\
             -pkg libc6\

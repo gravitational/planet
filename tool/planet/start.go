@@ -80,10 +80,10 @@ func start(conf Config) error {
 
 	// start the container:
 	b, err := box.Start(cfg)
+	defer b.Close()
 	if err != nil {
 		return err
 	}
-	defer b.Close()
 
 	units := []string{}
 	if conf.hasRole("master") {

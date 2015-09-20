@@ -30,21 +30,28 @@ type Box struct {
 	listener    net.Listener
 }
 
+// Close shuts down the box. It is written to be safe to call multiple
+// times in a row for extra robustness.
 func (b *Box) Close() error {
-	defer log.Infof("Box.Close() is done")
-	var err error
-	if err = b.Container.Destroy(); err != nil {
-		log.Errorf("box.Close() :%v", err)
+	if b == nil {
+		return nil
 	}
-	if err = b.listener.Close(); err != nil {
-		log.Warningf("box.Close(): %v", err)
+	var err error
+	if b.Container != nil {
+		if err = b.Container.Destroy(); err != nil {
+			log.Errorf("box.Close() :%v", err)
+		}
+	}
+	if b.listener != nil {
+		if err = b.listener.Close(); err != nil {
+			log.Warningf("box.Close(): %v", err)
+		}
 	}
 	return err
 }
 
 func (b *Box) Wait() (*os.ProcessState, error) {
 	log.Infof("box.Wait() is called")
-	defer log.Infof("box.Wait() is done")
 	st, err := b.Process.Wait()
 	if e, ok := err.(*exec.ExitError); ok {
 		return e.ProcessState, nil
@@ -195,6 +202,8 @@ func Start(cfg Config) (*Box, error) {
 	// with "init" command line argument.  (this is the default setting)
 	// then our init() function comes into play
 	if err := container.Start(process); err != nil {
+		// kill the webserver (so it would close the socket)
+		listener.Close()
 		return nil, trace.Wrap(err)
 	}
 
