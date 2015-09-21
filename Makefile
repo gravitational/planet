@@ -15,14 +15,14 @@ os:
 	@if [[ ! $$(docker images | grep planet/os) ]]; then \
 		cd build/docker; docker build --no-cache=true -t planet/os -f os.dockerfile . ;\
 	else \
-		echo "Not rebuilding planet/os image. Run make clean if you want that" ;\
+		echo "planet/os already exists. Run docker rmi planet/os to rebuild" ;\
 	fi
 
 base: os
 	@if [[ ! $$(docker images | grep planet/base) ]]; then \
 		cd build/docker; docker build --no-cache=true -t planet/base -f base.dockerfile . ;\
 	else \
-		echo "Not rebuilding planet/base image. Run make clean if you want that" ;\
+		echo "planet/base already exists. Run 'docker rmi planet/base' to rebuild" ;\
 	fi
 
 # Makes a docker image (build box) which is used to build everything else. It's based
@@ -31,17 +31,44 @@ buildbox: base
 	@if [[ ! $$(docker images | grep planet/buildbox) ]]; then \
 		cd build/docker; docker build --no-cache=true -t planet/buildbox -f buildbox.dockerfile . ;\
 	else \
-		echo "Not rebuilding planet/bulidbox image. Run docker rmi planet/buildbox" ;\
+		echo "planet/bulidbox already exists. Run 'docker rmi planet/buildbox' to rebuild" ;\
 	fi
 
 # Makes a "developer" image, with _all_ parts of Kubernetes installed
-dev: buildbox rootfs
+dev: buildbox rootfs $(ROOTFS)/usr/bin/planet
 	docker run -ti --rm=true \
 		--volume=$$(pwd)/build:/build \
 		--env="ROOTFS=/$(ROOTFS)" \
 		--env="OUT=/$(OUT)" \
 		planet/buildbox \
 		/bin/bash /build/scripts/dev.sh
+	@cp $(BUILDDIR)/makefiles/orbit.manifest.json $(BUILDDIR)/
+	cd $(BUILDDIR) && tar -czf dev.tar.gz orbit.manifest.json rootfs
+
+# Makes a "master" image, with only master components of Kubernetes installed
+master: buildbox rootfs $(ROOTFS)/usr/bin/planet
+	docker run -ti --rm=true \
+		--volume=$$(pwd)/build:/build \
+		--env="ROOTFS=/$(ROOTFS)" \
+		--env="OUT=/$(OUT)" \
+		planet/buildbox \
+		/bin/bash /build/scripts/master.sh
+	@cp $(BUILDDIR)/makefiles/orbit.manifest.json $(BUILDDIR)/
+	cd $(BUILDDIR) && tar -czf master.tar.gz orbit.manifest.json rootfs
+
+# Makes a "node" image, with only node components of Kubernetes installed
+node: buildbox rootfs $(ROOTFS)/usr/bin/planet
+	docker run -ti --rm=true \
+		--volume=$$(pwd)/build:/build \
+		--env="ROOTFS=/$(ROOTFS)" \
+		--env="OUT=/$(OUT)" \
+		planet/buildbox \
+		/bin/bash /build/scripts/node.sh
+	cp $(BUILDDIR)/makefiles/orbit.manifest.json $(BUILDDIR)/
+	cd $(BUILDDIR) && tar -czf node.tar.gz orbit.manifest.json rootfs
+
+# builds planet binary and installs it into rootfs
+$(ROOTFS)/usr/bin/planet: build
 
 # sets up clean rootfs (based on 'os' docker image) in $ROOTFS
 rootfs: reset-rootfs
@@ -62,30 +89,12 @@ reset-rootfs:
 	bash build/scripts/reset-rootfs
 
 
-planet: 
-	go install github.com/gravitational/planet/tool/planet
-	@ln -sf $$GOPATH/bin/planet $(ROOTFS)/usr/bin/planet
-
 test-package: remove-temp-files
 	go test -v ./$(p)
 
 
-# This target builds on top of os-image step above. It builds a new docker image, using planet/os
-# and adds docker registry, docker and flannel
-planet-base: planet-os remove-temp-files
-	@if [[ ! $$(docker images | grep planet/base) ]]; then \
-		docker build --no-cache=true -t planet/base -f makefiles/base/base.dockerfile . ; \
-	fi
-	mkdir -p $(BUILDDIR)
-
-check-rootfs:
-	@if [ ! -d $(BUILDDIR)/rootfs/bin ] ; then \
-		echo -e "\nDid you select a build first?\nRun 'make planet-dev' or 'make node' or 'make master' before running 'make'\n" ;\
-		exit 1 ; \
-	fi
-
 enter:
-	cd $(BUILDDIR) && sudo rootfs/usr/bin/planet enter --debug 
+	cd $(BUILDDIR) && sudo rootfs/usr/bin/planet enter --debug /bin/bash
 
 start: 
 	@sudo mkdir -p /var/planet/registry /var/planet/etcd /var/planet/docker 

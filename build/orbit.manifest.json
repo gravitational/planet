@@ -1,0 +1,87 @@
+{
+    "version": "0.0.1",
+    "labels": [
+        {"name": "os", "value": "linux"}
+    ],
+    "commands": [
+        {"name": "start", "args": ["rootfs/usr/bin/planet", "start"]},
+        {"name": "stop", "args": ["rootfs/usr/bin/planet", "stop"]},
+        {"name": "enter", "args": ["rootfs/usr/bin/planet", "enter"]},
+        {"name": "status", "args": ["rootfs/usr/bin/planet", "status"]}
+    ],
+    "config": {
+        "params": [
+            {
+                "type": "String",
+                "name": "masterip",
+                "env": "PLANET_MASTER_IP"
+            },
+            {
+                "type": "String",
+                "name": "cloudprovider",
+                "env": "PLANET_CLOUD_PROVIDER"
+            },
+            {
+                "type": "String",
+                "name": "clusterid",
+                "env": "PLANET_CLUSTER_ID"
+            },
+            {
+                "type": "Bool",
+                "name": "force",
+                "env": "PLANET_FORCE"
+            },
+            {
+                "type": "List",
+                "name": "insecureregistries",
+                "spec": {
+                    "name": "insecureregistry",
+                    "env": "PLANET_INSECURE_REGISTRY",
+                    "type": "String"
+                }
+            },
+            {
+                "type": "List",
+                "name": "roles",
+                "spec": {
+                    "name": "role",
+                    "env": "PLANET_ROLE",
+                    "type": "Enum",
+                    "spec": {
+                        "values": ["master", "node"]
+                    }
+                }
+            },
+            {
+                "type": "List",
+                "name": "envars",
+                "spec": {
+                    "name": "env",
+                    "env": "PLANET_ENV",
+                    "type": "KeyVal",
+                    "spec": {
+                        "keys": [
+                            {"name": "key", "type":"String"},
+                            {"name": "val", "type":"String"}
+                        ]
+                    }
+                }
+            },
+            {
+                "type": "List",
+                "name": "mounts",
+                "spec": {
+                    "name": "volume",
+                    "env": "PLANET_VOLUME",
+                    "type": "KeyVal",
+                    "spec": {
+                        "keys": [
+                            {"name": "src", "type":"Path"},
+                            {"name": "dst", "type":"Path"}
+                        ]
+                    }
+                }
+            }
+        ]
+    }
+}
