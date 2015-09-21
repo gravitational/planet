@@ -33,9 +33,6 @@ type Box struct {
 // Close shuts down the box. It is written to be safe to call multiple
 // times in a row for extra robustness.
 func (b *Box) Close() error {
-	if b == nil {
-		return nil
-	}
 	var err error
 	if b.Container != nil {
 		if err = b.Container.Destroy(); err != nil {

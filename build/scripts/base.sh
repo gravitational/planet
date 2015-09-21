@@ -8,7 +8,6 @@
 
 if [ -z "$SHAREDK8" ]; then 
 
-
 echo -e "\n**** building flannel ****\n"
 make -C $BUILDDIR/makefiles/base/network -f network.mk
 
@@ -22,7 +21,6 @@ echo -e "\n**** building kubernetes ****\n"
 make -C $BUILDDIR/makefiles/kubernetes -f kubernetes.mk
 
 echo -e "\n**** removing extra crap from rootfs ****\n"
-ls -l /
 rm -rfv $ROOTFS/usr/share/doc
 rm -rfv $ROOTFS/usr/share/man
 rm -rfv $ROOTFS/var/cache/man

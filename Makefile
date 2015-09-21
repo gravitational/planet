@@ -43,7 +43,7 @@ dev: buildbox rootfs $(ROOTFS)/usr/bin/planet
 		planet/buildbox \
 		/bin/bash /build/scripts/dev.sh
 	@cp $(BUILDDIR)/makefiles/orbit.manifest.json $(BUILDDIR)/
-	cd $(BUILDDIR) && tar -czf dev.tar.gz orbit.manifest.json rootfs
+	cd $(BUILDDIR) && tar -czf out/dev.tar.gz orbit.manifest.json rootfs
 
 # Makes a "master" image, with only master components of Kubernetes installed
 master: buildbox rootfs $(ROOTFS)/usr/bin/planet
@@ -54,7 +54,7 @@ master: buildbox rootfs $(ROOTFS)/usr/bin/planet
 		planet/buildbox \
 		/bin/bash /build/scripts/master.sh
 	@cp $(BUILDDIR)/makefiles/orbit.manifest.json $(BUILDDIR)/
-	cd $(BUILDDIR) && tar -czf master.tar.gz orbit.manifest.json rootfs
+	cd $(BUILDDIR) && tar -czf out/master.tar.gz orbit.manifest.json rootfs
 
 # Makes a "node" image, with only node components of Kubernetes installed
 node: buildbox rootfs $(ROOTFS)/usr/bin/planet
@@ -65,7 +65,7 @@ node: buildbox rootfs $(ROOTFS)/usr/bin/planet
 		planet/buildbox \
 		/bin/bash /build/scripts/node.sh
 	cp $(BUILDDIR)/makefiles/orbit.manifest.json $(BUILDDIR)/
-	cd $(BUILDDIR) && tar -czf node.tar.gz orbit.manifest.json rootfs
+	cd $(BUILDDIR) && tar -czf out/node.tar.gz orbit.manifest.json rootfs
 
 # builds planet binary and installs it into rootfs
 $(ROOTFS)/usr/bin/planet: build

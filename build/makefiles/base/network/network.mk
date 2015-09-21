@@ -23,10 +23,6 @@ all: $(OUT)/flanneld $(OUT)/setup-network-environment network.mk
 # script that sets up /etc/hosts and symlinks resolv.conf
 	install -m 0755 ./setup-etc.sh $(ROOTFS)/usr/bin/scripts
 
-# HACK: update ca-certificates should be done by deb2aci
-#mkdir -p $(ROOTFS)/etc
-#cp -af ./ca-certificates.conf $(ROOTFS)/etc
-
 $(OUT)/flanneld: DIR := $(shell mktemp -d)
 $(OUT)/flanneld: GOPATH := $(DIR)
 $(OUT)/flanneld:
