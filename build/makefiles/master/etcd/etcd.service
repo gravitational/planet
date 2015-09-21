@@ -10,5 +10,5 @@ ExecStart=/usr/bin/etcd \
           --listen-client-urls http://0.0.0.0:2379,http://0.0.0.0:4001\
           --advertise-client-urls http://${DEFAULT_IPV4}:2379,http://${DEFAULT_IPV4}:4001\
           --listen-peer-urls http://${DEFAULT_IPV4}:2380,http://${DEFAULT_IPV4}:7001
-User=orbit
-Group=orbit
+User=planet
+Group=planet

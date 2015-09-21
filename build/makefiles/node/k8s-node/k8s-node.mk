@@ -7,5 +7,5 @@ all: k8s-node.mk
 	cp -af ./kube-proxy.service $(ROOTFS)/lib/systemd/system
 	ln -sf /lib/systemd/system/kube-proxy.service  $(ROOTFS)/lib/systemd/system/multi-user.target.wants/
 
-	install -m 0755 $(BUILDDIR)/kube-proxy $(ROOTFS)/usr/bin
-	install -m 0755 $(BUILDDIR)/kubelet $(ROOTFS)/usr/bin
+	install -m 0755 $(OUT)/kube-proxy $(ROOTFS)/usr/bin
+	install -m 0755 $(OUT)/kubelet $(ROOTFS)/usr/bin

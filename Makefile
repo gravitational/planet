@@ -3,6 +3,7 @@ SHELL:=/bin/bash
 
 BUILDDIR := build
 ROOTFS := $(BUILDDIR)/rootfs
+OUT := $(BUILDDIR)/out
 export
 
 build: 
@@ -17,41 +18,44 @@ os:
 		echo "Not rebuilding planet/os image. Run make clean if you want that" ;\
 	fi
 
+base: os
+	@if [[ ! $$(docker images | grep planet/base) ]]; then \
+		cd build/docker; docker build --no-cache=true -t planet/base -f base.dockerfile . ;\
+	else \
+		echo "Not rebuilding planet/base image. Run make clean if you want that" ;\
+	fi
+
 # Makes a docker image (build box) which is used to build everything else. It's based
 # on the 'os' base + developer tools.
-buildbox: os
+buildbox: base
 	@if [[ ! $$(docker images | grep planet/buildbox) ]]; then \
 		cd build/docker; docker build --no-cache=true -t planet/buildbox -f buildbox.dockerfile . ;\
 	else \
-		echo "Not rebuilding planet/bulidbox image. Run make clean if you want that" ;\
+		echo "Not rebuilding planet/bulidbox image. Run docker rmi planet/buildbox" ;\
 	fi
 
-# "empty" target builds an absolutely empty planet: it's just a rootfs with base iamge
-# which you can start with 'make start' to see systemd working
-empty: buildbox rootfs
-	cd build/docker; docker build --no-cache=true -t planet/empty -f dev.dockerfile .
+# Makes a "developer" image, with _all_ parts of Kubernetes installed
+dev: buildbox rootfs
 	docker run -ti --rm=true \
 		--volume=$$(pwd)/build:/build \
-		planet/empty \
+		--env="ROOTFS=/$(ROOTFS)" \
+		--env="OUT=/$(OUT)" \
+		planet/buildbox \
 		/bin/bash /build/scripts/dev.sh
 
+# sets up clean rootfs (based on 'os' docker image) in $ROOTFS
+rootfs: reset-rootfs
+	-docker rm -f planet-base
+	docker create --name="planet-base" planet/base
+	cd $$ROOTFS && docker export planet-base | tar -x
+	docker rm -f planet-base
 
-#RUN ROOTFS=${BUILDDIR}/aci/rootfs make -C $BUILDDIR/makefiles/base/network -f network.mk
-#RUN ROOTFS=${BUILDDIR}/aci/rootfs make -C $BUILDDIR/makefiles/base/docker -f docker.mk 
-#RUN ROOTFS=${BUILDDIR}/aci/rootfs make -C $BUILDDIR/makefiles/registry -f registry.mk
-#RUN ROOTFS=${BUILDDIR}/aci/rootfs make -C $BUILDDIR/makefiles/kubernetes -f kubernetes.mk
 
 remove-temp-files:
 	find . -name flymake_* -delete
 	sudo umount -f $ROOTFS
 	sudo rm -rf $ROOTFS
 
-# sets up clean rootfs (based on 'os' docker image) in $ROOTFS
-rootfs: reset-rootfs
-	-docker rm -f planet-os
-	docker create --name="planet-os" planet/os
-	cd $$ROOTFS && docker export planet-os | tar -x
-	docker rm -f planet-os
 
 # re-creates the rootfs using ram disk (tmpfs)
 reset-rootfs:
@@ -81,9 +85,7 @@ check-rootfs:
 	fi
 
 enter:
-	cd $(BUILDDIR) && sudo rootfs/usr/bin/planet enter --debug
-
-
+	cd $(BUILDDIR) && sudo rootfs/usr/bin/planet enter --debug 
 
 start: 
 	@sudo mkdir -p /var/planet/registry /var/planet/etcd /var/planet/docker 
