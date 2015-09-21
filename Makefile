@@ -1,9 +1,13 @@
 SHELL:=/bin/bash
-.PHONY: planet
+.PHONY: planet build
 
 BUILDDIR := build
 ROOTFS := $(BUILDDIR)/rootfs
 export
+
+build: 
+	go install github.com/gravitational/planet/tool/planet
+	@ln -sf $$GOPATH/bin/planet $(ROOTFS)/usr/bin/planet
 
 # Builds the base Docker image everything else is based on. Debian stable + configured locales. 
 os: 
@@ -22,14 +26,25 @@ buildbox: os
 		echo "Not rebuilding planet/bulidbox image. Run make clean if you want that" ;\
 	fi
 
-# "Dev" target builds a kubernetes image
-dev: buildbox rootfs
-	cd build/docker; docker build --no-cache=true -t planet/dev -f dev.dockerfile .
-	docker run -i -t --rm=true --volume=$$(pwd)/build:/build planet/dev /bin/bash /build/scripts/dev.sh
+# "empty" target builds an absolutely empty planet: it's just a rootfs with base iamge
+# which you can start with 'make start' to see systemd working
+empty: buildbox rootfs
+	cd build/docker; docker build --no-cache=true -t planet/empty -f dev.dockerfile .
+	docker run -ti --rm=true \
+		--volume=$$(pwd)/build:/build \
+		planet/empty \
+		/bin/bash /build/scripts/dev.sh
+
+
+#RUN ROOTFS=${BUILDDIR}/aci/rootfs make -C $BUILDDIR/makefiles/base/network -f network.mk
+#RUN ROOTFS=${BUILDDIR}/aci/rootfs make -C $BUILDDIR/makefiles/base/docker -f docker.mk 
+#RUN ROOTFS=${BUILDDIR}/aci/rootfs make -C $BUILDDIR/makefiles/registry -f registry.mk
+#RUN ROOTFS=${BUILDDIR}/aci/rootfs make -C $BUILDDIR/makefiles/kubernetes -f kubernetes.mk
 
 remove-temp-files:
 	find . -name flymake_* -delete
-
+	sudo umount -f $ROOTFS
+	sudo rm -rf $ROOTFS
 
 # sets up clean rootfs (based on 'os' docker image) in $ROOTFS
 rootfs: reset-rootfs
@@ -68,10 +83,12 @@ check-rootfs:
 enter:
 	cd $(BUILDDIR) && sudo rootfs/usr/bin/planet enter --debug
 
-start:
+
+
+start: 
 	@sudo mkdir -p /var/planet/registry /var/planet/etcd /var/planet/docker 
 	@sudo chown $$USER:$$USER /var/planet/etcd -R
-	cd $(BUILDDIR) && sudo rootfs/usr/bin/planet --debug start\
+	cd $(BUILDDIR) && sudo rootfs/usr/bin/planet start\
 		--role=master\
 		--role=node\
 		--volume=/var/planet/etcd:/ext/etcd\
