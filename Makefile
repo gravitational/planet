@@ -2,6 +2,7 @@ SHELL:=/bin/bash
 .PHONY: all dev planet planet-os planet-base planet-master planet-node planet-dev kill-systemd enter clean start stop status remove-godeps remove-temp-files
 
 BUILDDIR := $(HOME)/planet.build
+CACHE ?= yes
 export
 
 # Builds 'planet' binary
@@ -19,15 +20,19 @@ test-package: remove-temp-files
 # Builds systemd-based "distro" using Ubuntu 15.04 This distro is used as a base OS image
 # for building and running Kubernetes.
 planet-os:
-	@if [[ ! $$(docker images | grep planet/os) ]]; then \
+	@if [[ ! $$(docker images | grep planet/os) ]] || [[ "$(CACHE)" != "yes" ]]; then \
 		docker build --no-cache=true -t planet/os -f makefiles/os/os.dockerfile . ;\
+    else\
+        echo "Skipping planet-os build as it's already available. Use CACHE=no make planet-os to force rebuild"; \
 	fi
 
 # This target builds on top of os-image step above. It builds a new docker image, using planet/os
 # and adds docker registry, docker and flannel
 planet-base: planet-os
-	@if [[ ! $$(docker images | grep planet/base) ]]; then \
+	@if [[ ! $$(docker images | grep planet/base) ]] || [[ "$(CACHE)" != "yes" ]]; then \
 		docker build --no-cache=true -t planet/base -f makefiles/base/base.dockerfile . ; \
+    else\
+        echo "Skipping planet-base build as it's already available. Use CACHE=no make planet-base to force rebuild"; \
 	fi
 	mkdir -p $(BUILDDIR)
 
