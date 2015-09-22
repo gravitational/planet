@@ -1,105 +1,66 @@
 SHELL:=/bin/bash
-.PHONY: planet build
+.PHONY: build os base buildbox dev master node
 
-BUILDDIR := build
-ROOTFS := $(BUILDDIR)/rootfs
-OUT := $(BUILDDIR)/out
+PWD := $(shell pwd)
+ASSETS := $(PWD)/build.assets
+BUILDDIR ?= $(PWD)/build
+BUILDDIR := $(shell realpath $(BUILDDIR))
+PLANETVER:=0.01
 export
 
 build: 
 	go install github.com/gravitational/planet/tool/planet
-	@ln -sf $$GOPATH/bin/planet $(ROOTFS)/usr/bin/planet
+	@ln -sf $$GOPATH/bin/planet $(BUILDDIR)/current/rootfs/usr/bin/planet
 
-# Builds the base Docker image everything else is based on. Debian stable + configured locales. 
+# Builds the base Docker image (bare bones OS). Everything else is based on. 
+# Debian stable + configured locales. 
 os: 
-	@if [[ ! $$(docker images | grep planet/os) ]]; then \
-		cd build/docker; docker build --no-cache=true -t planet/os -f os.dockerfile . ;\
-	else \
-		echo "planet/os already exists. Run docker rmi planet/os to rebuild" ;\
-	fi
+	$(MAKE) -e BUILDIMAGE=planet/os make-build-box
 
+# Builds on top of "bare OS" image by adding components that every Kubernetes/planet node
+# needs (like bridge-utils or kmod)
 base: os
-	@if [[ ! $$(docker images | grep planet/base) ]]; then \
-		cd build/docker; docker build --no-cache=true -t planet/base -f base.dockerfile . ;\
-	else \
-		echo "planet/base already exists. Run 'docker rmi planet/base' to rebuild" ;\
-	fi
+	$(MAKE) -e BUILDIMAGE=planet/base make-build-box
 
-# Makes a docker image (build box) which is used to build everything else. It's based
-# on the 'os' base + developer tools.
+# Builds a "buildbox" docker image. Actual building is done inside of Docker, and this
+# image is used as a build box. It contains dev tools (Golang, make, git, vi, etc)
 buildbox: base
-	@if [[ ! $$(docker images | grep planet/buildbox) ]]; then \
-		cd build/docker; docker build --no-cache=true -t planet/buildbox -f buildbox.dockerfile . ;\
+	$(MAKE) -e BUILDIMAGE=planet/buildbox make-build-box
+
+make-build-box:
+	@if [[ ! $$(docker images | grep $(BUILDIMAGE)) ]]; then \
+		echo -e "\\n---> Creating 'buildbox' Docker image to be used for building:\\n" ;\
+		cd $(ASSETS)/docker; docker build --no-cache=true -t $(BUILDIMAGE) -f buildbox.dockerfile . ;\
 	else \
-		echo "planet/bulidbox already exists. Run 'docker rmi planet/buildbox' to rebuild" ;\
+		echo "planet/bulidbox already exists. Run 'docker rmi $(BUILDIMAGE)' to rebuild" ;\
 	fi
 
 # Makes a "developer" image, with _all_ parts of Kubernetes installed
-dev: buildbox rootfs $(ROOTFS)/usr/bin/planet
-	docker run -ti --rm=true \
-		--volume=$$(pwd)/build:/build \
-		--env="ROOTFS=/$(ROOTFS)" \
-		--env="OUT=/$(OUT)" \
-		planet/buildbox \
-		/bin/bash /build/scripts/dev.sh
-	@cp $(BUILDDIR)/makefiles/orbit.manifest.json $(BUILDDIR)/
-	cd $(BUILDDIR) && tar -czf out/dev.tar.gz orbit.manifest.json rootfs
+dev: buildbox
+	$(MAKE) -C $(ASSETS)/makefiles -e TARGET=dev -f buildbox.mk
 
 # Makes a "master" image, with only master components of Kubernetes installed
-master: buildbox rootfs $(ROOTFS)/usr/bin/planet
-	docker run -ti --rm=true \
-		--volume=$$(pwd)/build:/build \
-		--env="ROOTFS=/$(ROOTFS)" \
-		--env="OUT=/$(OUT)" \
-		planet/buildbox \
-		/bin/bash /build/scripts/master.sh
-	@cp $(BUILDDIR)/makefiles/orbit.manifest.json $(BUILDDIR)/
-	cd $(BUILDDIR) && tar -czf out/master.tar.gz orbit.manifest.json rootfs
+master: buildbox
+	$(MAKE) -C $(ASSETS)/makefiles -e TARGET=master -f buildbox.mk
 
 # Makes a "node" image, with only node components of Kubernetes installed
-node: buildbox rootfs $(ROOTFS)/usr/bin/planet
-	docker run -ti --rm=true \
-		--volume=$$(pwd)/build:/build \
-		--env="ROOTFS=/$(ROOTFS)" \
-		--env="OUT=/$(OUT)" \
-		planet/buildbox \
-		/bin/bash /build/scripts/node.sh
-	cp $(BUILDDIR)/makefiles/orbit.manifest.json $(BUILDDIR)/
-	cd $(BUILDDIR) && tar -czf out/node.tar.gz orbit.manifest.json rootfs
+node: buildbox
+	$(MAKE) -C $(ASSETS)/makefiles -e TARGET=node -f buildbox.mk
 
-# builds planet binary and installs it into rootfs
-$(ROOTFS)/usr/bin/planet: build
+# remvoes all build aftifacts 
+clean: dev-clean master-clean node-clean
+dev-clean:
+	$(MAKE) -C $(ASSETS)/makefiles -e TARGET=dev -f buildbox.mk clean
+node-clean:
+	$(MAKE) -C $(ASSETS)/makefiles -e TARGET=node -f buildbox.mk clean
+master-clean:
+	$(MAKE) -C $(ASSETS)/makefiles -e TARGET=master -f buildbox.mk clean
 
-# sets up clean rootfs (based on 'os' docker image) in $ROOTFS
-rootfs: reset-rootfs
-	-docker rm -f planet-base
-	docker create --name="planet-base" planet/base
-	cd $$ROOTFS && docker export planet-base | tar -x
-	docker rm -f planet-base
-
-
-remove-temp-files:
-	find . -name flymake_* -delete
-	sudo umount -f $ROOTFS
-	sudo rm -rf $ROOTFS
-
-
-# re-creates the rootfs using ram disk (tmpfs)
-reset-rootfs:
-	bash build/scripts/reset-rootfs
-
-
-test-package: remove-temp-files
-	go test -v ./$(p)
-
-
-enter:
-	cd $(BUILDDIR) && sudo rootfs/usr/bin/planet enter --debug /bin/bash
 
 start: 
 	@sudo mkdir -p /var/planet/registry /var/planet/etcd /var/planet/docker 
 	@sudo chown $$USER:$$USER /var/planet/etcd -R
-	cd $(BUILDDIR) && sudo rootfs/usr/bin/planet start\
+	cd $(BUILDDIR)/current && sudo rootfs/usr/bin/planet start\
 		--role=master\
 		--role=node\
 		--volume=/var/planet/etcd:/ext/etcd\
@@ -107,11 +68,28 @@ start:
 		--volume=/var/planet/docker:/ext/docker
 
 stop:
-	cd $(BUILDDIR) && sudo rootfs/usr/bin/planet --debug stop
+	cd $(BUILDDIR)/current && sudo rootfs/usr/bin/planet --debug stop
+
+
+enter:
+	cd $(BUILDDIR)/current && sudo rootfs/usr/bin/planet enter --debug /bin/bash
+
 
 remove-godeps:
 	rm -rf Godeps/
 	find . -iregex .*go | xargs sed -i 's:".*Godeps/_workspace/src/:":g'
 
-clean:
-	docker rmi planet/os planet/buildbox
+clean-containers: DIRTY:=$(shell docker ps --all | grep "planet" | awk '{print $$1}')
+clean-containers:
+	@echo -e "Removing dead Docker/planet containers...\n"
+	-@if [ ! -z "$(DIRTY)" ] ; then \
+		docker rm -f $(DIRTY) ;\
+	fi
+
+clean-docker-images: DIRTY:=$(shell docker images | grep "planet/" | awk '{print $$3}')
+clean-docker-images: clean-containers
+	@echo -e "Removing old Docker/planet images...\n"
+	-@if [ ! -z "$(DIRTY)" ] ; then \
+		docker rmi -f $(DIRTY) ;\
+	fi
+

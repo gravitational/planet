@@ -24,5 +24,4 @@ _testmain.go
 *.test
 *.prof
 
-build/out
-build/rootfs
+build

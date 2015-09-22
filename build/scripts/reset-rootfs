@@ -1,4 +1,0 @@
-sudo umount -f $ROOTFS
-sudo rm -rf $ROOTFS
-mkdir -p $ROOTFS
-sudo mount -t tmpfs -o size=512m tmpfs $ROOTFS
