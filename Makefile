@@ -57,9 +57,7 @@ master-clean:
 	$(MAKE) -C $(ASSETS)/makefiles -e TARGET=master -f buildbox.mk clean
 
 
-start: 
-	@sudo mkdir -p /var/planet/registry /var/planet/etcd /var/planet/docker 
-	@sudo chown $$USER:$$USER /var/planet/etcd -R
+dev-start: prepare-to-run
 	cd $(BUILDDIR)/current && sudo rootfs/usr/bin/planet start\
 		--role=master\
 		--role=node\
@@ -67,17 +65,33 @@ start:
 		--volume=/var/planet/registry:/ext/registry\
 		--volume=/var/planet/docker:/ext/docker
 
+node-start: prepare-to-run
+	cd $(BUILDDIR)/current && sudo rootfs/usr/bin/planet start\
+		--role=node\
+		--volume=/var/planet/etcd:/ext/etcd\
+		--volume=/var/planet/registry:/ext/registry\
+		--volume=/var/planet/docker:/ext/docker
+
+master-start: prepare-to-run
+	cd $(BUILDDIR)/current && sudo rootfs/usr/bin/planet start\
+		--role=master\
+		--volume=/var/planet/etcd:/ext/etcd\
+		--volume=/var/planet/registry:/ext/registry\
+		--volume=/var/planet/docker:/ext/docker
+
 stop:
 	cd $(BUILDDIR)/current && sudo rootfs/usr/bin/planet --debug stop
-
 
 enter:
 	cd $(BUILDDIR)/current && sudo rootfs/usr/bin/planet enter --debug /bin/bash
 
-
 remove-godeps:
 	rm -rf Godeps/
 	find . -iregex .*go | xargs sed -i 's:".*Godeps/_workspace/src/:":g'
+
+prepare-to-run:
+	@sudo mkdir -p /var/planet/registry /var/planet/etcd /var/planet/docker 
+	@sudo chown $$USER:$$USER /var/planet/etcd -R
 
 clean-containers: DIRTY:=$(shell docker ps --all | grep "planet" | awk '{print $$1}')
 clean-containers:

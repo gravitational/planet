@@ -15,6 +15,7 @@ all: $(ROOTFS)/bin/bash
 		--volume=$(ASSETS):/assets \
 		--volume=$(ROOTFS):/rootfs \
 		--volume=$(TARGETDIR):/targetdir \
+		--volume=$(PWD):/gopath/src/github.com/gravitational/planet \
 		--env="ASSETS=/assets"\
 		--env="ROOTFS=/rootfs" \
 		--env="TARGETDIR=/targetdir" \
