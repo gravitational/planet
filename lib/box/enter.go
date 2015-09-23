@@ -87,11 +87,30 @@ func StartProcessTTY(c libcontainer.Container, cfg ProcessConfig) (*os.ProcessSt
 }
 
 func StartProcessStdout(c libcontainer.Container, cfg ProcessConfig) (*os.ProcessState, error) {
+	var in io.Reader
+	if cfg.In != nil {
+		// we have to pass real pipe to libcontainer.Process because:
+		// Libcontainer uses exec.Cmd for entering the master process namespace.
+		// In case if standard exec.Cmd gets not a os.File as a parameter
+		// to it's Stdin property, it will wait until the read operation
+		// will finish in it's Wait method.
+		// As long as our web socket never closes on the client side right now
+		// this never happens, so this fixes the problem for now
+		r, w, err := os.Pipe()
+		if err != nil {
+			return nil, trace.Wrap(err)
+		}
+		in = r
+		go func() {
+			io.Copy(w, cfg.In)
+			w.Close()
+		}()
+	}
 	p := &libcontainer.Process{
 		Args:   cfg.Args,
 		User:   cfg.User,
 		Stdout: cfg.Out,
-		Stdin:  cfg.In,
+		Stdin:  in,
 		Stderr: cfg.Out,
 	}
 
@@ -104,7 +123,7 @@ func StartProcessStdout(c libcontainer.Container, cfg ProcessConfig) (*os.Proces
 
 	// wait for the process to finish
 	log.Infof("Waiting for StartProcessStdout(%v)...", cfg.Args)
-	log.Infof("StartProcessStdout(%v) completed", cfg.Args)
+	defer log.Infof("StartProcessStdout(%v) completed", cfg.Args)
 	s, err := p.Wait()
 	if err != nil {
 		return nil, trace.Wrap(err)

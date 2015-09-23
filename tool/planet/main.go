@@ -53,7 +53,7 @@ func run() error {
 		// enter a running container
 		center      = app.Command("enter", "Enter running planet container")
 		centerArgs  = center.Arg("cmd", "command to execute").Default("/bin/bash").String()
-		centerNoTTY = center.Flag("not-tty", "do not attach TTY to this process").Bool()
+		centerNoTTY = center.Flag("notty", "do not attach TTY to this process").Bool()
 		centerUser  = center.Flag("user", "user to execute the command").Default("root").String()
 
 		// report status of a running container
