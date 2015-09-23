@@ -97,29 +97,37 @@ you will be running planet directly.
 
 ### Building (installing from source)
 
-You must have Docker > 1.8.0 installed to continue. When installing Docker on Virtualbox/vagrant you may 
-end up with a VM which doesn't boot (hangs during shared volume mounting). Do `apt-get dist-upgrade` to fix that.
+You must have `Docker > 1.8.0` installed (and its daemon running) to build Planet. This means you
+should be in `docker` group and being able to run typical Docker commands like `docker run` without 
+using `sudo`.
 
-Also, if using [Vagrant](https://www.vagrantup.com/downloads.html), make sure you have Vagrant version `1.7.4` or newer. 
-This building process has been tested on `Debian 8` and `Ubuntu 15.04`.
+Also, if using [Vagrant](https://www.vagrantup.com/downloads.html), make sure you have Vagrant 
+version `1.7.4` or newer. This building process has been tested on `Debian 8` and `Ubuntu 15.04`.
 
-The output of Planet build is a tarball that goes into `~/planet.build`. There are three targets and _you have to build one of them before you can continue_:
+The output of Planet build is a tarball that goes into `build/$TARGET`.
+There are three targets:
 
-* `make planet-master` builds an image containing only Kubernetes master components (kube-api, etcd, etc)
-* `make planet-node` builds an image containing only Kubernets node components (kubelet, kube-proxy)
-* `make planet-dev` builds an image with everything (master+node). it is a single-machine Kubernetes cluster
+* `make master` - builds an image containing only Kubernetes master components (kube-api, etcd, etc)
+* `make node` - builds an image containing only Kubernets node components (kubelet, kube-proxy)
+* `make dev` - builds a combined (master+node) image. _This is what you will be hacking on_.
 
-These take a while to build, especially the first time. Usually you would want planet-dev for regular
-development, and when it's done you can start planet:
+These take a while to build at first, but subsequent builds are much faster because intermediate 
+results are cached. To clear and rebuild from scratch, run one of the following 
+(depending which target you want to wipe out): `make dev-clean`, `make node-clean` or `make master-clean`
+
+If you want to clear everything, simply run `make clean`
+
+### Starting "Dev" image
+
+Run: 
 
 ```
-make start
+make dev-start
 ```
 
-You will need another terminal to interact with it. To enter into Planet container, you'll need to
-execute `make enter`.
-
-When you enter a container, you will see Kubernetes components running, with `ps -e` showing something like:
+You will need another terminal to interact with it. To enter into a running Planet container, 
+you'll need to execute `make enter`. You will see Kubernetes components running, 
+with `ps -e` showing something like:
 
 ```
   PID TTY          TIME CMD
@@ -135,15 +143,20 @@ When you enter a container, you will see Kubernetes components running, with `ps
  4726 ?        00:00:00 kube-controller
 ```
 
+To stop, hit `Ctrl+C` or run `make stop` in another terminal.
+
 ### Making changes
 
-If you have completed the steps above, you can iterate on Planet by repeating the following steps:
+If you have completed the steps above, you can quickly iterate (make code changes + running results) 
+by repeating the following:
 
-1. `make` to compile changes
-2. `make start` to run
+0. `make dev` to have an image with everything.
+1. Change code.
+2. Simply run `make` to quickly compile changes and send the results into the existing image
+2. `make dev-start` to run
 3. `make stop` to stop
-4. repeat
-
+4. Go to step `1.`
+ 
 ### Production Mode
 
 To start Planet on a real cloud in production mode you'll have to start Kubernetes-master and Kubernetes-node instances
