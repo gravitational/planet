@@ -13,6 +13,8 @@ all: planet-bin
 # master-image specific:
 	make -C $(ASSETS)/makefiles/master/etcd -f etcd.mk
 	make -C $(ASSETS)/makefiles/master/k8s-master -f k8s-master.mk
+# shrink rootfs:
+	make -e ROOTFS=$(ROOTFS) -C $(ASSETS)/makefiles -f shrink-rootfs.mk
 
 planet-bin:
 	go build -o $(ROOTFS)/usr/bin/planet github.com/gravitational/planet/tool/planet
