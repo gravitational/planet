@@ -10,6 +10,7 @@ import (
 
 	"github.com/gravitational/planet/Godeps/_workspace/src/github.com/docker/docker/pkg/term"
 	"github.com/gravitational/planet/Godeps/_workspace/src/github.com/gravitational/log"
+	"github.com/gravitational/planet/Godeps/_workspace/src/github.com/gravitational/orbit/lib/utils"
 	"github.com/gravitational/planet/Godeps/_workspace/src/github.com/gravitational/trace"
 	"github.com/gravitational/planet/Godeps/_workspace/src/github.com/opencontainers/runc/libcontainer"
 	"github.com/gravitational/planet/Godeps/_workspace/src/gopkg.in/alecthomas/kingpin.v2"
@@ -25,6 +26,8 @@ func main() {
 }
 
 func run() error {
+	args, extraArgs := utils.SplitAt(os.Args, "--")
+
 	var (
 		app   = kingpin.New("planet", "Planet is a Kubernetes delivered as an orbit container")
 		debug = app.Flag("debug", "Enable debug mode").Bool()
@@ -50,14 +53,14 @@ func run() error {
 		// enter a running container
 		center      = app.Command("enter", "Enter running planet container")
 		centerArgs  = center.Arg("cmd", "command to execute").Default("/bin/bash").String()
-		centerNoTTY = center.Flag("not-tty", "do not attach TTY to this process").Bool()
+		centerNoTTY = center.Flag("notty", "do not attach TTY to this process").Bool()
 		centerUser  = center.Flag("user", "user to execute the command").Default("root").String()
 
 		// report status of a running container
 		cstatus = app.Command("status", "Get status of a running container")
 	)
 
-	cmd, err := app.Parse(os.Args[1:])
+	cmd, err := app.Parse(args[1:])
 	if err != nil {
 		return err
 	}
@@ -101,7 +104,7 @@ func run() error {
 			return err
 		}
 		err = enterConsole(
-			rootfs, *centerArgs, *centerUser, !*centerNoTTY)
+			rootfs, *centerArgs, *centerUser, !*centerNoTTY, extraArgs)
 
 	// "stop" command
 	case cstop.FullCommand():
@@ -143,11 +146,11 @@ func List(s kingpin.Settings) *list {
 	return l
 }
 
-func enterConsole(rootfs, cmd, user string, tty bool) error {
+func enterConsole(rootfs, cmd, user string, tty bool, args []string) error {
 	cfg := box.ProcessConfig{
 		In:   os.Stdin,
 		Out:  os.Stdout,
-		Args: []string{cmd},
+		Args: append([]string{cmd}, args...),
 	}
 
 	if tty {
