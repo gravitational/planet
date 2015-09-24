@@ -93,19 +93,19 @@
 		},
 		{
 			"ImportPath": "github.com/gravitational/orbit/lib/check",
-			"Rev": "aef4be98cb87afb810d1e436d138941c18e1aa67"
+			"Rev": "39fabb3a51f4dffd8bfe32a9eb7cc2dbbdd8f633"
 		},
 		{
 			"ImportPath": "github.com/gravitational/orbit/lib/configure",
-			"Rev": "aef4be98cb87afb810d1e436d138941c18e1aa67"
+			"Rev": "39fabb3a51f4dffd8bfe32a9eb7cc2dbbdd8f633"
 		},
 		{
 			"ImportPath": "github.com/gravitational/orbit/lib/pkg",
-			"Rev": "aef4be98cb87afb810d1e436d138941c18e1aa67"
+			"Rev": "39fabb3a51f4dffd8bfe32a9eb7cc2dbbdd8f633"
 		},
 		{
 			"ImportPath": "github.com/gravitational/orbit/lib/utils",
-			"Rev": "aef4be98cb87afb810d1e436d138941c18e1aa67"
+			"Rev": "39fabb3a51f4dffd8bfe32a9eb7cc2dbbdd8f633"
 		},
 		{
 			"ImportPath": "github.com/gravitational/roundtrip",

@@ -15,25 +15,26 @@ build:
 # Builds the base Docker image (bare bones OS). Everything else is based on. 
 # Debian stable + configured locales. 
 os: 
-	$(MAKE) -e BUILDIMAGE=planet/os DOCKERFILE=os.dockerfile make-build-box
+	echo -e "\\n---> Making Planet/OS (Debian) Docker image...\\n"
+	$(MAKE) -e BUILDIMAGE=planet/os DOCKERFILE=os.dockerfile make-docker-image
 
 # Builds on top of "bare OS" image by adding components that every Kubernetes/planet node
 # needs (like bridge-utils or kmod)
 base: os
-	$(MAKE) -e BUILDIMAGE=planet/base DOCKERFILE=base.dockerfile make-build-box
+	echo -e "\\n---> Making Planet/Base Docker image based on Planet/OS...\\n"
+	$(MAKE) -e BUILDIMAGE=planet/base DOCKERFILE=base.dockerfile make-docker-image
 
 # Builds a "buildbox" docker image. Actual building is done inside of Docker, and this
 # image is used as a build box. It contains dev tools (Golang, make, git, vi, etc)
 buildbox: base
-	$(MAKE) -e BUILDIMAGE=planet/buildbox DOCKERFILE=buildbox.dockerfile make-build-box
+	echo -e "\\n---> Making Planet/BuilBox Docker image to be used for building:\\n" ;\
+	$(MAKE) -e BUILDIMAGE=planet/buildbox DOCKERFILE=buildbox.dockerfile make-docker-image
 
-make-build-box:
-	echo $(DOCKERFILE)
+make-docker-image:
 	@if [[ ! $$(docker images | grep $(BUILDIMAGE)) ]]; then \
-		echo -e "\\n---> Creating 'buildbox' Docker image to be used for building:\\n" ;\
 		cd $(ASSETS)/docker; docker build --no-cache=true -t $(BUILDIMAGE) -f $(DOCKERFILE) . ;\
 	else \
-		echo "planet/bulidbox already exists. Run 'docker rmi $(BUILDIMAGE)' to rebuild" ;\
+		echo "$(BUILDIMAGE) already exists. Run 'docker rmi $(BUILDIMAGE)' to rebuild" ;\
 	fi
 
 # Makes a "developer" image, with _all_ parts of Kubernetes installed
