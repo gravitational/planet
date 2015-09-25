@@ -44,7 +44,7 @@ $(ROOTFS)/bin/bash: clean-rootfs
 
 clean-rootfs:
 # umount tmps volume for rootfs:
-	@if [[ $$(mount | grep $(ROOTFS)) ]]; then \
+	if [[ $$(mount | grep $(ROOTFS)) ]]; then \
 		sudo umount -f $(ROOTFS) 2>/dev/null ;\
 	fi
 # delete docker container we've used to create rootfs:
