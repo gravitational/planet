@@ -84,7 +84,7 @@ func Start(cfg Config) (*Box, error) {
 
 	if len(cfg.Files) != 0 {
 		for _, f := range cfg.Files {
-			log.Infof("writing file: %v", f.Path)
+			log.Errorf("writing file to: %v", filepath.Join(rootfs, f.Path))
 			if err := writeFile(filepath.Join(rootfs, f.Path), f); err != nil {
 				return nil, err
 			}
@@ -160,12 +160,16 @@ func Start(cfg Config) (*Box, error) {
 		if err != nil {
 			return nil, trace.Wrap(err)
 		}
-		config.Mounts = append(config.Mounts, &configs.Mount{
+		mnt := &configs.Mount{
 			Device:      "bind",
 			Source:      src,
 			Destination: m.Dst,
 			Flags:       syscall.MS_BIND,
-		})
+		}
+		if m.Readonly {
+			mnt.Flags |= syscall.MS_RDONLY
+		}
+		config.Mounts = append(config.Mounts, mnt)
 	}
 
 	container, err := root.Create(containerID, config)

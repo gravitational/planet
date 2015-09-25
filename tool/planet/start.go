@@ -3,6 +3,7 @@ package main
 import (
 	"bytes"
 	"fmt"
+	"os"
 	"path/filepath"
 	"sort"
 	"strings"
@@ -59,6 +60,9 @@ func start(conf Config) error {
 	if err := setupCloudOptions(&conf); err != nil {
 		return err
 	}
+	if err := addResolv(&conf); err != nil {
+		return err
+	}
 
 	cfg := box.Config{
 		Rootfs: conf.Rootfs,
@@ -73,7 +77,7 @@ func start(conf Config) error {
 		DataDir:      "/var/run/planet",
 		InitUser:     "root",
 		InitArgs:     []string{"/bin/systemd"},
-		InitEnv:      []string{"container=libcontainer"},
+		InitEnv:      []string{"container=libcontainer", "LC_ALL=en_US.UTF-8"},
 		Capabilities: allCaps,
 	}
 	defer log.Infof("start() is done!")
@@ -151,6 +155,23 @@ func addInsecureRegistries(c *Config) {
 	} else {
 		c.Env.Upsert("DOCKER_OPTS", opts)
 	}
+}
+
+// addResolv adds resolv conf from the host's /etc/resolv.conf
+func addResolv(c *Config) error {
+	path, err := filepath.EvalSymlinks("/etc/resolv.conf")
+	if err != nil {
+		if os.IsNotExist(err) {
+			return nil
+		}
+		return trace.Wrap(err)
+	}
+	c.Mounts = append(c.Mounts, box.Mount{
+		Src:      path,
+		Dst:      "/etc/resolv.conf",
+		Readonly: true,
+	})
+	return nil
 }
 
 func setupFlannel(c *Config) {

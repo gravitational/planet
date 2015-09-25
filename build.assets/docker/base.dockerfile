@@ -11,7 +11,9 @@ RUN apt-get install -q -y bridge-utils \
         iproute2 \
         lsb-base \
         dash \
-        openssl;\
+        openssl \
+        ca-certificates \
+        aufs-tools; \
     apt-get -y autoclean; apt-get -y clean
 
 RUN useradd -MUr -u 1000 planet

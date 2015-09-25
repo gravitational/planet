@@ -130,8 +130,9 @@ func (vars *EnvVars) String() string {
 }
 
 type Mount struct {
-	Src string
-	Dst string
+	Src      string
+	Dst      string
+	Readonly bool
 }
 
 type Mounts []Mount

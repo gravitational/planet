@@ -47,7 +47,7 @@ clean-rootfs:
 	@if [[ $$(mount | grep $(ROOTFS)) ]]; then \
 		sudo umount -f $(ROOTFS) 2>/dev/null ;\
 	fi
-# delte docker container we've used to create rootfs:
+# delete docker container we've used to create rootfs:
 	if [[ $$(docker ps -a | grep $(CONTAINERNAME)) ]]; then \
 		docker rm -f $(CONTAINERNAME) ;\
 	fi
