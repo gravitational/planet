@@ -23,7 +23,7 @@ func SupportsAufs() (bool, error) {
 	// proc/filesystems for when aufs is supported
 	err := exec.Command("modprobe", "aufs").Run()
 	if err != nil {
-		return false, trace.Wrap(err)
+		return false, nil
 	}
 
 	f, err := os.Open("/proc/filesystems")
