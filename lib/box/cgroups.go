@@ -21,7 +21,6 @@ var expectedSet = map[string]bool{
 	"cpuset":           true,
 	"devices":          true,
 	"freezer":          true,
-	"hugetlb":          true,
 	"memory":           true,
 	"net_cls,net_prio": true,
 	"perf_event":       true,
@@ -49,7 +48,8 @@ func mountCgroups(root string) error {
 			mountedCgroups[group] = true
 		}
 	}
-	log.Infof("Mounted cgroups: %v", mountedCgroups)
+	log.Infof("\n------\nMounted cgroups:\n %v", mountedCgroups)
+	log.Infof("\n------\nFound cgroups in /proc/cgroup:\n %v", foundCgroups)
 
 	// find potential cgroup conflicts
 	cs := findConflicts(expectedSet, mountedCgroups)
@@ -57,8 +57,7 @@ func mountCgroups(root string) error {
 		return trace.Wrap(&CgroupConflictError{C: cs})
 	}
 
-	// mount cgroupfs (tmpfs root dir for cgroups) if it has not
-	// been mounted already
+	// mount cgroupfs root (/sys/fs/cgroup itself) if it has not been mounted already
 	tmpfsRootDir := filepath.Join(root, cgroupRootDir)
 	if !mounts[tmpfsRootDir] {
 		if err := mountCgroupFS(tmpfsRootDir); err != nil {
@@ -77,8 +76,7 @@ func mountCgroups(root string) error {
 
 		// skip unavaliable cgroups
 		if !foundCgroups[c] {
-			log.Infof("%v is not available, skip mounting", c)
-			continue
+			return trace.Wrap(fmt.Errorf("cgroup \"%v\" is required, but it is not enabled on this system", c))
 		}
 
 		// mount!
@@ -133,8 +131,8 @@ func parseHostCgroups() (map[string]bool, error) {
 		hierarchy, num, enabled int
 	)
 	cgroups := make(map[int][]string)
-
 	subs := make(map[string]bool)
+
 	sc := bufio.NewScanner(f)
 	for sc.Scan() {
 		line := sc.Text()
@@ -142,7 +140,7 @@ func parseHostCgroups() (map[string]bool, error) {
 			continue
 		}
 		fmt.Sscanf(line, "%s %d %d %d", &controller, &hierarchy, &num, &enabled)
-		if enabled == 1 {
+		if enabled == 1 { // only accept enabled cgroups
 			if _, ok := cgroups[hierarchy]; !ok {
 				cgroups[hierarchy] = []string{controller}
 			} else {

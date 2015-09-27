@@ -35,7 +35,7 @@ $(ROOTFS)/bin/bash: clean-rootfs
 	@echo -e "\\n---> Creating RootFS for Planet image:\\n"
 # create rootfs based in RAM:
 	@mkdir -p $(ROOTFS)
-	sudo mount -t tmpfs -o size=400m tmpfs $(ROOTFS)
+	sudo mount -t tmpfs -o size=600m tmpfs $(ROOTFS)
 # populate Rootfs using docker image 'planet/base'
 	docker create --name=$(CONTAINERNAME) planet/base
 	@echo "Exporting base Docker image into a fresh RootFS into $(ROOTFS)...."

@@ -8,7 +8,7 @@ BUILDDIR := $(shell realpath $(BUILDDIR))
 PLANETVER:=0.01
 export
 
-build: 
+build: $(BUILDDIR)/current
 	go install github.com/gravitational/planet/tool/planet
 	@ln -sf $$GOPATH/bin/planet $(BUILDDIR)/current/rootfs/usr/bin/planet
 
@@ -61,6 +61,7 @@ master-clean:
 
 dev-start: prepare-to-run
 	cd $(BUILDDIR)/current && sudo rootfs/usr/bin/planet start\
+		--debug \
 		--role=master\
 		--role=node\
 		--volume=/var/planet/etcd:/ext/etcd\
@@ -109,3 +110,5 @@ clean-docker-images: clean-containers
 		docker rmi -f $(DIRTY) ;\
 	fi
 
+$(BUILDDIR)/current:
+	@echo "You need to build the full image first. Run \"make dev\""

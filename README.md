@@ -97,7 +97,7 @@ you will be running planet directly.
 
 ### Building (installing from source)
 
-You must have `Docker > 1.8.0` installed (and its daemon running) to build Planet. This means you
+You must have `Docker > 1.8.2` installed (and its daemon running) to build Planet. This means you
 should be in `docker` group and being able to run typical Docker commands like `docker run` without 
 using `sudo`.
 
@@ -126,8 +126,9 @@ make dev-start
 ```
 
 You will need another terminal to interact with it. To enter into a running Planet container, 
-you'll need to execute `make enter`. You will see Kubernetes components running, 
-with `ps -e` showing something like:
+you'll need to execute `make enter`. 
+
+You will see Kubernetes components running, with `ps -e` showing something like:
 
 ```
   PID TTY          TIME CMD
