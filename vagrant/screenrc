@@ -1,0 +1,13 @@
+hardstatus on
+hardstatus alwayslastline
+hardstatus string "%{.bW}%-w%{.rW}%n %t%{-}%+w %=%{..G} %H %{..Y} %m/%d %C%a "
+
+termcapinfo xterm* ti@:te@
+
+bindkey "^H" next
+bindkey "^L" prev
+bind q quit
+bind j focus up
+bind l focus down
+
+vbell off

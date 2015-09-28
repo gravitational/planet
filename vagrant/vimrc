@@ -1,0 +1,105 @@
+set number
+set mouse=a
+"set list
+set nocompatible
+
+" Non-GUI (terminal) colors
+colorscheme desert
+
+set nowrap
+set expandtab
+set tabstop=4
+set shiftwidth=4
+set showmatch
+set ignorecase
+" This prevents comments to be shifted to the beginning of a line:
+" set nosmartindent
+set hidden
+set foldmethod=marker
+set swb=usetab
+
+set novisualbell " don't beep
+set noerrorbells 
+
+set nobackup    " disable backup file & swap
+set noswapfile
+
+set title       " change terminal title
+set pastetoggle=<F2>
+
+"set smarttab
+set autoindent
+set copyindent  " copy prev. indentation 
+set incsearch   " search as you type
+"set sts=4
+"set sw=4
+set wildignore+=*.pyc,*.tmp,data/templates/**,*.png,*.jpg,*.gif,data/**
+
+syntax on
+
+au BufRead,BufNewFile *.jj set syntax=htmljinja
+au BufRead,BufNewFile *.mako set filetype=mako
+au BufRead,BufNewFile *.less set filetype=css
+filetype plugin indent on
+
+" Ruby/Rails support
+function s:EnableRuby()
+    set omnifunc=rubycomplete#Complete
+    let g:rubycomplete_rails = 1
+    let g:rubycomplete_classes_in_global = 1
+    let g:rubycomplete_buffer_loading = 1
+    set nosmartindent
+endfunction
+
+" Python support
+function s:EnablePython()
+    set omnifunc=pythoncomplete#Complete
+    set smarttab
+    set autoindent
+    set nosmartindent
+    highlight Pmenu guibg=brown gui=bold
+endfunction
+autocmd FileType python,py call s:EnablePython()
+autocmd FileType ruby,eruby call s:EnableRuby()
+
+" Go support
+function s:EnableGolang()
+    if has('gui_running')
+       set background=dark
+   else
+        colorscheme slate
+    endif
+    " Ctrl+] should use godef:
+    map <C-]> :GoDef<ENTER>
+endfunction
+autocmd FileType go call s:EnableGolang()
+
+" For clipboad convenience (Ctrl+C, Ctrl+Ins do regular clipboard copy).
+" Shift+Insert do keyboard paste
+map <C-c> "+y
+map <C-C> "+y
+map <C-Insert> "+y
+map <S-Insert> "+p
+imap <S-Insert> <C-R>+
+
+" Go Ctrl+Shift+B
+map <C-S-b> :wall<ENTER>:make<ENTER>
+map <F2> :w<ENTER>
+
+" Shift+< or Shift+> switch buffers
+nmap < :bp
+nmap > :bn
+
+imap <F1> <Esc>
+
+" Put swap files in temp:
+set dir=/tmp
+set tags=tags,./tags,tmp/tags,~/ruby-tags
+
+" Change the color of Omni-completion popup (I hate pink)
+highlight Pmenu guibg=brown gui=bold
+highlight PmenuSel ctermfg=1 ctermbg=4 guibg=#000000 guifg=#ffffff
+
+" Initialize pathogen (https://github.com/tpope/vim-pathogen)
+let g:go_bin_path = expand("~/.go")
+set vb

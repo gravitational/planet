@@ -1,0 +1,1 @@
+{"virtualbox":{"/home/vagrant/go":{"guestpath":"/home/vagrant/go","hostpath":"/Users/ekontsevoy/go","disabled":false},"/vagrant":{"guestpath":"/vagrant","hostpath":"/Users/ekontsevoy/go/src/github.com/gravitational/planet/vagrant","disabled":false}}}
