@@ -39,7 +39,10 @@ var expectedSet = map[string]string{
 	"cpuacct":          "cpu,cpuacct",
 }
 
-const cgroupRootDir = "/sys/fs/cgroup"
+const (
+	cgroupRootDir string  = "/sys/fs/cgroup"
+	cgMountFlags  uintptr = syscall.MS_NOSUID | syscall.MS_NOEXEC | syscall.MS_NODEV
+)
 
 func MountCgroups(root string) error {
 	// read /proc/cgroups:
@@ -47,35 +50,26 @@ func MountCgroups(root string) error {
 	if err != nil {
 		return err
 	}
-	log.Infof("\n------\nFound cgroups in /proc/cgroup:\n %v", foundCgroups)
-
 	// make sure they're all enabled in kernel:
 	for group, _ := range requiredSet {
 		if !foundCgroups[group] {
-			err := trace.Errorf("cgroup '%v' is requred, but not found in /proc/cgroups", group)
-			if group == "memory" {
-				log.Errorf("To enable memory cgroup on Debian/Ubuntu see https://docs.docker.com/installation/ubuntulinux/")
-			}
-			return err
+			return trace.Errorf("cgroup '%v' is requred, but not found in /proc/cgroups", group)
 		}
 	}
-
 	// read /proc/mounts
 	mounts, err := parseMounts()
 	if err != nil {
 		return err
 	}
-
-	// mount cgroupfs root (/sys/fs/cgroup itself) if it has not been mounted already
-	tmpfsRootDir := filepath.Join(root, cgroupRootDir)
-	if !mounts[tmpfsRootDir] {
-		if err := mountCgroupFS(tmpfsRootDir); err != nil {
-			return err
-		}
-	} else {
-		log.Infof("cgroup root (%v) is already mounted", cgroupRootDir)
+	// check for conflicts in mounts:
+	cgroot := filepath.Join(root, cgroupRootDir)
+	if err := checkForConflicts(cgroot, mounts); err != nil {
+		return trace.Wrap(err)
 	}
-
+	// mount cgroupfs root (/sys/fs/cgroup itself) if it has not been mounted already
+	if err := mountCgroupFS(mounts, cgroot); err != nil {
+		return err
+	}
 GroupCycle:
 	for group, linksTo := range expectedSet {
 		// but first, check if this group is present in /proc/cgroups:
@@ -89,20 +83,17 @@ GroupCycle:
 		// to be created
 		if linksTo == "0" {
 			cPath := filepath.Join(root, cgroupRootDir, group)
-			if mounts[cPath] {
+			if mounts[cPath] != "" {
 				log.Infof("cgroup \"%v\" is already mounted", group)
 				continue GroupCycle
 			}
-
 			if err := os.MkdirAll(cPath, 0700); err != nil {
 				return trace.Wrap(err)
 			}
-			var flags uintptr = syscall.MS_NOSUID |
-				syscall.MS_NOEXEC |
-				syscall.MS_NODEV
-			log.Infof("mount: %v %v %v %v %v", "cgroup", cPath, "cgroup", flags, group)
-			if err := syscall.Mount("cgroup", cPath, "cgroup", flags, group); err != nil {
+			if err := syscall.Mount("cgroup", cPath, "cgroup", cgMountFlags, group); err != nil {
 				return trace.Errorf("error mounting %q: %v", cPath, err)
+			} else {
+				log.Infof("mounted: %v %v %v %v %v", "cgroup", cPath, "cgroup", cgMountFlags, group)
 			}
 			// instead of mounting, create a symlink:
 		} else {
@@ -116,28 +107,26 @@ GroupCycle:
 			}
 		}
 	}
-
 	return nil
 }
 
 // mountCgroupFS mounts /sys/fs/cgroup
-func mountCgroupFS(cgroupTmpfs string) error {
-	log.Infof("creating tmpfs for cgrups in %v", cgroupTmpfs)
+func mountCgroupFS(mounts map[string]string, cgroupTmpfs string) error {
+	if mounts[cgroupTmpfs] != "" {
+		log.Infof("%v is already mounted", cgroupTmpfs)
+		return nil
+	}
 
+	log.Infof("creating tmpfs for cgrups in %v", cgroupTmpfs)
 	if err := os.MkdirAll(cgroupTmpfs, 0700); err != nil {
 		return trace.Wrap(err)
 	}
 
-	var flags uintptr
-	flags = syscall.MS_NOSUID |
+	const flags uintptr = syscall.MS_NOSUID |
 		syscall.MS_NOEXEC |
 		syscall.MS_NODEV |
 		syscall.MS_STRICTATIME
 	if err := syscall.Mount("tmpfs", cgroupTmpfs, "tmpfs", flags, "mode=755"); err != nil {
-		if err == syscall.EBUSY { // already mounted
-			log.Infof("%v is already mounted", cgroupTmpfs)
-			return nil
-		}
 		return trace.Wrap(err, fmt.Sprintf("error mounting %v", cgroupTmpfs))
 	}
 	return nil
@@ -175,8 +164,8 @@ func parseHostCgroups() (map[string]bool, error) {
 }
 
 // parseMounts reads and parses /proc/mounts file
-func parseMounts() (map[string]bool, error) {
-	mounts := make(map[string]bool)
+func parseMounts() (map[string]string, error) {
+	mounts := make(map[string]string)
 	f, err := os.Open("/proc/mounts")
 	if err != nil {
 		return nil, trace.Wrap(err)
@@ -190,10 +179,35 @@ func parseMounts() (map[string]bool, error) {
 			continue
 		}
 		fields := strings.Fields(line)
-		mounts[fields[1]] = true
+		mountFS := fields[0]
+		mountName := fields[1]
+		mounts[mountName] = mountFS
 	}
 	if err := sc.Err(); err != nil {
 		return nil, trace.Wrap(err)
 	}
 	return mounts, nil
+}
+
+// checks if the existing cgroup mounts conflict with planet requirements
+func checkForConflicts(cgroot string, mounts map[string]string) error {
+	sep := string(os.PathSeparator)
+	cgroot = strings.Trim(cgroot, sep)
+	// look at all cgroup mounts and see which one is NOT mounted
+	// in cgroot (the place where we expect it to be)
+	for mp, mt := range mounts {
+		// ignore mounts that aren't cgroups:
+		if mt != "cgroup" {
+			continue
+		}
+		mpath, group := filepath.Split(mp)
+		mpath = strings.Trim(mpath, sep)
+
+		// found cgropu which isn't mounted to cgroot. that's a conflict:
+		if mpath != cgroot {
+			return fmt.Errorf("expected cgroup %v to be mounted in %v, found it in %v",
+				group, cgroot, mp)
+		}
+	}
+	return nil
 }
