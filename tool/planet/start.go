@@ -16,30 +16,49 @@ import (
 	"github.com/gravitational/planet/lib/box"
 )
 
+const MinKernelVersion = 313
+const (
+	CheckKernel       = true
+	CheckAufs         = false
+	CheckCgroupMounts = true
+)
+
 func start(conf Config) error {
 	log.Infof("starting with config: %#v", conf)
 
-	v, err := check.KernelVersion()
-	if err != nil {
-		return err
-	}
-	log.Infof("kernel: %v\n", v)
-	if v < 313 {
-		err := trace.Errorf(
-			"current minimum supported kernel version is 3.13. Upgrade kernel before moving on.")
-		if !conf.IgnoreChecks {
+	// see if the kernel version is supported:
+	if CheckKernel {
+		v, err := check.KernelVersion()
+		if err != nil {
 			return err
 		}
-		log.Infof("warning: %v", err)
+		log.Infof("kernel: %v\n", v)
+		if v < MinKernelVersion {
+			err := trace.Errorf(
+				"current minimum supported kernel version is %0.2f. Upgrade kernel before moving on.", MinKernelVersion/100.0)
+			if !conf.IgnoreChecks {
+				return err
+			}
+			log.Infof("warning: %v", err)
+		}
 	}
 
 	// must ensure that AuFS is supported on the host:
-	ok, err := check.SupportsAufs()
-	if err != nil {
-		return trace.Wrap(err)
+	if CheckAufs {
+		ok, err := check.SupportsAufs()
+		if err != nil {
+			return trace.Wrap(err)
+		}
+		if !ok {
+			return trace.Errorf("need aufs support on the machine")
+		}
 	}
-	if !ok {
-		return trace.Errorf("need aufs support on the machine")
+
+	// check & mount cgroups:
+	if CheckCgroupMounts {
+		if err := box.MountCgroups("/"); err != nil {
+			return trace.Wrap(err)
+		}
 	}
 
 	if conf.hasRole("master") {
