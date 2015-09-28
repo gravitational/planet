@@ -25,3 +25,9 @@ _testmain.go
 *.prof
 
 build
+
+# Ev-specific, for cross-machine debugging (will remove later)
+run.sh
+stop.sh
+enter.sh
+make.sh

@@ -39,7 +39,7 @@ Vagrant.configure(2) do |config|
   config.vm.provider "virtualbox" do |vb|
     vb.name = "planet-on-debian"
     vb.cpus = 4
-    vb.memory = 2500
+    vb.memory = 2200
   end
 
   # Taken from here: http://foo-o-rama.com/vagrant--stdin-is-not-a-tty--fix.html

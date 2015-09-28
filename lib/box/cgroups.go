@@ -3,10 +3,8 @@ package box
 
 import (
 	"bufio"
-	"bytes"
 	"fmt"
 	"os"
-	"path"
 	"path/filepath"
 	"strings"
 	"syscall"
@@ -15,46 +13,57 @@ import (
 	"github.com/gravitational/planet/Godeps/_workspace/src/github.com/gravitational/trace"
 )
 
-var expectedSet = map[string]bool{
-	"blkio":            true,
-	"cpu,cpuacct":      true,
-	"cpuset":           true,
-	"devices":          true,
-	"freezer":          true,
-	"memory":           true,
-	"net_cls,net_prio": true,
-	"perf_event":       true,
+// planet won't start without these groups enabled in the kernel
+var requiredSet = map[string]bool{
+	"blkio":   true,
+	"cpu":     true,
+	"cpuacct": true,
+	"cpuset":  true,
+	"devices": true,
+	"memory":  true,
+}
+
+// by default try to mount these cgroups if they aren't mounted
+var expectedSet = map[string]string{
+	"blkio":            "0",
+	"cpu,cpuacct":      "0",
+	"cpuset":           "0",
+	"devices":          "0",
+	"freezer":          "0",
+	"memory":           "0",
+	"net_cls,net_prio": "0",
+	"perf_event":       "0",
+	"net_prio":         "net_cls,net_prio",
+	"net_cls":          "net_cls,net_prio",
+	"cpu":              "cpu,cpuacct", // make symlink "cpu -> cpu,cpuacct"
+	"cpuacct":          "cpu,cpuacct",
 }
 
 const cgroupRootDir = "/sys/fs/cgroup"
 
-func mountCgroups(root string) error {
+func MountCgroups(root string) error {
 	// read /proc/cgroups:
 	foundCgroups, err := parseHostCgroups()
 	if err != nil {
 		return err
+	}
+	log.Infof("\n------\nFound cgroups in /proc/cgroup:\n %v", foundCgroups)
+
+	// make sure they're all enabled in kernel:
+	for group, _ := range requiredSet {
+		if !foundCgroups[group] {
+			err := trace.Errorf("cgroup '%v' is requred, but not found in /proc/cgroups", group)
+			if group == "memory" {
+				log.Errorf("To enable memory cgroup on Debian/Ubuntu see https://docs.docker.com/installation/ubuntulinux/")
+			}
+			return err
+		}
 	}
 
 	// read /proc/mounts
 	mounts, err := parseMounts()
 	if err != nil {
 		return err
-	}
-
-	// find cgroups that have been mounted:
-	mountedCgroups := make(map[string]bool)
-	for group, _ := range foundCgroups {
-		if mounts[path.Join(cgroupRootDir, group)] {
-			mountedCgroups[group] = true
-		}
-	}
-	log.Infof("\n------\nMounted cgroups:\n %v", mountedCgroups)
-	log.Infof("\n------\nFound cgroups in /proc/cgroup:\n %v", foundCgroups)
-
-	// find potential cgroup conflicts
-	cs := findConflicts(expectedSet, mountedCgroups)
-	if len(cs) != 0 {
-		return trace.Wrap(&CgroupConflictError{C: cs})
 	}
 
 	// mount cgroupfs root (/sys/fs/cgroup itself) if it has not been mounted already
@@ -67,31 +76,47 @@ func mountCgroups(root string) error {
 		log.Infof("cgroup root (%v) is already mounted", cgroupRootDir)
 	}
 
-	var flags uintptr
-	for c, _ := range expectedSet {
-		if mountedCgroups[c] {
-			log.Infof("%v is already mounted", c)
-			continue
+GroupCycle:
+	for group, linksTo := range expectedSet {
+		// but first, check if this group is present in /proc/cgroups:
+		for _, group := range strings.Split(group, ",") {
+			if !foundCgroups[group] {
+				log.Infof("cgroup \"%v\" is not available, skipping mounting", group)
+				continue GroupCycle
+			}
 		}
+		// linksTo may be pointing to a symlink target or "0" if a new mount needs
+		// to be created
+		if linksTo == "0" {
+			cPath := filepath.Join(root, cgroupRootDir, group)
+			if mounts[cPath] {
+				log.Infof("cgroup \"%v\" is already mounted", group)
+				continue GroupCycle
+			}
 
-		// skip unavaliable cgroups
-		if !foundCgroups[c] {
-			return trace.Wrap(fmt.Errorf("cgroup \"%v\" is required, but it is not enabled on this system", c))
-		}
-
-		// mount!
-		cPath := filepath.Join(root, cgroupRootDir, c)
-		if err := os.MkdirAll(cPath, 0700); err != nil {
-			return trace.Wrap(err)
-		}
-		flags = syscall.MS_NOSUID |
-			syscall.MS_NOEXEC |
-			syscall.MS_NODEV
-		log.Infof("mount: %v %v %v %v %v", "cgroup", cPath, "cgroup", flags, c)
-		if err := syscall.Mount("cgroup", cPath, "cgroup", flags, c); err != nil {
-			return trace.Errorf("error mounting %q: %v", cPath, err)
+			if err := os.MkdirAll(cPath, 0700); err != nil {
+				return trace.Wrap(err)
+			}
+			var flags uintptr = syscall.MS_NOSUID |
+				syscall.MS_NOEXEC |
+				syscall.MS_NODEV
+			log.Infof("mount: %v %v %v %v %v", "cgroup", cPath, "cgroup", flags, group)
+			if err := syscall.Mount("cgroup", cPath, "cgroup", flags, group); err != nil {
+				return trace.Errorf("error mounting %q: %v", cPath, err)
+			}
+			// instead of mounting, create a symlink:
+		} else {
+			cPath := filepath.Join(root, cgroupRootDir, group)
+			if err := os.Symlink(linksTo, cPath); err != nil {
+				if os.IsExist(err) {
+					log.Infof("%v is already symlinked", group)
+				} else {
+					return trace.Errorf("Tried to symlink %v -> %v and failed: %v", cPath, linksTo, err)
+				}
+			}
 		}
 	}
+
 	return nil
 }
 
@@ -130,9 +155,7 @@ func parseHostCgroups() (map[string]bool, error) {
 		controller              string
 		hierarchy, num, enabled int
 	)
-	cgroups := make(map[int][]string)
 	subs := make(map[string]bool)
-
 	sc := bufio.NewScanner(f)
 	for sc.Scan() {
 		line := sc.Text()
@@ -140,19 +163,13 @@ func parseHostCgroups() (map[string]bool, error) {
 			continue
 		}
 		fmt.Sscanf(line, "%s %d %d %d", &controller, &hierarchy, &num, &enabled)
-		if enabled == 1 { // only accept enabled cgroups
-			if _, ok := cgroups[hierarchy]; !ok {
-				cgroups[hierarchy] = []string{controller}
-			} else {
-				cgroups[hierarchy] = append(cgroups[hierarchy], controller)
-			}
+		// only accept enabled cgroups
+		if enabled == 1 {
+			subs[controller] = true
 		}
 	}
 	if err := sc.Err(); err != nil {
 		return nil, trace.Wrap(err)
-	}
-	for _, gs := range cgroups {
-		subs[strings.Join(gs, ",")] = true
 	}
 	return subs, nil
 }
@@ -179,59 +196,4 @@ func parseMounts() (map[string]bool, error) {
 		return nil, trace.Wrap(err)
 	}
 	return mounts, nil
-}
-
-func findConflicts(a, b map[string]bool) conflicts {
-	c := make(map[string][]string)
-	for g1, _ := range a {
-		for g2, _ := range b {
-			if intersect(g1, g2) {
-				c[g1] = append(c[g1], g2)
-			}
-		}
-	}
-	return c
-}
-
-func intersect(a, b string) bool {
-	if a == b {
-		return false
-	}
-	avals := makeSet(strings.Split(a, ","))
-	bvals := makeSet(strings.Split(b, ","))
-	for k, _ := range avals {
-		if bvals[k] {
-			return true
-		}
-	}
-	return false
-}
-
-func makeSet(a []string) map[string]bool {
-	out := make(map[string]bool, len(a))
-	for _, v := range a {
-		out[v] = true
-	}
-	return out
-}
-
-type CgroupConflictError struct {
-	C conflicts
-}
-
-func (e *CgroupConflictError) Error() string {
-	return e.C.String()
-}
-
-type conflicts map[string][]string
-
-func (c conflicts) String() string {
-	if len(c) == 0 {
-		return "<no-conflicts>"
-	}
-	b := &bytes.Buffer{}
-	for a, c := range c {
-		fmt.Fprintf(b, "cgroup '%v' conflicts with %v, ", a, c)
-	}
-	return b.String()
 }

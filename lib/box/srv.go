@@ -67,10 +67,6 @@ func Start(cfg Config) (*Box, error) {
 		return nil, err
 	}
 
-	if err := mountCgroups("/"); err != nil {
-		return nil, err
-	}
-
 	log.Infof("starting container process in '%v'", rootfs)
 
 	if len(cfg.EnvFiles) != 0 {
@@ -145,10 +141,11 @@ func Start(cfg Config) (*Box, error) {
 			},
 		},
 		Cgroups: &configs.Cgroup{
-			Name:            containerID,
-			Parent:          "system",
-			AllowAllDevices: false,
-			AllowedDevices:  configs.DefaultAllowedDevices,
+			Name:             containerID,
+			Parent:           "system",
+			AllowAllDevices:  false,
+			AllowedDevices:   configs.DefaultAllowedDevices,
+			MemorySwappiness: -1, // -1 means "machine-default" and that's what we need because we don't care
 		},
 
 		Devices:  configs.DefaultAutoCreatedDevices,
