@@ -33,9 +33,10 @@ func start(conf Config) error {
 		log.Infof("warning: %v", err)
 	}
 
+	// must ensure that AuFS is supported on the host:
 	ok, err := check.SupportsAufs()
 	if err != nil {
-		return err
+		return trace.Wrap(err)
 	}
 	if !ok {
 		return trace.Errorf("need aufs support on the machine")
@@ -43,7 +44,7 @@ func start(conf Config) error {
 
 	if conf.hasRole("master") {
 		if err := checkMounts(conf); err != nil {
-			return err
+			return trace.Wrap(err)
 		}
 	}
 

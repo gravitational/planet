@@ -6,7 +6,7 @@
 
 ARCH := x86_64
 OS := Linux
-VER := 1.6.2
+VER := 1.8.2
 
 $(ROOTFS)/usr/bin/docker: $(TARGETDIR)/docker
 # install socket-activated metadata service
