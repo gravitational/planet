@@ -25,6 +25,7 @@ _testmain.go
 *.prof
 
 build
+.vagrant
 
 # Ev-specific, for cross-machine debugging (will remove later)
 run.sh
