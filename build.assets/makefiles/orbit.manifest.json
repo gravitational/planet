@@ -13,16 +13,6 @@
         "params": [
             {
                 "type": "String",
-                "name": "servicesubnet",
-                "env": "PLANET_SERVICE_SUBNET"
-            },
-            {
-                "type": "String",
-                "name": "podsubnet",
-                "env": "PLANET_POD_SUBNET"
-            },
-            {
-                "type": "String",
                 "name": "masterip",
                 "env": "PLANET_MASTER_IP"
             },

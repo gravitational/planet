@@ -11,6 +11,7 @@ RUN apt-get install -q -y bridge-utils \
         iproute2 \
         lsb-base \
         dash \
+        openssl \
         ca-certificates \
         aufs-tools; \
     apt-get -y autoclean; apt-get -y clean

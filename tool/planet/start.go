@@ -69,10 +69,7 @@ func start(conf Config) error {
 
 	conf.Env = append(conf.Env,
 		box.EnvPair{Name: "KUBE_MASTER_IP", Val: conf.MasterIP},
-		box.EnvPair{Name: "KUBE_CLOUD_PROVIDER", Val: conf.CloudProvider},
-		box.EnvPair{Name: "KUBE_SERVICE_SUBNET", Val: conf.ServiceSubnet.String()},
-		box.EnvPair{Name: "KUBE_POD_SUBNET", Val: conf.PODSubnet.String()},
-	)
+		box.EnvPair{Name: "KUBE_CLOUD_PROVIDER", Val: conf.CloudProvider})
 
 	// Always trust local registry (for now)
 	conf.InsecureRegistries = append(
@@ -84,9 +81,6 @@ func start(conf Config) error {
 		return err
 	}
 	if err := addResolv(&conf); err != nil {
-		return err
-	}
-	if err := initState(&conf); err != nil {
 		return err
 	}
 
@@ -197,40 +191,6 @@ func addResolv(c *Config) error {
 		Dst:      "/etc/resolv.conf",
 		Readonly: true,
 	})
-	return nil
-}
-
-// initState makes sure that k8s specific state like x509 keys and certs
-// is initialized, it makes sure it's set up after it returns
-// TODO(klizhentas) Make sure that worker nodes can use the same CA
-// and APIserver actually checks the client certs.
-// TODO(klizhentas) CA private key should not really be present on the
-// master/nodes should be stored somewhere else
-func initState(c *Config) error {
-	if err := os.MkdirAll(c.StateDir, 0777); err != nil {
-		return trace.Wrap(err)
-	}
-
-	// init key pair for certificate authority
-	ca, err := initKeyPair(c, "root", nil, true)
-	if err != nil {
-		return err
-	}
-
-	// init key pair for apiserver signed by our authority
-	_, err = initKeyPair(c, "apiserver", ca.keyPair, false)
-	if err != nil {
-		return err
-	}
-
-	c.Mounts = append(c.Mounts, []box.Mount{
-		{
-			Src:      c.StateDir,
-			Dst:      "/var/state",
-			Readonly: true,
-		},
-	}...)
-
 	return nil
 }
 
