@@ -1,26 +1,28 @@
 [Unit]
 Description=Kubernetes API Server
 Documentation=https://github.com/GoogleCloudPlatform/kubernetes
-Requires=setup-network-environment.service etcd.service generate-serviceaccount-key.service
-After=setup-network-environment.service etcd.service generate-serviceaccount-key.service
+Requires=setup-network-environment.service etcd.service
+After=setup-network-environment.service etcd.service
 
 [Service]
 EnvironmentFile=/etc/container-environment
 EnvironmentFile=/etc/network-environment
 ExecStartPre=/usr/bin/scripts/wait-for-etcd.sh
 ExecStart=/usr/bin/kube-apiserver \
-        --service_account_key_file=/opt/bin/kube-serviceaccount.key \
-        --service_account_lookup=false \
-        --admission_control=NamespaceLifecycle,NamespaceAutoProvision,LimitRanger,SecurityContextDeny,ServiceAccount,ResourceQuota \
-        --runtime_config=api/v1 \
-        --allow_privileged=true \
-        --insecure_bind_address=0.0.0.0 \
-        --insecure_port=8080 \
-        --kubelet_https=true \
-        --secure_port=6443 \
-        --service-cluster-ip-range=10.100.0.0/16 \
-        --etcd_servers=http://127.0.0.1:2379 \
-        --public_address_override=${DEFAULT_IPV4} \
+        --service-account-key-file=/var/state/apiserver.key \
+        --service-account-lookup=false \
+        --admission-control=NamespaceLifecycle,NamespaceAutoProvision,LimitRanger,SecurityContextDeny,ServiceAccount,ResourceQuota \
+        --runtime-config=api/v1 \
+        --allow-privileged=true \
+        --tls-cert-file=/var/state/apiserver.cert \
+        --tls-private-key-file=/var/state/apiserver.key \
+        --insecure-bind-address=0.0.0.0 \
+        --insecure-port=8080 \
+        --kubelet-https=true \
+        --secure-port=6443 \
+        --service-cluster-ip-range=${KUBE_SERVICE_SUBNET} \
+        --etcd-servers=http://127.0.0.1:2379 \
+        --public-address-override=${DEFAULT_IPV4} \
         --logtostderr=true
 Restart=always
 RestartSec=10
