@@ -46,6 +46,9 @@ func run() error {
 		cstartMounts             = Mounts(cstart.Flag("volume", "External volume to mount").OverrideDefaultFromEnvar("PLANET_VOLUME"))
 		cstartRoles              = List(cstart.Flag("role", "Roles such as 'master' or 'node'").OverrideDefaultFromEnvar("PLANET_ROLE"))
 		cstartInsecureRegistries = List(cstart.Flag("insecure-registry", "Optional insecure registries").OverrideDefaultFromEnvar("PLANET_INSECURE_REGISTRY"))
+		cstartStateDir           = cstart.Flag("state-dir", "directory where planet-specific state like keys and certificates is stored").Default("/var/planet/state").OverrideDefaultFromEnvar("PLANET_STATE_DIR").String()
+		cstartServiceSubnet      = CIDRFlag(cstart.Flag("service-subnet", "subnet dedicated to the services in cluster").Default("10.100.0.0/16").OverrideDefaultFromEnvar("PLANET_SERVICE_SUBNET"))
+		cstartPODSubnet          = CIDRFlag(cstart.Flag("pod-subnet", "subnet dedicated to the pods in the cluster").Default("10.244.0.0/16").OverrideDefaultFromEnvar("PLANET_POD_SUBNET"))
 
 		// stop a running container
 		cstop = app.Command("stop", "Stop planet container")
@@ -91,6 +94,9 @@ func run() error {
 			MasterIP:           cstartMasterIP.String(),
 			CloudProvider:      *cstartCloudProvider,
 			ClusterID:          *cstartClusterID,
+			StateDir:           *cstartStateDir,
+			ServiceSubnet:      *cstartServiceSubnet,
+			PODSubnet:          *cstartPODSubnet,
 		})
 
 	// "init" command
