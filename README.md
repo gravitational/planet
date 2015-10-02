@@ -24,13 +24,13 @@ which makes it an Orbit package.
 We have an `Orbit` repository running on AWS. It is actually the easiest (and recommended) way to 
 install Planet. To see which builds/versions are available, run:
 
-`orbit list-remote -m http://notary-1916887043.us-west-2.elb.amazonaws.com:4443 planet-dev`
+`orbit list-remote -m http://notary.gravitational.io planet-dev`
 
 To install:
 
 ```
-orbit -m "http://notary-1916887043.us-west-2.elb.amazonaws.com:4443" \
-      -r "http://registry-1284667016.us-west-2.elb.amazonaws.com:5000" \
+orbit -m "http://notary.gravitational.io" \
+      -r "http://registry.gravitational.io" \
       pull planet-dev:0.0.14
 ```
 
