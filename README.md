@@ -31,14 +31,14 @@ To install:
 ```
 orbit -m "https://notary.gravitational.io" \
       -r "https://registry.gravitational.io" \
-      pull planet-dev:0.0.14
+      pull-latest planet-dev
 ```
 
 Verify that you have it:
 
 ```
 > orbit list
-* planet-dev:0.0.14
+* planet-dev:0.0.35
 ```
 
 ## Start Planet
