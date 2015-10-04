@@ -10,7 +10,9 @@ export
 
 build: $(BUILDDIR)/current
 	go install github.com/gravitational/planet/tool/planet
-	@ln -sf $$GOPATH/bin/planet $(BUILDDIR)/current/rootfs/usr/bin/planet
+	@cp -f $$GOPATH/bin/planet $(BUILDDIR)/current/planet 
+	@rm -f $(BUILDDIR)/current/rootfs/usr/bin/planet
+	@cp -f $$GOPATH/bin/planet $(BUILDDIR)/current/rootfs/usr/bin/planet
 
 # Builds the base Docker image (bare bones OS). Everything else is based on. 
 # Debian stable + configured locales. 
@@ -49,7 +51,7 @@ master: buildbox
 node: buildbox
 	$(MAKE) -C $(ASSETS)/makefiles -e TARGET=node -f buildbox.mk
 
-# remvoes all build aftifacts 
+# removes all build aftifacts 
 clean: dev-clean master-clean node-clean
 dev-clean:
 	$(MAKE) -C $(ASSETS)/makefiles -e TARGET=dev -f buildbox.mk clean
@@ -92,9 +94,10 @@ remove-godeps:
 	rm -rf Godeps/
 	find . -iregex .*go | xargs sed -i 's:".*Godeps/_workspace/src/:":g'
 
-prepare-to-run:
+prepare-to-run: 
 	@sudo mkdir -p /var/planet/registry /var/planet/etcd /var/planet/docker 
 	@sudo chown $$USER:$$USER /var/planet/etcd -R
+	@cp -f $(BUILDDIR)/current/planet $(BUILDDIR)/current/rootfs/usr/bin/planet
 
 clean-containers: DIRTY:=$(shell docker ps --all | grep "planet" | awk '{print $$1}')
 clean-containers:
