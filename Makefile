@@ -60,7 +60,6 @@ node-clean:
 master-clean:
 	$(MAKE) -C $(ASSETS)/makefiles -e TARGET=master -f buildbox.mk clean
 
-
 dev-start: prepare-to-run
 	cd $(BUILDDIR)/current && sudo rootfs/usr/bin/planet start\
 		--debug \
@@ -99,18 +98,18 @@ prepare-to-run:
 	@sudo chown $$USER:$$USER /var/planet/etcd -R
 	@cp -f $(BUILDDIR)/current/planet $(BUILDDIR)/current/rootfs/usr/bin/planet
 
-clean-containers: DIRTY:=$(shell docker ps --all | grep "planet" | awk '{print $$1}')
 clean-containers:
 	@echo -e "Removing dead Docker/planet containers...\n"
-	-@if [ ! -z "$(DIRTY)" ] ; then \
-		docker rm -f $(DIRTY) ;\
+	DEADCONTAINTERS=$$(docker ps --all | grep "planet" | awk '{print $$1}') ;\
+	if [ ! -z "$$DEADCONTAINTERS" ] ; then \
+		docker rm -f $$DEADCONTAINTERS ;\
 	fi
 
-clean-docker-images: DIRTY:=$(shell docker images | grep "planet/" | awk '{print $$3}')
-clean-docker-images: clean-containers
+clean-images: clean-containers
 	@echo -e "Removing old Docker/planet images...\n"
-	-@if [ ! -z "$(DIRTY)" ] ; then \
-		docker rmi -f $(DIRTY) ;\
+	DEADIMAGES=$$(docker images | grep "planet/" | awk '{print $$3}') ;\
+	if [ ! -z "$$DEADIMAGES" ] ; then \
+		docker rmi -f $$DEADIMAGES ;\
 	fi
 
 $(BUILDDIR)/current:
