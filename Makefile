@@ -10,9 +10,9 @@ export
 
 build: $(BUILDDIR)/current
 	go install github.com/gravitational/planet/tool/planet
-	@cp -f $$GOPATH/bin/planet $(BUILDDIR)/current/planet 
-	@rm -f $(BUILDDIR)/current/rootfs/usr/bin/planet
-	@cp -f $$GOPATH/bin/planet $(BUILDDIR)/current/rootfs/usr/bin/planet
+	cp -f $$GOPATH/bin/planet $(BUILDDIR)/current/planet 
+	rm -f $(BUILDDIR)/current/rootfs/usr/bin/planet
+	cp -f $$GOPATH/bin/planet $(BUILDDIR)/current/rootfs/usr/bin/planet
 
 # Builds the base Docker image (bare bones OS). Everything else is based on. 
 # Debian stable + configured locales. 
