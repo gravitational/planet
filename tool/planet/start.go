@@ -10,16 +10,15 @@ import (
 	"time"
 
 	"github.com/gravitational/planet/Godeps/_workspace/src/github.com/gravitational/log"
-	"github.com/gravitational/planet/Godeps/_workspace/src/github.com/gravitational/orbit/lib/check"
 	"github.com/gravitational/planet/Godeps/_workspace/src/github.com/gravitational/trace"
 	"github.com/gravitational/planet/Godeps/_workspace/src/github.com/opencontainers/runc/libcontainer"
 	"github.com/gravitational/planet/lib/box"
+	"github.com/gravitational/planet/lib/check"
 )
 
 const MinKernelVersion = 313
 const (
 	CheckKernel       = true
-	CheckAufs         = false
 	CheckCgroupMounts = true
 )
 
@@ -43,22 +42,17 @@ func start(conf Config) error {
 		}
 	}
 
-	// must ensure that AuFS is supported on the host:
-	if CheckAufs {
-		ok, err := check.SupportsAufs()
-		if err != nil {
-			return trace.Wrap(err)
-		}
-		if !ok {
-			return trace.Errorf("need aufs support on the machine")
-		}
-	}
-
 	// check & mount cgroups:
 	if CheckCgroupMounts {
 		if err := box.MountCgroups("/"); err != nil {
 			return trace.Wrap(err)
 		}
+	}
+
+	// check supported storage back-ends for docker
+	dockerBackend, err := pickDockerStorageBackend()
+	if err != nil {
+		return trace.Wrap(err)
 	}
 
 	if conf.hasRole("master") {
@@ -79,6 +73,7 @@ func start(conf Config) error {
 		conf.InsecureRegistries, fmt.Sprintf("%v:5000", conf.MasterIP))
 
 	addInsecureRegistries(&conf)
+	addDockerStorage(&conf, dockerBackend)
 	setupFlannel(&conf)
 	if err := setupCloudOptions(&conf); err != nil {
 		return err
@@ -181,6 +176,37 @@ func addInsecureRegistries(c *Config) {
 	} else {
 		c.Env.Upsert("DOCKER_OPTS", opts)
 	}
+}
+
+// pickDockerStorageBackend examines the filesystems this host supports and picks one
+// suitable to be a docker storage backend, or returns an error if doesn't find a supported FS
+func pickDockerStorageBackend() (dockerBackend string, err error) {
+	// these backends will be tried in the order of preference:
+	supportedBackends := []string{
+		"overlay",
+		"aufs",
+	}
+	for _, fs := range supportedBackends {
+		ok, err := check.CheckFS(fs)
+		if err != nil {
+			return "", trace.Wrap(err)
+		}
+		// found supported FS:
+		if ok {
+			return fs, nil
+		}
+	}
+	// if we get here, it means no suitable FS has been found
+	err = fmt.Errorf("None of this filesystems is supported by this host: %s",
+		strings.Join(supportedBackends, ", "))
+	return "", err
+}
+
+// addDockerStorage adds a given docker storage back-end to DOCKER_OPTS environment
+// variable
+func addDockerStorage(c *Config, dockerBackend string) {
+	c.Env.Upsert("DOCKER_OPTS",
+		fmt.Sprintf("%s --storage-driver=%s", c.Env.Get("DOCKER_OPTS"), dockerBackend))
 }
 
 // addResolv adds resolv conf from the host's /etc/resolv.conf

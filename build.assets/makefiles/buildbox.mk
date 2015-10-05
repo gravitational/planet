@@ -25,7 +25,7 @@ all: $(ROOTFS)/bin/bash
 	cp $(ASSETS)/orbit.manifest.json $(TARGETDIR)
 	@echo -e "\\n---> Moving currnet symlink to $(TARGETDIR)\\n"
 	@rm -f $(BUILDDIR)/current
-	ln -fs $(TARGETDIR) $(BUILDDIR)/current
+	@cd $(BUILDDIR) && ln -fs $(TARGET) $(BUILDDIR)/current
 	@echo -e "\\n---> Creating Planet image...\\n"
 	cd $(TARGETDIR) && tar -czf $(TARBALL) orbit.manifest.json rootfs
 	@echo -e "\\nDone --> $(TARBALL)"

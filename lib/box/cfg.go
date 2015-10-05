@@ -89,8 +89,9 @@ func (vars *EnvVars) Get(v string) string {
 
 func (vars *EnvVars) Upsert(k, v string) {
 	for i, p := range *vars {
-		if p.Name == v {
+		if p.Name == k {
 			(*vars)[i].Val = v
+			return
 		}
 	}
 	*vars = append(*vars, EnvPair{Name: k, Val: v})
