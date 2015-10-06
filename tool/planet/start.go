@@ -279,17 +279,19 @@ func checkMounts(cfg *Config) error {
 	const (
 		EtcdWorkDir   string = "/ext/etcd"
 		DockerWorkDir string = "/ext/docker"
+		RegstrWorkDir string = "/ext/registry"
 	)
 	expected := map[string]bool{
 		EtcdWorkDir:   false,
 		DockerWorkDir: false,
+		RegstrWorkDir: false,
 	}
 	for _, m := range cfg.Mounts {
 		dst := filepath.Clean(m.Dst)
 		if _, ok := expected[dst]; ok {
 			expected[dst] = true
 		}
-		if dst == EtcdWorkDir {
+		if dst == EtcdWorkDir && cfg.hasRole("master") {
 			uid := atoi(cfg.PlanetUser.Uid)
 			gid := atoi(cfg.PlanetUser.Gid)
 			// chown planet:planet /ext/etcd -r
