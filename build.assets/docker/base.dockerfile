@@ -15,5 +15,6 @@ RUN apt-get install -q -y bridge-utils \
         aufs-tools; \
     apt-get -y autoclean; apt-get -y clean
 
-RUN useradd -MUr -u 1000 planet
+RUN groupadd --system --non-unique --gid 1000 planet ;\
+    useradd --system --non-unique --no-create-home -g 1000 -u 1000 planet
 

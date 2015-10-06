@@ -3,6 +3,7 @@ package main
 import (
 	"fmt"
 	"net"
+	"os/user"
 
 	"github.com/gravitational/planet/lib/box"
 
@@ -24,6 +25,7 @@ type Config struct {
 	StateDir           string
 	ServiceSubnet      CIDR
 	PODSubnet          CIDR
+	PlanetUser         *user.User
 }
 
 func (cfg *Config) hasRole(r string) bool {
