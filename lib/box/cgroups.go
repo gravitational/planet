@@ -11,6 +11,7 @@ import (
 
 	"github.com/gravitational/planet/Godeps/_workspace/src/github.com/gravitational/log"
 	"github.com/gravitational/planet/Godeps/_workspace/src/github.com/gravitational/trace"
+	"github.com/gravitational/planet/lib/check"
 )
 
 // planet won't start without these groups enabled in the kernel
@@ -57,7 +58,7 @@ func MountCgroups(root string) error {
 		}
 	}
 	// read /proc/mounts
-	mounts, err := parseMounts()
+	mounts, err := check.ParseMountsFile()
 	if err != nil {
 		return err
 	}
@@ -161,32 +162,6 @@ func parseHostCgroups() (map[string]bool, error) {
 		return nil, trace.Wrap(err)
 	}
 	return subs, nil
-}
-
-// parseMounts reads and parses /proc/mounts file
-func parseMounts() (map[string]string, error) {
-	mounts := make(map[string]string)
-	f, err := os.Open("/proc/mounts")
-	if err != nil {
-		return nil, trace.Wrap(err)
-	}
-	defer f.Close()
-	sc := bufio.NewScanner(f)
-
-	for sc.Scan() {
-		line := sc.Text()
-		if strings.HasPrefix(line, "#") { // skip comments
-			continue
-		}
-		fields := strings.Fields(line)
-		mountFS := fields[0]
-		mountName := fields[1]
-		mounts[mountName] = mountFS
-	}
-	if err := sc.Err(); err != nil {
-		return nil, trace.Wrap(err)
-	}
-	return mounts, nil
 }
 
 // checks if the existing cgroup mounts conflict with planet requirements
