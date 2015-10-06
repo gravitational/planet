@@ -6,6 +6,7 @@ import (
 	"os"
 	"path/filepath"
 	"sort"
+	"strconv"
 	"strings"
 	"time"
 
@@ -51,6 +52,12 @@ func start(conf Config) error {
 
 	// check supported storage back-ends for docker
 	dockerBackend, err := pickDockerStorageBackend()
+	if err != nil {
+		return trace.Wrap(err)
+	}
+
+	// check/create 'planet' user and set the permissions
+	conf.PlanetUser, err = check.CheckPlanetUser()
 	if err != nil {
 		return trace.Wrap(err)
 	}
@@ -126,7 +133,6 @@ func start(conf Config) error {
 		return trace.Wrap(err)
 	}
 	log.Infof("box.Wait() returned status %v", status)
-
 	return nil
 }
 
@@ -269,8 +275,11 @@ func setupFlannel(c *Config) {
 }
 
 func checkMounts(cfg Config) error {
+	const (
+		EtcdWorkDir string = "/ext/etcd"
+	)
 	expected := map[string]bool{
-		"/ext/etcd":     false,
+		EtcdWorkDir:     false,
 		"/ext/registry": false,
 		"/ext/docker":   false,
 	}
@@ -278,6 +287,13 @@ func checkMounts(cfg Config) error {
 		dst := filepath.Clean(m.Dst)
 		if _, ok := expected[dst]; ok {
 			expected[dst] = true
+		}
+		if dst == EtcdWorkDir {
+			uid := atoi(cfg.PlanetUser.Uid)
+			gid := atoi(cfg.PlanetUser.Gid)
+			if err := chownDir(m.Src, uid, gid); err != nil {
+				return err
+			}
 		}
 	}
 	for k, v := range expected {
@@ -287,6 +303,18 @@ func checkMounts(cfg Config) error {
 		}
 	}
 	return nil
+}
+
+// chownDir recursively chowns a directory and everything inside to
+// a given uid:gid.
+// It is a Golang equivalent of chown uid:gid dirPath -R
+func chownDir(dirPath string, uid, gid int) error {
+	if err := os.Chown(dirPath, uid, gid); err != nil {
+		return err
+	}
+	return filepath.Walk(dirPath, func(path string, fi os.FileInfo, err error) error {
+		return os.Chown(path, uid, gid)
+	})
 }
 
 const awsCloudConfig = `[Global]
@@ -387,6 +415,17 @@ func getStatus(c libcontainer.Container, unit string) (string, error) {
 		return "", err
 	}
 	return strings.TrimSpace(string(out)), nil
+}
+
+// quick & convenient way to convert strings to ints, but can only be used
+// for cases when we are FOR SURE know those are ints. It panics on
+// input that can't be parsed into an int.
+func atoi(s string) int {
+	i, err := strconv.ParseInt(s, 0, 0)
+	if err != nil {
+		panic(fmt.Errorf("atoi('%v') failed", s, err))
+	}
+	return int(i)
 }
 
 var allCaps = []string{
