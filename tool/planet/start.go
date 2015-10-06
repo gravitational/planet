@@ -23,7 +23,7 @@ const (
 	CheckCgroupMounts = true
 )
 
-func start(conf Config) error {
+func start(conf Config) (err error) {
 	log.Infof("starting with config: %#v", conf)
 
 	// see if the kernel version is supported:
@@ -51,7 +51,7 @@ func start(conf Config) error {
 	}
 
 	// check supported storage back-ends for docker
-	dockerBackend, err := pickDockerStorageBackend()
+	conf.DockerBackend, err = pickDockerStorageBackend()
 	if err != nil {
 		return trace.Wrap(err)
 	}
@@ -62,10 +62,9 @@ func start(conf Config) error {
 		return trace.Wrap(err)
 	}
 
-	if conf.hasRole("master") {
-		if err := checkMounts(conf); err != nil {
-			return trace.Wrap(err)
-		}
+	// validate the mounts:
+	if err := checkMounts(&conf); err != nil {
+		return trace.Wrap(err)
 	}
 
 	conf.Env = append(conf.Env,
@@ -80,7 +79,7 @@ func start(conf Config) error {
 		conf.InsecureRegistries, fmt.Sprintf("%v:5000", conf.MasterIP))
 
 	addInsecureRegistries(&conf)
-	addDockerStorage(&conf, dockerBackend)
+	addDockerStorage(&conf)
 	setupFlannel(&conf)
 	if err := setupCloudOptions(&conf); err != nil {
 		return err
@@ -210,9 +209,11 @@ func pickDockerStorageBackend() (dockerBackend string, err error) {
 
 // addDockerStorage adds a given docker storage back-end to DOCKER_OPTS environment
 // variable
-func addDockerStorage(c *Config, dockerBackend string) {
+func addDockerStorage(c *Config) {
 	c.Env.Upsert("DOCKER_OPTS",
-		fmt.Sprintf("%s --storage-driver=%s", c.Env.Get("DOCKER_OPTS"), dockerBackend))
+		fmt.Sprintf("%s --storage-driver=%s", c.Env.Get("DOCKER_OPTS"), c.DockerBackend))
+
+	log.Infof("DOCKER_OPTS are: %v", c.Env.Get("DOCKER_OPTS"))
 }
 
 // addResolv adds resolv conf from the host's /etc/resolv.conf
@@ -274,25 +275,34 @@ func setupFlannel(c *Config) {
 	}
 }
 
-func checkMounts(cfg Config) error {
+func checkMounts(cfg *Config) error {
 	const (
-		EtcdWorkDir string = "/ext/etcd"
+		EtcdWorkDir   string = "/ext/etcd"
+		DockerWorkDir string = "/ext/docker"
+		RegstrWorkDir string = "/ext/registry"
 	)
 	expected := map[string]bool{
-		EtcdWorkDir:     false,
-		"/ext/registry": false,
-		"/ext/docker":   false,
+		EtcdWorkDir:   false,
+		DockerWorkDir: false,
+		RegstrWorkDir: false,
 	}
 	for _, m := range cfg.Mounts {
 		dst := filepath.Clean(m.Dst)
 		if _, ok := expected[dst]; ok {
 			expected[dst] = true
 		}
-		if dst == EtcdWorkDir {
+		if dst == EtcdWorkDir && cfg.hasRole("master") {
 			uid := atoi(cfg.PlanetUser.Uid)
 			gid := atoi(cfg.PlanetUser.Gid)
+			// chown planet:planet /ext/etcd -r
 			if err := chownDir(m.Src, uid, gid); err != nil {
 				return err
+			}
+		}
+		if dst == DockerWorkDir {
+			if ok, _ := check.IsBtrfsVolume(m.Src); ok == true {
+				cfg.DockerBackend = "btrfs"
+				log.Warningf("Docker work dir is on btrfs volume: %v", m.Src)
 			}
 		}
 	}
