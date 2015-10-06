@@ -23,6 +23,7 @@ type Config struct {
 	Files              []box.File
 	IgnoreChecks       bool
 	StateDir           string
+	DockerBackend      string
 	ServiceSubnet      CIDR
 	PODSubnet          CIDR
 	PlanetUser         *user.User
