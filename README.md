@@ -7,8 +7,8 @@ There are [official ways](http://kubernetes.io/v1.0/docs/getting-started-guides/
 play with Kubernetes, but `Planet` differs from those because:
 
 * Planet creates a "bubble of consistency" for every Kubernetes cluster we deploy.
-* Planet allows to packge our own services running under/alongside Kubernetes.
-* Planet facilitates easier remote updating of itself and for Kubernetes (because it uses [Orbit containers](https://github.com/gravitational/orbit))
+* Planet allows to package our own services running under/alongside Kubernetes.
+* Planet facilitates easier remote updating of itself and Kubernetes (because it uses [Orbit containers](https://github.com/gravitational/orbit))
 
 It also happens to be a great way to play with Kubernetes!
 Also check out the [developer documentation](docs/README.md).
@@ -17,9 +17,21 @@ Also check out the [developer documentation](docs/README.md).
 
 Planet images are distributed to remote sites via [Gravitational Orbit](https://github.com/gravitational/orbit/blob/master/README.md).
 
-Orbit is a package manager that helps to distribute arbitrary files, with versioning, 
+Orbit is a package manager that helps distribute arbitrary files, with versioning, 
 across many Linux clusters (like AWS accounts). Planet tarball already contains Orbit manifest, 
 which makes it an Orbit package.
+
+Before proceeding with orbit for the first time, run orbit to generate a credentials file:
+```
+orbit login
+```
+
+It is also recommended to use a local package directory (unless running as root):
+```
+mkdir -p /tmp/orbit && orbit -p /tmp/orbit login 
+```
+will use /tmp/orbit as a package directory.
+
 
 We have an `Orbit` repository running on AWS. It is actually the easiest (and recommended) way to 
 install Planet. To see which builds/versions are available, run:
