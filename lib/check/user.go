@@ -23,7 +23,7 @@ func CheckPlanetUser() (u *user.User, err error) {
 		return u, nil
 	}
 
-	// create a new group;
+	// create a new group:
 	groupadd := exec.Command("/usr/sbin/groupadd",
 		"--system",
 		"--non-unique",
@@ -35,7 +35,7 @@ func CheckPlanetUser() (u *user.User, err error) {
 			return nil, err
 		}
 		errMsg := flattenString(string(output))
-		return nil, fmt.Errorf("Failed creating group '%v': %v", PlanetUser, errMsg)
+		return nil, fmt.Errorf("failed to create group '%v': %v", PlanetUser, errMsg)
 	}
 
 	// create a new user:
@@ -52,7 +52,7 @@ func CheckPlanetUser() (u *user.User, err error) {
 			return nil, err
 		}
 		errMsg := flattenString(string(output))
-		return nil, fmt.Errorf("Failed creating user '%v': %v", PlanetUser, errMsg)
+		return nil, fmt.Errorf("failed to create user '%v': %v", PlanetUser, errMsg)
 	}
 
 	// now it should work:

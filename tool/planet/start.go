@@ -26,6 +26,10 @@ const (
 func start(conf Config) (err error) {
 	log.Infof("starting with config: %#v", conf)
 
+	if !isRoot() {
+		return trace.Errorf("must be run as root")
+	}
+
 	// see if the kernel version is supported:
 	if CheckKernel {
 		v, err := check.KernelVersion()
@@ -202,7 +206,7 @@ func pickDockerStorageBackend() (dockerBackend string, err error) {
 		}
 	}
 	// if we get here, it means no suitable FS has been found
-	err = fmt.Errorf("None of this filesystems is supported by this host: %s",
+	err = fmt.Errorf("None of the required filesystems are supported by this host: %s",
 		strings.Join(supportedBackends, ", "))
 	return "", err
 }
@@ -436,6 +440,10 @@ func atoi(s string) int {
 		panic(fmt.Errorf("atoi('%v') failed", s, err))
 	}
 	return int(i)
+}
+
+func isRoot() bool {
+	return os.Geteuid() == 0
 }
 
 var allCaps = []string{
