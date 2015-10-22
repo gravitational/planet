@@ -206,7 +206,7 @@ func pickDockerStorageBackend() (dockerBackend string, err error) {
 		}
 	}
 	// if we get here, it means no suitable FS has been found
-	err = fmt.Errorf("None of the required filesystems are supported by this host: %s",
+	err = trace.Errorf("none of the required filesystems are supported by this host: %s",
 		strings.Join(supportedBackends, ", "))
 	return "", err
 }
@@ -296,8 +296,8 @@ func checkMounts(cfg *Config) error {
 			expected[dst] = true
 		}
 		if dst == EtcdWorkDir && cfg.hasRole("master") {
-			uid := atoi(cfg.PlanetUser.Uid)
-			gid := atoi(cfg.PlanetUser.Gid)
+			uid := mustAtoi(cfg.PlanetUser.Uid)
+			gid := mustAtoi(cfg.PlanetUser.Gid)
 			// chown planet:planet /ext/etcd -r
 			if err := chownDir(m.Src, uid, gid); err != nil {
 				return err
@@ -434,10 +434,10 @@ func getStatus(c libcontainer.Container, unit string) (string, error) {
 // quick & convenient way to convert strings to ints, but can only be used
 // for cases when we are FOR SURE know those are ints. It panics on
 // input that can't be parsed into an int.
-func atoi(s string) int {
+func mustAtoi(s string) int {
 	i, err := strconv.ParseInt(s, 0, 0)
 	if err != nil {
-		panic(fmt.Errorf("atoi('%v') failed", s, err))
+		panic(trace.Errorf("bad number `%s`: %v", s, err))
 	}
 	return int(i)
 }

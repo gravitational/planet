@@ -79,6 +79,7 @@ func isErrNotFound(err error) bool {
 	switch pe := err.(type) {
 	case *exec.Error:
 		return pe.Err == exec.ErrNotFound
+	default:
+		return os.IsNotExist(err)
 	}
-	return false
 }
