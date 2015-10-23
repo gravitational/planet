@@ -59,10 +59,10 @@ Planet needs a site-specific configuration to run. Orbit allows users to specify
 key-value pairs and store it as another, _site-local_ package. This allows independent upgrades of 
 packages and their configuration.
 
-Configure planet package (`planet-dev:0.0.1`) and store the output as a _local configuration package_ `planet-cfg:0.0.1`
+Configure planet package (`planet-dev:0.0.35`) and store the output as a _local configuration package_ `planet-cfg:0.0.1`, so the packages are stored separately from their configuration.
 
 ```bash
-orbit configure planet-dev:0.0.1 \
+orbit configure planet-dev:0.0.35 \
     planet-cfg:0.0.1 args\
     --role=master --role=node\
     --volume=/var/planet/etcd:/ext/etcd\
@@ -70,10 +70,10 @@ orbit configure planet-dev:0.0.1 \
     --volume=/var/planet/docker:/ext/docker
 ```
 
-This command will execute `start` command supplied by `planet/dev:0.0.1` and will use configuration from `planet/cfg:0.0.1` that we've just generated
+This command will execute `start` command supplied by `planet/dev:0.0.35` and will use configuration from `planet/cfg:0.0.1` that we've just generated
 
 ```bash
-orbit exec-config start planet/dev:0.0.1 planet/cfg:0.0.1
+orbit exec-config start planet/dev:0.0.35 planet/cfg:0.0.1
 ```
 
 ## Other Commands
