@@ -41,12 +41,10 @@ install Planet. To see which builds/versions are available, run:
 To install:
 
 ```
-orbit -m "https://notary.gravitational.io" \
-      -r "https://registry.gravitational.io" \
-      pull-latest planet-dev
+orbit pull-latest planet-dev
 ```
 
-Verify that you have it:
+Verify that you have it and observe that the latest version happens to be `0.0.35`.
 
 ```
 > orbit list
