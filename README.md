@@ -71,20 +71,23 @@ orbit configure planet-dev:0.0.35 \
 Now you can start `Planet` with the generated configuration (it needs `sudo`):
 
 ```bash
-sudo orbit exec-config start planet-dev:0.0.35 start planet-cfg:0.0.1
+sudo orbit exec-config planet-dev:0.0.35 start planet-cfg:0.0.1
 ```
 
-## Other Commands
+*EXPLANATION:* `exec-config` command looks at the given package and scans for _entry points_ to execute.
+`Planet` package defines an entry point called `start` which itself needs a parameter: the configuration package.
 
-Planet is a generic `container image`. It is basically tarballed and gzipped rootfs.
-Usually these images are distributed and updated by [Orbit](https://github.com/gravitational/orbit).
+## Other Entry Points
 
+Planet is a generic `container image` with executable entry points. It is a tarballed and gzipped root FS.
 Inside a container image there are Kubernetes components and the Planet binary in `rootfs/usr/bin/planet`.
-When you launch that binary, it will self-containerize within its RootFS and will launch all Kubernetes
-components using systemd.
+
+That `planet` binary defines all the entry points for this package.
+
+When you launch `planet` binary, it will self-containerize within its RootFS and will launch all Kubernetes
+components using `systemd`.
 
 If you start it without any commands, it will show the usage info:
-
 ```
 Commands:
   help   [<command>...]               Show help.
@@ -94,10 +97,10 @@ Commands:
   status [<rootfs>]                   Get status of a running container
 ```
 
-Here's how to stop Planet, for example:
+Here's how to invoke `stop` entry point, for example:
 
 ```bash
-orbit exec-config stop planet/dev:0.0.1 planet/cfg:0.0.1
+orbit exec-config planet-dev:0.0.35 stop planet-cfg:0.0.1
 ```
 
 ## Hacking on Planet
