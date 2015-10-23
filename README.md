@@ -34,17 +34,14 @@ will use /tmp/orbit as a package directory.
 
 
 We have an `Orbit` repository running on AWS. It is actually the easiest (and recommended) way to 
-install Planet. To see which builds/versions are available, run:
+install Planet. To see which builds/versions are available and to get the latest run:
 
-`orbit list-remote -m https://notary.gravitational.io planet-dev`
-
-To install:
-
-```
+```bash
+orbit list-remote planet-dev
 orbit pull-latest planet-dev
 ```
 
-Verify that you have it and observe that the latest version happens to be `0.0.35`.
+See? You now have the latest version and it happens to be `0.0.35`.
 
 ```
 > orbit list
@@ -53,11 +50,14 @@ Verify that you have it and observe that the latest version happens to be `0.0.3
 
 ## Start Planet
 
-Planet needs a site-specific configuration to run. Orbit allows users to specify configuration as 
-key-value pairs and store it as another, _site-local_ package. This allows independent upgrades of 
-packages and their configuration.
+Planet package is a pre-packaged Kubernetes. And needs a site-specific configuration to run. `Orbit` allows you to 
+specify configuration as key-value pairs and store it as another, _site-local_ package. This enables upgrading  
+upgrades independently of their configuration (again, because configuration key/values are stored in another package).
 
-Configure planet package (`planet-dev:0.0.35`) and store the output as a _local configuration package_ `planet-cfg:0.0.1`, so the packages are stored separately from their configuration.
+This means that `Planet` needs two packages to run: the main package and the configuration package, which 
+you need to create and store locally before running.
+
+To create a configuratin package and store it locally as `planet-cfg:0.0.1`:
 
 ```bash
 orbit configure planet-dev:0.0.35 \
