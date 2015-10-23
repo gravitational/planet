@@ -61,17 +61,17 @@ To create a configuratin package and store it locally as `planet-cfg:0.0.1`:
 
 ```bash
 orbit configure planet-dev:0.0.35 \
-    planet-cfg:0.0.1 args\
+    planet-cfg:0.0.1 -- \
     --role=master --role=node\
     --volume=/var/planet/etcd:/ext/etcd\
     --volume=/var/planet/registry:/ext/registry\
     --volume=/var/planet/docker:/ext/docker
 ```
 
-This command will execute `start` command supplied by `planet/dev:0.0.35` and will use configuration from `planet/cfg:0.0.1` that we've just generated
+Now you can start `Planet` with the generated configuration (it needs `sudo`):
 
 ```bash
-orbit exec-config start planet/dev:0.0.35 planet/cfg:0.0.1
+sudo orbit exec-config start planet-dev:0.0.35 start planet-cfg:0.0.1
 ```
 
 ## Other Commands
