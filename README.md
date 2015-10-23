@@ -129,9 +129,8 @@ These take a while to build at first, but subsequent builds are much faster beca
 results are cached. To clear and rebuild from scratch, run one of the following 
 (depending which target you want to wipe out): `make dev-clean`, `make node-clean` or `make master-clean`
 
-If you want to clear everything, simply run `make clean`.
-
-After building a combined image (`make dev`) - complement it via `make build` to install / copy the planet binary.
+If you want to clear everything, simply run `make clean`. After building a combined image (`make dev`) - complement 
+it via `make build` to install / copy the planet binary.
 
 ### Starting "Dev" image
 
@@ -142,9 +141,7 @@ make dev-start
 ```
 
 You will need another terminal to interact with it. To enter into a running Planet container, 
-you'll need to execute `make enter`. 
-
-You will see Kubernetes components running, with `ps -e` showing something like:
+you'll need to execute `make enter`. You will see Kubernetes components running, with `ps -e` showing something like:
 
 ```
   PID TTY          TIME CMD
@@ -206,7 +203,7 @@ Similarly, upload & untar the planet-node image onto each AWS node instance and 
 If you're hacking on Planet and have a new build, this is how to add it (as an Orbit package) into your local Orbit repository:
 
 ```bash
-orbit import planet-dev.tar.gz planet/dev:0.0.1
+orbit import planet-dev.tar.gz planet-dev:0.0.666
 ```
 Now when you have Planet in your local Orbit repo, you can push it to remote Orbit repository by running `orbit push`,
 and install it onto any site with `orbit pull` as shown above.
