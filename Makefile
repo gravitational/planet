@@ -1,15 +1,15 @@
 # Quick Start
 # -----------
 # make dev: 
-#     builds 'development' image of Planet and will put it
-#     to build/dev and adjust build/current symlink to it.
+#     builds 'development' image of Planet, stores output in build/dev and 
+#     points build/current symlink to it. 
 #
 # make: 
 #     builds your changes and updates planet binary in 
-#     build/current/rootfs/...
+#     build/current/rootfs/usr/bin/planet
 #
 # make dev-start:
-#     starts Planet from build/dev/rootfs/...
+#     starts Planet from build/dev/rootfs/usr/bin/planet
 #
 # Build Steps
 # -----------
