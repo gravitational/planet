@@ -50,6 +50,9 @@ Vagrant.configure(2) do |config|
 
   # clean up .ssh and install docker
   config.vm.provision "shell", inline: <<-SHELL
+    sed -i -e 's/GRUB_CMDLINE_LINUX_DEFAULT.*$/GRUB_CMDLINE_LINUX_DEFAULT=\"cgroup_enable=memory swapaccount=1\"/'  /etc/default/grub
+    update-grub
+
     mkdir -p ~/.ssh
     sudo rm -rf /home/vagrant/.ssh/id_rsa*
     sudo groupadd docker

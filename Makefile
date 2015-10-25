@@ -1,3 +1,30 @@
+# Quick Start
+# -----------
+# make dev: 
+#     builds 'development' image of Planet, stores output in build/dev and 
+#     points build/current symlink to it. 
+#
+# make: 
+#     builds your changes and updates planet binary in 
+#     build/current/rootfs/usr/bin/planet
+#
+# make dev-start:
+#     starts Planet from build/dev/rootfs/usr/bin/planet
+#
+# Build Steps
+# -----------
+# The sequence of steps the build process takes:
+#     1. Make 'os' Docker image: the empty Debian 8 image.
+#     2. Make 'base' image on top of 'os' (Debian + our additions)
+#     3. Make 'buildbox' image on top of 'os'. Used for building, 
+#        not part of the Planet image.
+#     4. Build various components (Flannel, etcd, k8s, etc) inside
+#        of 'buildbox' based on inputs (master/node/dev)
+#     5. Store everything inside a temporary Docker image based on 'base'
+#     6. Export the root FS of that image into build/current/rootfs
+#     7. build/current/rootfs is basically the output of the build.
+#     8. Later, RootFS is tarballed and ready for distribution.
+#
 SHELL:=/bin/bash
 .PHONY: build os base buildbox dev master node
 
@@ -8,11 +35,58 @@ BUILDDIR := $(shell realpath $(BUILDDIR))
 PLANETVER:=0.01
 export
 
+# 'make build' simply compiles Golang portion of Planet, meant for quick & iterative 
+# devlopment on _already built image_. You need to build an image first, for 
+# example with "make dev"
 build: $(BUILDDIR)/current
 	go install github.com/gravitational/planet/tool/planet
 	cp -f $$GOPATH/bin/planet $(BUILDDIR)/current/planet 
 	rm -f $(BUILDDIR)/current/rootfs/usr/bin/planet
 	cp -f $$GOPATH/bin/planet $(BUILDDIR)/current/rootfs/usr/bin/planet
+
+# Makes a "developer" image, with _all_ parts of Kubernetes installed
+dev: buildbox
+	$(MAKE) -C $(ASSETS)/makefiles -e TARGET=dev -f buildbox.mk
+
+# Makes a "master" image, with only master components of Kubernetes installed
+master: buildbox
+	$(MAKE) -C $(ASSETS)/makefiles -e TARGET=master -f buildbox.mk
+
+# Makes a "node" image, with only node components of Kubernetes installed
+node: buildbox
+	$(MAKE) -C $(ASSETS)/makefiles -e TARGET=node -f buildbox.mk
+
+# Starts "planet-dev" build. It needs to be built first with "make dev"
+dev-start: prepare-to-run
+	cd $(BUILDDIR)/current && sudo rootfs/usr/bin/planet start\
+		--debug \
+		--role=master\
+		--role=node\
+		--volume=/var/planet/etcd:/ext/etcd\
+		--volume=/var/planet/registry:/ext/registry\
+		--volume=/var/planet/docker:/ext/docker
+
+# Starts "planet-node" image. It needs to be built first with "make node"
+node-start: prepare-to-run
+	cd $(BUILDDIR)/current && sudo rootfs/usr/bin/planet start\
+		--role=node\
+		--volume=/var/planet/etcd:/ext/etcd\
+		--volume=/var/planet/registry:/ext/registry\
+		--volume=/var/planet/docker:/ext/docker
+
+# Starts "planet-master" image. It needs to be built first with "make master"
+master-start: prepare-to-run
+	cd $(BUILDDIR)/current && sudo rootfs/usr/bin/planet start\
+		--role=master\
+		--volume=/var/planet/etcd:/ext/etcd\
+		--volume=/var/planet/registry:/ext/registry\
+		--volume=/var/planet/docker:/ext/docker
+
+stop:
+	cd $(BUILDDIR)/current && sudo rootfs/usr/bin/planet --debug stop
+
+enter:
+	cd $(BUILDDIR)/current && sudo rootfs/usr/bin/planet enter --debug /bin/bash
 
 # Builds the base Docker image (bare bones OS). Everything else is based on. 
 # Debian stable + configured locales. 
@@ -32,25 +106,6 @@ buildbox: base
 	echo -e "\\n---> Making Planet/BuilBox Docker image to be used for building:\\n" ;\
 	$(MAKE) -e BUILDIMAGE=planet/buildbox DOCKERFILE=buildbox.dockerfile make-docker-image
 
-make-docker-image:
-	@if [[ ! $$(docker images | grep $(BUILDIMAGE)) ]]; then \
-		cd $(ASSETS)/docker; docker build --no-cache=true -t $(BUILDIMAGE) -f $(DOCKERFILE) . ;\
-	else \
-		echo "$(BUILDIMAGE) already exists. Run 'docker rmi $(BUILDIMAGE)' to rebuild" ;\
-	fi
-
-# Makes a "developer" image, with _all_ parts of Kubernetes installed
-dev: buildbox
-	$(MAKE) -C $(ASSETS)/makefiles -e TARGET=dev -f buildbox.mk
-
-# Makes a "master" image, with only master components of Kubernetes installed
-master: buildbox
-	$(MAKE) -C $(ASSETS)/makefiles -e TARGET=master -f buildbox.mk
-
-# Makes a "node" image, with only node components of Kubernetes installed
-node: buildbox
-	$(MAKE) -C $(ASSETS)/makefiles -e TARGET=node -f buildbox.mk
-
 # removes all build aftifacts 
 clean: dev-clean master-clean node-clean
 dev-clean:
@@ -60,34 +115,13 @@ node-clean:
 master-clean:
 	$(MAKE) -C $(ASSETS)/makefiles -e TARGET=master -f buildbox.mk clean
 
-dev-start: prepare-to-run
-	cd $(BUILDDIR)/current && sudo rootfs/usr/bin/planet start\
-		--debug \
-		--role=master\
-		--role=node\
-		--volume=/var/planet/etcd:/ext/etcd\
-		--volume=/var/planet/registry:/ext/registry\
-		--volume=/var/planet/docker:/ext/docker
-
-node-start: prepare-to-run
-	cd $(BUILDDIR)/current && sudo rootfs/usr/bin/planet start\
-		--role=node\
-		--volume=/var/planet/etcd:/ext/etcd\
-		--volume=/var/planet/registry:/ext/registry\
-		--volume=/var/planet/docker:/ext/docker
-
-master-start: prepare-to-run
-	cd $(BUILDDIR)/current && sudo rootfs/usr/bin/planet start\
-		--role=master\
-		--volume=/var/planet/etcd:/ext/etcd\
-		--volume=/var/planet/registry:/ext/registry\
-		--volume=/var/planet/docker:/ext/docker
-
-stop:
-	cd $(BUILDDIR)/current && sudo rootfs/usr/bin/planet --debug stop
-
-enter:
-	cd $(BUILDDIR)/current && sudo rootfs/usr/bin/planet enter --debug /bin/bash
+# internal use:
+make-docker-image:
+	@if [[ ! $$(docker images | grep $(BUILDIMAGE)) ]]; then \
+		cd $(ASSETS)/docker; docker build --no-cache=true -t $(BUILDIMAGE) -f $(DOCKERFILE) . ;\
+	else \
+		echo "$(BUILDIMAGE) already exists. Run 'docker rmi $(BUILDIMAGE)' to rebuild" ;\
+	fi
 
 remove-godeps:
 	rm -rf Godeps/

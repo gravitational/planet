@@ -67,8 +67,16 @@ func start(conf Config) (err error) {
 	}
 
 	// validate the mounts:
-	if err := checkMounts(&conf); err != nil {
-		return trace.Wrap(err)
+	if conf.hasRole("master") {
+		if err := checkMasterMounts(&conf); err != nil {
+			return trace.Wrap(err)
+		}
+	}
+
+	if conf.hasRole("node") {
+		if err := checkNodeMounts(&conf); err != nil {
+			return trace.Wrap(err)
+		}
 	}
 
 	conf.Env = append(conf.Env,
@@ -279,12 +287,13 @@ func setupFlannel(c *Config) {
 	}
 }
 
-func checkMounts(cfg *Config) error {
-	const (
-		EtcdWorkDir   string = "/ext/etcd"
-		DockerWorkDir string = "/ext/docker"
-		RegstrWorkDir string = "/ext/registry"
-	)
+const (
+	EtcdWorkDir   = "/ext/etcd"
+	DockerWorkDir = "/ext/docker"
+	RegstrWorkDir = "/ext/registry"
+)
+
+func checkMasterMounts(cfg *Config) error {
 	expected := map[string]bool{
 		EtcdWorkDir:   false,
 		DockerWorkDir: false,
@@ -296,12 +305,39 @@ func checkMounts(cfg *Config) error {
 			expected[dst] = true
 		}
 		if dst == EtcdWorkDir && cfg.hasRole("master") {
-			uid := mustAtoi(cfg.PlanetUser.Uid)
-			gid := mustAtoi(cfg.PlanetUser.Gid)
+			uid := atoi(cfg.PlanetUser.Uid)
+			gid := atoi(cfg.PlanetUser.Gid)
 			// chown planet:planet /ext/etcd -r
 			if err := chownDir(m.Src, uid, gid); err != nil {
 				return err
 			}
+		}
+		if dst == DockerWorkDir {
+			if ok, _ := check.IsBtrfsVolume(m.Src); ok == true {
+				cfg.DockerBackend = "btrfs"
+				log.Warningf("Docker work dir is on btrfs volume: %v", m.Src)
+			}
+		}
+	}
+	for k, v := range expected {
+		if !v {
+			return trace.Errorf(
+				"please supply mount source for data directory '%v'", k)
+		}
+	}
+	return nil
+}
+
+// TODO: reduce code duplication with checkMasterMounts
+func checkNodeMounts(cfg *Config) error {
+	expected := map[string]bool{
+		DockerWorkDir: false,
+		RegstrWorkDir: false,
+	}
+	for _, m := range cfg.Mounts {
+		dst := filepath.Clean(m.Dst)
+		if _, ok := expected[dst]; ok {
+			expected[dst] = true
 		}
 		if dst == DockerWorkDir {
 			if ok, _ := check.IsBtrfsVolume(m.Src); ok == true {
