@@ -470,7 +470,7 @@ func getStatus(c libcontainer.Container, unit string) (string, error) {
 // quick & convenient way to convert strings to ints, but can only be used
 // for cases when we are FOR SURE know those are ints. It panics on
 // input that can't be parsed into an int.
-func mustAtoi(s string) int {
+func atoi(s string) int {
 	i, err := strconv.ParseInt(s, 0, 0)
 	if err != nil {
 		panic(trace.Errorf("bad number `%s`: %v", s, err))

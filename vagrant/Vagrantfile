@@ -1,75 +1,129 @@
 # -*- mode: ruby -*-
 # vi: set ft=ruby :
 
-Vagrant.configure(2) do |config|
-  # Every Vagrant development environment requires a box. You can search for
-  # boxes at https://atlas.hashicorp.com/search.
-  config.vm.box = "debian/jessie64"
+# Require a recent version of vagrant to add support for custom provisioners
+Vagrant.require_version ">= 1.7.0"
 
-  # Disable automatic box update checking. If you disable this, then
-  # boxes will only be checked for updates when the user runs
-  # `vagrant box outdated`. This is not recommended.
-  config.vm.box_check_update = false
+VAGRANTFILE_API_VERSION = "2"
 
-  # Create a forwarded port mapping which allows access to a specific port
-  # within the machine from a port on the host machine. In the example below,
-  # accessing "localhost:8080" will access port 80 on the guest machine.
-  # config.vm.network "forwarded_port", guest: 80, host: 8080
+if ARGV.first == "up" && ENV['PLANET_E2E_TEST'] == 'true'
+  raise Vagrant::Errors::VagrantError.new, <<END
+Calling 'vagrant up' directly is not supported.  Instead, please run the following:
 
-  # Create a private network, which allows host-only access to the machine
-  # using a specific IP.
-  config.vm.network "private_network", ip: "10.0.3.66"
+  export KUBERNETES_PROVIDER=vagrant
+  export VAGRANT_DEFAULT_PROVIDER=virtualbox
+  ./cluster/kube-up.sh
+END
+end
 
-  # Create a public network, which generally matched to bridged network.
-  # Bridged networks make the machine appear as another physical device on
-  # your network.
-  # config.vm.network "public_network"
+$vm_num_cpus = `cat /proc/cpuinfo | grep 'core id' | sort -u | wc -l`.to_i
+if $vm_num_cpus < 1
+	$vm_num_cpus = 4	# `nproc`
+end
 
-  # Share an additional folder to the guest VM. The first argument is
-  # the path on the host to the actual folder. The second argument is
-  # the path on the guest to mount the folder. And the optional third
-  # argument is a set of non-required options.
-  config.vm.synced_folder "~/go", "/home/vagrant/go"
-  config.vm.hostname = "planet-on-debian"
+$vm_master_mem = (ENV['PLANET_MASTER_MEMORY'] || 2200).to_i
+$vm_node_mem = (ENV['PLANET_NODE_MEMORY'] || 1024).to_i
+
+# Provision this many nodes
+$num_nodes = (ENV['PLANET_E2E_NUM_NODES'] || 1).to_i
+
+Vagrant.configure(VAGRANTFILE_API_VERSION) do |config|
+  def generic_vm(config)
+    # Every Vagrant development environment requires a box. You can search for
+    # boxes at https://atlas.hashicorp.com/search.
+    config.vm.box = "debian/jessie64"
+
+    # Disable automatic box update checking. With this disabled, the
+    # boxes are only checked for updates via explicit `vagrant box outdated`.
+    config.vm.box_check_update = false
+
+    # Create a forwarded port mapping which allows access to a specific port
+    # within the machine from a port on the host machine. In the example below,
+    # accessing "localhost:8080" will access port 80 on the guest machine.
+    # config.vm.network "forwarded_port", guest: 80, host: 8080
+
+    # Create a public network, which generally matched to bridged network.
+    # Bridged networks make the machine appear as another physical device on
+    # your network.
+    # config.vm.network "public_network"
+
+    # Share an additional folder to the guest VM. The first argument is
+    # the path on the host to the actual folder. The second argument is
+    # the path on the guest to mount the folder. And the optional third
+    # argument is a set of non-required options.
+    config.vm.synced_folder "~/go", "/home/vagrant/go"
+    config.vm.hostname = "planet-on-debian"
+
+    # Taken from here: http://foo-o-rama.com/vagrant--stdin-is-not-a-tty--fix.html
+    config.vm.provision "fix-no-tty", type: "shell" do |s|
+      s.privileged = false
+      s.inline = "sudo sed -i '/tty/!s/mesg n/tty -s \\&\\& mesg n/' /root/.profile"
+    end
+
+    # clean up .ssh and install docker
+    config.vm.provision "shell", inline: <<-SHELL
+      sed -i -e 's/GRUB_CMDLINE_LINUX_DEFAULT.*$/GRUB_CMDLINE_LINUX_DEFAULT=\"cgroup_enable=memory swapaccount=1\"/'  /etc/default/grub
+      update-grub
+
+      mkdir -p ~/.ssh
+      sudo rm -rf /home/vagrant/.ssh/id_rsa*
+      sudo groupadd docker
+      sudo gpasswd -a vagrant docker
+      sudo wget -qO /etc/systemd/system/docker.socket  https://raw.githubusercontent.com/docker/docker/master/contrib/init/systemd/docker.socket
+      sudo wget -qO /etc/systemd/system/docker.service https://raw.githubusercontent.com/docker/docker/master/contrib/init/systemd/docker.service
+      sudo wget -qO /usr/bin/docker https://get.docker.com/builds/Linux/x86_64/docker-1.8.2 
+      sudo chmod +x /usr/bin/docker
+      sudo systemctl enable docker.socket
+      sudo systemctl enable docker.service
+    SHELL
+    config.vm.provision "add-github-to-hosts", type: "shell", inline: "ssh-keyscan -H github.com >> ~/.ssh/known_hosts", privileged: false
+    config.vm.provision "file", source: 'vimrc', destination: '~/.vimrc'
+    config.vm.provision "file", source: 'screenrc', destination: '~/.screenrc'
+    config.vm.provision "file", source: '~/.ssh/id_rsa', destination: '~/.ssh/id_rsa'
+    config.vm.provision "file", source: '~/.ssh/id_rsa.pub', destination: '~/.ssh/id_rsa.pub'
+    config.vm.provision "file", source: '~/.gitconfig', destination: '~/.gitconfig'
+    config.vm.provision "alias", type: "shell", inline: "echo 'alias g=\"cd /home/vagrant/go/src/github.com\"' >> /home/vagrant/.bashrc", privileged: false
+    config.vm.provision "go+dev tools", type: "shell", path: 'provision.sh', privileged: false
+  end
 
   # Provider-specific configuration so you can fine-tune various
   # backing providers for Vagrant. These expose provider-specific options.
   # Example for VirtualBox:
   #
-  config.vm.provider "virtualbox" do |vb|
-    vb.name = "planet-on-debian"
-    vb.cpus = 4
-    vb.memory = 2200
+  # vb.name = # "planet-on-debian"
+  def customize_vm(config, vm_mem)
+    config.vm.provider "virtualbox" do |vb|
+      vb.cpus = $vm_num_cpus
+      vb.memory = vm_mem
+
+      # Use faster paravirtualized networking (source: kubernetes Vagrantfile)
+      vb.customize ["modifyvm", :id, "--nictype1", "virtio"]
+      vb.customize ["modifyvm", :id, "--nictype2", "virtio"]
+    end
   end
 
-  # Taken from here: http://foo-o-rama.com/vagrant--stdin-is-not-a-tty--fix.html
-  config.vm.provision "fix-no-tty", type: "shell" do |s|
-        s.privileged = false
-        s.inline = "sudo sed -i '/tty/!s/mesg n/tty -s \\&\\& mesg n/' /root/.profile"
+  # Master
+  config.vm.define "planet-master" do |c|
+    generic_vm c
+    customize_vm c, $vm_master_mem
+
+    # TODO: invoke the start script
+
+    # Create a private network, which allows host-only access to the machine
+    # using a specific IP.
+    c.vm.network "private_network", ip: "10.0.3.66"
   end
 
-  # clean up .ssh and install docker
-  config.vm.provision "shell", inline: <<-SHELL
-    sed -i -e 's/GRUB_CMDLINE_LINUX_DEFAULT.*$/GRUB_CMDLINE_LINUX_DEFAULT=\"cgroup_enable=memory swapaccount=1\"/'  /etc/default/grub
-    update-grub
+# Node
+# config.vm.define "planet-node" do |c|
+#   generic_vm c
+#   customize_vm c, $vm_node_mem
 
-    mkdir -p ~/.ssh
-    sudo rm -rf /home/vagrant/.ssh/id_rsa*
-    sudo groupadd docker
-    sudo gpasswd -a vagrant docker
-    sudo wget -qO /etc/systemd/system/docker.socket  https://raw.githubusercontent.com/docker/docker/master/contrib/init/systemd/docker.socket
-    sudo wget -qO /etc/systemd/system/docker.service https://raw.githubusercontent.com/docker/docker/master/contrib/init/systemd/docker.service
-    sudo wget -qO /usr/bin/docker https://get.docker.com/builds/Linux/x86_64/docker-1.8.2 
-    sudo chmod +x /usr/bin/docker
-    sudo systemctl enable docker.socket
-    sudo systemctl enable docker.service
-  SHELL
-  config.vm.provision "add-github-to-hosts", type: "shell", inline: "ssh-keyscan -H github.com >> ~/.ssh/known_hosts", privileged: false
-  config.vm.provision "file", source: 'vimrc', destination: '~/.vimrc'
-  config.vm.provision "file", source: 'screenrc', destination: '~/.screenrc'
-  config.vm.provision "file", source: '~/.ssh/id_rsa', destination: '~/.ssh/id_rsa'
-  config.vm.provision "file", source: '~/.ssh/id_rsa.pub', destination: '~/.ssh/id_rsa.pub'
-  config.vm.provision "file", source: '~/.gitconfig', destination: '~/.gitconfig'
-  config.vm.provision "alias", type: "shell", inline: "echo 'alias g=\"cd /home/vagrant/go/src/github.com\"' >> /home/vagrant/.bashrc", privileged: false
-  config.vm.provision "go+dev tools", type: "shell", path: 'provision.sh', privileged: false
+#   # TODO: invoke the start script
+
+#   # Create a private network, which allows host-only access to the machine
+#   # using a specific IP.
+#   config.vm.network "private_network", ip: "10.0.3.67"
+# end
+
 end
