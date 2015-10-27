@@ -9,7 +9,7 @@ all: planet-bin
 	make -C $(ASSETS)/makefiles/base/network -f network.mk
 	make -C $(ASSETS)/makefiles/base/docker -f docker.mk 
 	make -C $(ASSETS)/makefiles/registry -f registry.mk
-	make -C $(ASSETS)/makefiles/kubernetes -f kubernetes.mk
+	make -C $(ASSETS)/makefiles/kubernetes -f kubernetes-dev.mk
 # dev-image specific:
 	make -C $(ASSETS)/makefiles/master/etcd -f etcd.mk
 	make -C $(ASSETS)/makefiles/node/k8s-node -f k8s-node.mk

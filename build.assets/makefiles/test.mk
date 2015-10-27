@@ -7,7 +7,7 @@ TESTDIR:=$(PWD)/test/e2e
 
 all: test.mk $(BINARIES)
 	@echo $(TESTDIR)
-	@echo -e "\n---> Launching 'buildbox' for end-to-end tests:\n"
+	@echo -e "\n---> Launching 'testbox' for end-to-end tests:\n"
 	docker run -ti --rm=true \
 		--net=host \
 		--volume=$(ASSETS):/assets \
@@ -15,6 +15,6 @@ all: test.mk $(BINARIES)
 		--volume=$(TESTDIR):/test \
 		--env="ASSETS=/assets" \
 		--env="TARGETDIR=/targetdir" \
-		planet/buildbox \
+		planet/testbox \
 		make -f assets/makefiles/test-docker.mk
 	@echo -e "\nDone --> $(TARBALL)"

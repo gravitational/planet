@@ -26,7 +26,7 @@
 #     8. Later, root FS is tarballed and ready for distribution.
 #
 SHELL:=/bin/bash
-.PHONY: build os base buildbox dev master node test
+.PHONY: build os base buildbox dev master node testbox test
 
 PWD := $(shell pwd)
 ASSETS := $(PWD)/build.assets
@@ -57,7 +57,7 @@ node: buildbox
 	$(MAKE) -C $(ASSETS)/makefiles -e TARGET=node -f buildbox.mk
 
 # Runs end-to-end tests in the specific environment
-test: buildbox
+test: testbox
 	$(MAKE) -C $(ASSETS)/makefiles -e TARGET=dev -f test.mk
 
 # Starts "planet-dev" build. It needs to be built first with "make dev"
@@ -110,6 +110,11 @@ buildbox: base
 	@echo -e "\n---> Making Planet/BuildBox Docker image to be used for building:\n" ;\
 	$(MAKE) -e BUILDIMAGE=planet/buildbox DOCKERFILE=buildbox.dockerfile make-docker-image
 
+# Builds a "testbox" image used during e2e testing.
+testbox: buildbox
+	@echo -e "\n---> Making Planet/testbox image for e2e testing:\n" ;\
+	$(MAKE) -e BUILDIMAGE=planet/testbox DOCKERFILE=testbox.dockerfile make-docker-image
+
 # removes all build aftifacts 
 clean: dev-clean master-clean node-clean
 dev-clean:
@@ -137,14 +142,14 @@ prepare-to-run:
 	@cp -f $(BUILDDIR)/current/planet $(BUILDDIR)/current/rootfs/usr/bin/planet
 
 clean-containers:
-	@echo -e "Removing dead Docker/planet containers...\n"
+	@echo -e "\n---> Removing dead Docker/planet containers...\n"
 	DEADCONTAINTERS=$$(docker ps --all | grep "planet" | awk '{print $$1}') ;\
 	if [ ! -z "$$DEADCONTAINTERS" ] ; then \
 		docker rm -f $$DEADCONTAINTERS ;\
 	fi
 
 clean-images: clean-containers
-	@echo -e "Removing old Docker/planet images...\n"
+	@echo -e "\n---> Removing old Docker/planet images...\n"
 	DEADIMAGES=$$(docker images | grep "planet/" | awk '{print $$3}') ;\
 	if [ ! -z "$$DEADIMAGES" ] ; then \
 		docker rmi -f $$DEADIMAGES ;\
