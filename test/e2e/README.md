@@ -90,7 +90,7 @@ For now, it simply proxies commands to [ginkgo]. Here's how a specific test grou
  - either by invoking `make test SPEC=<regexp>` that runs the test inside a docker container
   - for instance, `make test SPEC=Pods`
  - or by using `planet test` directly:
-  -
+
   ```sh
   planet test
     --tool-dir=path/to/dir/with/runner
