@@ -18,4 +18,5 @@ all: planet-bin
 	make -e ROOTFS=$(ROOTFS) -C $(ASSETS)/makefiles -f shrink-rootfs.mk
 
 planet-bin:
-	go build -o $(ROOTFS)/usr/bin/planet github.com/gravitational/planet/tool/planet
+	# go build -o $(ROOTFS)/usr/bin/planet github.com/gravitational/planet/tool/planet
+	GOOS=linux GOARCH=amd64 go build --ldflags '-extldflags "-static"' -o $(ROOTFS)/usr/bin/planet github.com/gravitational/planet/tool/planet

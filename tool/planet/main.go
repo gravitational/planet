@@ -15,6 +15,7 @@ import (
 	"github.com/gravitational/planet/Godeps/_workspace/src/github.com/opencontainers/runc/libcontainer"
 	"github.com/gravitational/planet/Godeps/_workspace/src/gopkg.in/alecthomas/kingpin.v2"
 	"github.com/gravitational/planet/lib/box"
+	"github.com/gravitational/planet/test/e2e"
 )
 
 func main() {
@@ -61,6 +62,13 @@ func run() error {
 
 		// report status of a running container
 		cstatus = app.Command("status", "Get status of a running container")
+
+		ctest             = app.Command("test", "Run end-to-end test on a running cluster")
+		ctestToolDir      = ctest.Flag("tool-dir", "Directory with test runner / test executable").Required().String()
+		ctestKubeAddr     = HostPort(ctest.Flag("kube-master", "Address of kubernetes master").Required())
+		ctestKubeRepoPath = ctest.Flag("kube-repo", "Path to kubernetes repository").Required().String()
+		ctestKubeConfig   = ctest.Flag("kube-config", "Path to kubeconfig").Required().String()
+		ctestNumNodes     = ctest.Flag("num-nodes", "Number of nodes in the cluster").Default("2").Int()
 	)
 
 	cmd, err := app.Parse(args[1:])
@@ -127,6 +135,21 @@ func run() error {
 			return err
 		}
 		err = status(rootfs)
+
+	// "test" command
+	case ctest.FullCommand():
+		config := &e2e.Config{
+			ToolDir:        *ctestToolDir,
+			KubeMasterAddr: ctestKubeAddr.String(),
+			KubeRepoPath:   *ctestKubeRepoPath,
+			KubeConfig:     *ctestKubeConfig,
+			NumNodes:       *ctestNumNodes,
+		}
+
+		err = e2e.RunTests(config, extraArgs)
+		if err != nil {
+			return err
+		}
 	default:
 		err = trace.Errorf("unsupported command: %v", cmd)
 	}
@@ -150,6 +173,13 @@ func List(s kingpin.Settings) *list {
 	l := new(list)
 	s.SetValue(l)
 	return l
+}
+
+func HostPort(s kingpin.Settings) *hostPort {
+	result := new(hostPort)
+
+	s.SetValue(result)
+	return result
 }
 
 func enterConsole(rootfs, cmd, user string, tty bool, args []string) error {

@@ -11,6 +11,10 @@
 # make dev-start:
 #     starts Planet from build/dev/rootfs/usr/bin/planet
 #
+# make test:
+#     starts Planet in self-test mode
+#     requires `make dev` and `make dev-start`
+#
 # Build Steps
 # -----------
 # The sequence of steps the build process takes:
@@ -111,18 +115,20 @@ buildbox: base
 	$(MAKE) -e BUILDIMAGE=planet/buildbox DOCKERFILE=buildbox.dockerfile make-docker-image
 
 # Builds a "testbox" image used during e2e testing.
-testbox: buildbox
-	@echo -e "\n---> Making Planet/testbox image for e2e testing:\n" ;\
+testbox:
+	@echo -e "\n---> Making planet/testbox image for e2e testing:\n" ;\
 	$(MAKE) -e BUILDIMAGE=planet/testbox DOCKERFILE=testbox.dockerfile make-docker-image
 
 # removes all build aftifacts 
-clean: dev-clean master-clean node-clean
+clean: dev-clean master-clean node-clean test-clean
 dev-clean:
 	$(MAKE) -C $(ASSETS)/makefiles -e TARGET=dev -f buildbox.mk clean
 node-clean:
 	$(MAKE) -C $(ASSETS)/makefiles -e TARGET=node -f buildbox.mk clean
 master-clean:
 	$(MAKE) -C $(ASSETS)/makefiles -e TARGET=master -f buildbox.mk clean
+test-clean:
+	$(MAKE) -C $(ASSETS)/makefiles -e TARGET=dev -f testbox.mk clean
 
 # internal use:
 make-docker-image:
