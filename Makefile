@@ -62,7 +62,7 @@ node: buildbox
 
 # Runs end-to-end tests in the specific environment
 test: testbox
-	$(MAKE) -C $(ASSETS)/makefiles -e TARGET=dev -f test.mk
+	$(MAKE) -C $(ASSETS)/makefiles -e TARGET=dev SPEC=$(SPEC) -f test.mk
 
 # Starts "planet-dev" build. It needs to be built first with "make dev"
 dev-start: prepare-to-run

@@ -5,6 +5,12 @@ TEST_ASSETS:=$(PWD)/test/e2e
 KUBE_HOME:=/gopath/src/github.com/kubernetes/kubernetes
 KUBE_MASTER:=127.0.0.1:8080
 
+ifeq ($(strip $(SPEC)),)
+FOCUS:=Foo
+else
+FOCUS:=$(SPEC)
+endif
+
 .PHONY: all
 
 all: test.mk $(BINARIES)
@@ -23,5 +29,5 @@ all: test.mk $(BINARIES)
 			--kube-master=$(KUBE_MASTER) \
 			--tool-dir=/test/bin \
 			--kube-repo=$(KUBE_HOME) \
-			--kube-config=/test/kubeconfig -- -focus=Network
+			--kube-config=/test/kubeconfig -- -focus=$(FOCUS)
 	@echo -e "\nDone"
