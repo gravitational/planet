@@ -65,6 +65,7 @@ dummy-test: testbox
 	$(MAKE) -C $(ASSETS)/makefiles -e TARGET=dev SPEC=$(SPEC) -f test.mk
 
 # Starts "planet-dev" build and executes a self-test
+# make test SPEC="Networking\|Pods"
 test: prepare-to-run
 	cd $(BUILDDIR)/current && sudo rootfs/usr/bin/planet start\
 		--self-test\

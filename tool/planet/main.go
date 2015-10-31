@@ -105,7 +105,6 @@ func run() error {
 			PODSubnet:          *cstartPODSubnet,
 		}
 		if *cstartSelfTest {
-			log.Infof("start: self-test requested")
 			err = selfTest(config, *cstartTestKubeRepoPath, *cstartTestSpec, extraArgs)
 		} else {
 			err = startAndWait(config)
@@ -154,6 +153,9 @@ func selfTest(config Config, repoDir, spec string, extraArgs []string) error {
 	const idleTimeout = 30 * time.Second
 
 	kubeConfig, err = createKubeConfig()
+	if err != nil {
+		return trace.Wrap(err, "failed to create kubeconfig")
+	}
 	testConfig := &e2e.Config{
 		KubeMasterAddr: config.MasterIP + ":8080", // FIXME: get from configuration
 		KubeRepoPath:   repoDir,
@@ -280,10 +282,12 @@ preferences: {}`)
 
 	f, err = ioutil.TempFile("", "planet")
 	if err != nil {
-		return "", trace.Wrap(err)
+		return "", trace.Wrap(err, "failed to create temp file")
 	}
 
-	f.Write(contents)
+	if _, err = f.Write(contents); err != nil {
+		return "", trace.Wrap(err, "failed to write kubeconfig")
+	}
 	f.Close()
 
 	return f.Name(), nil

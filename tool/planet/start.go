@@ -439,7 +439,7 @@ func monitorUnits(c libcontainer.Container, units []string, monitorc chan<- stru
 		fmt.Printf("\r %v", out.String())
 		if allUp(us) {
 			if monitorc != nil {
-				monitorc <- struct{}{}
+				close(monitorc)
 			}
 			fmt.Printf("\nall units are up\n")
 			return
