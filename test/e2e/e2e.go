@@ -8,8 +8,6 @@ import (
 )
 
 type Config struct {
-	// Directory with test runner and test executable
-	ToolDir        string
 	KubeMasterAddr string
 	KubeRepoPath   string
 	KubeConfig     string
@@ -22,20 +20,23 @@ type Config struct {
 func RunTests(config *Config, extraArgs []string) error {
 	var args []string
 	var cmd *exec.Cmd
+	var binDir string
 	var asset = func(app string) string {
-		return filepath.Join(config.ToolDir, app)
+		return filepath.Join(binDir, app)
 	}
 	var err error
+
+	binDir, _ = filepath.Split(os.Args[0])
 
 	args = append(args, extraArgs...)
 	args = append(args, asset("e2e.test"))
 	args = append(args, "--") // pass arguments to test executable
 	args = append(args, []string{
 		"--provider=planet",
-		fmt.Sprintf("--host=%s", config.KubeMasterAddr),
-		fmt.Sprintf("--num-nodes=%d", config.NumNodes),
-		fmt.Sprintf("--kubeconfig=%s", config.KubeConfig),
-		fmt.Sprintf("--repo-root=%s", config.KubeRepoPath),
+		fmt.Sprintf("-host=%s", config.KubeMasterAddr),
+		fmt.Sprintf("-num-nodes=%d", config.NumNodes),
+		fmt.Sprintf("-kubeconfig=%s", config.KubeConfig),
+		fmt.Sprintf("-repo-root=%s", config.KubeRepoPath),
 	}...)
 	cmd = exec.Command(asset("ginkgo"), args...)
 

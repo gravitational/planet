@@ -61,8 +61,21 @@ node: buildbox
 	$(MAKE) -C $(ASSETS)/makefiles -e TARGET=node -f buildbox.mk
 
 # Runs end-to-end tests in the specific environment
-test: testbox
+dummy-test: testbox
 	$(MAKE) -C $(ASSETS)/makefiles -e TARGET=dev SPEC=$(SPEC) -f test.mk
+
+# Starts "planet-dev" build and executes a self-test
+test: prepare-to-run
+	cd $(BUILDDIR)/current && sudo rootfs/usr/bin/planet start\
+		--self-test\
+		--test-spec=$(SPEC)\
+		--debug\
+		--role=master\
+		--role=node\
+		--volume=/var/planet/etcd:/ext/etcd\
+		--volume=/var/planet/registry:/ext/registry\
+		--volume=/var/planet/docker:/ext/docker\
+		-- -progress -trace -p
 
 # Starts "planet-dev" build. It needs to be built first with "make dev"
 dev-start: prepare-to-run

@@ -34,9 +34,22 @@ type Box struct {
 // times in a row for extra robustness.
 func (b *Box) Close() error {
 	var err error
+	var status libcontainer.Status
+
 	if b.Container != nil {
-		if err = b.Container.Destroy(); err != nil {
-			log.Errorf("box.Close() :%v", err)
+		status, err = b.Container.Status()
+		if err != nil {
+			log.Errorf("unable to check container status: %v", err)
+		}
+		/* // Re-enable when libcontainer's version is bumped
+		if status == libcontainer.Running {
+			b.Container.Signal(syscall.SIGTERM)
+		}
+		*/
+		if status != libcontainer.Checkpointed {
+			if err = b.Container.Destroy(); err != nil {
+				log.Errorf("box.Close() :%v", err)
+			}
 		}
 	}
 	if b.listener != nil {

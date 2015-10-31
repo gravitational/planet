@@ -12,3 +12,6 @@ all: k8s-master.mk
 	install -m 0755 $(TARGETDIR)/kube-controller-manager $(ROOTFS)/usr/bin
 	install -m 0755 $(TARGETDIR)/kube-scheduler $(ROOTFS)/usr/bin
 	install -m 0755 $(TARGETDIR)/kubectl $(ROOTFS)/usr/bin
+	@echo "\n---> Placing e2e binaries to rootfs"
+	install -m 0755 $(TARGETDIR)/e2e.test $(ROOTFS)/usr/bin
+	install -m 0755 $(TARGETDIR)/ginkgo $(ROOTFS)/usr/bin

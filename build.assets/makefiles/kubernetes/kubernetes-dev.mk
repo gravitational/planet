@@ -23,5 +23,5 @@ $(BINARIES):
 	cd $(REPODIR) && git checkout $(VER)
 	$(REPODIR)/hack/build-go.sh
 	cp $(REPODIR)/_output/local/bin/linux/amd64/kube* $(TARGETDIR)/
-	cp $(REPODIR)/_output/local/bin/linux/amd64/ginkgo $(TARGETDIR)/test/
-	cp $(REPODIR)/_output/local/bin/linux/amd64/e2e.test $(TARGETDIR)/test/
+	cp $(REPODIR)/_output/local/bin/linux/amd64/ginkgo $(TARGETDIR)/
+	cp $(REPODIR)/_output/local/bin/linux/amd64/e2e.test $(TARGETDIR)/

@@ -2,11 +2,13 @@ package main
 
 import (
 	"fmt"
+	"io/ioutil"
 	"os"
 	"os/signal"
 	"path/filepath"
 	"runtime"
 	"syscall"
+	"time"
 
 	"github.com/gravitational/planet/Godeps/_workspace/src/github.com/docker/docker/pkg/term"
 	"github.com/gravitational/planet/Godeps/_workspace/src/github.com/gravitational/log"
@@ -50,6 +52,9 @@ func run() error {
 		cstartStateDir           = cstart.Flag("state-dir", "directory where planet-specific state like keys and certificates is stored").Default("/var/planet/state").OverrideDefaultFromEnvar("PLANET_STATE_DIR").String()
 		cstartServiceSubnet      = CIDRFlag(cstart.Flag("service-subnet", "subnet dedicated to the services in cluster").Default("10.100.0.0/16").OverrideDefaultFromEnvar("PLANET_SERVICE_SUBNET"))
 		cstartPODSubnet          = CIDRFlag(cstart.Flag("pod-subnet", "subnet dedicated to the pods in the cluster").Default("10.244.0.0/16").OverrideDefaultFromEnvar("PLANET_POD_SUBNET"))
+		cstartSelfTest           = cstart.Flag("self-test", "Run end-to-end test on started cluster").Bool()
+		cstartTestSpec           = cstart.Flag("test-spec", "Regexp of the test spec to run").String()
+		cstartTestKubeRepoPath   = cstart.Flag("repo-path", "Location of either kubernetes repository or a directory with e2e test configurations").String()
 
 		// stop a running container
 		cstop = app.Command("stop", "Stop planet container")
@@ -62,13 +67,6 @@ func run() error {
 
 		// report status of a running container
 		cstatus = app.Command("status", "Get status of a running container")
-
-		ctest             = app.Command("test", "Run end-to-end test on a running cluster")
-		ctestToolDir      = ctest.Flag("tool-dir", "Directory with test runner / test executable").Required().String()
-		ctestKubeAddr     = HostPort(ctest.Flag("kube-master", "Address of kubernetes master").Required())
-		ctestKubeRepoPath = ctest.Flag("kube-repo", "Path to kubernetes repository").Required().String()
-		ctestKubeConfig   = ctest.Flag("kube-config", "Path to kubeconfig").Required().String()
-		ctestNumNodes     = ctest.Flag("num-nodes", "Number of nodes in the cluster").Default("2").Int()
 	)
 
 	cmd, err := app.Parse(args[1:])
@@ -89,10 +87,10 @@ func run() error {
 	case cstart.FullCommand():
 		rootfs, err = findRootfs()
 		if err != nil {
-			return err
+			break
 		}
 		setupSignalHanlders(rootfs)
-		err = start(Config{
+		config := Config{
 			Rootfs:             rootfs,
 			Env:                *cstartEnv,
 			Mounts:             *cstartMounts,
@@ -105,7 +103,13 @@ func run() error {
 			StateDir:           *cstartStateDir,
 			ServiceSubnet:      *cstartServiceSubnet,
 			PODSubnet:          *cstartPODSubnet,
-		})
+		}
+		if *cstartSelfTest {
+			log.Infof("start: self-test requested")
+			err = selfTest(config, *cstartTestKubeRepoPath, *cstartTestSpec, extraArgs)
+		} else {
+			err = startAndWait(config)
+		}
 
 	// "init" command
 	case cinit.FullCommand():
@@ -115,7 +119,7 @@ func run() error {
 	case center.FullCommand():
 		rootfs, err = findRootfs()
 		if err != nil {
-			return err
+			break
 		}
 		err = enterConsole(
 			rootfs, *centerArgs, *centerUser, !*centerNoTTY, extraArgs)
@@ -124,7 +128,7 @@ func run() error {
 	case cstop.FullCommand():
 		rootfs, err = findRootfs()
 		if err != nil {
-			return err
+			break
 		}
 		err = stop(rootfs)
 
@@ -132,26 +136,47 @@ func run() error {
 	case cstatus.FullCommand():
 		rootfs, err = findRootfs()
 		if err != nil {
-			return err
+			break
 		}
 		err = status(rootfs)
 
-	// "test" command
-	case ctest.FullCommand():
-		config := &e2e.Config{
-			ToolDir:        *ctestToolDir,
-			KubeMasterAddr: ctestKubeAddr.String(),
-			KubeRepoPath:   *ctestKubeRepoPath,
-			KubeConfig:     *ctestKubeConfig,
-			NumNodes:       *ctestNumNodes,
-		}
-
-		err = e2e.RunTests(config, extraArgs)
-		if err != nil {
-			return err
-		}
 	default:
 		err = trace.Errorf("unsupported command: %v", cmd)
+	}
+
+	return err
+}
+
+func selfTest(config Config, repoDir, spec string, extraArgs []string) error {
+	var kubeConfig string
+	var process *box.Box
+	var err error
+	const idleTimeout = 30 * time.Second
+
+	kubeConfig, err = createKubeConfig()
+	testConfig := &e2e.Config{
+		KubeMasterAddr: config.MasterIP + ":8080", // FIXME: get from configuration
+		KubeRepoPath:   repoDir,
+		KubeConfig:     kubeConfig,
+		NumNodes:       -1,
+	}
+
+	monitorc := make(chan struct{}, 1)
+	process, err = start(config, monitorc)
+	if err == nil {
+		select {
+		case <-monitorc:
+			if spec != "" {
+				log.Infof("Testing: %s", spec)
+				// FIXME: if the spec is multiple words, it will need quoting
+				extraArgs = append(extraArgs, fmt.Sprintf("-focus=%s", spec))
+			}
+			err = e2e.RunTests(testConfig, extraArgs)
+		case <-time.After(idleTimeout):
+			err = trace.Wrap(fmt.Errorf("timed out waiting for units to come up"))
+		}
+		stop(config.Rootfs)
+		process.Close()
 	}
 
 	return err
@@ -209,7 +234,7 @@ func initLibcontainer() error {
 	if err := factory.StartInitialization(); err != nil {
 		log.Fatalf("error: %v", err)
 	}
-	return trace.Errorf("this line should have never been executed")
+	return trace.Errorf("not reached")
 }
 
 func findRootfs() (string, error) {
@@ -244,4 +269,22 @@ func setupSignalHanlders(rootfs string) {
 		}
 	}()
 	signal.Notify(c, os.Interrupt, os.Kill, syscall.SIGTERM)
+}
+
+func createKubeConfig() (string, error) {
+	contents := []byte(`apiVersion: v1
+kind: Config
+preferences: {}`)
+	var f *os.File
+	var err error
+
+	f, err = ioutil.TempFile("", "planet")
+	if err != nil {
+		return "", trace.Wrap(err)
+	}
+
+	f.Write(contents)
+	f.Close()
+
+	return f.Name(), nil
 }
