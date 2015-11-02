@@ -40,7 +40,7 @@ func startAndWait(config Config) error {
 	return nil
 }
 
-func start(conf Config, monitorc chan<- struct{}) (*box.Box, error) {
+func start(conf Config, monitorc chan<- bool) (*box.Box, error) {
 	log.Infof("starting with config: %#v", conf)
 
 	if !isRoot() {
@@ -412,7 +412,11 @@ func appendUnique(a, b []string) []string {
 	return a
 }
 
-func monitorUnits(c libcontainer.Container, units []string, monitorc chan<- struct{}) {
+func monitorUnits(c libcontainer.Container, units []string, monitorc chan<- bool) {
+	if monitorc != nil {
+		defer close(monitorc)
+	}
+
 	us := make(map[string]string, len(units))
 	for _, u := range units {
 		us[u] = ""
@@ -439,7 +443,7 @@ func monitorUnits(c libcontainer.Container, units []string, monitorc chan<- stru
 		fmt.Printf("\r %v", out.String())
 		if allUp(us) {
 			if monitorc != nil {
-				close(monitorc)
+				monitorc <- true
 			}
 			fmt.Printf("\nall units are up\n")
 			return

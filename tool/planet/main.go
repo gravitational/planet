@@ -52,9 +52,9 @@ func run() error {
 		cstartStateDir           = cstart.Flag("state-dir", "directory where planet-specific state like keys and certificates is stored").Default("/var/planet/state").OverrideDefaultFromEnvar("PLANET_STATE_DIR").String()
 		cstartServiceSubnet      = CIDRFlag(cstart.Flag("service-subnet", "subnet dedicated to the services in cluster").Default("10.100.0.0/16").OverrideDefaultFromEnvar("PLANET_SERVICE_SUBNET"))
 		cstartPODSubnet          = CIDRFlag(cstart.Flag("pod-subnet", "subnet dedicated to the pods in the cluster").Default("10.244.0.0/16").OverrideDefaultFromEnvar("PLANET_POD_SUBNET"))
-		cstartSelfTest           = cstart.Flag("self-test", "Run end-to-end test on started cluster").Bool()
-		cstartTestSpec           = cstart.Flag("test-spec", "Regexp of the test spec to run").String()
-		cstartTestKubeRepoPath   = cstart.Flag("repo-path", "Location of either kubernetes repository or a directory with e2e test configurations").String()
+		cstartSelfTest           = cstart.Flag("self-test", "Run end-to-end tests on the started cluster").Bool()
+		cstartTestSpec           = cstart.Flag("test-spec", "Regexp of the test specs to run (self-test mode only)").Default("Networking|Pods").String()
+		cstartTestKubeRepoPath   = cstart.Flag("repo-path", "Path to either a k8s repository or a directory with test configuration files (self-test mode only)").String()
 
 		// stop a running container
 		cstop = app.Command("stop", "Stop planet container")
@@ -67,6 +67,13 @@ func run() error {
 
 		// report status of a running container
 		cstatus = app.Command("status", "Get status of a running container")
+
+		// test command
+		ctest             = app.Command("test", "Run end-to-end tests on a running cluster")
+		ctestKubeAddr     = HostPort(ctest.Flag("kube-master", "Address of kubernetes master").Required())
+		ctestKubeRepoPath = ctest.Flag("kube-repo", "Path to a kubernetes repository").Required().String()
+		ctestKubeConfig   = ctest.Flag("kube-config", "Path to kubeconfig").Required().String()
+		ctestNumNodes     = ctest.Flag("num-nodes", "Number of nodes in the cluster").Default("2").Int()
 	)
 
 	cmd, err := app.Parse(args[1:])
@@ -139,6 +146,20 @@ func run() error {
 		}
 		err = status(rootfs)
 
+	// "test" command
+	case ctest.FullCommand():
+		config := &e2e.Config{
+			KubeMasterAddr: ctestKubeAddr.String(),
+			KubeRepoPath:   *ctestKubeRepoPath,
+			KubeConfig:     *ctestKubeConfig,
+			NumNodes:       *ctestNumNodes,
+		}
+
+		err = e2e.RunTests(config, extraArgs)
+		if err != nil {
+			return err
+		}
+
 	default:
 		err = trace.Errorf("unsupported command: %v", cmd)
 	}
@@ -163,15 +184,18 @@ func selfTest(config Config, repoDir, spec string, extraArgs []string) error {
 		NumNodes:       -1,
 	}
 
-	monitorc := make(chan struct{}, 1)
+	monitorc := make(chan bool, 1)
 	process, err = start(config, monitorc)
 	if err == nil {
 		select {
-		case <-monitorc:
-			if spec != "" {
-				log.Infof("Testing: %s", spec)
-				// FIXME: if the spec is multiple words, it will need quoting
-				extraArgs = append(extraArgs, fmt.Sprintf("-focus=%s", spec))
+		case clusterUp := <-monitorc:
+			if clusterUp {
+				if spec != "" {
+					log.Infof("Testing: %s", spec)
+					extraArgs = append(extraArgs, fmt.Sprintf("-focus=%s", spec))
+				}
+			} else {
+				err = trace.Wrap(fmt.Errorf("cannot start testing: cluster not running"))
 			}
 			err = e2e.RunTests(testConfig, extraArgs)
 		case <-time.After(idleTimeout):

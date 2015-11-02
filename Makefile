@@ -37,6 +37,7 @@ ASSETS := $(PWD)/build.assets
 BUILDDIR ?= $(PWD)/build
 BUILDDIR := $(shell realpath $(BUILDDIR))
 PLANETVER:=0.01
+KUBE_VER := e3188f6ee7007000c5daf525c8cc32b4c5bf4ba8
 export
 
 # 'make build' compiles GO portion of Planet, meant for quick & iterative 
@@ -61,12 +62,12 @@ node: buildbox
 	$(MAKE) -C $(ASSETS)/makefiles -e TARGET=node -f buildbox.mk
 
 # Runs end-to-end tests in the specific environment
-dummy-test: testbox
-	$(MAKE) -C $(ASSETS)/makefiles -e TARGET=dev SPEC=$(SPEC) -f test.mk
+test: buildbox testbox prepare-to-run
+	$(MAKE) -C $(ASSETS)/makefiles -e TARGET=dev TEST_FOCUS=$(SPEC) -f test.mk
 
 # Starts "planet-dev" build and executes a self-test
 # make test SPEC="Networking\|Pods"
-test: prepare-to-run
+dev-test: dev prepare-to-run
 	cd $(BUILDDIR)/current && sudo rootfs/usr/bin/planet start\
 		--self-test\
 		--test-spec=$(SPEC)\
@@ -76,10 +77,10 @@ test: prepare-to-run
 		--volume=/var/planet/etcd:/ext/etcd\
 		--volume=/var/planet/registry:/ext/registry\
 		--volume=/var/planet/docker:/ext/docker\
-		-- -progress -trace -p
+		-- -progress -trace -p -noisyPendings=false -stream -failFast=true
 
 # Starts "planet-dev" build. It needs to be built first with "make dev"
-dev-start: prepare-to-run
+dev-start: dev prepare-to-run
 	cd $(BUILDDIR)/current && sudo rootfs/usr/bin/planet start\
 		--debug\
 		--role=master\

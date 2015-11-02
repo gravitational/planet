@@ -19,9 +19,8 @@ all: $(ROOTFS)/bin/bash
 		--env="ASSETS=/assets" \
 		--env="ROOTFS=/rootfs" \
 		--env="TARGETDIR=/targetdir" \
-		--env="TARGET=$(TARGET)" \
 		planet/buildbox \
-		make -f assets/makefiles/$(TARGET)-docker.mk
+		make -e KUBE_VER=$(KUBE_VER) -f assets/makefiles/$(TARGET)-docker.mk
 	cp $(ASSETS)/orbit.manifest.json $(TARGETDIR)
 	@echo -e "\n---> Moving currnet symlink to $(TARGETDIR)\n"
 	@rm -f $(BUILDDIR)/current
