@@ -41,11 +41,6 @@ func (b *Box) Close() error {
 		if err != nil {
 			log.Errorf("unable to check container status: %v", err)
 		}
-		/* // Re-enable when libcontainer's version is bumped
-		if status == libcontainer.Running {
-			b.Container.Signal(syscall.SIGTERM)
-		}
-		*/
 		if status != libcontainer.Checkpointed {
 			if err = b.Container.Destroy(); err != nil {
 				log.Errorf("box.Close() :%v", err)

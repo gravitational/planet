@@ -194,10 +194,10 @@ func selfTest(config Config, repoDir, spec string, extraArgs []string) error {
 					log.Infof("Testing: %s", spec)
 					extraArgs = append(extraArgs, fmt.Sprintf("-focus=%s", spec))
 				}
+				err = e2e.RunTests(testConfig, extraArgs)
 			} else {
 				err = trace.Wrap(fmt.Errorf("cannot start testing: cluster not running"))
 			}
-			err = e2e.RunTests(testConfig, extraArgs)
 		case <-time.After(idleTimeout):
 			err = trace.Wrap(fmt.Errorf("timed out waiting for units to come up"))
 		}

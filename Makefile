@@ -77,7 +77,7 @@ dev-test: dev prepare-to-run
 		--volume=/var/planet/etcd:/ext/etcd\
 		--volume=/var/planet/registry:/ext/registry\
 		--volume=/var/planet/docker:/ext/docker\
-		-- -progress -trace -p -noisyPendings=false -stream -failFast=true
+		-- -progress -trace -p -noisyPendings=false -failFast=true
 
 # Starts "planet-dev" build. It needs to be built first with "make dev"
 dev-start: dev prepare-to-run
