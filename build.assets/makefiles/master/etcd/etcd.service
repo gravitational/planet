@@ -1,14 +1,15 @@
 [Unit]
 Description=Etcd Service
-After=setup-network-environment.service
+#FIXME: remove me
+#After=setup-network-environment.service
 
 [Service]
 TimeoutStartSec=0
-EnvironmentFile=/etc/network-environment
+EnvironmentFile=/etc/container-environment
 ExecStart=/usr/bin/etcd \
           --data-dir=/ext/etcd\
           --listen-client-urls http://0.0.0.0:2379,http://0.0.0.0:4001\
-          --advertise-client-urls http://${DEFAULT_IPV4}:2379,http://${DEFAULT_IPV4}:4001\
-          --listen-peer-urls http://${DEFAULT_IPV4}:2380,http://${DEFAULT_IPV4}:7001
+          --advertise-client-urls http://${PRIVATE_IP}:2379,http://${PRIVATE_IP}:4001\
+          --listen-peer-urls http://${PRIVATE_IP}:2380,http://${PRIVATE_IP}:7001
 User=planet
 Group=planet

@@ -80,6 +80,7 @@ func start(conf Config) (err error) {
 		box.EnvPair{Name: "KUBE_CLOUD_PROVIDER", Val: conf.CloudProvider},
 		box.EnvPair{Name: "KUBE_SERVICE_SUBNET", Val: conf.ServiceSubnet.String()},
 		box.EnvPair{Name: "KUBE_POD_SUBNET", Val: conf.PODSubnet.String()},
+		box.EnvPair{Name: "PRIVATE_IP", Val: conf.PrivateIP},
 	)
 
 	// Always trust local registry (for now)
@@ -469,7 +470,7 @@ func getStatus(c libcontainer.Container, unit string) (string, error) {
 func atoi(s string) int {
 	i, err := strconv.ParseInt(s, 0, 0)
 	if err != nil {
-		panic(fmt.Errorf("atoi('%v') failed", s, err))
+		panic(fmt.Errorf("`%v`: bad number (%v)", s, err))
 	}
 	return int(i)
 }

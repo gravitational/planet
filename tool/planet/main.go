@@ -2,6 +2,7 @@ package main
 
 import (
 	"fmt"
+	"net"
 	"os"
 	"os/signal"
 	"path/filepath"
@@ -38,7 +39,8 @@ func run() error {
 		// start the container with planet
 		cstart = app.Command("start", "Start Planet container")
 
-		cstartMasterIP           = cstart.Flag("master-ip", "ip of the master pod").Default("127.0.0.1").OverrideDefaultFromEnvar("PLANET_MASTER_IP").IP()
+		cstartPrivateIP          = cstart.Flag("private-ip", "IP to use for discovery").OverrideDefaultFromEnvar("PLANET_PRIVATE_IP").Required().IP()
+		cstartMasterIP           = cstart.Flag("master-ip", "IP of the master POD (defaults to private-ip)").OverrideDefaultFromEnvar("PLANET_MASTER_IP").IP()
 		cstartCloudProvider      = cstart.Flag("cloud-provider", "cloud provider name, e.g. 'aws' or 'gce'").OverrideDefaultFromEnvar("PLANET_CLOUD_PROVIDER").String()
 		cstartClusterID          = cstart.Flag("cluster-id", "id of the cluster").OverrideDefaultFromEnvar("PLANET_CLUSTER_ID").String()
 		cstartIgnoreChecks       = cstart.Flag("ignore-checks", "Force start ignoring some failed host checks (e.g. kernel version)").OverrideDefaultFromEnvar("PLANET_FORCE").Bool()
@@ -68,6 +70,11 @@ func run() error {
 		return err
 	}
 
+	if cstartMasterIP == nil {
+		cstartMasterIP = new(net.IP)
+		copy(*cstartMasterIP, *cstartPrivateIP)
+	}
+
 	if *debug == true {
 		log.Initialize("console", "INFO")
 	} else {
@@ -92,6 +99,7 @@ func run() error {
 			Roles:              *cstartRoles,
 			InsecureRegistries: *cstartInsecureRegistries,
 			MasterIP:           cstartMasterIP.String(),
+			PrivateIP:          cstartPrivateIP.String(),
 			CloudProvider:      *cstartCloudProvider,
 			ClusterID:          *cstartClusterID,
 			StateDir:           *cstartStateDir,
