@@ -2,7 +2,6 @@ package main
 
 import (
 	"fmt"
-	"net"
 	"os"
 	"os/signal"
 	"path/filepath"
@@ -70,9 +69,8 @@ func run() error {
 		return err
 	}
 
-	if cstartMasterIP == nil {
-		cstartMasterIP = new(net.IP)
-		copy(*cstartMasterIP, *cstartPrivateIP)
+	if len(*cstartMasterIP) == 0 {
+		*cstartMasterIP = append(*cstartMasterIP, *cstartPrivateIP...)
 	}
 
 	if *debug == true {

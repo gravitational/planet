@@ -16,5 +16,5 @@ ExecStartPre=/bin/mkdir -p /run/flannel
 ExecStartPre=/usr/bin/touch /run/flannel/options.env
 ExecStartPre=/usr/bin/scripts/wait-for-etcd.sh
 ExecStartPre=/usr/bin/etcdctl --peers ${KUBE_MASTER_IP}:4001 set /coreos.com/network/config '{"Network":"${KUBE_POD_SUBNET}", "Backend": {"Type": "${FLANNEL_BACKEND}"}}'
-ExecStart=/usr/bin/flanneld --ip-masq=true --etcd-endpoints http://${KUBE_MASTER_IP}:4001,http://${KUBE_MASTER_IP}:2379
+ExecStart=/usr/bin/flanneld --ip-masq=true --etcd-endpoints http://${KUBE_MASTER_IP}:4001,http://${KUBE_MASTER_IP}:2379 --iface=${PRIVATE_IP}
 ExecStartPost=-/bin/bash -c "until [ -e /run/flannel/subnet.env ]; do echo \"waiting for write.\"; sleep 3; done"
