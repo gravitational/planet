@@ -1,17 +1,15 @@
 [Unit]
 Description=Kubernetes Kubelet
 Documentation=https://github.com/GoogleCloudPlatform/kubernetes
-#Requires=setup-network-environment.service docker.service
 Requires=docker.service
 After=docker.service
 
 [Service]
 EnvironmentFile=/etc/container-environment
-#EnvironmentFile=/etc/network-environment
 ExecStart=/usr/bin/kubelet \
         --address=0.0.0.0 \
         --port=10250 \
-        --hostname_override=${PRIVATE_IP} \
+        --hostname_override=${PLANET_PUBLIC_IP} \
         --api_servers=${KUBE_MASTER_IP}:8080 \
         --allow_privileged=true \
         --logtostderr=true \
