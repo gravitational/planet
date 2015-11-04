@@ -1,14 +1,11 @@
 [Unit]
 Description=Kubernetes API Server
 Documentation=https://github.com/GoogleCloudPlatform/kubernetes
-#Requires=setup-network-environment.service etcd.service
 Requires=etcd.service
-#After=setup-network-environment.service etcd.service
 After=etcd.service
 
 [Service]
 EnvironmentFile=/etc/container-environment
-EnvironmentFile=/etc/network-environment
 ExecStartPre=/usr/bin/scripts/wait-for-etcd.sh
 ExecStart=/usr/bin/kube-apiserver \
         --service-account-key-file=/var/state/apiserver.key \
@@ -23,8 +20,8 @@ ExecStart=/usr/bin/kube-apiserver \
         --kubelet-https=true \
         --secure-port=6443 \
         --service-cluster-ip-range=${KUBE_SERVICE_SUBNET} \
-        --etcd-servers=http://${PRIVATE_IP}:2379 \
-        --public-address-override=${PRIVATE_IP} \
+        --etcd-servers=http://${PLANET_PUBLIC_IP}:2379 \
+        --public-address-override=${PLANET_PUBLIC_IP} \
         --logtostderr=true
 Restart=always
 RestartSec=10

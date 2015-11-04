@@ -80,7 +80,7 @@ func start(conf Config) (err error) {
 		box.EnvPair{Name: "KUBE_CLOUD_PROVIDER", Val: conf.CloudProvider},
 		box.EnvPair{Name: "KUBE_SERVICE_SUBNET", Val: conf.ServiceSubnet.String()},
 		box.EnvPair{Name: "KUBE_POD_SUBNET", Val: conf.PODSubnet.String()},
-		box.EnvPair{Name: "PRIVATE_IP", Val: conf.PrivateIP},
+		box.EnvPair{Name: "PLANET_PUBLIC_IP", Val: conf.PublicIP},
 	)
 
 	// Always trust local registry (for now)
