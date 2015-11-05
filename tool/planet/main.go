@@ -71,7 +71,7 @@ func run() error {
 	}
 
 	if emptyIP(cstartMasterIP) {
-		*cstartMasterIP = append(*cstartMasterIP, *cstartPublicIP...)
+		cstartMasterIP = cstartPublicIP
 	}
 
 	if *debug == true {
