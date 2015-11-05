@@ -2,6 +2,7 @@ package main
 
 import (
 	"fmt"
+	"net"
 	"os"
 	"os/signal"
 	"path/filepath"
@@ -38,7 +39,8 @@ func run() error {
 		// start the container with planet
 		cstart = app.Command("start", "Start Planet container")
 
-		cstartMasterIP           = cstart.Flag("master-ip", "ip of the master pod").Default("127.0.0.1").OverrideDefaultFromEnvar("PLANET_MASTER_IP").IP()
+		cstartPublicIP           = cstart.Flag("public-ip", "IP accessible by other nodes for inter-host communication").OverrideDefaultFromEnvar("PLANET_PUBLIC_IP").Required().IP()
+		cstartMasterIP           = cstart.Flag("master-ip", "IP of the master POD (defaults to public-ip)").OverrideDefaultFromEnvar("PLANET_MASTER_IP").IP()
 		cstartCloudProvider      = cstart.Flag("cloud-provider", "cloud provider name, e.g. 'aws' or 'gce'").OverrideDefaultFromEnvar("PLANET_CLOUD_PROVIDER").String()
 		cstartClusterID          = cstart.Flag("cluster-id", "id of the cluster").OverrideDefaultFromEnvar("PLANET_CLUSTER_ID").String()
 		cstartIgnoreChecks       = cstart.Flag("ignore-checks", "Force start ignoring some failed host checks (e.g. kernel version)").OverrideDefaultFromEnvar("PLANET_FORCE").Bool()
@@ -68,6 +70,10 @@ func run() error {
 		return err
 	}
 
+	if emptyIP(cstartMasterIP) {
+		*cstartMasterIP = append(*cstartMasterIP, *cstartPublicIP...)
+	}
+
 	if *debug == true {
 		log.Initialize("console", "INFO")
 	} else {
@@ -92,6 +98,7 @@ func run() error {
 			Roles:              *cstartRoles,
 			InsecureRegistries: *cstartInsecureRegistries,
 			MasterIP:           cstartMasterIP.String(),
+			PublicIP:           cstartPublicIP.String(),
 			CloudProvider:      *cstartCloudProvider,
 			ClusterID:          *cstartClusterID,
 			StateDir:           *cstartStateDir,
@@ -214,4 +221,8 @@ func setupSignalHanlders(rootfs string) {
 		}
 	}()
 	signal.Notify(c, os.Interrupt, os.Kill, syscall.SIGTERM)
+}
+
+func emptyIP(addr *net.IP) bool {
+	return len(*addr) == 0
 }
