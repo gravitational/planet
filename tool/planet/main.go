@@ -71,9 +71,8 @@ func run() error {
 		// test command
 		ctest             = app.Command("test", "Run end-to-end tests on a running cluster")
 		ctestKubeAddr     = HostPort(ctest.Flag("kube-master", "Address of kubernetes master").Required())
-		ctestKubeRepoPath = ctest.Flag("kube-repo", "Path to a kubernetes repository").Required().String()
-		ctestKubeConfig   = ctest.Flag("kube-config", "Path to kubeconfig").Required().String()
-		ctestNumNodes     = ctest.Flag("num-nodes", "Number of nodes in the cluster").Default("2").Int()
+		ctestKubeRepoPath = ctest.Flag("kube-repo", "Path to a kubernetes repository").String()
+		ctestAssetPath    = ctest.Flag("asset-dir", "Path to test executables and data files").String()
 	)
 
 	cmd, err := app.Parse(args[1:])
@@ -151,8 +150,7 @@ func run() error {
 		config := &e2e.Config{
 			KubeMasterAddr: ctestKubeAddr.String(),
 			KubeRepoPath:   *ctestKubeRepoPath,
-			KubeConfig:     *ctestKubeConfig,
-			NumNodes:       *ctestNumNodes,
+			AssetDir:       *ctestAssetPath,
 		}
 
 		err = e2e.RunTests(config, extraArgs)
@@ -168,20 +166,13 @@ func run() error {
 }
 
 func selfTest(config Config, repoDir, spec string, extraArgs []string) error {
-	var kubeConfig string
 	var process *box.Box
 	var err error
 	const idleTimeout = 30 * time.Second
 
-	kubeConfig, err = createKubeConfig()
-	if err != nil {
-		return trace.Wrap(err, "failed to create kubeconfig")
-	}
 	testConfig := &e2e.Config{
 		KubeMasterAddr: config.MasterIP + ":8080", // FIXME: get from configuration
 		KubeRepoPath:   repoDir,
-		KubeConfig:     kubeConfig,
-		NumNodes:       -1,
 	}
 
 	monitorc := make(chan bool, 1)
