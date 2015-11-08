@@ -1,6 +1,6 @@
 .PHONY: all
 
-VER := e3188f6ee7007000c5daf525c8cc32b4c5bf4ba8
+VER := v1.0.7
 BINARIES := $(TARGETDIR)/kube-apiserver $(TARGETDIR)/kube-controller-manager $(TARGETDIR)/kube-scheduler $(TARGETDIR)/kubectl $(TARGETDIR)/kube-proxy $(TARGETDIR)/kubelet
 
 all: kubernetes.mk $(BINARIES)
