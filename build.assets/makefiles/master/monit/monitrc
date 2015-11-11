@@ -1,0 +1,17 @@
+set daemon  120
+  with start delay 240
+set logfile syslog facility log_daemon
+set idfile /var/run/monit.id
+set pidfile /var/run/monit.pid
+set statefile /var/run/monit.state
+set httpd unixsocket /var/run/monit.sock  # Run httpd on unixsocket
+# SSL ENABLE
+# PEMFILE /etc/ssl/certs/monit.pem
+# allow monit:admin
+# allow localhost
+
+set eventqueue
+    basedir /var/lib/monit/events
+    slots 100
+
+include /var/run/monit/init/*.conf
