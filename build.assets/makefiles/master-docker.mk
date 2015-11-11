@@ -13,6 +13,7 @@ all: planet-bin
 # master-image specific:
 	make -C $(ASSETS)/makefiles/master/etcd -f etcd.mk
 	make -C $(ASSETS)/makefiles/master/k8s-master -f k8s-master.mk
+	make -C $(ASSETS)/makefiles/master/monit -f monit.mk
 # shrink rootfs:
 	make -e ROOTFS=$(ROOTFS) -C $(ASSETS)/makefiles -f shrink-rootfs.mk
 

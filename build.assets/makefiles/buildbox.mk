@@ -23,7 +23,7 @@ all: $(ROOTFS)/bin/bash
 		planet/buildbox \
 		make -f assets/makefiles/$(TARGET)-docker.mk
 	cp $(ASSETS)/orbit.manifest.json $(TARGETDIR)
-	@echo -e "\\n---> Moving currnet symlink to $(TARGETDIR)\\n"
+	@echo -e "\\n---> Moving current symlink to $(TARGETDIR)\\n"
 	@rm -f $(BUILDDIR)/current
 	@cd $(BUILDDIR) && ln -fs $(TARGET) $(BUILDDIR)/current
 	@echo -e "\\n---> Creating Planet image...\\n"
