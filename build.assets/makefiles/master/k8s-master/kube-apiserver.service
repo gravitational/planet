@@ -5,10 +5,9 @@ Requires=etcd.service
 After=etcd.service
 
 [Service]
-PIDFile=/var/run/kubernetes/apiserver.pid
 EnvironmentFile=/etc/container-environment
 ExecStartPre=/usr/bin/scripts/wait-for-etcd.sh
-ExecStart=/sbin/start-stop-daemon --start --oknodo --make-pidfile --pidfile /var/run/kubernetes/apiserver.pid --exec /usr/bin/kube-apiserver -- \
+ExecStart=/usr/bin/kube-apiserver \
         --service-account-key-file=/var/state/apiserver.key \
         --service-account-lookup=false \
         --admission-control=NamespaceLifecycle,NamespaceAutoProvision,LimitRanger,SecurityContextDeny,ServiceAccount,ResourceQuota \
