@@ -63,6 +63,10 @@ func run() error {
 
 		// report status of a running container
 		cstatus = app.Command("status", "Get status of a running container")
+
+		calert       = app.Command("alert", "Write an alert to status file")
+		calertModule = calert.Flag("module", "Specify the name of the module for alert").String()
+		calertReason = calert.Flag("reason", "Specify the alert reason").String()
 	)
 
 	cmd, err := app.Parse(args[1:])
@@ -134,6 +138,11 @@ func run() error {
 			return err
 		}
 		err = status(rootfs)
+
+	// "alert" command
+	case calert.FullCommand():
+		err = alert(*calertModule, *calertReason)
+
 	default:
 		err = trace.Errorf("unsupported command: %v", cmd)
 	}
