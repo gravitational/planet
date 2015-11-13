@@ -9,7 +9,7 @@ import (
 	"path/filepath"
 	"text/template"
 
-	"github.com/gravitational/trace"
+	"github.com/gravitational/planet/Godeps/_workspace/src/github.com/gravitational/trace"
 )
 
 type Config struct {
