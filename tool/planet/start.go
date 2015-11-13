@@ -67,6 +67,9 @@ func start(conf Config) (err error) {
 		if err := checkMasterMounts(&conf); err != nil {
 			return trace.Wrap(err)
 		}
+		if err := configureMonitrcPermissions(conf.Rootfs); err != nil {
+			return trace.Wrap(err)
+		}
 	}
 
 	if conf.hasRole("node") {
@@ -322,6 +325,34 @@ func checkMasterMounts(cfg *Config) error {
 				"please supply mount source for data directory '%v'", k)
 		}
 	}
+	return nil
+}
+
+// configureMonitrcPermissions sets up proper file permissions on monit configuration file.
+// monit places the following requirements on monitrc:
+//  * it needs to be owned by the user used to spawn monit process (root)
+//  * it requires 0700 permissions mask (u=rwx, go-rwx)
+func configureMonitrcPermissions(rootfs string) error {
+	const (
+		monitrc = "/lib/monit/init/monitrc" // FIXME: this needs to be configurable
+		rootUid = 0
+		rootGid = 0
+		rwxMask = 0700
+	)
+	var err error
+	var rcpath string
+
+	rcpath = filepath.Join(rootfs, monitrc)
+	log.Infof("configuring permissions for `%s`", rcpath)
+	err = os.Chmod(rcpath, rwxMask)
+	if err != nil {
+		return trace.Wrap(err)
+	}
+	err = os.Chown(rcpath, rootUid, rootGid)
+	if err != nil {
+		return trace.Wrap(err)
+	}
+
 	return nil
 }
 
