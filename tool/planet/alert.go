@@ -39,6 +39,7 @@ func alert(module, reason string) error {
 	if err != nil {
 		return trace.Wrap(err)
 	}
+	message = append(message, '\n')
 
 	log.Infof(item.String())
 	_, err = f.Write(message)

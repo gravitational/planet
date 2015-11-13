@@ -3,6 +3,7 @@ package main
 import (
 	"bytes"
 	"encoding/json"
+	"io"
 	"os"
 	"strings"
 
@@ -46,44 +47,87 @@ func stop(path string) error {
 	return enter(path, cfg)
 }
 
-// status checks status of all units to see if there are any failed units
+// status checks status of the running planet cluster and outputs results as
+// JSON to stdout.
 func status(rootfs string) error {
-	out := &bytes.Buffer{}
-	log.Infof("status: %v", rootfs)
-	cfg := box.ProcessConfig{
-		User: "root",
-		Args: []string{"/bin/systemctl", "--failed"},
-		In:   os.Stdin,
-		Out:  out,
+	var (
+		err    error
+		result bytes.Buffer
+	)
+
+	log.Infof("checking status in %s", rootfs)
+	err = checkSystemdStatus(rootfs, &result)
+	if err != nil {
+		return trace.Wrap(err, "failed to check systemd status")
 	}
 
-	var s pkg.Status
-	err := enter(rootfs, cfg)
+	err = checkAlerts(rootfs, &result)
+	if err != nil {
+		return trace.Wrap(err, "failed to check alerts")
+	}
+
+	if _, err := os.Stdout.Write(result.Bytes()); err != nil {
+		return trace.Wrap(err, "failed to output status")
+	}
+
+	return nil
+}
+
+func checkSystemdStatus(rootfs string, result io.Writer) error {
+	var (
+		err    error
+		output bytes.Buffer
+		cfg    = box.ProcessConfig{
+			User: "root",
+			Args: []string{"/bin/systemctl", "--failed"},
+			In:   os.Stdin,
+			Out:  &output,
+		}
+		s      pkg.Status
+		stdout string
+	)
+
+	err = enter(rootfs, cfg)
 	if err != nil {
 		if box.IsConnectError(err) {
 			s.Status = pkg.StatusStopped
 		} else {
-			return err
+			return trace.Wrap(err)
 		}
 	} else {
-		d := out.String()
-		if !strings.Contains(d, "0 loaded units listed") {
+		stdout = output.String()
+		s.Info = stdout
+		// FIXME: avoid false positives with failures >= 10
+		if !strings.Contains(stdout, "0 loaded units listed") {
 			s.Status = pkg.StatusDegraded
-			s.Info = d
 		} else {
 			s.Status = pkg.StatusRunning
-			s.Info = d
 		}
 	}
 
-	bytes, err := json.Marshal(s)
-	if err != nil {
+	enc := json.NewEncoder(result)
+	if err = enc.Encode(s); err != nil {
 		return trace.Wrap(err, "failed to serialize status")
 	}
 
-	if _, err := os.Stdout.Write(bytes); err != nil {
-		return trace.Wrap(err, "failed to output status")
-	}
+	return nil
+}
 
+func checkAlerts(rootfs string, result io.Writer) error {
+	var (
+		err    error
+		output bytes.Buffer
+		cfg    = box.ProcessConfig{
+			User: "root",
+			Args: []string{"cat", alertsFile},
+			In:   os.Stdin,
+			Out:  &output,
+		}
+	)
+
+	err = enter(rootfs, cfg)
+	if err != nil && !box.IsConnectError(err) {
+		return trace.Wrap(err)
+	}
 	return nil
 }
