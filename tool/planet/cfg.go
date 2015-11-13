@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"net"
 	"os/user"
+	"strconv"
 
 	"github.com/gravitational/planet/lib/box"
 
@@ -96,4 +97,26 @@ func IncIP(ip net.IP) net.IP {
 		}
 	}
 	return ip
+}
+
+type hostPort struct {
+	host string
+	port int64
+}
+
+func (r *hostPort) Set(value string) error {
+	var err error
+	var port string
+
+	r.host, port, err = net.SplitHostPort(value)
+	if err != nil {
+		return err
+	}
+
+	r.port, err = strconv.ParseInt(port, 0, 0)
+	return err
+}
+
+func (r *hostPort) String() string {
+	return net.JoinHostPort(r.host, fmt.Sprintf("%v", r.port))
 }

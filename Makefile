@@ -11,6 +11,10 @@
 # make dev-start:
 #     starts Planet from build/dev/rootfs/usr/bin/planet
 #
+# make test:
+#     starts Planet in self-test mode
+#     requires `make dev` and `make dev-start`
+#
 # Build Steps
 # -----------
 # The sequence of steps the build process takes:
@@ -18,25 +22,26 @@
 #     2. Make 'base' image on top of 'os' (Debian + our additions)
 #     3. Make 'buildbox' image on top of 'os'. Used for building, 
 #        not part of the Planet image.
-#     4. Build various components (Flannel, etcd, k8s, etc) inside
-#        of 'buildbox' based on inputs (master/node/dev)
+#     4. Build various components (flannel, etcd, k8s, etc) inside
+#        of the 'buildbox' based on inputs (master/node/dev)
 #     5. Store everything inside a temporary Docker image based on 'base'
 #     6. Export the root FS of that image into build/current/rootfs
 #     7. build/current/rootfs is basically the output of the build.
-#     8. Later, RootFS is tarballed and ready for distribution.
+#     8. Later, root FS is tarballed and ready for distribution.
 #
 SHELL:=/bin/bash
-.PHONY: build os base buildbox dev master node
+.PHONY: build os base buildbox dev master node testbox test
 
 PWD := $(shell pwd)
 ASSETS := $(PWD)/build.assets
 BUILDDIR ?= $(PWD)/build
 BUILDDIR := $(shell realpath $(BUILDDIR))
-PLANETVER:=0.01
+PLANETVER:=0.02
+KUBE_VER := v1.0.7
 export
 
-# 'make build' simply compiles Golang portion of Planet, meant for quick & iterative 
-# devlopment on _already built image_. You need to build an image first, for 
+# 'make build' compiles GO portion of Planet, meant for quick & iterative 
+# devlopment on an _already built image_. You need to build an image first, for 
 # example with "make dev"
 build: $(BUILDDIR)/current
 	go install github.com/gravitational/planet/tool/planet
@@ -56,10 +61,28 @@ master: buildbox
 node: buildbox
 	$(MAKE) -C $(ASSETS)/makefiles -e TARGET=node -f buildbox.mk
 
-# Starts "planet-dev" build. It needs to be built first with "make dev"
-dev-start: prepare-to-run
+# Runs end-to-end tests in the specific environment
+test: buildbox testbox prepare-to-run
+	$(MAKE) -C $(ASSETS)/makefiles -e TARGET=dev TEST_FOCUS=$(SPEC) -f test.mk
+
+# Starts "planet-dev" build and executes a self-test
+# make test SPEC="Networking\|Pods"
+dev-test: dev prepare-to-run
 	cd $(BUILDDIR)/current && sudo rootfs/usr/bin/planet start\
-		--debug \
+		--self-test\
+		--test-spec=$(SPEC)\
+		--debug\
+		--role=master\
+		--role=node\
+		--volume=/var/planet/etcd:/ext/etcd\
+		--volume=/var/planet/registry:/ext/registry\
+		--volume=/var/planet/docker:/ext/docker\
+		-- -progress -trace -p -noisyPendings=false -failFast=true
+
+# Starts "planet-dev" build. It needs to be built first with "make dev"
+dev-start: dev prepare-to-run
+	cd $(BUILDDIR)/current && sudo rootfs/usr/bin/planet start\
+		--debug\
 		--role=master\
 		--role=node\
 		--volume=/var/planet/etcd:/ext/etcd\
@@ -91,34 +114,41 @@ enter:
 # Builds the base Docker image (bare bones OS). Everything else is based on. 
 # Debian stable + configured locales. 
 os: 
-	echo -e "\\n---> Making Planet/OS (Debian) Docker image...\\n"
+	@echo -e "\n---> Making Planet/OS (Debian) Docker image...\n"
 	$(MAKE) -e BUILDIMAGE=planet/os DOCKERFILE=os.dockerfile make-docker-image
 
 # Builds on top of "bare OS" image by adding components that every Kubernetes/planet node
 # needs (like bridge-utils or kmod)
 base: os
-	echo -e "\\n---> Making Planet/Base Docker image based on Planet/OS...\\n"
+	@echo -e "\n---> Making Planet/Base Docker image based on Planet/OS...\n"
 	$(MAKE) -e BUILDIMAGE=planet/base DOCKERFILE=base.dockerfile make-docker-image
 
 # Builds a "buildbox" docker image. Actual building is done inside of Docker, and this
 # image is used as a build box. It contains dev tools (Golang, make, git, vi, etc)
 buildbox: base
-	echo -e "\\n---> Making Planet/BuilBox Docker image to be used for building:\\n" ;\
+	@echo -e "\n---> Making Planet/BuildBox Docker image to be used for building:\n" ;\
 	$(MAKE) -e BUILDIMAGE=planet/buildbox DOCKERFILE=buildbox.dockerfile make-docker-image
 
+# Builds a "testbox" image used during e2e testing.
+testbox:
+	@echo -e "\n---> Making planet/testbox image for e2e testing:\n" ;\
+	$(MAKE) -e BUILDIMAGE=planet/testbox DOCKERFILE=testbox.dockerfile make-docker-image
+
 # removes all build aftifacts 
-clean: dev-clean master-clean node-clean
+clean: dev-clean master-clean node-clean test-clean
 dev-clean:
 	$(MAKE) -C $(ASSETS)/makefiles -e TARGET=dev -f buildbox.mk clean
 node-clean:
 	$(MAKE) -C $(ASSETS)/makefiles -e TARGET=node -f buildbox.mk clean
 master-clean:
 	$(MAKE) -C $(ASSETS)/makefiles -e TARGET=master -f buildbox.mk clean
+test-clean:
+	$(MAKE) -C $(ASSETS)/makefiles -e TARGET=dev -f testbox.mk clean
 
 # internal use:
 make-docker-image:
 	@if [[ ! $$(docker images | grep $(BUILDIMAGE)) ]]; then \
-		cd $(ASSETS)/docker; docker build --no-cache=true -t $(BUILDIMAGE) -f $(DOCKERFILE) . ;\
+		cd $(ASSETS)/docker; docker build --no-cache -t $(BUILDIMAGE) -f $(DOCKERFILE) . ;\
 	else \
 		echo "$(BUILDIMAGE) already exists. Run 'docker rmi $(BUILDIMAGE)' to rebuild" ;\
 	fi
@@ -133,14 +163,14 @@ prepare-to-run:
 	@cp -f $(BUILDDIR)/current/planet $(BUILDDIR)/current/rootfs/usr/bin/planet
 
 clean-containers:
-	@echo -e "Removing dead Docker/planet containers...\n"
+	@echo -e "\n---> Removing dead Docker/planet containers...\n"
 	DEADCONTAINTERS=$$(docker ps --all | grep "planet" | awk '{print $$1}') ;\
 	if [ ! -z "$$DEADCONTAINTERS" ] ; then \
 		docker rm -f $$DEADCONTAINTERS ;\
 	fi
 
 clean-images: clean-containers
-	@echo -e "Removing old Docker/planet images...\n"
+	@echo -e "\n---> Removing old Docker/planet images...\n"
 	DEADIMAGES=$$(docker images | grep "planet/" | awk '{print $$3}') ;\
 	if [ ! -z "$$DEADIMAGES" ] ; then \
 		docker rmi -f $$DEADIMAGES ;\

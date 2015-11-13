@@ -23,21 +23,44 @@ const (
 	CheckCgroupMounts = true
 )
 
-func start(conf Config) (err error) {
+func startAndWait(config Config) error {
+	process, err := start(config, nil)
+
+	if err != nil {
+		return err
+	}
+	defer process.Close()
+
+	// wait for the process to finish.
+	status, err := process.Wait()
+	if err != nil {
+		return trace.Wrap(err)
+	}
+	log.Infof("box.Wait() returned status %v", status)
+	return nil
+}
+
+func start(conf Config, monitorc chan<- bool) (*box.Box, error) {
 	log.Infof("starting with config: %#v", conf)
+
+	if !isRoot() {
+		return nil, trace.Errorf("must be run as root")
+	}
+
+	var err error
 
 	// see if the kernel version is supported:
 	if CheckKernel {
 		v, err := check.KernelVersion()
 		if err != nil {
-			return err
+			return nil, err
 		}
 		log.Infof("kernel: %v\n", v)
 		if v < MinKernelVersion {
 			err := trace.Errorf(
 				"current minimum supported kernel version is %0.2f. Upgrade kernel before moving on.", MinKernelVersion/100.0)
 			if !conf.IgnoreChecks {
-				return err
+				return nil, err
 			}
 			log.Infof("warning: %v", err)
 		}
@@ -45,36 +68,36 @@ func start(conf Config) (err error) {
 
 	// check & mount cgroups:
 	if CheckCgroupMounts {
-		if err := box.MountCgroups("/"); err != nil {
-			return trace.Wrap(err)
+		if err = box.MountCgroups("/"); err != nil {
+			return nil, trace.Wrap(err)
 		}
 	}
 
 	// check supported storage back-ends for docker
 	conf.DockerBackend, err = pickDockerStorageBackend()
 	if err != nil {
-		return trace.Wrap(err)
+		return nil, trace.Wrap(err)
 	}
 
 	// check/create 'planet' user and set the permissions
 	conf.PlanetUser, err = check.CheckPlanetUser()
 	if err != nil {
-		return trace.Wrap(err)
+		return nil, trace.Wrap(err)
 	}
 
 	// validate the mounts:
 	if conf.hasRole("master") {
-		if err := checkMasterMounts(&conf); err != nil {
-			return trace.Wrap(err)
+		if err = checkMasterMounts(&conf); err != nil {
+			return nil, trace.Wrap(err)
 		}
 		if err := configureMonitrcPermissions(conf.Rootfs); err != nil {
-			return trace.Wrap(err)
+			return nil, trace.Wrap(err)
 		}
 	}
 
 	if conf.hasRole("node") {
-		if err := checkNodeMounts(&conf); err != nil {
-			return trace.Wrap(err)
+		if err = checkNodeMounts(&conf); err != nil {
+			return nil, trace.Wrap(err)
 		}
 	}
 
@@ -93,14 +116,14 @@ func start(conf Config) (err error) {
 	addInsecureRegistries(&conf)
 	addDockerStorage(&conf)
 	setupFlannel(&conf)
-	if err := setupCloudOptions(&conf); err != nil {
-		return err
+	if err = setupCloudOptions(&conf); err != nil {
+		return nil, err
 	}
-	if err := addResolv(&conf); err != nil {
-		return err
+	if err = addResolv(&conf); err != nil {
+		return nil, err
 	}
-	if err := initState(&conf); err != nil {
-		return err
+	if err = initState(&conf); err != nil {
+		return nil, err
 	}
 
 	cfg := box.Config{
@@ -124,9 +147,8 @@ func start(conf Config) (err error) {
 	// start the container:
 	b, err := box.Start(cfg)
 	if err != nil {
-		return err
+		return nil, err
 	}
-	defer b.Close()
 
 	units := []string{}
 	if conf.hasRole("master") {
@@ -136,15 +158,9 @@ func start(conf Config) (err error) {
 		units = appendUnique(units, nodeUnits)
 	}
 
-	go monitorUnits(b.Container, units)
+	go monitorUnits(b.Container, units, monitorc)
 
-	// wait for the process to finish.
-	status, err := b.Wait()
-	if err != nil {
-		return trace.Wrap(err)
-	}
-	log.Infof("box.Wait() returned status %v", status)
-	return nil
+	return b, nil
 }
 
 // setupCloudOptions sets up cloud flags and files passed to kubernetes
@@ -214,7 +230,7 @@ func pickDockerStorageBackend() (dockerBackend string, err error) {
 		}
 	}
 	// if we get here, it means no suitable FS has been found
-	err = fmt.Errorf("None of this filesystems is supported by this host: %s",
+	err = trace.Errorf("none of the required filesystems are supported by this host: %s",
 		strings.Join(supportedBackends, ", "))
 	return "", err
 }
@@ -304,7 +320,7 @@ func checkMasterMounts(cfg *Config) error {
 		if _, ok := expected[dst]; ok {
 			expected[dst] = true
 		}
-		if dst == EtcdWorkDir {
+		if dst == EtcdWorkDir && cfg.hasRole("master") {
 			uid := atoi(cfg.PlanetUser.Uid)
 			gid := atoi(cfg.PlanetUser.Gid)
 			// chown planet:planet /ext/etcd -r
@@ -428,7 +444,11 @@ func appendUnique(a, b []string) []string {
 	return a
 }
 
-func monitorUnits(c libcontainer.Container, units []string) {
+func monitorUnits(c libcontainer.Container, units []string, monitorc chan<- bool) {
+	if monitorc != nil {
+		defer close(monitorc)
+	}
+
 	us := make(map[string]string, len(units))
 	for _, u := range units {
 		us[u] = ""
@@ -454,6 +474,9 @@ func monitorUnits(c libcontainer.Container, units []string) {
 		}
 		fmt.Printf("\r %v", out.String())
 		if allUp(us) {
+			if monitorc != nil {
+				monitorc <- true
+			}
 			fmt.Printf("\nall units are up\n")
 			return
 		}
@@ -501,9 +524,13 @@ func getStatus(c libcontainer.Container, unit string) (string, error) {
 func atoi(s string) int {
 	i, err := strconv.ParseInt(s, 0, 0)
 	if err != nil {
-		panic(fmt.Errorf("`%v`: bad number (%v)", s, err))
+		panic(trace.Errorf("bad number `%s`: %v", s, err))
 	}
 	return int(i)
+}
+
+func isRoot() bool {
+	return os.Geteuid() == 0
 }
 
 var allCaps = []string{

@@ -10,29 +10,28 @@ TARBALL:=$(TARGETDIR)/planet-$(TARGET).$(PLANETVER).tar.gz
 
 # invoke "TARGET-docker.mk" from inside of 'buildbox' docker image:
 all: $(ROOTFS)/bin/bash 
-	@echo -e "\\n---> Launching 'buildbox' Docker container to build $(TARGET):\\n"
+	@echo -e "\n---> Launching 'buildbox' Docker container to build $(TARGET):\n"
 	docker run -ti --rm=true \
 		--volume=$(ASSETS):/assets \
 		--volume=$(ROOTFS):/rootfs \
 		--volume=$(TARGETDIR):/targetdir \
 		--volume=$(PWD):/gopath/src/github.com/gravitational/planet \
-		--env="ASSETS=/assets"\
+		--env="ASSETS=/assets" \
 		--env="ROOTFS=/rootfs" \
 		--env="TARGETDIR=/targetdir" \
-		--env="TARGET=$(TARGET)" \
 		planet/buildbox \
-		make -f assets/makefiles/$(TARGET)-docker.mk
+		make -e KUBE_VER=$(KUBE_VER) -f assets/makefiles/$(TARGET)-docker.mk
 	cp $(ASSETS)/orbit.manifest.json $(TARGETDIR)
-	@echo -e "\\n---> Moving current symlink to $(TARGETDIR)\\n"
+	@echo -e "\n---> Moving current symlink to $(TARGETDIR)\n"
 	@rm -f $(BUILDDIR)/current
 	@cd $(BUILDDIR) && ln -fs $(TARGET) $(BUILDDIR)/current
-	@echo -e "\\n---> Creating Planet image...\\n"
+	@echo -e "\n---> Creating Planet image...\n"
 	cd $(TARGETDIR) && tar -czf $(TARBALL) orbit.manifest.json rootfs
-	@echo -e "\\nDone --> $(TARBALL)"
+	@echo -e "\nDone --> $(TARBALL)"
 
 
 $(ROOTFS)/bin/bash: clean-rootfs
-	@echo -e "\\n---> Creating RootFS for Planet image:\\n"
+	@echo -e "\n---> Creating RootFS for Planet image:\n"
 	@mkdir -p $(ROOTFS)
 # create rootfs based in RAM. you can uncomment the next line to use disk
 	sudo mount -t tmpfs -o size=600m tmpfs $(ROOTFS)

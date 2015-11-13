@@ -10,7 +10,7 @@ VER := 1.8.2
 
 $(ROOTFS)/usr/bin/docker: $(TARGETDIR)/docker
 # install socket-activated metadata service
-	@echo "\\n---> Insatlling Docker to be used with Kubernetes:\\n"
+	@echo "\n---> Installing Docker to be used with Kubernetes:\n"
 	cp -af ./docker.service $(ROOTFS)/lib/systemd/system
 	ln -sf /lib/systemd/system/docker.service  $(ROOTFS)/lib/systemd/system/multi-user.target.wants/
 

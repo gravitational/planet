@@ -1,11 +1,12 @@
 package check
 
 import (
-	"fmt"
 	"os"
 	"os/exec"
 	"os/user"
 	"strings"
+
+	"github.com/gravitational/planet/Godeps/_workspace/src/github.com/gravitational/trace"
 )
 
 const (
@@ -23,7 +24,7 @@ func CheckPlanetUser() (u *user.User, err error) {
 		return u, nil
 	}
 
-	// create a new group;
+	// create a new group:
 	groupadd := exec.Command("/usr/sbin/groupadd",
 		"--system",
 		"--non-unique",
@@ -35,7 +36,7 @@ func CheckPlanetUser() (u *user.User, err error) {
 			return nil, err
 		}
 		errMsg := flattenString(string(output))
-		return nil, fmt.Errorf("Failed creating group '%v': %v", PlanetUser, errMsg)
+		return nil, trace.Wrap(err, "failed to create group '%v': %v", PlanetUser, errMsg)
 	}
 
 	// create a new user:
@@ -52,7 +53,7 @@ func CheckPlanetUser() (u *user.User, err error) {
 			return nil, err
 		}
 		errMsg := flattenString(string(output))
-		return nil, fmt.Errorf("Failed creating user '%v': %v", PlanetUser, errMsg)
+		return nil, trace.Wrap(err, "failed to create user '%v': %v", PlanetUser, errMsg)
 	}
 
 	// now it should work:

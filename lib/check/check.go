@@ -19,7 +19,7 @@ import (
 // "overlay")
 func CheckFS(fs string) (bool, error) {
 	err := exec.Command("modprobe", fs).Run()
-	if err != nil {
+	if err != nil && !isErrNotFound(err) {
 		return false, nil
 	}
 	return findFS(fs)
@@ -73,4 +73,13 @@ func parseKernel() (int, int, error) {
 	}
 	return kernel, major, nil
 
+}
+
+func isErrNotFound(err error) bool {
+	switch pe := err.(type) {
+	case *exec.Error:
+		return pe.Err == exec.ErrNotFound
+	default:
+		return os.IsNotExist(err)
+	}
 }
