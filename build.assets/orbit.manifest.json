@@ -14,17 +14,44 @@
             {
                 "type": "String",
                 "name": "masterip",
-                "env": "PLANET_MASTER_IP"
+                "env": "PLANET_MASTER_IP",
+                "cli": {"name": "master-ip"}
             },
             {
                 "type": "String",
+                "name": "publicip",
+                "env": "PLANET_PUBLIC_IP",
+                "cli": {"name": "public-ip"}
+            },            
+            {
+                "type": "String",
                 "name": "cloudprovider",
-                "env": "PLANET_CLOUD_PROVIDER"
+                "env": "PLANET_CLOUD_PROVIDER",
+                "cli": {"name": "cloud-provider"}
             },
             {
                 "type": "String",
                 "name": "clusterid",
-                "env": "PLANET_CLUSTER_ID"
+                "env": "PLANET_CLUSTER_ID",
+                "cli": {"name": "cluster-id"}
+            },
+            {
+                "type": "String",
+                "name": "statedir",
+                "env": "PLANET_STATE_DIR",
+                "cli": {"name": "state-dir"}
+            },
+            {
+                "type": "String",
+                "name": "podsubnet",
+                "env": "PLANET_POD_SUBNET",
+                "cli": {"name": "pod-subnet"}
+            },
+            {
+                "type": "String",
+                "name": "servicesubnet",
+                "env": "PLANET_SERVICE_SUBNET",
+                "cli": {"name": "service-subnet"}
             },
             {
                 "type": "Bool",
