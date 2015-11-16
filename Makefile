@@ -38,6 +38,7 @@ BUILDDIR ?= $(PWD)/build
 BUILDDIR := $(shell realpath $(BUILDDIR))
 PLANETVER:=0.02
 KUBE_VER := v1.0.7
+PUBLIC_IP:= 127.0.0.1
 export
 
 # 'make build' compiles GO portion of Planet, meant for quick & iterative 
@@ -72,7 +73,7 @@ dev-test: dev prepare-to-run
 		--self-test\
 		--test-spec=$(SPEC)\
 		--debug\
-		--public-ip=127.0.0.1\
+		--public-ip=$(PUBLIC_IP)\
 		--role=master\
 		--role=node\
 		--volume=/var/planet/etcd:/ext/etcd\
@@ -84,7 +85,7 @@ dev-test: dev prepare-to-run
 dev-start: dev prepare-to-run
 	cd $(BUILDDIR)/current && sudo rootfs/usr/bin/planet start\
 		--debug\
-		--public-ip=127.0.0.1\
+		--public-ip=$(PUBLIC_IP)\
 		--role=master\
 		--role=node\
 		--volume=/var/planet/etcd:/ext/etcd\
@@ -95,7 +96,7 @@ dev-start: dev prepare-to-run
 node-start: prepare-to-run
 	cd $(BUILDDIR)/current && sudo rootfs/usr/bin/planet start\
 		--role=node\
-		--public-ip=127.0.0.1\
+		--public-ip=$(PUBLIC_IP)\
 		--volume=/var/planet/etcd:/ext/etcd\
 		--volume=/var/planet/registry:/ext/registry\
 		--volume=/var/planet/docker:/ext/docker
@@ -104,7 +105,7 @@ node-start: prepare-to-run
 master-start: prepare-to-run
 	cd $(BUILDDIR)/current && sudo rootfs/usr/bin/planet start\
 		--role=master\
-		--public-ip=127.0.0.1\
+		--public-ip=$(PUBLIC_IP)\
 		--volume=/var/planet/etcd:/ext/etcd\
 		--volume=/var/planet/registry:/ext/registry\
 		--volume=/var/planet/docker:/ext/docker
