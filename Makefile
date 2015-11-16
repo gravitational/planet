@@ -72,6 +72,7 @@ dev-test: dev prepare-to-run
 		--self-test\
 		--test-spec=$(SPEC)\
 		--debug\
+		--public-ip=127.0.0.1\
 		--role=master\
 		--role=node\
 		--volume=/var/planet/etcd:/ext/etcd\
@@ -83,6 +84,7 @@ dev-test: dev prepare-to-run
 dev-start: dev prepare-to-run
 	cd $(BUILDDIR)/current && sudo rootfs/usr/bin/planet start\
 		--debug\
+		--public-ip=127.0.0.1\
 		--role=master\
 		--role=node\
 		--volume=/var/planet/etcd:/ext/etcd\
@@ -93,6 +95,7 @@ dev-start: dev prepare-to-run
 node-start: prepare-to-run
 	cd $(BUILDDIR)/current && sudo rootfs/usr/bin/planet start\
 		--role=node\
+		--public-ip=127.0.0.1\
 		--volume=/var/planet/etcd:/ext/etcd\
 		--volume=/var/planet/registry:/ext/registry\
 		--volume=/var/planet/docker:/ext/docker
@@ -101,6 +104,7 @@ node-start: prepare-to-run
 master-start: prepare-to-run
 	cd $(BUILDDIR)/current && sudo rootfs/usr/bin/planet start\
 		--role=master\
+		--public-ip=127.0.0.1\
 		--volume=/var/planet/etcd:/ext/etcd\
 		--volume=/var/planet/registry:/ext/registry\
 		--volume=/var/planet/docker:/ext/docker
@@ -157,7 +161,7 @@ remove-godeps:
 	rm -rf Godeps/
 	find . -iregex .*go | xargs sed -i 's:".*Godeps/_workspace/src/:":g'
 
-prepare-to-run: 
+prepare-to-run: build
 	@sudo mkdir -p /var/planet/registry /var/planet/etcd /var/planet/docker 
 	@sudo chown $$USER:$$USER /var/planet/etcd -R
 	@cp -f $(BUILDDIR)/current/planet $(BUILDDIR)/current/rootfs/usr/bin/planet
