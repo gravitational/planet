@@ -52,19 +52,19 @@ func StartProcessTTY(c libcontainer.Container, cfg ProcessConfig) (*os.ProcessSt
 	term.SetWinsize(containerConsole.Fd(),
 		&term.Winsize{Height: uint16(cfg.TTY.H), Width: uint16(cfg.TTY.W)})
 
+	exitC := make(chan error)
 	// start copying output from the process of the container's console
 	// into the caller's output:
 	if cfg.Out != nil {
 		go func() {
-			io.Copy(cfg.Out, containerConsole)
+			_, err := io.Copy(cfg.Out, containerConsole)
+			exitC <- err
 		}()
 	}
 
 	// start copying caller's input into container's console:
 	if cfg.In != nil {
-		go func() {
-			io.Copy(containerConsole, cfg.In)
-		}()
+		go io.Copy(containerConsole, cfg.In)
 	}
 
 	// this will cause libcontainer to exec this binary again
@@ -74,13 +74,14 @@ func StartProcessTTY(c libcontainer.Container, cfg ProcessConfig) (*os.ProcessSt
 		return nil, trace.Wrap(err)
 	}
 
-	log.Infof("started process just okay")
+	log.Infof("process started")
 
 	// wait for the process to finish.
 	s, err := p.Wait()
 	if err != nil {
 		return nil, trace.Wrap(err)
 	}
+	<-exitC
 
 	log.Infof("process status: %v %v", s, err)
 	return s, nil
