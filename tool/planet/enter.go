@@ -8,7 +8,6 @@ import (
 
 	"github.com/gravitational/planet/Godeps/_workspace/src/github.com/docker/docker/pkg/term"
 	"github.com/gravitational/planet/Godeps/_workspace/src/github.com/gravitational/log"
-	"github.com/gravitational/planet/Godeps/_workspace/src/github.com/gravitational/orbit/lib/pkg"
 	"github.com/gravitational/planet/Godeps/_workspace/src/github.com/gravitational/trace"
 	"github.com/gravitational/planet/lib/box"
 )
@@ -47,43 +46,79 @@ func stop(path string) error {
 }
 
 // status checks status of all units to see if there are any failed units
+// it outputs status in the structured json format
 func status(rootfs string) error {
-	out := &bytes.Buffer{}
 	log.Infof("status: %v", rootfs)
+	out, err := enterCommand(rootfs, []string{"/bin/systemctl", "--failed"})
+	if err != nil {
+		if !box.IsConnectError(err) {
+			return trace.Wrap(err)
+		}
+		return printStatus(Status{Status: StatusStopped})
+	}
+	if !strings.Contains(out, "0 loaded units listed") {
+		return printStatus(Status{Status: StatusDegraded, Info: out})
+	}
+	// some units may be still loading, report that
+	out, err = enterCommand(rootfs, []string{"/bin/systemctl", "--state=load"})
+	if err != nil {
+		if !box.IsConnectError(err) {
+			return trace.Wrap(err)
+		}
+		return printStatus(Status{Status: StatusStopped})
+	}
+	if !strings.Contains(out, "0 loaded units listed") {
+		return printStatus(Status{Status: StatusLoading, Info: out})
+	}
+	return printStatus(Status{Status: StatusRunning, Info: out})
+}
+
+func printStatus(s Status) error {
+	bytes, err := json.Marshal(s)
+	if err != nil {
+		return trace.Wrap(err)
+	}
+	_, err = os.Stdout.Write(bytes)
+	if err != nil {
+		return trace.Wrap(err)
+	}
+	return nil
+}
+
+// enterCommand is a helper function that runs a command as a root
+// in the namespace of planet's container. It returns error
+// if command failed, or command standard output otherwise
+func enterCommand(rootfs string, args []string) (string, error) {
+	out := &bytes.Buffer{}
 	cfg := box.ProcessConfig{
 		User: "root",
-		Args: []string{"/bin/systemctl", "--failed"},
+		Args: args,
 		In:   os.Stdin,
 		Out:  out,
 	}
-
-	var s pkg.Status
 	err := enter(rootfs, cfg)
 	if err != nil {
-		if box.IsConnectError(err) {
-			s.Status = pkg.StatusStopped
-		} else {
-			return err
-		}
-	} else {
-		d := out.String()
-		if !strings.Contains(d, "0 loaded units listed") {
-			s.Status = pkg.StatusDegraded
-			s.Info = d
-		} else {
-			s.Status = pkg.StatusRunning
-			s.Info = d
-		}
+		return "", trace.Wrap(err)
 	}
+	return out.String(), nil
+}
 
-	bytes, err := json.Marshal(s)
-	if err != nil {
-		return trace.Wrap(err, "failed to serialize status")
-	}
+const (
+	// StatusRunning means that all units inside planet are up and running
+	StatusRunning = "running"
+	// StatusDegraded means that some units have failed
+	StatusDegraded = "degraded"
+	// StatusStopped means that planet is stopped
+	StatusStopped = "stopped"
+	// StatusLoading means that some units are still loading
+	StatusLoading = "loading"
+)
 
-	if _, err := os.Stdout.Write(bytes); err != nil {
-		return trace.Wrap(err, "failed to output status")
-	}
-
-	return nil
+// Status is as tructured status returned by the planet status command
+type Status struct {
+	// Status of the running container
+	// one of 'running', 'stopped', 'degraded' or 'loading'
+	Status string `json:"status"`
+	// App-specific information about the container status
+	Info interface{} `json:"info"`
 }
