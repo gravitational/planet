@@ -52,13 +52,17 @@ func StartProcessTTY(c libcontainer.Container, cfg ProcessConfig) (*os.ProcessSt
 	term.SetWinsize(containerConsole.Fd(),
 		&term.Winsize{Height: uint16(cfg.TTY.H), Width: uint16(cfg.TTY.W)})
 
-	exitC := make(chan error)
 	// start copying output from the process of the container's console
 	// into the caller's output:
 	if cfg.Out != nil {
+		exitC := make(chan error)
+
 		go func() {
 			_, err := io.Copy(cfg.Out, containerConsole)
 			exitC <- err
+		}()
+		defer func() {
+			<-exitC
 		}()
 	}
 
@@ -81,7 +85,6 @@ func StartProcessTTY(c libcontainer.Container, cfg ProcessConfig) (*os.ProcessSt
 	if err != nil {
 		return nil, trace.Wrap(err)
 	}
-	<-exitC
 
 	log.Infof("process status: %v %v", s, err)
 	return s, nil
