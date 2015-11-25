@@ -12,6 +12,7 @@ import (
 	"github.com/gravitational/planet/Godeps/_workspace/src/github.com/gravitational/orbit/lib/pkg"
 	"github.com/gravitational/planet/Godeps/_workspace/src/github.com/gravitational/trace"
 	"github.com/gravitational/planet/lib/box"
+	"github.com/gravitational/planet/lib/monitoring"
 )
 
 // enter initiates the process in the namespaces of the container
