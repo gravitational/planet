@@ -3,13 +3,10 @@ package main
 import (
 	"bytes"
 	"encoding/json"
-	"io"
 	"os"
-	"strings"
 
 	"github.com/gravitational/planet/Godeps/_workspace/src/github.com/docker/docker/pkg/term"
 	"github.com/gravitational/planet/Godeps/_workspace/src/github.com/gravitational/log"
-	"github.com/gravitational/planet/Godeps/_workspace/src/github.com/gravitational/orbit/lib/pkg"
 	"github.com/gravitational/planet/Godeps/_workspace/src/github.com/gravitational/trace"
 	"github.com/gravitational/planet/lib/box"
 	"github.com/gravitational/planet/lib/monitoring"
@@ -52,83 +49,42 @@ func stop(path string) error {
 // JSON to stdout.
 func status(rootfs string) error {
 	var (
-		err    error
-		result bytes.Buffer
+		systemStatus *monitoring.SystemStatus
+		data         []byte
+		err          error
 	)
 
 	log.Infof("checking status in %s", rootfs)
-	err = checkSystemdStatus(rootfs, &result)
-	if err != nil {
-		return trace.Wrap(err, "failed to check systemd status")
-	}
 
-	err = checkAlerts(rootfs, &result)
+	systemStatus, err = monitoring.Status()
 	if err != nil {
-		return trace.Wrap(err, "failed to check alerts")
+		return trace.Wrap(err, "failed to check system status")
 	}
-
-	if _, err := os.Stdout.Write(result.Bytes()); err != nil {
+	data, err = json.Marshal(systemStatus)
+	if err != nil {
+		return trace.Wrap(err, "failed to output status")
+	}
+	if _, err = os.Stdout.Write(data); err != nil {
 		return trace.Wrap(err, "failed to output status")
 	}
 
 	return nil
 }
 
-func checkSystemdStatus(rootfs string, result io.Writer) error {
-	var (
-		err    error
-		output bytes.Buffer
-		cfg    = box.ProcessConfig{
-			User: "root",
-			Args: []string{"/bin/systemctl", "--failed"},
-			In:   os.Stdin,
-			Out:  &output,
-		}
-		s      pkg.Status
-		stdout string
-	)
-
-	err = enter(rootfs, cfg)
+// enterCommand is a helper function that runs a command as a root
+// in the namespace of planet's container. It returns error
+// if command failed, or command standard output otherwise
+func enterCommand(rootfs string, args []string) (string, error) {
+	out := &bytes.Buffer{}
+	cfg := box.ProcessConfig{
+		User: "root",
+		Args: args,
+		In:   os.Stdin,
+		Out:  out,
+	}
+	err := enter(rootfs, cfg)
 	if err != nil {
-		if box.IsConnectError(err) {
-			s.Status = pkg.StatusStopped
-		} else {
-			return trace.Wrap(err)
-		}
-	} else {
-		stdout = output.String()
-		s.Info = stdout
-		// FIXME: avoid false positives with failures >= 10
-		if !strings.Contains(stdout, "0 loaded units listed") {
-			s.Status = pkg.StatusDegraded
-		} else {
-			s.Status = pkg.StatusRunning
-		}
+		return "", trace.Wrap(err)
 	}
-
-	enc := json.NewEncoder(result)
-	if err = enc.Encode(s); err != nil {
-		return trace.Wrap(err, "failed to serialize status")
-	}
-
-	return nil
-}
-
-func checkAlerts(rootfs string, result io.Writer) error {
-	var (
-		err    error
-		output bytes.Buffer
-		cfg    = box.ProcessConfig{
-			User: "root",
-			Args: []string{"cat", alertsFile},
-			In:   os.Stdin,
-			Out:  &output,
-		}
-	)
-
-	err = enter(rootfs, cfg)
-	if err != nil && !box.IsConnectError(err) {
-		return trace.Wrap(err)
-	}
-	return nil
+	return out.String(), nil
 }

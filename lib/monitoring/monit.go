@@ -8,7 +8,7 @@ import (
 	"net"
 	"net/http"
 	"strconv"
-	"time"
+	"strings"
 	"unicode/utf8"
 
 	"github.com/gravitational/planet/Godeps/_workspace/src/github.com/gravitational/trace"
@@ -16,7 +16,7 @@ import (
 
 type (
 	monit struct {
-		socket string
+		client *http.Client
 	}
 
 	service struct {
@@ -45,56 +45,61 @@ const (
 	System                 = 5
 )
 
-func New() (Service, error) {
-	return &monit{
-		socket: "/etc/monit/sock", // FIXME: configure
-	}, nil
+// monit events
+const (
+	Error_Connection = 0x20
+	Error_NotRunning = 0x200
+)
+
+func newMonitService() (Monitor, error) {
+	const socket = "/etc/monit/sock"
+
+	client := &http.Client{
+		Transport: &http.Transport{
+			Dial: func(network, addr string) (net.Conn, error) {
+				return net.Dial("unix", socket)
+			},
+		},
+	}
+
+	return &monit{client: client}, nil
 }
 
-func (r *monit) Status() (conditions []Status, err error) {
+func (r *monit) Status() (conditions []ServiceStatus, err error) {
 	var (
 		resp     *http.Response
 		services []*service
 	)
 
-	client := &http.Client{
-		Transport: &http.Transport{
-			Dial: func(network, addr string) (net.Conn, error) {
-				return net.Dial("unix", r.socket)
-			},
-		},
-	}
-
-	resp, err = client.Get("http://monit/_status?format=xml")
+	resp, err = r.client.Get("http://monit/_status?format=xml")
 	if err != nil {
 		return nil, trace.Wrap(err)
 	}
 	defer resp.Body.Close()
 
-	services, err = r.parse(resp.Body)
+	services, err = parse(resp.Body)
 	if err != nil {
 		return nil, trace.Wrap(err)
 	}
 
 	for _, svc := range services {
-		state := State_Running
+		state := State_running
 
 		if svc.Error != 0 {
-			state = State_Failed
+			state = State_failed
 		}
 
-		conditions = append(conditions, Status{
-			Module:    svc.Name,
-			Timestamp: time.Now(), // FIXME: actual timestamp
-			State:     state,
-			Message:   svc.Error.String(),
+		conditions = append(conditions, ServiceStatus{
+			Name:    svc.Name,
+			State:   state,
+			Message: svc.Error.String(),
 		})
 	}
 
 	return conditions, nil
 }
 
-func (r *monit) parse(rdr io.Reader) ([]*service, error) {
+func parse(rdr io.Reader) ([]*service, error) {
 	var (
 		token    xml.Token
 		err      error
@@ -132,9 +137,7 @@ L:
 }
 
 func (r *service) UnmarshalXML(decoder *xml.Decoder, node xml.StartElement) (err error) {
-	var (
-		token xml.Token
-	)
+	var token xml.Token
 L:
 	for {
 		if token, err = decoder.Token(); err != nil {
@@ -165,25 +168,31 @@ L:
 			}
 		}
 	}
-	if err != nil {
-		decoder.Skip()
-	}
 	return err
 }
 
 func (r *service) String() string {
-	return fmt.Sprintf("service(name=%s, error=%d, pid=%d)", r.Name, r.Error, r.Pid)
+	return fmt.Sprintf("service(name=%s, error=%s, pid=%d)", r.Name, r.Error, r.Pid)
 }
 
 func (r serviceError) String() string {
-	switch r {
-	case 0x20:
-		return "failed healthz check"
-	case 0x200:
-		return "not running"
-	default:
-		return strconv.FormatUint(uint64(r), 10)
+	var errors []string
+	const errorMask = Error_NotRunning | Error_Connection
+
+	if r == 0 {
+		errors = []string{"<no error>"}
 	}
+	if r&Error_Connection != 0 {
+		errors = append(errors, "not running")
+	}
+	if r&Error_NotRunning != 0 {
+		errors = append(errors, "failed healthz check")
+	}
+	if r&^errorMask != 0 {
+		errors = append(errors, strconv.FormatUint(uint64(r), 10))
+	}
+
+	return strings.Join(errors, ",")
 }
 
 func isServiceType(elem xml.StartElement, serviceType serviceType) bool {
