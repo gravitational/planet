@@ -24,18 +24,18 @@ type (
 type State string
 
 const (
-	State_running State = "running"
-	State_failed        = "failed"
+	StateRunning State = "running"
+	StateFailed        = "failed"
 )
 
 type SystemState string
 
 const (
-	SystemState_running  SystemState = "running"
-	SystemState_degraded             = "degraded"
-	SystemState_loading              = "loading"
-	SystemState_stopped              = "stopped"
-	SystemState_unknown              = ""
+	SystemStateRunning  SystemState = "running"
+	SystemStateDegraded             = "degraded"
+	SystemStateLoading              = "loading"
+	SystemStateStopped              = "stopped"
+	SystemStateUnknown              = ""
 )
 
 func Status() (*SystemStatus, error) {

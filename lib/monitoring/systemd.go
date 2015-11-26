@@ -29,21 +29,21 @@ type (
 type loadState string
 
 const (
-	Load_loaded   loadState = "loaded"
-	Load_error              = "error"
-	Load_masked             = "masked"
-	Load_notfound           = "not-found"
+	loadStateLoaded   loadState = "loaded"
+	loadStateError              = "error"
+	loadStateMasked             = "masked"
+	loadStateNotFound           = "not-found"
 )
 
 type activeState string
 
 const (
-	Active_active       activeState = "active"
-	Active_reloading                = "reloading"
-	Active_inactive                 = "inactive"
-	Active_failed                   = "failed"
-	Active_activating               = "activating"
-	Active_deactivating             = "deactivating"
+	activeStateActive       activeState = "active"
+	activeStateReloading                = "reloading"
+	activeStateInactive                 = "inactive"
+	activeStateFailed                   = "failed"
+	activeStateActivating               = "activating"
+	activeStateDeactivating             = "deactivating"
 )
 
 var (
@@ -72,10 +72,10 @@ func (r systemd) Status() ([]ServiceStatus, error) {
 	}
 
 	for _, unit := range units {
-		if unit.ActiveState == Active_failed || unit.LoadState == Load_error {
+		if unit.ActiveState == activeStateFailed || unit.LoadState == loadStateError {
 			conditions = append(conditions, ServiceStatus{
 				Name:    unit.Name,
-				State:   State_failed,
+				State:   StateFailed,
 				Message: fmt.Sprintf("systemd: %s", unit.SubState),
 			})
 		}
@@ -88,19 +88,19 @@ func isSystemRunning() (state SystemState, err error) {
 
 	output, err = exec.Command(systemStateCmd[0], systemStateCmd[1:]...).CombinedOutput()
 	if err != nil {
-		return SystemState_unknown, trace.Wrap(err)
+		return SystemStateUnknown, trace.Wrap(err)
 	}
 
-	state = SystemState_unknown
+	state = SystemStateUnknown
 	switch string(output) {
 	case "initializing", "starting":
-		state = SystemState_loading
+		state = SystemStateLoading
 	case "stopping", "offline":
-		state = SystemState_stopped
+		state = SystemStateStopped
 	case "degraded":
-		state = SystemState_degraded
+		state = SystemStateDegraded
 	case "running":
-		state = SystemState_running
+		state = SystemStateRunning
 	}
 	return state, nil
 }

@@ -47,8 +47,8 @@ const (
 
 // monit events
 const (
-	Error_Connection = 0x20
-	Error_NotRunning = 0x200
+	ErrorConnection = 0x20
+	ErrorNotRunning = 0x200
 )
 
 func newMonitService() (Monitor, error) {
@@ -83,10 +83,10 @@ func (r *monit) Status() (conditions []ServiceStatus, err error) {
 	}
 
 	for _, svc := range services {
-		state := State_running
+		state := StateRunning
 
 		if svc.Error != 0 {
-			state = State_failed
+			state = StateFailed
 		}
 
 		conditions = append(conditions, ServiceStatus{
@@ -177,15 +177,15 @@ func (r *service) String() string {
 
 func (r serviceError) String() string {
 	var errors []string
-	const errorMask = Error_NotRunning | Error_Connection
+	const errorMask = ErrorNotRunning | ErrorConnection
 
 	if r == 0 {
-		errors = []string{"<no error>"}
+		return "<no error>"
 	}
-	if r&Error_Connection != 0 {
+	if r&ErrorConnection != 0 {
 		errors = append(errors, "not running")
 	}
-	if r&Error_NotRunning != 0 {
+	if r&ErrorNotRunning != 0 {
 		errors = append(errors, "failed healthz check")
 	}
 	if r&^errorMask != 0 {
