@@ -12,7 +12,8 @@ RUN apt-get install -q -y bridge-utils \
         lsb-base \
         dash \
         ca-certificates \
-        aufs-tools; \
+        aufs-tools \
+        dbus; \
     apt-get -y autoclean; apt-get -y clean
 
 RUN groupadd --system --non-unique --gid 1000 planet ;\

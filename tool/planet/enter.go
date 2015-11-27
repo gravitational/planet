@@ -48,21 +48,32 @@ func stop(path string) error {
 // status checks status of the running planet cluster and outputs results as
 // JSON to stdout.
 func status(rootfs string) error {
-	var (
-		systemStatus *monitoring.SystemStatus
-		data         []byte
-		err          error
-	)
-
 	log.Infof("checking status in %s", rootfs)
 
-	systemStatus, err = monitoring.Status()
+	var statusCmd = []string{"/usr/bin/planet", "--from-container", "status"}
+	data, err := enterCommand(rootfs, statusCmd)
+
+	if err != nil {
+		return err
+	}
+
+	if _, err = os.Stdout.Write(data); err != nil {
+		return trace.Wrap(err, "failed to output status")
+	}
+	return nil
+}
+
+// containerStatus reports the current cluster status.
+// It assumes the context of the planet container.
+func containerStatus() error {
+	systemStatus, err := monitoring.Status()
 	if err != nil {
 		return trace.Wrap(err, "failed to check system status")
 	}
-	data, err = json.Marshal(systemStatus)
+
+	data, err := json.Marshal(systemStatus)
 	if err != nil {
-		return trace.Wrap(err, "failed to output status")
+		return trace.Wrap(err, "failed to unmarshal status data")
 	}
 	if _, err = os.Stdout.Write(data); err != nil {
 		return trace.Wrap(err, "failed to output status")
@@ -74,7 +85,7 @@ func status(rootfs string) error {
 // enterCommand is a helper function that runs a command as a root
 // in the namespace of planet's container. It returns error
 // if command failed, or command standard output otherwise
-func enterCommand(rootfs string, args []string) (string, error) {
+func enterCommand(rootfs string, args []string) ([]byte, error) {
 	out := &bytes.Buffer{}
 	cfg := box.ProcessConfig{
 		User: "root",
@@ -84,7 +95,7 @@ func enterCommand(rootfs string, args []string) (string, error) {
 	}
 	err := enter(rootfs, cfg)
 	if err != nil {
-		return "", trace.Wrap(err)
+		return nil, trace.Wrap(err)
 	}
-	return out.String(), nil
+	return out.Bytes(), nil
 }

@@ -1,9 +1,13 @@
 package monitoring
 
-import "github.com/gravitational/planet/Godeps/_workspace/src/github.com/gravitational/trace"
+import (
+	"errors"
+
+	"github.com/gravitational/planet/Godeps/_workspace/src/github.com/gravitational/trace"
+)
 
 type (
-	Monitor interface {
+	Interface interface {
 		Status() ([]ServiceStatus, error)
 	}
 
@@ -38,42 +42,30 @@ const (
 	SystemStateUnknown              = ""
 )
 
+var ErrMonitorNotReady = errors.New("monitor service not ready")
+
 func Status() (*SystemStatus, error) {
-	var (
-		monit             Monitor
-		systemd           Monitor
-		monitConditions   []ServiceStatus
-		systemdConditions []ServiceStatus
-		conditions        []ServiceStatus
-		err               error
-		systemState       SystemState
-	)
-
-	monit, err = newMonitService()
-	if err != nil {
+	monitConditions, err := newMonitService().Status()
+	if err != nil && err != ErrMonitorNotReady {
 		return nil, trace.Wrap(err)
 	}
-	monitConditions, err = monit.Status()
+
+	systemdConditions, err := newSystemdService().Status()
 	if err != nil {
 		return nil, trace.Wrap(err)
 	}
 
-	systemd, err = newSystemdService()
-	if err != nil {
-		return nil, trace.Wrap(err)
-	}
-	systemdConditions, err = systemd.Status()
+	systemState, err := isSystemRunning()
 	if err != nil {
 		return nil, trace.Wrap(err)
 	}
 
-	systemState, err = isSystemRunning()
-	if err != nil {
-		return nil, trace.Wrap(err)
-	}
-
-	conditions = append([]ServiceStatus{}, monitConditions...)
+	conditions := append([]ServiceStatus{}, monitConditions...)
 	conditions = append(conditions, systemdConditions...)
+
+	if len(conditions) > 0 && systemState == SystemStateRunning {
+		systemState = SystemStateDegraded
+	}
 
 	return &SystemStatus{
 		SystemState: systemState,

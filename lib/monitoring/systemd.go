@@ -1,30 +1,15 @@
 package monitoring
 
 import (
-	"encoding/json"
+	"bytes"
 	"fmt"
 	"os/exec"
 
+	"github.com/gravitational/planet/Godeps/_workspace/src/github.com/coreos/go-systemd/dbus"
 	"github.com/gravitational/planet/Godeps/_workspace/src/github.com/gravitational/trace"
 )
 
-type (
-	// almost verbatim copy (github.com/coreos/go-systemd/dbus/methods.go#UnitStatus)
-	unitStatus struct {
-		Name        string // The primary unit name as string
-		Description string // The human readable description string
-		LoadState   string // The load state (i.e. whether the unit file has been loaded successfully)
-		ActiveState string // The active state (i.e. whether the unit is currently started or not)
-		SubState    string // The sub state (a more fine-grained version of the active state that is specific to the unit type, which the active state is not)
-		Followed    string // A unit that is being followed in its state by this unit, if there is any, otherwise the empty string.
-		Path        string // The unit object path
-		JobId       uint32 // If there is a job queued for the job unit the numeric job id, 0 otherwise
-		JobType     string // The job type as string
-		JobPath     string // The job object path
-	}
-
-	systemd struct{}
-)
+type systemd struct{}
 
 type loadState string
 
@@ -47,30 +32,26 @@ const (
 )
 
 var (
-	queryCmd       = "/usr/bin/systemd-query"
-	systemStateCmd = []string{"/usr/bin/systemctl", "is-system-running"}
+	systemStateCmd = []string{"/bin/systemctl", "is-system-running"}
 )
 
-func newSystemdService() (Monitor, error) {
-	return &systemd{}, nil
+func newSystemdService() Interface {
+	return &systemd{}
 }
 
 func (r systemd) Status() ([]ServiceStatus, error) {
-	var (
-		data       []byte
-		err        error
-		units      []unitStatus
-		conditions []ServiceStatus
-	)
-
-	data, err = exec.Command(queryCmd).CombinedOutput()
+	conn, err := dbus.New()
 	if err != nil {
-		return nil, trace.Wrap(err)
-	}
-	if err = json.Unmarshal(data, &units); err != nil {
-		return nil, trace.Wrap(err)
+		return nil, trace.Wrap(err, "failed to connect to dbus")
 	}
 
+	var units []dbus.UnitStatus
+	units, err = conn.ListUnits()
+	if err != nil {
+		return nil, trace.Wrap(err, "failed to query systemd units")
+	}
+
+	var conditions []ServiceStatus
 	for _, unit := range units {
 		if unit.ActiveState == activeStateFailed || unit.LoadState == loadStateError {
 			conditions = append(conditions, ServiceStatus{
@@ -80,19 +61,18 @@ func (r systemd) Status() ([]ServiceStatus, error) {
 			})
 		}
 	}
+
 	return conditions, nil
 }
 
-func isSystemRunning() (state SystemState, err error) {
-	var output []byte
-
-	output, err = exec.Command(systemStateCmd[0], systemStateCmd[1:]...).CombinedOutput()
-	if err != nil {
+func isSystemRunning() (SystemState, error) {
+	output, err := exec.Command(systemStateCmd[0], systemStateCmd[1:]...).CombinedOutput()
+	if err != nil && !isExitError(err) {
 		return SystemStateUnknown, trace.Wrap(err)
 	}
 
-	state = SystemStateUnknown
-	switch string(output) {
+	var state SystemState
+	switch string(bytes.TrimSpace(output)) {
 	case "initializing", "starting":
 		state = SystemStateLoading
 	case "stopping", "offline":
@@ -101,6 +81,15 @@ func isSystemRunning() (state SystemState, err error) {
 		state = SystemStateDegraded
 	case "running":
 		state = SystemStateRunning
+	default:
+		state = SystemStateUnknown
 	}
 	return state, nil
+}
+
+func isExitError(err error) bool {
+	if _, ok := err.(*exec.ExitError); ok {
+		return true
+	}
+	return false
 }

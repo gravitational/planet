@@ -7,6 +7,7 @@ import (
 	"io"
 	"net"
 	"net/http"
+	"os"
 	"strconv"
 	"strings"
 	"unicode/utf8"
@@ -51,9 +52,9 @@ const (
 	ErrorNotRunning = 0x200
 )
 
-func newMonitService() (Monitor, error) {
-	const socket = "/etc/monit/sock"
+const socket = "/etc/monit/sock"
 
+func newMonitService() Interface {
 	client := &http.Client{
 		Transport: &http.Transport{
 			Dial: func(network, addr string) (net.Conn, error) {
@@ -62,37 +63,36 @@ func newMonitService() (Monitor, error) {
 		},
 	}
 
-	return &monit{client: client}, nil
+	return &monit{client: client}
 }
 
-func (r *monit) Status() (conditions []ServiceStatus, err error) {
-	var (
-		resp     *http.Response
-		services []*service
-	)
+func (r *monit) Status() ([]ServiceStatus, error) {
+	if !isSocketReady() {
+		return nil, ErrMonitorNotReady
+	}
 
-	resp, err = r.client.Get("http://monit/_status?format=xml")
+	resp, err := r.client.Get("http://monit/_status?format=xml")
 	if err != nil {
 		return nil, trace.Wrap(err)
 	}
 	defer resp.Body.Close()
 
+	var services []*service
 	services, err = parse(resp.Body)
 	if err != nil {
-		return nil, trace.Wrap(err)
+		return nil, trace.Wrap(err, "invalid monit status response")
 	}
 
+	var conditions []ServiceStatus
 	for _, svc := range services {
-		state := StateRunning
-
-		if svc.Error != 0 {
-			state = StateFailed
+		if svc.Error == 0 {
+			continue
 		}
 
 		conditions = append(conditions, ServiceStatus{
 			Name:    svc.Name,
-			State:   state,
-			Message: svc.Error.String(),
+			State:   StateFailed,
+			Message: "monit: " + svc.Error.String(),
 		})
 	}
 
@@ -136,8 +136,9 @@ L:
 	return services, err
 }
 
-func (r *service) UnmarshalXML(decoder *xml.Decoder, node xml.StartElement) (err error) {
+func (r *service) UnmarshalXML(decoder *xml.Decoder, node xml.StartElement) error {
 	var token xml.Token
+	var err error
 L:
 	for {
 		if token, err = decoder.Token(); err != nil {
@@ -180,16 +181,16 @@ func (r serviceError) String() string {
 	const errorMask = ErrorNotRunning | ErrorConnection
 
 	if r == 0 {
-		return "<no error>"
-	}
-	if r&ErrorConnection != 0 {
-		errors = append(errors, "not running")
+		return "no error"
 	}
 	if r&ErrorNotRunning != 0 {
+		errors = append(errors, "not running")
+	}
+	if r&ErrorConnection != 0 {
 		errors = append(errors, "failed healthz check")
 	}
 	if r&^errorMask != 0 {
-		errors = append(errors, strconv.FormatUint(uint64(r), 10))
+		errors = append(errors, strconv.FormatUint(uint64(r&^errorMask), 10))
 	}
 
 	return strings.Join(errors, ",")
@@ -243,4 +244,9 @@ func (r *charsetReader) Read(p []byte) (int, error) {
 
 func readerISO8859_1(charset string, r io.Reader) (io.Reader, error) {
 	return &charsetReader{r: r.(io.ByteReader)}, nil
+}
+
+func isSocketReady() bool {
+	_, err := os.Stat(socket)
+	return err == nil
 }

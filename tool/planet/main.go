@@ -30,8 +30,9 @@ func run() error {
 	args, extraArgs := utils.SplitAt(os.Args, "--")
 
 	var (
-		app   = kingpin.New("planet", "Planet is a Kubernetes delivered as an orbit container")
-		debug = app.Flag("debug", "Enable debug mode").Bool()
+		app           = kingpin.New("planet", "Planet is a Kubernetes delivered as an orbit container")
+		debug         = app.Flag("debug", "Enable debug mode").Bool()
+		fromContainer = app.Flag("from-container", "Specifies if a command is run in container context").Bool()
 
 		// internal init command used by libcontainer
 		cinit = app.Command("init", "Internal init command").Hidden()
@@ -39,7 +40,7 @@ func run() error {
 		// start the container with planet
 		cstart = app.Command("start", "Start Planet container")
 
-		cstartPublicIP           = cstart.Flag("public-ip", "IP accessible by other nodes for inter-host communication").OverrideDefaultFromEnvar("PLANET_PUBLIC_IP").Required().IP()
+		cstartPublicIP           = cstart.Flag("public-ip", "IP accessible by other nodes for inter-host communication").OverrideDefaultFromEnvar("PLANET_PUBLIC_IP").IP()
 		cstartMasterIP           = cstart.Flag("master-ip", "IP of the master POD (defaults to public-ip)").OverrideDefaultFromEnvar("PLANET_MASTER_IP").IP()
 		cstartCloudProvider      = cstart.Flag("cloud-provider", "cloud provider name, e.g. 'aws' or 'gce'").OverrideDefaultFromEnvar("PLANET_CLOUD_PROVIDER").String()
 		cstartClusterID          = cstart.Flag("cluster-id", "id of the cluster").OverrideDefaultFromEnvar("PLANET_CLUSTER_ID").String()
@@ -63,10 +64,6 @@ func run() error {
 
 		// report status of a running container
 		cstatus = app.Command("status", "Get status of a running container")
-
-		calert       = app.Command("alert", "Write an alert to status file")
-		calertModule = calert.Flag("module", "Specify the name of the module for alert").String()
-		calertReason = calert.Flag("reason", "Specify the alert reason").String()
 	)
 
 	cmd, err := app.Parse(args[1:])
@@ -133,15 +130,15 @@ func run() error {
 
 	// "status" command
 	case cstatus.FullCommand():
-		rootfs, err = findRootfs()
-		if err != nil {
-			return err
+		if *fromContainer {
+			err = containerStatus()
+		} else {
+			rootfs, err = findRootfs()
+			if err != nil {
+				return err
+			}
+			err = status(rootfs)
 		}
-		err = status(rootfs)
-
-	// "alert" command
-	case calert.FullCommand():
-		err = alert(*calertModule, *calertReason)
 
 	default:
 		err = trace.Errorf("unsupported command: %v", cmd)
