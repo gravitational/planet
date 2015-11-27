@@ -14,39 +14,35 @@ type (
 	ServiceStatus struct {
 		Name string `json:"name"`
 		// Timestamp time.Time
-		State State `json:"status"`
-		// Human-friendly description of the current service state
+		Status string `json:"status"`
+		// Human-friendly description of the current service status
 		Message string `json:"info"`
 	}
 
 	SystemStatus struct {
-		SystemState `json:"state"`
-		Services    []ServiceStatus `json:"services"`
+		Status   string          `json:"status"`
+		Services []ServiceStatus `json:"services"`
 	}
 )
 
-type State string
-
 const (
-	StateRunning State = "running"
-	StateFailed        = "failed"
+	StatusRunning = "running"
+	StatusFailed  = "failed"
 )
 
-type SystemState string
-
 const (
-	SystemStateRunning  SystemState = "running"
-	SystemStateDegraded             = "degraded"
-	SystemStateLoading              = "loading"
-	SystemStateStopped              = "stopped"
-	SystemStateUnknown              = ""
+	SystemStatusRunning  = "running"
+	SystemStatusDegraded = "degraded"
+	SystemStatusLoading  = "loading"
+	SystemStatusStopped  = "stopped"
+	SystemStatusUnknown  = ""
 )
 
 var ErrMonitorNotReady = errors.New("monitor service not ready")
 
 func Status() (*SystemStatus, error) {
-	monitConditions, err := newMonitService().Status()
-	if err != nil && err != ErrMonitorNotReady {
+	systemStatus, err := isSystemRunning()
+	if err != nil {
 		return nil, trace.Wrap(err)
 	}
 
@@ -55,20 +51,20 @@ func Status() (*SystemStatus, error) {
 		return nil, trace.Wrap(err)
 	}
 
-	systemState, err := isSystemRunning()
-	if err != nil {
+	monitConditions, err := newMonitService().Status()
+	if err != nil && err != ErrMonitorNotReady {
 		return nil, trace.Wrap(err)
 	}
 
-	conditions := append([]ServiceStatus{}, monitConditions...)
-	conditions = append(conditions, systemdConditions...)
+	conditions := append([]ServiceStatus{}, systemdConditions...)
+	conditions = append(conditions, monitConditions...)
 
-	if len(conditions) > 0 && systemState == SystemStateRunning {
-		systemState = SystemStateDegraded
+	if len(conditions) > 0 && systemStatus == SystemStatusRunning {
+		systemStatus = SystemStatusDegraded
 	}
 
 	return &SystemStatus{
-		SystemState: systemState,
-		Services:    conditions,
+		Status:   systemStatus,
+		Services: conditions,
 	}, nil
 }

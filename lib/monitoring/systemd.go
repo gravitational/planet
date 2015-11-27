@@ -32,7 +32,7 @@ const (
 )
 
 var (
-	systemStateCmd = []string{"/bin/systemctl", "is-system-running"}
+	systemStatusCmd = []string{"/bin/systemctl", "is-system-running"}
 )
 
 func newSystemdService() Interface {
@@ -56,7 +56,7 @@ func (r systemd) Status() ([]ServiceStatus, error) {
 		if unit.ActiveState == activeStateFailed || unit.LoadState == loadStateError {
 			conditions = append(conditions, ServiceStatus{
 				Name:    unit.Name,
-				State:   StateFailed,
+				Status:  StatusFailed,
 				Message: fmt.Sprintf("systemd: %s", unit.SubState),
 			})
 		}
@@ -65,26 +65,26 @@ func (r systemd) Status() ([]ServiceStatus, error) {
 	return conditions, nil
 }
 
-func isSystemRunning() (SystemState, error) {
-	output, err := exec.Command(systemStateCmd[0], systemStateCmd[1:]...).CombinedOutput()
+func isSystemRunning() (string, error) {
+	output, err := exec.Command(systemStatusCmd[0], systemStatusCmd[1:]...).CombinedOutput()
 	if err != nil && !isExitError(err) {
-		return SystemStateUnknown, trace.Wrap(err)
+		return SystemStatusUnknown, trace.Wrap(err)
 	}
 
-	var state SystemState
+	var status string
 	switch string(bytes.TrimSpace(output)) {
 	case "initializing", "starting":
-		state = SystemStateLoading
+		status = SystemStatusLoading
 	case "stopping", "offline":
-		state = SystemStateStopped
+		status = SystemStatusStopped
 	case "degraded":
-		state = SystemStateDegraded
+		status = SystemStatusDegraded
 	case "running":
-		state = SystemStateRunning
+		status = SystemStatusRunning
 	default:
-		state = SystemStateUnknown
+		status = SystemStatusUnknown
 	}
-	return state, nil
+	return status, nil
 }
 
 func isExitError(err error) bool {
