@@ -212,7 +212,7 @@ func parseInt(value string) int {
 
 	if err != nil {
 		log.Errorf("invalid numeric value %s: %v", value, err)
-		// Fall-through with default value
+		// Fall-through with zero value
 	}
 	return int(result)
 }
