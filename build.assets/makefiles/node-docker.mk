@@ -10,6 +10,7 @@ all: planet-bin
 	make -C $(ASSETS)/makefiles/base/docker -f docker.mk 
 	make -C $(ASSETS)/makefiles/registry -f registry.mk
 	make -C $(ASSETS)/makefiles/kubernetes -f kubernetes.mk
+	make -C $(ASSETS)/makefiles/monit -f monitoring.mk
 # node-specific components:
 	make -C $(ASSETS)/makefiles/node/k8s-node -f k8s-node.mk
 	make -C $(ASSETS)/makefiles/node/etcdctl -f etcdctl.mk

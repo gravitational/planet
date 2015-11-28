@@ -4,13 +4,12 @@ import (
 	"bytes"
 	"encoding/json"
 	"os"
-	"strings"
 
 	"github.com/gravitational/planet/Godeps/_workspace/src/github.com/docker/docker/pkg/term"
 	"github.com/gravitational/planet/Godeps/_workspace/src/github.com/gravitational/log"
-	"github.com/gravitational/planet/Godeps/_workspace/src/github.com/gravitational/orbit/lib/pkg"
 	"github.com/gravitational/planet/Godeps/_workspace/src/github.com/gravitational/trace"
 	"github.com/gravitational/planet/lib/box"
+	"github.com/gravitational/planet/lib/monitoring"
 )
 
 // enter initiates the process in the namespaces of the container
@@ -46,44 +45,57 @@ func stop(path string) error {
 	return enter(path, cfg)
 }
 
-// status checks status of all units to see if there are any failed units
+// status checks status of the running planet cluster and outputs results as
+// JSON to stdout.
 func status(rootfs string) error {
-	out := &bytes.Buffer{}
-	log.Infof("status: %v", rootfs)
-	cfg := box.ProcessConfig{
-		User: "root",
-		Args: []string{"/bin/systemctl", "--failed"},
-		In:   os.Stdin,
-		Out:  out,
-	}
+	log.Infof("checking status in %s", rootfs)
 
-	var s pkg.Status
-	err := enter(rootfs, cfg)
+	var statusCmd = []string{"/usr/bin/planet", "--from-container", "status"}
+	data, err := enterCommand(rootfs, statusCmd)
+
 	if err != nil {
-		if box.IsConnectError(err) {
-			s.Status = pkg.StatusStopped
-		} else {
-			return err
-		}
-	} else {
-		d := out.String()
-		if !strings.Contains(d, "0 loaded units listed") {
-			s.Status = pkg.StatusDegraded
-			s.Info = d
-		} else {
-			s.Status = pkg.StatusRunning
-			s.Info = d
-		}
+		return err
 	}
 
-	bytes, err := json.Marshal(s)
+	if _, err = os.Stdout.Write(data); err != nil {
+		return trace.Wrap(err, "failed to output status")
+	}
+	return nil
+}
+
+// containerStatus reports the current cluster status.
+// It assumes the context of the planet container.
+func containerStatus() error {
+	systemStatus, err := monitoring.Status()
 	if err != nil {
-		return trace.Wrap(err, "failed to serialize status")
+		return trace.Wrap(err, "failed to check system status")
 	}
 
-	if _, err := os.Stdout.Write(bytes); err != nil {
+	data, err := json.Marshal(systemStatus)
+	if err != nil {
+		return trace.Wrap(err, "failed to unmarshal status data")
+	}
+	if _, err = os.Stdout.Write(data); err != nil {
 		return trace.Wrap(err, "failed to output status")
 	}
 
 	return nil
+}
+
+// enterCommand is a helper function that runs a command as a root
+// in the namespace of planet's container. It returns error
+// if command failed, or command standard output otherwise
+func enterCommand(rootfs string, args []string) ([]byte, error) {
+	out := &bytes.Buffer{}
+	cfg := box.ProcessConfig{
+		User: "root",
+		Args: args,
+		In:   os.Stdin,
+		Out:  out,
+	}
+	err := enter(rootfs, cfg)
+	if err != nil {
+		return nil, trace.Wrap(err)
+	}
+	return out.Bytes(), nil
 }

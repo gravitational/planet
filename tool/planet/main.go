@@ -32,8 +32,9 @@ func run() error {
 	args, extraArgs := utils.SplitAt(os.Args, "--")
 
 	var (
-		app   = kingpin.New("planet", "Planet is a Kubernetes delivered as an orbit container")
-		debug = app.Flag("debug", "Enable debug mode").Bool()
+		app           = kingpin.New("planet", "Planet is a Kubernetes delivered as an orbit container")
+		debug         = app.Flag("debug", "Enable debug mode").Bool()
+		fromContainer = app.Flag("from-container", "Specifies if a command is run in container context").Bool()
 
 		// internal init command used by libcontainer
 		cinit = app.Command("init", "Internal init command").Hidden()
@@ -68,11 +69,6 @@ func run() error {
 
 		// report status of a running container
 		cstatus = app.Command("status", "Get status of a running container")
-
-		// alert command
-		calert       = app.Command("alert", "Write an alert to status file")
-		calertModule = calert.Flag("module", "Specify the name of the module for alert").String()
-		calertReason = calert.Flag("reason", "Specify the alert reason").String()
 
 		// test command
 		ctest             = app.Command("test", "Run end-to-end tests on a running cluster")
@@ -150,15 +146,15 @@ func run() error {
 
 	// "status" command
 	case cstatus.FullCommand():
-		rootfs, err = findRootfs()
-		if err != nil {
-			break
+		if *fromContainer {
+			err = containerStatus()
+		} else {
+			rootfs, err = findRootfs()
+			if err != nil {
+				break
+			}
+			err = status(rootfs)
 		}
-		err = status(rootfs)
-
-	// "alert" command
-	case calert.FullCommand():
-		err = alert(*calertModule, *calertReason)
 
 	// "test" command
 	case ctest.FullCommand():
