@@ -27,7 +27,7 @@ type commandOutput struct {
 // Message is a piece of process output and optionally an exit code
 type Message struct {
 	Payload  string `json:"payload"`
-	ExitCode int    `json:"exitCode,omitempty"`
+	ExitCode int    `json:"exit_code,omitempty"`
 }
 
 type handler func(http.ResponseWriter, *http.Request, httprouter.Params) error
