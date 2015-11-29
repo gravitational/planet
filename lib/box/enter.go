@@ -16,17 +16,14 @@ import (
 func CombinedOutput(c libcontainer.Container, cfg ProcessConfig) ([]byte, error) {
 	var b bytes.Buffer
 	cfg.Out = &b
-	st, err := StartProcess(c, cfg)
+	err := StartProcess(c, cfg)
 	if err != nil {
 		return b.Bytes(), err
-	}
-	if !st.Success() {
-		return nil, trace.Errorf("process failed with status: %v", st)
 	}
 	return b.Bytes(), nil
 }
 
-func StartProcess(c libcontainer.Container, cfg ProcessConfig) (*os.ProcessState, error) {
+func StartProcess(c libcontainer.Container, cfg ProcessConfig) error {
 	log.Infof("StartProcess(%v)", cfg)
 	defer log.Infof("StartProcess(%v) is done!", cfg)
 
@@ -37,7 +34,7 @@ func StartProcess(c libcontainer.Container, cfg ProcessConfig) (*os.ProcessState
 	}
 }
 
-func StartProcessTTY(c libcontainer.Container, cfg ProcessConfig) (*os.ProcessState, error) {
+func StartProcessTTY(c libcontainer.Container, cfg ProcessConfig) error {
 	p := &libcontainer.Process{
 		Args: cfg.Args,
 		User: cfg.User,
@@ -46,7 +43,7 @@ func StartProcessTTY(c libcontainer.Container, cfg ProcessConfig) (*os.ProcessSt
 
 	containerConsole, err := p.NewConsole(0)
 	if err != nil {
-		return nil, trace.Wrap(err)
+		return trace.Wrap(err)
 	}
 
 	term.SetWinsize(containerConsole.Fd(),
@@ -75,22 +72,21 @@ func StartProcessTTY(c libcontainer.Container, cfg ProcessConfig) (*os.ProcessSt
 	// with "init" command line argument.  (this is the default setting)
 	// then our init() function comes into play
 	if err := c.Start(p); err != nil {
-		return nil, trace.Wrap(err)
+		return trace.Wrap(err)
 	}
 
 	log.Infof("process started")
 
 	// wait for the process to finish.
-	status, err := p.Wait()
-	log.Infof("process status: %v %v", status, err)
+	_, err = p.Wait()
 	if err != nil {
-		return status, trace.Wrap(err)
+		return trace.Wrap(err)
 	}
 
-	return status, nil
+	return nil
 }
 
-func StartProcessStdout(c libcontainer.Container, cfg ProcessConfig) (*os.ProcessState, error) {
+func StartProcessStdout(c libcontainer.Container, cfg ProcessConfig) error {
 	var in io.Reader
 	if cfg.In != nil {
 		// we have to pass real pipe to libcontainer.Process because:
@@ -102,7 +98,7 @@ func StartProcessStdout(c libcontainer.Container, cfg ProcessConfig) (*os.Proces
 		// this never happens, so this fixes the problem for now
 		r, w, err := os.Pipe()
 		if err != nil {
-			return nil, trace.Wrap(err)
+			return trace.Wrap(err)
 		}
 		in = r
 		go func() {
@@ -123,15 +119,15 @@ func StartProcessStdout(c libcontainer.Container, cfg ProcessConfig) (*os.Proces
 	// with "init" command line argument.  (this is the default setting)
 	// then our init() function comes into play
 	if err := c.Start(p); err != nil {
-		return nil, trace.Wrap(err)
+		return trace.Wrap(err)
 	}
 
 	// wait for the process to finish
 	log.Infof("Waiting for StartProcessStdout(%v)...", cfg.Args)
 	defer log.Infof("StartProcessStdout(%v) completed", cfg.Args)
-	status, err := p.Wait()
+	_, err := p.Wait()
 	if err != nil {
-		return status, trace.Wrap(err)
+		return trace.Wrap(err)
 	}
-	return status, nil
+	return nil
 }

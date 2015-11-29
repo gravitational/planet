@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"io"
 	"os"
+	"strconv"
 
 	"github.com/gravitational/planet/Godeps/_workspace/src/github.com/docker/docker/pkg/term"
 	"github.com/gravitational/planet/Godeps/_workspace/src/github.com/gravitational/log"
@@ -20,7 +21,12 @@ type commandOutput struct {
 	exitCode int
 }
 
-func enterConsole(rootfs, cmd, user string, tty bool, args []string) (exitCode int, err error) {
+// exitError is an error that describes the event of a process exiting with a non-zero value
+type exitError struct {
+	exitCode int
+}
+
+func enterConsole(rootfs, cmd, user string, tty bool, args []string) (err error) {
 	cmdOut := &commandOutput{w: os.Stdout}
 
 	cfg := box.ProcessConfig{
@@ -32,13 +38,16 @@ func enterConsole(rootfs, cmd, user string, tty bool, args []string) (exitCode i
 	if tty {
 		s, err := term.GetWinsize(os.Stdin.Fd())
 		if err != nil {
-			return cmdOut.exitCode, trace.Wrap(err)
+			return trace.Wrap(err)
 		}
 		cfg.TTY = &box.TTY{H: int(s.Height), W: int(s.Width)}
 	}
 
 	err = enter(rootfs, cfg)
-	return cmdOut.exitCode, err
+	if err == nil && cmdOut.exitCode != 0 {
+		err = trace.Wrap(&exitError{cmdOut.exitCode})
+	}
+	return err
 }
 
 // enter initiates the process in the namespaces of the container
@@ -76,21 +85,19 @@ func stop(path string) error {
 
 // status checks status of the running planet cluster and outputs results as
 // JSON to stdout.
-func status(rootfs string) (exitCode int, err error) {
+func status(rootfs string) (err error) {
 	log.Infof("checking status in %s", rootfs)
 
 	var statusCmd = []string{"/usr/bin/planet", "--from-container", "status"}
 	var data []byte
 
-	data, exitCode, err = enterCommand(rootfs, statusCmd)
-	if err != nil {
-		return exitCode, err
+	data, err = enterCommand(rootfs, statusCmd)
+	if data != nil {
+		if _, errWrite := os.Stdout.Write(data); errWrite != nil {
+			return trace.Wrap(errWrite, "failed to output status")
+		}
 	}
-
-	if _, err = os.Stdout.Write(data); err != nil {
-		return exitCode, trace.Wrap(err, "failed to output status")
-	}
-	return exitCode, nil
+	return err
 }
 
 // containerStatus reports the current cluster status.
@@ -116,7 +123,7 @@ func containerStatus() (ok bool, err error) {
 // enterCommand is a helper function that runs a command as a root
 // in the namespace of planet's container. It returns error
 // if command failed, or command standard output otherwise
-func enterCommand(rootfs string, args []string) ([]byte, int, error) {
+func enterCommand(rootfs string, args []string) ([]byte, error) {
 	buf := &bytes.Buffer{}
 	cmdOut := &commandOutput{w: buf}
 	cfg := box.ProcessConfig{
@@ -127,9 +134,12 @@ func enterCommand(rootfs string, args []string) ([]byte, int, error) {
 	}
 	err := enter(rootfs, cfg)
 	if err != nil {
-		return nil, cmdOut.exitCode, trace.Wrap(err)
+		return nil, trace.Wrap(err)
 	}
-	return buf.Bytes(), cmdOut.exitCode, nil
+	if cmdOut.exitCode != 0 {
+		err = trace.Wrap(&exitError{cmdOut.exitCode})
+	}
+	return buf.Bytes(), err
 }
 
 func (r *commandOutput) Write(p []byte) (n int, err error) {
@@ -139,4 +149,8 @@ func (r *commandOutput) Write(p []byte) (n int, err error) {
 	r.w.Write([]byte(msg.Payload))
 	r.exitCode = msg.ExitCode
 	return len(p), err
+}
+
+func (err exitError) Error() string {
+	return "exit status " + strconv.FormatInt(int64(err.exitCode), 10)
 }

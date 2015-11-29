@@ -23,16 +23,17 @@ func main() {
 	var exitCode int
 	var err error
 
-	if exitCode, err = run(); err != nil {
-		fmt.Fprintf(os.Stderr, "planet error: %v\n", err)
-		if exitCode == 0 {
-			exitCode = -1
+	if err = run(); err != nil {
+		if errTrace, ok := err.(*trace.TraceErr); ok {
+			if errExit, ok := errTrace.OrigError().(*exitError); ok {
+				exitCode = errExit.exitCode
+			}
 		}
 	}
 	os.Exit(exitCode)
 }
 
-func run() (exitCode int, err error) {
+func run() (err error) {
 	args, extraArgs := utils.SplitAt(os.Args, "--")
 
 	var (
@@ -83,7 +84,7 @@ func run() (exitCode int, err error) {
 
 	cmd, err := app.Parse(args[1:])
 	if err != nil {
-		return 0, err
+		return err
 	}
 
 	if emptyIP(cstartMasterIP) {
@@ -138,7 +139,7 @@ func run() (exitCode int, err error) {
 		if err != nil {
 			break
 		}
-		exitCode, err = enterConsole(
+		err = enterConsole(
 			rootfs, *centerArgs, *centerUser, !*centerNoTTY, extraArgs)
 
 	// "stop" command
@@ -154,15 +155,15 @@ func run() (exitCode int, err error) {
 		if *fromContainer {
 			var ok bool
 			ok, err = containerStatus()
-			if !ok {
-				exitCode = 1 // FIXME
+			if err == nil && !ok {
+				err = trace.Wrap(&exitError{1})
 			}
 		} else {
 			rootfs, err = findRootfs()
 			if err != nil {
 				break
 			}
-			exitCode, err = status(rootfs)
+			err = status(rootfs)
 		}
 
 	// "test" command
@@ -177,7 +178,7 @@ func run() (exitCode int, err error) {
 		err = trace.Errorf("unsupported command: %v", cmd)
 	}
 
-	return exitCode, err
+	return err
 }
 
 func selfTest(config Config, repoDir, spec string, extraArgs []string) error {
