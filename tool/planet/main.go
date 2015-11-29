@@ -10,7 +10,6 @@ import (
 	"syscall"
 	"time"
 
-	"github.com/gravitational/planet/Godeps/_workspace/src/github.com/docker/docker/pkg/term"
 	"github.com/gravitational/planet/Godeps/_workspace/src/github.com/gravitational/log"
 	"github.com/gravitational/planet/Godeps/_workspace/src/github.com/gravitational/orbit/lib/utils"
 	"github.com/gravitational/planet/Godeps/_workspace/src/github.com/gravitational/trace"
@@ -21,14 +20,19 @@ import (
 )
 
 func main() {
-	if err := run(); err != nil {
+	var exitCode int
+	var err error
+
+	if exitCode, err = run(); err != nil {
 		fmt.Fprintf(os.Stderr, "planet error: %v\n", err)
-		os.Exit(-1)
+		if exitCode == 0 {
+			exitCode = -1
+		}
 	}
-	log.Infof("planet: execution completed successfully")
+	os.Exit(exitCode)
 }
 
-func run() error {
+func run() (exitCode int, err error) {
 	args, extraArgs := utils.SplitAt(os.Args, "--")
 
 	var (
@@ -79,7 +83,7 @@ func run() error {
 
 	cmd, err := app.Parse(args[1:])
 	if err != nil {
-		return err
+		return 0, err
 	}
 
 	if emptyIP(cstartMasterIP) {
@@ -93,6 +97,7 @@ func run() error {
 	}
 
 	var rootfs string
+
 	switch cmd {
 
 	// "start" command
@@ -133,7 +138,7 @@ func run() error {
 		if err != nil {
 			break
 		}
-		err = enterConsole(
+		exitCode, err = enterConsole(
 			rootfs, *centerArgs, *centerUser, !*centerNoTTY, extraArgs)
 
 	// "stop" command
@@ -147,13 +152,17 @@ func run() error {
 	// "status" command
 	case cstatus.FullCommand():
 		if *fromContainer {
-			err = containerStatus()
+			var ok bool
+			ok, err = containerStatus()
+			if !ok {
+				exitCode = 1 // FIXME
+			}
 		} else {
 			rootfs, err = findRootfs()
 			if err != nil {
 				break
 			}
-			err = status(rootfs)
+			exitCode, err = status(rootfs)
 		}
 
 	// "test" command
@@ -168,7 +177,7 @@ func run() error {
 		err = trace.Errorf("unsupported command: %v", cmd)
 	}
 
-	return err
+	return exitCode, err
 }
 
 func selfTest(config Config, repoDir, spec string, extraArgs []string) error {
@@ -228,24 +237,6 @@ func HostPort(s kingpin.Settings) *hostPort {
 
 	s.SetValue(result)
 	return result
-}
-
-func enterConsole(rootfs, cmd, user string, tty bool, args []string) error {
-	cfg := box.ProcessConfig{
-		In:   os.Stdin,
-		Out:  os.Stdout,
-		Args: append([]string{cmd}, args...),
-	}
-
-	if tty {
-		s, err := term.GetWinsize(os.Stdin.Fd())
-		if err != nil {
-			return trace.Wrap(err)
-		}
-		cfg.TTY = &box.TTY{H: int(s.Height), W: int(s.Width)}
-	}
-
-	return enter(rootfs, cfg)
 }
 
 // initCmd is implicitly called by the libcontainer logic and is used to start

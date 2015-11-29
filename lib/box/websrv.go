@@ -4,6 +4,8 @@ import (
 	"encoding/hex"
 	"encoding/json"
 	"net/http"
+	"os"
+	"syscall"
 
 	"github.com/gravitational/planet/Godeps/_workspace/src/github.com/gravitational/log"
 	"github.com/gravitational/planet/Godeps/_workspace/src/github.com/gravitational/roundtrip"
@@ -15,13 +17,28 @@ import (
 	"github.com/gravitational/planet/Godeps/_workspace/src/golang.org/x/net/websocket"
 )
 
-type handler func(http.ResponseWriter, *http.Request, httprouter.Params) error
+type (
+	// commandOutput is an io.Writer on server-side of the websocket-based remote
+	// command execution protocol and forwards process output and exit code
+	// to client
+	commandOutput struct {
+		enc *json.Encoder
+	}
 
-type webServer struct {
-	httprouter.Router
-	container    libcontainer.Container
-	socketServer websocket.Server
-}
+	// Message is a piece of process output and optionally an exit code
+	Message struct {
+		Payload  string `json:"payload"`
+		ExitCode int    `json:"exitCode,omitempty"`
+	}
+
+	handler func(http.ResponseWriter, *http.Request, httprouter.Params) error
+
+	webServer struct {
+		httprouter.Router
+		container    libcontainer.Container
+		socketServer websocket.Server
+	}
+)
 
 func NewWebServer(c libcontainer.Container) *webServer {
 	s := &webServer{container: c}
@@ -64,13 +81,40 @@ func (s *webServer) enter(w http.ResponseWriter, r *http.Request, p httprouter.P
 	// use websocket server to establish a bidirectional communication:
 	s.socketServer.Handler = func(conn *websocket.Conn) {
 		defer conn.Close()
+		var status *os.ProcessState
+		var err error
+		cmdOut := commandOutput{enc: json.NewEncoder(conn)}
+
 		cfg.In = conn
-		cfg.Out = conn
-		if status, err := StartProcess(s.container, *cfg); err != nil {
+		cfg.Out = cmdOut
+		if status, err = StartProcess(s.container, *cfg); err != nil {
 			log.Errorf("StartProcess failed with %v, %v", status, err)
+			if status != nil {
+				if waitStatus, ok := status.Sys().(syscall.WaitStatus); ok {
+					cmdOut.writeExitCode(waitStatus.ExitStatus())
+				}
+			}
 		}
 		log.Infof("StartProcess (%v) completed!", cfg)
 	}
 	s.socketServer.ServeHTTP(w, r)
 	return nil
+}
+
+func (r commandOutput) Write(p []byte) (n int, err error) {
+	return r.writeMessage(&Message{
+		Payload: string(p),
+	})
+}
+
+func (r commandOutput) writeMessage(msg *Message) (n int, err error) {
+	err = r.enc.Encode(msg)
+	return len(msg.Payload), err
+}
+
+func (r commandOutput) writeExitCode(exitCode int) (err error) {
+	_, err = r.writeMessage(&Message{
+		ExitCode: exitCode,
+	})
+	return err
 }

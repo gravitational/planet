@@ -31,7 +31,7 @@ func Connect(path string) (ContainerServer, error) {
 	return &client{path: path}, nil
 }
 
-// Enter connects to a socket and
+// Enter spawns a process specified with cfg remotely
 func (c *client) Enter(cfg ProcessConfig) error {
 	u := url.URL{Host: "planet", Scheme: "ws", Path: "/v1/enter"}
 	data, err := json.Marshal(cfg)

@@ -28,7 +28,7 @@ func CombinedOutput(c libcontainer.Container, cfg ProcessConfig) ([]byte, error)
 
 func StartProcess(c libcontainer.Container, cfg ProcessConfig) (*os.ProcessState, error) {
 	log.Infof("StartProcess(%v)", cfg)
-	defer log.Infof("StartProcess(%v) is gone!", cfg)
+	defer log.Infof("StartProcess(%v) is done!", cfg)
 
 	if cfg.TTY != nil {
 		return StartProcessTTY(c, cfg)
@@ -81,13 +81,13 @@ func StartProcessTTY(c libcontainer.Container, cfg ProcessConfig) (*os.ProcessSt
 	log.Infof("process started")
 
 	// wait for the process to finish.
-	s, err := p.Wait()
+	status, err := p.Wait()
+	log.Infof("process status: %v %v", status, err)
 	if err != nil {
-		return nil, trace.Wrap(err)
+		return status, trace.Wrap(err)
 	}
 
-	log.Infof("process status: %v %v", s, err)
-	return s, nil
+	return status, nil
 }
 
 func StartProcessStdout(c libcontainer.Container, cfg ProcessConfig) (*os.ProcessState, error) {
@@ -129,9 +129,9 @@ func StartProcessStdout(c libcontainer.Container, cfg ProcessConfig) (*os.Proces
 	// wait for the process to finish
 	log.Infof("Waiting for StartProcessStdout(%v)...", cfg.Args)
 	defer log.Infof("StartProcessStdout(%v) completed", cfg.Args)
-	s, err := p.Wait()
+	status, err := p.Wait()
 	if err != nil {
-		return nil, trace.Wrap(err)
+		return status, trace.Wrap(err)
 	}
-	return s, nil
+	return status, nil
 }
