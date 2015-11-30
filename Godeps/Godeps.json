@@ -113,7 +113,7 @@
 		},
 		{
 			"ImportPath": "github.com/gravitational/trace",
-			"Rev": "aafc41a649dce0c72f5081ef6f3ec749cb10b979"
+			"Rev": "ef858f0ffc8fd474f9b5f5706bdcb69bcd4ba733"
 		},
 		{
 			"ImportPath": "github.com/hashicorp/go-version",

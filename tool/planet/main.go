@@ -24,10 +24,8 @@ func main() {
 	var err error
 
 	if err = run(); err != nil {
-		if errTrace, ok := err.(*trace.TraceErr); ok {
-			if errExit, ok := errTrace.OrigError().(*exitError); ok {
-				exitCode = errExit.exitCode
-			}
+		if errExit, ok := err.(*exitError); ok {
+			exitCode = errExit.exitCode
 		}
 	}
 	os.Exit(exitCode)
@@ -156,7 +154,7 @@ func run() (err error) {
 			var ok bool
 			ok, err = containerStatus()
 			if err == nil && !ok {
-				err = trace.Wrap(&exitError{1})
+				err = &exitError{exitCode: 1}
 			}
 		} else {
 			rootfs, err = findRootfs()

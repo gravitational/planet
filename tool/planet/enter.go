@@ -23,6 +23,7 @@ type commandOutput struct {
 
 // exitError is an error that describes the event of a process exiting with a non-zero value
 type exitError struct {
+	trace.Traces
 	exitCode int
 }
 
@@ -45,7 +46,7 @@ func enterConsole(rootfs, cmd, user string, tty bool, args []string) (err error)
 
 	err = enter(rootfs, cfg)
 	if err == nil && cmdOut.exitCode != 0 {
-		err = trace.Wrap(&exitError{cmdOut.exitCode})
+		err = &exitError{exitCode: cmdOut.exitCode}
 	}
 	return err
 }
@@ -137,7 +138,7 @@ func enterCommand(rootfs string, args []string) ([]byte, error) {
 		return nil, trace.Wrap(err)
 	}
 	if cmdOut.exitCode != 0 {
-		err = trace.Wrap(&exitError{cmdOut.exitCode})
+		err = &exitError{exitCode: cmdOut.exitCode}
 	}
 	return buf.Bytes(), err
 }
