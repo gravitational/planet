@@ -31,7 +31,7 @@ func main() {
 	os.Exit(exitCode)
 }
 
-func run() (err error) {
+func run() error {
 	args, extraArgs := utils.SplitAt(os.Args, "--")
 
 	var (
@@ -96,7 +96,6 @@ func run() (err error) {
 	}
 
 	var rootfs string
-
 	switch cmd {
 
 	// "start" command
