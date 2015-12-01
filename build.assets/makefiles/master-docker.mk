@@ -8,12 +8,14 @@ all: planet-bin
 # common components:
 	make -C $(ASSETS)/makefiles/base/network -f network.mk
 	make -C $(ASSETS)/makefiles/base/docker -f docker.mk 
+	make -C $(ASSETS)/makefiles/base/docker -f registry.mk 
 	make -C $(ASSETS)/makefiles/registry -f registry.mk
 	make -C $(ASSETS)/makefiles/kubernetes -f kubernetes.mk
 	make -C $(ASSETS)/makefiles/monit -f monitoring.mk
 # master-image specific:
 	make -C $(ASSETS)/makefiles/master/etcd -f etcd.mk
 	make -C $(ASSETS)/makefiles/master/k8s-master -f k8s-master.mk
+	make -C $(ASSETS)/makefiles/master/k8s-master -f registry.mk
 # shrink rootfs:
 	make -e ROOTFS=$(ROOTFS) -C $(ASSETS)/makefiles -f shrink-rootfs.mk
 
