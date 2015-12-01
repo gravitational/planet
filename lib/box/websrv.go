@@ -19,14 +19,14 @@ import (
 
 // commandOutput is an io.Writer on server-side of the websocket-based remote
 // command execution protocol that forwards process output and exit code
-// to client
+// to client as JSON.
 type commandOutput struct {
-	enc *json.Encoder
+	conn *websocket.Conn
 }
 
-// Message is a piece of process output and optionally an exit code
-type Message struct {
-	Payload  string `json:"payload"`
+// message is a piece of process output and optionally an exit code.
+type message struct {
+	Payload  []byte `json:"payload"`
 	ExitCode int    `json:"exit_code,omitempty"`
 }
 
@@ -80,7 +80,7 @@ func (s *webServer) enter(w http.ResponseWriter, r *http.Request, p httprouter.P
 	s.socketServer.Handler = func(conn *websocket.Conn) {
 		defer conn.Close()
 		var err error
-		cmdOut := &commandOutput{enc: json.NewEncoder(conn)}
+		cmdOut := &commandOutput{conn: conn}
 
 		cfg.In = conn
 		cfg.Out = cmdOut
@@ -101,18 +101,19 @@ func (s *webServer) enter(w http.ResponseWriter, r *http.Request, p httprouter.P
 }
 
 func (r *commandOutput) Write(p []byte) (n int, err error) {
-	return r.writeMessage(&Message{
-		Payload: string(p),
+	err = r.writeMessage(&message{
+		Payload: p,
 	})
+	return len(p), err
 }
 
-func (r *commandOutput) writeMessage(msg *Message) (n int, err error) {
-	err = r.enc.Encode(msg)
-	return len(msg.Payload), err
+func (r *commandOutput) writeMessage(msg *message) error {
+	err := websocket.JSON.Send(r.conn, msg)
+	return err
 }
 
-func (r *commandOutput) writeExitCode(exitCode int) (err error) {
-	_, err = r.writeMessage(&Message{
+func (r *commandOutput) writeExitCode(exitCode int) error {
+	err := r.writeMessage(&message{
 		ExitCode: exitCode,
 	})
 	return err

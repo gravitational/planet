@@ -14,10 +14,19 @@ import (
 	"net"
 	"net/url"
 	"os"
+	"strconv"
 
 	"github.com/gravitational/planet/Godeps/_workspace/src/github.com/gravitational/trace"
 	"github.com/gravitational/planet/Godeps/_workspace/src/golang.org/x/net/websocket"
 )
+
+// ExitError is an error that describes the event of a process exiting with a non-zero value.
+type ExitError struct {
+	trace.Traces
+	Code int
+}
+
+var _ = trace.TraceSetter(&ExitError{})
 
 type client struct {
 	path string
@@ -61,10 +70,7 @@ func (c *client) Enter(cfg ProcessConfig) error {
 	// it sends a signal via exitC when it's done (it means the container exited
 	// and closed its stdout)
 	exitC := make(chan error)
-	go func() {
-		_, err := io.Copy(cfg.Out, clt)
-		exitC <- err
-	}()
+	go pipeClient(cfg.Out, clt, exitC)
 
 	// this goroutine copies stdin into a container. it doesn't exit unless
 	// a user hits "Enter" (which causes it to exit io.Copy() loop because it will
@@ -74,8 +80,8 @@ func (c *client) Enter(cfg ProcessConfig) error {
 	}()
 
 	// only wait for output handle to be closed
-	<-exitC
-	return nil
+	err = <-exitC
+	return err
 }
 
 func checkError(err error) error {
@@ -99,4 +105,33 @@ func checkError(err error) error {
 func IsConnectError(e error) bool {
 	_, ok := e.(*ErrConnect)
 	return ok
+}
+
+// pipeClient forwards JSON encoded process output as plain text to dst.
+// Upon receiving io.EOF, it terminates and forwards any errors via exitC channel.
+func pipeClient(dst io.Writer, conn *websocket.Conn, exitC chan<- error) {
+	var err error
+	var msg message
+	for {
+		err = websocket.JSON.Receive(conn, &msg)
+		if err != nil {
+			break
+		}
+		_, err = dst.Write(msg.Payload)
+		if err != nil {
+			break
+		}
+	}
+	if err == io.EOF && msg.ExitCode != 0 {
+		err = &ExitError{Code: msg.ExitCode}
+	}
+	exitC <- err
+}
+
+func (err ExitError) Error() string {
+	return "exit status " + strconv.FormatInt(int64(err.Code), 10)
+}
+
+func (err ExitError) OrigError() error {
+	return nil
 }

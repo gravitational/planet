@@ -3,9 +3,7 @@ package main
 import (
 	"bytes"
 	"encoding/json"
-	"io"
 	"os"
-	"strconv"
 
 	"github.com/gravitational/planet/Godeps/_workspace/src/github.com/docker/docker/pkg/term"
 	"github.com/gravitational/planet/Godeps/_workspace/src/github.com/gravitational/log"
@@ -14,25 +12,10 @@ import (
 	"github.com/gravitational/planet/lib/monitoring"
 )
 
-// commandOutput is a io.Writer that decodes structured process output and delegates
-// the plain text to w
-type commandOutput struct {
-	w        io.Writer
-	exitCode int
-}
-
-// exitError is an error that describes the event of a process exiting with a non-zero value
-type exitError struct {
-	trace.Traces
-	exitCode int
-}
-
 func enterConsole(rootfs, cmd, user string, tty bool, args []string) (err error) {
-	cmdOut := &commandOutput{w: os.Stdout}
-
 	cfg := &box.ProcessConfig{
 		In:   os.Stdin,
-		Out:  cmdOut,
+		Out:  os.Stdout,
 		Args: append([]string{cmd}, args...),
 	}
 
@@ -45,9 +28,6 @@ func enterConsole(rootfs, cmd, user string, tty bool, args []string) (err error)
 	}
 
 	err = enter(rootfs, cfg)
-	if err == nil && cmdOut.exitCode != 0 {
-		err = &exitError{exitCode: cmdOut.exitCode}
-	}
 	return err
 }
 
@@ -129,32 +109,12 @@ func containerStatus() (ok bool, err error) {
 // if command failed, or command standard output otherwise
 func enterCommand(rootfs string, args []string) ([]byte, error) {
 	buf := &bytes.Buffer{}
-	cmdOut := &commandOutput{w: buf}
 	cfg := &box.ProcessConfig{
 		User: "root",
 		Args: args,
 		In:   os.Stdin,
-		Out:  cmdOut,
+		Out:  buf,
 	}
 	err := enter(rootfs, cfg)
-	if err != nil {
-		return nil, trace.Wrap(err)
-	}
-	if cmdOut.exitCode != 0 {
-		err = &exitError{exitCode: cmdOut.exitCode}
-	}
-	return buf.Bytes(), err
-}
-
-func (r *commandOutput) Write(p []byte) (n int, err error) {
-	var msg box.Message
-
-	err = json.Unmarshal(p, &msg)
-	r.w.Write([]byte(msg.Payload))
-	r.exitCode = msg.ExitCode
-	return len(p), err
-}
-
-func (err exitError) Error() string {
-	return "exit status " + strconv.FormatInt(int64(err.exitCode), 10)
+	return buf.Bytes(), trace.Wrap(err)
 }
