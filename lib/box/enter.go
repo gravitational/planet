@@ -38,7 +38,7 @@ func StartProcessTTY(c libcontainer.Container, cfg ProcessConfig) error {
 	p := &libcontainer.Process{
 		Args: cfg.Args,
 		User: cfg.User,
-		Env:  []string{"TERM=xterm", "LC_ALL=en_US.UTF-8"},
+		Env:  append(cfg.Environment(), "TERM=xterm", "LC_ALL=en_US.UTF-8"),
 	}
 
 	containerConsole, err := p.NewConsole(0)
@@ -112,7 +112,7 @@ func StartProcessStdout(c libcontainer.Container, cfg ProcessConfig) error {
 		Stdout: cfg.Out,
 		Stdin:  in,
 		Stderr: cfg.Out,
-		Env:    []string{"LC_ALL=en_US.UTF-8"},
+		Env:    append(cfg.Environment(), "TERM=xterm", "LC_ALL=en_US.UTF-8"),
 	}
 
 	// this will cause libcontainer to exec this binary again

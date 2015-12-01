@@ -114,7 +114,7 @@ func start(conf Config, monitorc chan<- bool) (*box.Box, error) {
 		conf.InsecureRegistries, fmt.Sprintf("%v:5000", conf.MasterIP))
 
 	addInsecureRegistries(&conf)
-	addDockerStorage(&conf)
+	addDockerOptions(&conf)
 	setupFlannel(&conf)
 	if err = setupCloudOptions(&conf); err != nil {
 		return nil, err
@@ -130,7 +130,7 @@ func start(conf Config, monitorc chan<- bool) (*box.Box, error) {
 		Rootfs: conf.Rootfs,
 		EnvFiles: []box.EnvFile{
 			box.EnvFile{
-				Path: "/etc/container-environment",
+				Path: ContainerEnvironmentFile,
 				Env:  conf.Env,
 			},
 		},
@@ -204,11 +204,7 @@ func addInsecureRegistries(c *Config) {
 		out[i] = fmt.Sprintf("--insecure-registry=%v", r)
 	}
 	opts := strings.Join(out, " ")
-	if dopts := c.Env.Get("DOCKER_OPTS"); dopts != "" {
-		c.Env.Upsert("DOCKER_OPTS", strings.Join([]string{dopts, opts}, " "))
-	} else {
-		c.Env.Upsert("DOCKER_OPTS", opts)
-	}
+	c.Env.Append("DOCKER_OPTS", opts, " ")
 }
 
 // pickDockerStorageBackend examines the filesystems this host supports and picks one
@@ -237,11 +233,14 @@ func pickDockerStorageBackend() (dockerBackend string, err error) {
 
 // addDockerStorage adds a given docker storage back-end to DOCKER_OPTS environment
 // variable
-func addDockerStorage(c *Config) {
-	c.Env.Upsert("DOCKER_OPTS",
-		fmt.Sprintf("%s --storage-driver=%s", c.Env.Get("DOCKER_OPTS"), c.DockerBackend))
+func addDockerOptions(c *Config) {
+	// add supported storage backend
+	c.Env.Append("DOCKER_OPTS",
+		fmt.Sprintf("--storage-driver=%s", c.DockerBackend), " ")
 
-	log.Infof("DOCKER_OPTS are: %v", c.Env.Get("DOCKER_OPTS"))
+	// use cgroups native driver, because of this:
+	// https://github.com/docker/docker/issues/16256
+	c.Env.Append("DOCKER_OPTS", "--exec-opt native.cgroupdriver=cgroupfs", " ")
 }
 
 // addResolv adds resolv conf from the host's /etc/resolv.conf
@@ -304,9 +303,10 @@ func setupFlannel(c *Config) {
 }
 
 const (
-	EtcdWorkDir   = "/ext/etcd"
-	DockerWorkDir = "/ext/docker"
-	RegstrWorkDir = "/ext/registry"
+	EtcdWorkDir              = "/ext/etcd"
+	DockerWorkDir            = "/ext/docker"
+	RegstrWorkDir            = "/ext/registry"
+	ContainerEnvironmentFile = "/etc/container-environment"
 )
 
 func checkMasterMounts(cfg *Config) error {
