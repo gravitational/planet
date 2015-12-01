@@ -69,11 +69,23 @@ type ProcessConfig struct {
 	TTY  *TTY      `json:"tty"`
 	Args []string  `json:"args"`
 	User string    `json:"user"`
+	Env  EnvVars   `json:"env"`
+}
+
+func (e ProcessConfig) Environment() []string {
+	if len(e.Env) == 0 {
+		return []string{}
+	}
+	out := []string{}
+	for _, keyval := range e.Env {
+		out = append(out, fmt.Sprintf("%v=%v", keyval.Name, keyval.Val))
+	}
+	return out
 }
 
 type EnvPair struct {
-	Name string
-	Val  string
+	Name string `json:"name"`
+	Val  string `json:"val"`
 }
 
 type EnvVars []EnvPair
@@ -85,6 +97,14 @@ func (vars *EnvVars) Get(v string) string {
 		}
 	}
 	return ""
+}
+
+func (vars *EnvVars) Append(k, v, delim string) {
+	if existing := vars.Get(k); existing != "" {
+		vars.Upsert(k, strings.Join([]string{existing, v}, delim))
+	} else {
+		vars.Upsert(k, v)
+	}
 }
 
 func (vars *EnvVars) Upsert(k, v string) {

@@ -30,7 +30,7 @@ type exitError struct {
 func enterConsole(rootfs, cmd, user string, tty bool, args []string) (err error) {
 	cmdOut := &commandOutput{w: os.Stdout}
 
-	cfg := box.ProcessConfig{
+	cfg := &box.ProcessConfig{
 		In:   os.Stdin,
 		Out:  cmdOut,
 		Args: append([]string{cmd}, args...),
@@ -54,7 +54,7 @@ func enterConsole(rootfs, cmd, user string, tty bool, args []string) (err error)
 // enter initiates the process in the namespaces of the container
 // managed by the planet master process and mantains websocket connection
 // to proxy input and output
-func enter(rootfs string, cfg box.ProcessConfig) error {
+func enter(rootfs string, cfg *box.ProcessConfig) error {
 	log.Infof("enter: %v %#v", rootfs, cfg)
 	if cfg.TTY != nil {
 		oldState, err := term.SetRawTerminal(os.Stdin.Fd())
@@ -63,18 +63,21 @@ func enter(rootfs string, cfg box.ProcessConfig) error {
 		}
 		defer term.RestoreTerminal(os.Stdin.Fd(), oldState)
 	}
+	// tell bash to use /etc/container-environment we've created
+	cfg.Env.Upsert("ENV", "/etc/container-environment")
+	cfg.Env.Upsert("BASH_ENV", "/etc/container-environment")
 	s, err := box.Connect(rootfs)
 	if err != nil {
 		return err
 	}
 
-	return s.Enter(cfg)
+	return s.Enter(*cfg)
 }
 
 // stop interacts with systemctl's halt feature
 func stop(path string) error {
 	log.Infof("stop: %v", path)
-	cfg := box.ProcessConfig{
+	cfg := &box.ProcessConfig{
 		User: "root",
 		Args: []string{"/bin/systemctl", "halt"},
 		In:   os.Stdin,
@@ -127,7 +130,7 @@ func containerStatus() (ok bool, err error) {
 func enterCommand(rootfs string, args []string) ([]byte, error) {
 	buf := &bytes.Buffer{}
 	cmdOut := &commandOutput{w: buf}
-	cfg := box.ProcessConfig{
+	cfg := &box.ProcessConfig{
 		User: "root",
 		Args: args,
 		In:   os.Stdin,
