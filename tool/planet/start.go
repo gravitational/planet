@@ -130,7 +130,7 @@ func start(conf Config, monitorc chan<- bool) (*box.Box, error) {
 		Rootfs: conf.Rootfs,
 		EnvFiles: []box.EnvFile{
 			box.EnvFile{
-				Path: "/etc/container-environment",
+				Path: ContainerEnvironmentFile,
 				Env:  conf.Env,
 			},
 		},
@@ -303,9 +303,10 @@ func setupFlannel(c *Config) {
 }
 
 const (
-	EtcdWorkDir   = "/ext/etcd"
-	DockerWorkDir = "/ext/docker"
-	RegstrWorkDir = "/ext/registry"
+	EtcdWorkDir              = "/ext/etcd"
+	DockerWorkDir            = "/ext/docker"
+	RegstrWorkDir            = "/ext/registry"
+	ContainerEnvironmentFile = "/etc/container-environment"
 )
 
 func checkMasterMounts(cfg *Config) error {

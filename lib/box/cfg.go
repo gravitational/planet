@@ -72,7 +72,9 @@ type ProcessConfig struct {
 	Env  EnvVars   `json:"env"`
 }
 
-func (e ProcessConfig) Environment() []string {
+// Environment returns a slice of environment variables in key=value
+// format as required by libcontainer
+func (e *ProcessConfig) Environment() []string {
 	if len(e.Env) == 0 {
 		return []string{}
 	}

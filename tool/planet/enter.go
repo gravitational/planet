@@ -63,9 +63,9 @@ func enter(rootfs string, cfg *box.ProcessConfig) error {
 		}
 		defer term.RestoreTerminal(os.Stdin.Fd(), oldState)
 	}
-	// tell bash to use /etc/container-environment we've created
-	cfg.Env.Upsert("ENV", "/etc/container-environment")
-	cfg.Env.Upsert("BASH_ENV", "/etc/container-environment")
+	// tell bash to use environment we've created
+	cfg.Env.Upsert("ENV", ContainerEnvironmentFile)
+	cfg.Env.Upsert("BASH_ENV", ContainerEnvironmentFile)
 	s, err := box.Connect(rootfs)
 	if err != nil {
 		return err
