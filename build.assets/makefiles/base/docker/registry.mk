@@ -20,7 +20,7 @@ export VERSION_PACKAGE
 BINARIES=$(TARGETDIR)/registry
 GO_LDFLAGS=-ldflags "-X `go list ./version`.Version=$(VER) -w"
 
-all: $(BINARIES)
+all: $(BINARIES) install
 
 $(BINARIES):
 	@echo "\n---> Building docker registry\n"
@@ -29,3 +29,12 @@ $(BINARIES):
 	cd $(REPODIR)/distribution && \
 	echo "$$VERSION_PACKAGE" > version/version.go && \
 	GOPATH=$(GOPATH):$(GOPATH)/src/github.com/docker/distribution/Godeps/_workspace GOOS=linux GOARCH=amd64 CGO_ENABLED=0 go build -tags "$(DOCKER_BUILDTAGS)" -a -installsuffix cgo -o $@ $(GO_LDFLAGS) $(GO_GCFLAGS) ./cmd/registry
+
+install: registry.mk $(BINARIES)
+	@echo "\n---> Installing docker registry\n"
+	cp -af $(ASSETS)/makefiles/base/docker/registry.service $(ROOTFS)/lib/systemd/system
+	ln -sf /lib/systemd/system/registry.service  $(ROOTFS)/lib/systemd/system/multi-user.target.wants/
+	mkdir -p $(ROOTFS)/usr/bin
+	cp $(TARGETDIR)/registry $(ROOTFS)/usr/bin/
+	mkdir -p $(ROOTFS)/etc/docker/registry
+	cp $(ASSETS)/docker/registry/config.yml $(ROOTFS)/etc/docker/registry/

@@ -16,7 +16,6 @@ all: planet-bin
 	make -C $(ASSETS)/makefiles/node/k8s-node -f k8s-node.mk
 	make -C $(ASSETS)/makefiles/master/k8s-master -f k8s-master.mk
 	make -C $(ASSETS)/makefiles/master/k8s-master -f k8s-e2e.mk
-	make -C $(ASSETS)/makefiles/master/k8s-master -f registry.mk
 # shrink rootfs:
 	make -e ROOTFS=$(ROOTFS) -C $(ASSETS)/makefiles -f shrink-rootfs.mk
 
