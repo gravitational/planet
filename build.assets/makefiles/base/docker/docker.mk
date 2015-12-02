@@ -1,7 +1,7 @@
 # This makefile installs Kubernetes-friendly docker inside of planet
 # images. 
 # 
-# This makefiel itself is executed inside of docker's buildbox image.
+# This makefile itself is executed inside the docker's buildbox image.
 .PHONY: all
 
 ARCH := x86_64
