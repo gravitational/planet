@@ -2,6 +2,10 @@
 
 REPODIR=$(GOPATH)/src/github.com/docker/
 VER=v2.2.0
+
+# VERSION_PACKAGE defines contents of a `version.go` file which is part of docker
+# registry source code distribution responsible for defining a registry's Version
+# string. The Version is set to the branch we use to pull/build registry executable.
 define VERSION_PACKAGE
 package version
 
