@@ -89,6 +89,16 @@ func (c *CIDR) FirstIP() net.IP {
 	return ip
 }
 
+// RelativeIP returns an IP given an offset from the first IP in the range.
+// offset starts at 0, i.e. c.RelativeIP(0) == c.FirstIP()
+func (c *CIDR) RelativeIP(offset int) net.IP {
+	var ip net.IP
+	for ip = IncIP(c.ip.Mask(c.ipnet.Mask)); c.ipnet.Contains(ip) && offset > 0; IncIP(ip) {
+		offset--
+	}
+	return ip
+}
+
 func IncIP(ip net.IP) net.IP {
 	for j := len(ip) - 1; j >= 0; j-- {
 		ip[j]++

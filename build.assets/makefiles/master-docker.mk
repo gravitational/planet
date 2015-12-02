@@ -13,6 +13,7 @@ all: planet-bin
 	make -C $(ASSETS)/makefiles/monit -f monitoring.mk
 # master-image specific:
 	make -C $(ASSETS)/makefiles/master/etcd -f etcd.mk
+	make -C $(ASSETS)/makefiles/master/dns -f dns.mk
 	make -C $(ASSETS)/makefiles/master/k8s-master -f k8s-master.mk
 # shrink rootfs:
 	make -e ROOTFS=$(ROOTFS) -C $(ASSETS)/makefiles -f shrink-rootfs.mk
