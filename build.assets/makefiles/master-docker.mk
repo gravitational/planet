@@ -8,7 +8,7 @@ all: planet-bin
 # common components:
 	make -C $(ASSETS)/makefiles/base/network -f network.mk
 	make -C $(ASSETS)/makefiles/base/docker -f docker.mk 
-	make -C $(ASSETS)/makefiles/base/docker -f registry.mk 
+	make -C $(ASSETS)/makefiles/base/docker -f registry.mk
 	make -C $(ASSETS)/makefiles/kubernetes -f kubernetes.mk
 	make -C $(ASSETS)/makefiles/monit -f monitoring.mk
 # master-image specific:
