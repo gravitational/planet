@@ -90,15 +90,16 @@ func start(conf Config, monitorc chan<- bool) (*box.Box, error) {
 		if err = checkMasterMounts(&conf); err != nil {
 			return nil, trace.Wrap(err)
 		}
-		if err := configureMonitrcPermissions(conf.Rootfs); err != nil {
-			return nil, trace.Wrap(err)
-		}
 	}
 
 	if conf.hasRole("node") {
 		if err = checkNodeMounts(&conf); err != nil {
 			return nil, trace.Wrap(err)
 		}
+	}
+
+	if err = configureMonitrcPermissions(conf.Rootfs); err != nil {
+		return nil, trace.Wrap(err)
 	}
 
 	conf.Env = append(conf.Env,
