@@ -1,0 +1,11 @@
+[Unit]
+Description=Kubernetes DNS bootstrap service
+After=kube-apiserver.service kube-controller-manager.service kube-scheduler.service
+
+[Service]
+EnvironmentFile=/etc/container-environment
+Type=idle
+ExecStart=/etc/dns/bootstrap.sh ${PLANET_PUBLIC_IP} ${KUBE_CLUSTER_DNS_IP}
+
+[Install]
+WantedBy=multi-user.target

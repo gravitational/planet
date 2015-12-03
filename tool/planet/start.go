@@ -108,6 +108,7 @@ func start(conf Config, monitorc chan<- bool) (*box.Box, error) {
 		box.EnvPair{Name: "KUBE_SERVICE_SUBNET", Val: conf.ServiceSubnet.String()},
 		box.EnvPair{Name: "KUBE_POD_SUBNET", Val: conf.PODSubnet.String()},
 		box.EnvPair{Name: "PLANET_PUBLIC_IP", Val: conf.PublicIP},
+		box.EnvPair{Name: "KUBE_CLUSTER_DNS_IP", Val: conf.ServiceSubnet.RelativeIP(3).String()},
 	)
 
 	// Always trust local registry (for now)
