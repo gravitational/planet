@@ -7,6 +7,7 @@ import (
 	"os/signal"
 	"path/filepath"
 	"runtime"
+	"strings"
 	"syscall"
 	"time"
 
@@ -24,6 +25,7 @@ func main() {
 	var err error
 
 	if err = run(); err != nil {
+		log.Errorf("Failed to run: '%v'\n", err)
 		if errExit, ok := err.(*box.ExitError); ok {
 			exitCode = errExit.Code
 		}
@@ -82,17 +84,19 @@ func run() error {
 
 	cmd, err := app.Parse(args[1:])
 	if err != nil {
+		fmt.Fprintf(os.Stderr, "Failed parsing command line arguments: %s.\nTry planet --help\n", err.Error())
 		return err
-	}
-
-	if emptyIP(cstartMasterIP) {
-		cstartMasterIP = cstartPublicIP
 	}
 
 	if *debug == true {
 		log.Initialize("console", "INFO")
+		log.Infof("Debug mode is ON")
 	} else {
 		log.Initialize("console", "WARN")
+	}
+
+	if emptyIP(cstartMasterIP) {
+		cstartMasterIP = cstartPublicIP
 	}
 
 	var rootfs string
@@ -100,6 +104,10 @@ func run() error {
 
 	// "start" command
 	case cstart.FullCommand():
+		if emptyIP(cstartPublicIP) && os.Getpid() > 5 {
+			err = trace.Errorf("public-ip is not set")
+			break
+		}
 		rootfs, err = findRootfs()
 		if err != nil {
 			break
@@ -249,23 +257,19 @@ func initLibcontainer() error {
 	return trace.Errorf("not reached")
 }
 
+// findRootfs returns the full path of RootFS this executalbe is in
 func findRootfs() (string, error) {
-	cwd, err := os.Getwd()
+	const rootfsDir = "rootfs"
+	// find 'rootfs' substring in full executable path it and chop the tail off:
+	pePath, err := filepath.Abs(os.Args[0])
 	if err != nil {
-		return "", trace.Wrap(err, "failed to get current directory")
+		return "", trace.Wrap(err, "failed to determine executable path")
 	}
-
-	rootfs := filepath.Join(cwd, "rootfs")
-	s, err := os.Stat(rootfs)
-	if err != nil {
-		return "", trace.Wrap(err, "rootfs error")
+	idx := strings.Index(pePath, rootfsDir)
+	if idx < 0 {
+		return "", trace.Errorf("this executable needs to be placed inside %s", rootfsDir)
 	}
-
-	if !s.IsDir() {
-		return "", trace.Errorf("rootfs is not a directory")
-	}
-
-	return rootfs, nil
+	return pePath[:idx+len(rootfsDir)], nil
 }
 
 // setupSignalHanlders sets up a handler to interrupt SIGTERM and SIGINT

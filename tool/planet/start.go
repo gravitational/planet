@@ -17,7 +17,7 @@ import (
 	"github.com/gravitational/planet/lib/check"
 )
 
-const MinKernelVersion = 313
+const MinKernelVersion = 310
 const (
 	CheckKernel       = true
 	CheckCgroupMounts = true
@@ -90,12 +90,12 @@ func start(conf Config, monitorc chan<- bool) (*box.Box, error) {
 		if err = checkMasterMounts(&conf); err != nil {
 			return nil, trace.Wrap(err)
 		}
-	}
-
-	if conf.hasRole("node") {
+	} else if conf.hasRole("node") {
 		if err = checkNodeMounts(&conf); err != nil {
 			return nil, trace.Wrap(err)
 		}
+	} else {
+		return nil, trace.Errorf("--role parameter must be set")
 	}
 
 	if err = configureMonitrcPermissions(conf.Rootfs); err != nil {
@@ -346,6 +346,33 @@ func checkMasterMounts(cfg *Config) error {
 	return nil
 }
 
+// TODO: reduce code duplication with checkMasterMounts
+func checkNodeMounts(cfg *Config) error {
+	expected := map[string]bool{
+		DockerWorkDir: false,
+		RegstrWorkDir: false,
+	}
+	for _, m := range cfg.Mounts {
+		dst := filepath.Clean(m.Dst)
+		if _, ok := expected[dst]; ok {
+			expected[dst] = true
+		}
+		if dst == DockerWorkDir {
+			if ok, _ := check.IsBtrfsVolume(m.Src); ok == true {
+				cfg.DockerBackend = "btrfs"
+				log.Warningf("Docker work dir is on btrfs volume: %v", m.Src)
+			}
+		}
+	}
+	for k, v := range expected {
+		if !v {
+			return trace.Errorf(
+				"please supply mount source for data directory '%v'", k)
+		}
+	}
+	return nil
+}
+
 // configureMonitrcPermissions sets up proper file permissions on monit configuration file.
 // monit places the following requirements on monitrc:
 //  * it needs to be owned by the user used to spawn monit process (root)
@@ -371,33 +398,6 @@ func configureMonitrcPermissions(rootfs string) error {
 		return trace.Wrap(err)
 	}
 
-	return nil
-}
-
-// TODO: reduce code duplication with checkMasterMounts
-func checkNodeMounts(cfg *Config) error {
-	expected := map[string]bool{
-		DockerWorkDir: false,
-		RegstrWorkDir: false,
-	}
-	for _, m := range cfg.Mounts {
-		dst := filepath.Clean(m.Dst)
-		if _, ok := expected[dst]; ok {
-			expected[dst] = true
-		}
-		if dst == DockerWorkDir {
-			if ok, _ := check.IsBtrfsVolume(m.Src); ok == true {
-				cfg.DockerBackend = "btrfs"
-				log.Warningf("Docker work dir is on btrfs volume: %v", m.Src)
-			}
-		}
-	}
-	for k, v := range expected {
-		if !v {
-			return trace.Errorf(
-				"please supply mount source for data directory '%v'", k)
-		}
-	}
 	return nil
 }
 
