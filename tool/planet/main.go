@@ -259,8 +259,9 @@ func initLibcontainer() error {
 
 // findRootfs returns the full path of RootFS this executalbe is in
 func findRootfs() (string, error) {
-	const rootfsDir = "rootfs"
-	// find 'rootfs' substring in full executable path it and chop the tail off:
+	const rootfsDir = "/rootfs/"
+	// look at the absolute path of planet executable, find '/rootfs/' substring in it,
+	// that's the absolute rootfs path we need to return
 	pePath, err := filepath.Abs(os.Args[0])
 	if err != nil {
 		return "", trace.Wrap(err, "failed to determine executable path")
@@ -269,7 +270,12 @@ func findRootfs() (string, error) {
 	if idx < 0 {
 		return "", trace.Errorf("this executable needs to be placed inside %s", rootfsDir)
 	}
-	return pePath[:idx+len(rootfsDir)], nil
+	rootfsAbs := pePath[:idx+len(rootfsDir)-1]
+	if _, err = os.Stat(rootfsAbs); err != nil {
+		return "", trace.Wrap(err, "invalid RootFS: '%v'", rootfsAbs)
+	}
+	log.Infof("Starting in RootFS: %v", rootfsAbs)
+	return rootfsAbs, nil
 }
 
 // setupSignalHanlders sets up a handler to interrupt SIGTERM and SIGINT
