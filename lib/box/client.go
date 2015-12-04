@@ -122,8 +122,12 @@ func pipeClient(dst io.Writer, conn *websocket.Conn, exitC chan<- error) {
 			break
 		}
 	}
-	if err == io.EOF && msg.ExitCode != 0 {
-		err = &ExitError{Code: msg.ExitCode}
+	if err == io.EOF {
+		if msg.ExitCode != 0 {
+			err = &ExitError{Code: msg.ExitCode}
+		} else {
+			err = nil
+		}
 	}
 	exitC <- err
 }
