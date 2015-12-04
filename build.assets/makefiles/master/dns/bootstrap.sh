@@ -65,11 +65,11 @@ EOM
 function wait-k8s-apiserver {
   echo "waiting for k8s api-server"
 
-  local n=30
+  local n=60
   while [ -n "$(kubectl version 2>&1 >/dev/null)" ] && [ "$n" -gt 0 ]; do
     echo "failed to query k8s api-server version"
     n=$(($n-1))
-    sleep 1
+    sleep 5
   done
 
   return 1

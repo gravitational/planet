@@ -6,6 +6,7 @@ After=kube-apiserver.service kube-controller-manager.service kube-scheduler.serv
 EnvironmentFile=/etc/container-environment
 Type=idle
 ExecStart=/etc/dns/bootstrap.sh ${PLANET_PUBLIC_IP} ${KUBE_CLUSTER_DNS_IP}
+Restart=on-failure
 
 [Install]
 WantedBy=multi-user.target
