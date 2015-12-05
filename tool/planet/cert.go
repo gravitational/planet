@@ -143,7 +143,7 @@ func (k *keyPairPaths) keyPath() string {
 }
 
 func (k *keyPairPaths) exists() (bool, error) {
-	var haveKey bool
+	haveKey := true
 	if _, err := os.Stat(k.keyPath()); err != nil {
 		if !os.IsNotExist(err) {
 			return false, trace.Wrap(err)
@@ -151,7 +151,7 @@ func (k *keyPairPaths) exists() (bool, error) {
 		haveKey = false
 	}
 
-	var haveCert bool
+	haveCert := true
 	if _, err := os.Stat(k.certPath()); err != nil {
 		if !os.IsNotExist(err) {
 			return false, trace.Wrap(err)

@@ -116,5 +116,8 @@ func enterCommand(rootfs string, args []string) ([]byte, error) {
 		Out:  buf,
 	}
 	err := enter(rootfs, cfg)
-	return buf.Bytes(), trace.Wrap(err)
+	if err != nil {
+		err = trace.Wrap(err)
+	}
+	return buf.Bytes(), err
 }
