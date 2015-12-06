@@ -97,6 +97,25 @@ func Start(cfg Config) (*Box, error) {
 		return nil, trace.Wrap(err)
 	}
 
+	// find all existing loop devices on a host and re-create them inside the container
+	hostLoops, err := filepath.Glob("/dev/loop?")
+	if err != nil {
+		return nil, trace.Wrap(err)
+	}
+	loopDevices := make([]*configs.Device, len(hostLoops))
+	for i, _ := range hostLoops {
+		loopDevices[i] = &configs.Device{
+			Type:        'b',
+			Path:        fmt.Sprintf("/dev/loop%d", i),
+			Major:       7,
+			Minor:       int64(i),
+			Uid:         0,
+			Gid:         0,
+			Permissions: "rwm",
+			FileMode:    0660,
+		}
+	}
+
 	containerID := uuid.New()
 
 	config := &configs.Config{
@@ -148,12 +167,12 @@ func Start(cfg Config) (*Box, error) {
 		Cgroups: &configs.Cgroup{
 			Name:             containerID,
 			Parent:           "system",
-			AllowAllDevices:  false,
+			AllowAllDevices:  true,
 			AllowedDevices:   configs.DefaultAllowedDevices,
 			MemorySwappiness: -1, // -1 means "machine-default" and that's what we need because we don't care
 		},
 
-		Devices:  configs.DefaultAutoCreatedDevices,
+		Devices:  append(configs.DefaultAutoCreatedDevices, loopDevices...),
 		Hostname: containerID,
 	}
 
