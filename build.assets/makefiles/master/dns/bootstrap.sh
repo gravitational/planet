@@ -83,7 +83,7 @@ function wait-for-apiserver {
   echo "waiting for api-server"
 
   local n=60
-  while [ -n "$(kubectl version 2>&1 >/dev/null)" ] && [ "$n" -gt 0 ]; do
+  while [ -n "$(kubectl version >/dev/null 2>&1)" ] && [ "$n" -gt 0 ]; do
     echo "failed to query api-server version"
     n=$(($n-1))
     sleep 5
@@ -111,24 +111,26 @@ function wait-for-cluster {
 }
 
 function create-kube-namespace {
-  kubectl get namespace kube-system
+  kubectl get namespace kube-system >/dev/null 2>&1
   if [ "$?" != "0" ]; then
-    kubectl create -f  <(echo "$KUBE_NS")
+    kubectl create -f <(echo "$KUBE_NS")
   fi
 }
 
 function create-etcd-service {
-  kubectl get svc etcd --namespace=kube-system
-  if [ "$?" != "0" ]; then
-    kubectl create -f <(echo "$ETCD_SVC")
+  kubectl get svc etcd --namespace=kube-system >/dev/null 2>&1
+  if [ "$?" = "0" ]; then
+    kubectl delete -f <(echo "$ETCD_SVC") >/dev/null 2>&1
   fi
+  kubectl create -f <(echo "$ETCD_SVC")
 }
 
 function create-kube-dns-service {
-  kubectl get svc kube-dns --namespace=kube-system
-  if [ "$?" != "0" ]; then
-    kubectl create -f <(echo "$KUBE_DNS_SVC")
+  kubectl get svc kube-dns --namespace=kube-system >/dev/null 2>&1
+  if [ "$?" = "0" ]; then
+    kubectl delete -f <(echo "$KUBE_DNS_SVC") >/dev/null 2>&1
   fi
+  kubectl create -f <(echo "$KUBE_DNS_SVC")
 }
 
 wait-for-apiserver
