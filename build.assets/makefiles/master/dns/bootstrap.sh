@@ -123,6 +123,7 @@ function create-etcd-service {
     kubectl delete -f <(echo "$ETCD_SVC") >/dev/null 2>&1
   fi
   kubectl create -f <(echo "$ETCD_SVC")
+  kubectl get svc etcd --namespace=kube-system
 }
 
 function create-kube-dns-service {
@@ -131,6 +132,7 @@ function create-kube-dns-service {
     kubectl delete -f <(echo "$KUBE_DNS_SVC") >/dev/null 2>&1
   fi
   kubectl create -f <(echo "$KUBE_DNS_SVC")
+  kubectl get svc kube-dns --namespace=kube-system
 }
 
 wait-for-apiserver
