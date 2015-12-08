@@ -208,9 +208,19 @@ func Start(cfg Config) (*Box, error) {
 	}
 	log.Infof("container status: %v %v", st, err)
 
+	var closed bool
 	socketPath := serverSockPath(cfg.Rootfs)
-	if err = removeStaleSocket(socketPath); err != nil {
-		return nil, trace.Wrap(err, "failed to clean up planet socket")
+	closed, err = isSocketClosed(socketPath)
+	if err == nil && closed {
+		log.Infof("removing stale socket `%s`", socketPath)
+		if err = removeSocketFile(socketPath); err != nil {
+			return nil, trace.Wrap(err, "failed to clean up planet socket")
+		}
+	} else {
+		if err != nil {
+			log.Warningf("failed to check if planet socket is closed: %v", err)
+		}
+		// Fall-through to fail listen on the unix socket
 	}
 
 	// start the API webserver (the sooner the better, so if it can't start we can
@@ -245,8 +255,34 @@ func Start(cfg Config) (*Box, error) {
 		listener:    listener}, nil
 }
 
-func removeStaleSocket(socketPath string) error {
-	err := syscall.Unlink(socketPath)
+// isSocketClosed determines if the socket pointed to by path has been closed.
+func isSocketClosed(path string) (bool, error) {
+	addr, err := net.ResolveUnixAddr("unix", path)
+	if err != nil {
+		return false, err
+	}
+	conn, err := net.DialUnix("unix", nil, addr)
+	if err != nil {
+		if errNet, ok := err.(*net.OpError); ok {
+			if errErrno, ok := errNet.Err.(syscall.Errno); ok {
+				switch errErrno {
+				case syscall.ECONNREFUSED, syscall.ENOENT:
+					// Consider the socket closed if there is no response or
+					// the socket file does not exit
+					return true, nil
+				}
+			}
+		}
+		return false, err
+	}
+
+	conn.Close()
+	return false, nil
+}
+
+// removeSocketFile removes the socket file in path.
+func removeSocketFile(path string) error {
+	err := syscall.Unlink(path)
 	if err != nil && os.IsNotExist(err) {
 		err = nil
 	}
