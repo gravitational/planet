@@ -208,9 +208,14 @@ func Start(cfg Config) (*Box, error) {
 	}
 	log.Infof("container status: %v %v", st, err)
 
+	socketPath := serverSockPath(cfg.Rootfs)
+	if err = removeStaleSocket(socketPath); err != nil {
+		return nil, trace.Wrap(err, "failed to clean up planet socket")
+	}
+
 	// start the API webserver (the sooner the better, so if it can't start we can
 	// fail sooner)
-	listener, err := startWebServer(serverSockPath(cfg.Rootfs), container)
+	listener, err := startWebServer(socketPath, container)
 	if err != nil {
 		return nil, err
 	}
@@ -238,6 +243,14 @@ func Start(cfg Config) (*Box, error) {
 		ContainerID: containerID,
 		Container:   container,
 		listener:    listener}, nil
+}
+
+func removeStaleSocket(socketPath string) error {
+	err := syscall.Unlink(socketPath)
+	if err != nil && os.IsNotExist(err) {
+		err = nil
+	}
+	return err
 }
 
 func getEnvironment(env EnvVars) []string {
