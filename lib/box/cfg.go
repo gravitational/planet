@@ -28,12 +28,22 @@ type Config struct {
 	// Rootfs is a root filesystem of the container
 	Rootfs string
 
+	// SocketPath is a path to the socket file.
+	// Ignored with systemd socket-activation.
+	SocketPath string
+
 	// Mounts is a list of device moutns passed to the server
 	Mounts Mounts
 	// Capabilities is a list of capabilities of this container
 	Capabilities []string
 	// DataDir is a directory where libcontainer stores the container state
 	DataDir string
+}
+
+// ClientConfig defines a configuration to connect to a running box.
+type ClientConfig struct {
+	Rootfs     string
+	SocketPath string
 }
 
 // File is a file that will be placed in the container before start

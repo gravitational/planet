@@ -211,7 +211,11 @@ func Start(cfg Config) (*Box, error) {
 	// start the API webserver (the sooner the better, so if it can't start we can
 	// fail sooner)
 
-	listener, err := newSockListener(cfg.Rootfs)
+	socketPath, err := serverSockPath(cfg.Rootfs, cfg.SocketPath)
+	if err != nil {
+		return nil, trace.Wrap(err)
+	}
+	listener, err := newSockListener(socketPath)
 	if err != nil {
 		return nil, trace.Wrap(err)
 	}

@@ -12,8 +12,8 @@ import (
 	"github.com/gravitational/planet/lib/monitoring"
 )
 
-func enterConsole(rootfs, cmd, user string, tty bool, args []string) (err error) {
-	cfg := &box.ProcessConfig{
+func enterConsole(config *box.ClientConfig, cmd, user string, tty bool, args []string) (err error) {
+	process := &box.ProcessConfig{
 		In:   os.Stdin,
 		Out:  os.Stdout,
 		Args: append([]string{cmd}, args...),
@@ -24,19 +24,19 @@ func enterConsole(rootfs, cmd, user string, tty bool, args []string) (err error)
 		if err != nil {
 			return trace.Wrap(err)
 		}
-		cfg.TTY = &box.TTY{H: int(s.Height), W: int(s.Width)}
+		process.TTY = &box.TTY{H: int(s.Height), W: int(s.Width)}
 	}
 
-	err = enter(rootfs, cfg)
+	err = enter(config, process)
 	return err
 }
 
 // enter initiates the process in the namespaces of the container
 // managed by the planet master process and mantains websocket connection
 // to proxy input and output
-func enter(rootfs string, cfg *box.ProcessConfig) error {
-	log.Infof("enter: %v %#v", rootfs, cfg)
-	if cfg.TTY != nil {
+func enter(config *box.ClientConfig, process *box.ProcessConfig) error {
+	log.Infof("enter: %v %#v", config.Rootfs, process)
+	if process.TTY != nil {
 		oldState, err := term.SetRawTerminal(os.Stdin.Fd())
 		if err != nil {
 			return err
@@ -44,38 +44,38 @@ func enter(rootfs string, cfg *box.ProcessConfig) error {
 		defer term.RestoreTerminal(os.Stdin.Fd(), oldState)
 	}
 	// tell bash to use environment we've created
-	cfg.Env.Upsert("ENV", ContainerEnvironmentFile)
-	cfg.Env.Upsert("BASH_ENV", ContainerEnvironmentFile)
-	s, err := box.Connect(rootfs)
+	process.Env.Upsert("ENV", ContainerEnvironmentFile)
+	process.Env.Upsert("BASH_ENV", ContainerEnvironmentFile)
+	s, err := box.Connect(config)
 	if err != nil {
 		return err
 	}
 
-	return s.Enter(*cfg)
+	return s.Enter(*process)
 }
 
 // stop interacts with systemctl's halt feature
-func stop(path string) error {
-	log.Infof("stop: %v", path)
-	cfg := &box.ProcessConfig{
+func stop(config *box.ClientConfig) error {
+	log.Infof("stop: %v", config.Rootfs)
+	process := &box.ProcessConfig{
 		User: "root",
 		Args: []string{"/bin/systemctl", "halt"},
 		In:   os.Stdin,
 		Out:  os.Stdout,
 	}
 
-	return enter(path, cfg)
+	return enter(config, process)
 }
 
 // status checks status of the running planet cluster and outputs results as
 // JSON to stdout.
-func status(rootfs string) (err error) {
-	log.Infof("checking status in %s", rootfs)
+func status(config *box.ClientConfig) (err error) {
+	log.Infof("checking status in %s", config.Rootfs)
 
 	var statusCmd = []string{"/usr/bin/planet", "--from-container", "status"}
 	var data []byte
 
-	data, err = enterCommand(rootfs, statusCmd)
+	data, err = enterCommand(config, statusCmd)
 	if data != nil {
 		if _, errWrite := os.Stdout.Write(data); errWrite != nil {
 			return trace.Wrap(errWrite, "failed to output status")
@@ -107,15 +107,15 @@ func containerStatus() (ok bool, err error) {
 // enterCommand is a helper function that runs a command as a root
 // in the namespace of planet's container. It returns error
 // if command failed, or command standard output otherwise
-func enterCommand(rootfs string, args []string) ([]byte, error) {
+func enterCommand(config *box.ClientConfig, args []string) ([]byte, error) {
 	buf := &bytes.Buffer{}
-	cfg := &box.ProcessConfig{
+	process := &box.ProcessConfig{
 		User: "root",
 		Args: args,
 		In:   os.Stdin,
 		Out:  buf,
 	}
-	err := enter(rootfs, cfg)
+	err := enter(config, process)
 	if err != nil {
 		err = trace.Wrap(err)
 	}

@@ -16,6 +16,7 @@ type Config struct {
 	Roles              list
 	InsecureRegistries list
 	Rootfs             string
+	SocketPath         string
 	PublicIP           string
 	MasterIP           string
 	CloudProvider      string

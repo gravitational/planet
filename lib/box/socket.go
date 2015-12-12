@@ -5,6 +5,7 @@ import (
 	"os"
 	"path/filepath"
 	"strconv"
+	"strings"
 	"syscall"
 
 	"github.com/gravitational/planet/Godeps/_workspace/src/github.com/gravitational/log"
@@ -17,19 +18,47 @@ import (
 // in the order configured in socket unit file as 4, 5, 6...
 const SD_LISTEN_FDS_START uintptr = 3
 
-func newSockListener(rootfs string) (net.Listener, error) {
+// socketListener is a net.Listener that does not unlink the socket file
+// for pathname type unix domain sockets.
+// It is required to properly support systemd socket activation and acts as a wrapper on the
+// native UnixListener implementation that unconditionally unlinks the socket file in Close.
+type socketListener struct {
+	net.Listener
+}
+
+// Close is a no-op for a socket-activated listener since systemd is managing the socket file.
+func (r *socketListener) Close() error {
+	return nil
+}
+
+// newSockListener returns a net.Listener that is either a net.UnixListener
+// or a socketListener if systemd socket-activation is used.
+func newSockListener(socketPath string) (net.Listener, error) {
 	listener, err := fileListener()
 	if err == nil && listener != nil {
 		log.Infof("using socket activation")
-		return listener, nil
+		// TODO: skip wrapping for abstract sockets
+		return &socketListener{listener}, nil
 	}
 	if err != nil {
 		return nil, trace.Wrap(err, "failed to use socket activation context")
 	}
 
 	log.Infof("no socket activation context - fall back to Listen")
-	listener, err = net.Listen("unix", serverSockPath(rootfs))
+	listener, err = net.Listen("unix", socketPath)
 	return listener, err
+}
+
+func dial(socketPath string) (net.Conn, error) {
+	conn, err := net.Dial("unix", socketPath)
+	if err != nil {
+		return nil, checkError(
+			trace.Wrap(err, "failed to connect to planet socket"))
+	}
+	// FIXME: read deadline for a websocket connection to avoid blocking on a systemd
+	// operated socket w/o server.
+	// conn.SetReadDeadline(time.Now().Add(5 * time.Second))
+	return conn, nil
 }
 
 func fileListener() (net.Listener, error) {
@@ -55,6 +84,35 @@ func fileListener() (net.Listener, error) {
 	return listener, nil
 }
 
-func serverSockPath(rootfs string) string {
-	return filepath.Join(rootfs, "run", "planet.socket")
+func serverSockPath(rootfs, socketPath string) (string, error) {
+	if filepath.IsAbs(socketPath) {
+		notExecutable := false
+		return checkPath(socketPath, notExecutable)
+	} else if strings.HasPrefix(socketPath, "@") {
+		return socketPath, nil
+	}
+	return filepath.Join(rootfs, socketPath), nil
+}
+
+func checkError(err error) error {
+	var errOrig error
+	if e, ok := err.(*trace.TraceErr); ok {
+		errOrig = e.OrigError()
+	} else {
+		errOrig = err
+	}
+
+	if os.IsNotExist(errOrig) {
+		return &ErrConnect{Err: err}
+	}
+	if _, ok := err.(*net.OpError); ok {
+		return &ErrConnect{Err: err}
+	}
+	return err
+}
+
+// IsConnectError returns true if err is a connection error.
+func IsConnectError(err error) bool {
+	_, ok := err.(*ErrConnect)
+	return ok
 }
