@@ -13,6 +13,7 @@ import (
 	"io"
 	"net"
 	"net/url"
+	"os"
 	"strconv"
 
 	"github.com/gravitational/planet/Godeps/_workspace/src/github.com/gravitational/trace"
@@ -34,10 +35,10 @@ type client struct {
 func Connect(config *ClientConfig) (ContainerServer, error) {
 	notExecutable := false
 	socketPath, err := checkPath(config.SocketPath, notExecutable)
-	socketPath = serverSockPath(config.Rootfs, socketPath)
 	if err != nil {
-		return nil, trace.Wrap(err)
+		return nil, checkError(err)
 	}
+	socketPath = serverSockPath(config.Rootfs, socketPath)
 	conn, err := dial(socketPath)
 	if err != nil {
 		return nil, trace.Wrap(err)
@@ -115,4 +116,36 @@ func (err ExitError) Error() string {
 
 func (err ExitError) OrigError() error {
 	return nil
+}
+
+func dial(socketPath string) (net.Conn, error) {
+	conn, err := net.Dial("unix", socketPath)
+	if err != nil {
+		return nil, checkError(
+			trace.Wrap(err, "failed to connect to planet socket"))
+	}
+	return conn, nil
+}
+
+func checkError(err error) error {
+	var errOrig error
+	if e, ok := err.(*trace.TraceErr); ok {
+		errOrig = e.OrigError()
+	} else {
+		errOrig = err
+	}
+
+	if os.IsNotExist(errOrig) {
+		return &ErrConnect{Err: err}
+	}
+	if _, ok := err.(*net.OpError); ok {
+		return &ErrConnect{Err: err}
+	}
+	return err
+}
+
+// IsConnectError returns true if err is a connection error.
+func IsConnectError(err error) bool {
+	_, ok := err.(*ErrConnect)
+	return ok
 }

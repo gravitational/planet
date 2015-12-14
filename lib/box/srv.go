@@ -211,7 +211,7 @@ func Start(cfg Config) (*Box, error) {
 	// start the API webserver (the sooner the better, so if it can't start we can
 	// fail sooner)
 	socketPath := serverSockPath(cfg.Rootfs, cfg.SocketPath)
-	listener, err := newSockListener(socketPath)
+	listener, err := net.Listen("unix", socketPath)
 	if err != nil {
 		return nil, trace.Wrap(err)
 	}
@@ -348,4 +348,11 @@ func startWebServer(listener net.Listener, c libcontainer.Container) error {
 		}
 	}()
 	return nil
+}
+
+func serverSockPath(rootfs, socketPath string) string {
+	if filepath.IsAbs(socketPath) {
+		return socketPath
+	}
+	return filepath.Join(rootfs, socketPath)
 }
