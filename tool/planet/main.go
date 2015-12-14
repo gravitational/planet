@@ -40,6 +40,7 @@ func run() error {
 		app           = kingpin.New("planet", "Planet is a Kubernetes delivered as an orbit container")
 		debug         = app.Flag("debug", "Enable debug mode").Bool()
 		fromContainer = app.Flag("from-container", "Specifies if a command is run in container context").Bool()
+		socketPath    = app.Flag("socket-path", "Path to the socket file").Default("/var/run/planet.socket").String()
 
 		// internal init command used by libcontainer
 		cinit = app.Command("init", "Internal init command").Hidden()
@@ -112,9 +113,10 @@ func run() error {
 		if err != nil {
 			break
 		}
-		setupSignalHanlders(rootfs)
+		setupSignalHanlders(rootfs, *socketPath)
 		config := Config{
 			Rootfs:             rootfs,
+			SocketPath:         *socketPath,
 			Env:                *cstartEnv,
 			Mounts:             *cstartMounts,
 			IgnoreChecks:       *cstartIgnoreChecks,
@@ -145,7 +147,7 @@ func run() error {
 			break
 		}
 		err = enterConsole(
-			rootfs, *centerArgs, *centerUser, !*centerNoTTY, extraArgs)
+			rootfs, *socketPath, *centerArgs, *centerUser, !*centerNoTTY, extraArgs)
 
 	// "stop" command
 	case cstop.FullCommand():
@@ -153,7 +155,7 @@ func run() error {
 		if err != nil {
 			break
 		}
-		err = stop(rootfs)
+		err = stop(rootfs, *socketPath)
 
 	// "status" command
 	case cstatus.FullCommand():
@@ -168,7 +170,7 @@ func run() error {
 			if err != nil {
 				break
 			}
-			err = status(rootfs)
+			err = status(rootfs, *socketPath)
 		}
 
 	// "test" command
@@ -213,7 +215,7 @@ func selfTest(config Config, repoDir, spec string, extraArgs []string) error {
 		case <-time.After(idleTimeout):
 			err = trace.Wrap(fmt.Errorf("timed out waiting for units to come up"))
 		}
-		stop(config.Rootfs)
+		stop(config.Rootfs, config.SocketPath)
 		process.Close()
 	}
 
@@ -280,12 +282,12 @@ func findRootfs() (string, error) {
 
 // setupSignalHanlders sets up a handler to interrupt SIGTERM and SIGINT
 // allowing for a graceful shutdown via executing "stop" command
-func setupSignalHanlders(rootfs string) {
+func setupSignalHanlders(rootfs, socketPath string) {
 	c := make(chan os.Signal, 1)
 	go func() {
 		sig := <-c
 		log.Infof("received a signal %v. stopping...\n", sig)
-		err := stop(rootfs)
+		err := stop(rootfs, socketPath)
 		if err != nil {
 			log.Errorf("error: %v", err)
 		}

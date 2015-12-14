@@ -210,7 +210,12 @@ func Start(cfg Config) (*Box, error) {
 
 	// start the API webserver (the sooner the better, so if it can't start we can
 	// fail sooner)
-	listener, err := startWebServer(serverSockPath(cfg.Rootfs), container)
+	socketPath := serverSockPath(cfg.Rootfs, cfg.SocketPath)
+	listener, err := net.Listen("unix", socketPath)
+	if err != nil {
+		return nil, trace.Wrap(err)
+	}
+	err = startWebServer(listener, container)
 	if err != nil {
 		return nil, err
 	}
@@ -325,29 +330,29 @@ func writeConfig(target, source string) error {
 	return nil
 }
 
-// startWebServer creates a listening socket on a given path (like /var/run/planet.sock)
-// this function leaves a running goroutine behind
-func startWebServer(socketPath string, c libcontainer.Container) (net.Listener, error) {
-	l, err := net.Listen("unix", socketPath)
-	if err != nil {
-		return nil, trace.Wrap(err)
-	}
+// startWebServer starts a web server to serve remote process control on the given listener
+// in the specified container.
+// This function leaves a running goroutine behind.
+func startWebServer(listener net.Listener, c libcontainer.Container) error {
 	srv := &http.Server{
 		Handler: NewWebServer(c),
 	}
 	go func() {
 		defer func() {
-			if err := l.Close(); err != nil {
+			if err := listener.Close(); err != nil {
 				log.Warningf("failed to remove socket file: %v", err)
 			}
 		}()
-		if err := srv.Serve(l); err != nil {
+		if err := srv.Serve(listener); err != nil {
 			log.Infof("server stopped with: %v", err)
 		}
 	}()
-	return l, nil
+	return nil
 }
 
-func serverSockPath(p string) string {
-	return filepath.Join(p, "run", "planet.socket")
+func serverSockPath(rootfs, socketPath string) string {
+	if filepath.IsAbs(socketPath) {
+		return socketPath
+	}
+	return filepath.Join(rootfs, socketPath)
 }

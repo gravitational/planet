@@ -29,15 +29,21 @@ type ExitError struct {
 var _ = trace.TraceSetter(&ExitError{})
 
 type client struct {
-	path string
+	conn net.Conn
 }
 
-func Connect(path string) (ContainerServer, error) {
-	path, err := checkPath(serverSockPath(path), false)
+func Connect(config *ClientConfig) (ContainerServer, error) {
+	notExecutable := false
+	socketPath, err := checkPath(config.SocketPath, notExecutable)
 	if err != nil {
 		return nil, checkError(err)
 	}
-	return &client{path: path}, nil
+	socketPath = serverSockPath(config.Rootfs, socketPath)
+	conn, err := dial(socketPath)
+	if err != nil {
+		return nil, trace.Wrap(err)
+	}
+	return &client{conn: conn}, nil
 }
 
 // Enter spawns a process specified with cfg remotely
@@ -55,12 +61,7 @@ func (c *client) Enter(cfg ProcessConfig) error {
 	if err != nil {
 		return trace.Wrap(err, "failed to enter container")
 	}
-	conn, err := net.Dial("unix", c.path)
-	if err != nil {
-		return checkError(
-			trace.Wrap(err, "failed to connect to planet socket"))
-	}
-	clt, err := websocket.NewClient(wscfg, conn)
+	clt, err := websocket.NewClient(wscfg, c.conn)
 	if err != nil {
 		return trace.Wrap(err)
 	}
@@ -82,29 +83,6 @@ func (c *client) Enter(cfg ProcessConfig) error {
 	// only wait for output handle to be closed
 	err = <-exitC
 	return err
-}
-
-func checkError(err error) error {
-	var o error // original error
-	if e, ok := err.(*trace.TraceErr); ok {
-		o = e.OrigError()
-	} else {
-		o = err
-	}
-
-	if os.IsNotExist(o) {
-		return &ErrConnect{Err: err}
-	}
-	if _, ok := err.(*net.OpError); ok {
-		return &ErrConnect{Err: err}
-	}
-	return err
-}
-
-// IsConnectError returns true if it was a connection error
-func IsConnectError(e error) bool {
-	_, ok := e.(*ErrConnect)
-	return ok
 }
 
 // pipeClient forwards JSON encoded process output as plain text to dst.
@@ -138,4 +116,36 @@ func (err ExitError) Error() string {
 
 func (err ExitError) OrigError() error {
 	return nil
+}
+
+func dial(socketPath string) (net.Conn, error) {
+	conn, err := net.Dial("unix", socketPath)
+	if err != nil {
+		return nil, checkError(
+			trace.Wrap(err, "failed to connect to planet socket"))
+	}
+	return conn, nil
+}
+
+func checkError(err error) error {
+	var errOrig error
+	if e, ok := err.(*trace.TraceErr); ok {
+		errOrig = e.OrigError()
+	} else {
+		errOrig = err
+	}
+
+	if os.IsNotExist(errOrig) {
+		return &ErrConnect{Err: err}
+	}
+	if _, ok := err.(*net.OpError); ok {
+		return &ErrConnect{Err: err}
+	}
+	return err
+}
+
+// IsConnectError returns true if err is a connection error.
+func IsConnectError(err error) bool {
+	_, ok := err.(*ErrConnect)
+	return ok
 }
