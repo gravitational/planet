@@ -1,5 +1,8 @@
 #!/bin/bash
 
+# Exit at first encountered error
+trap 'exit' ERR
+
 MASTER_IP=$1
 CLUSTER_DNS_IP=$2
 
@@ -62,35 +65,81 @@ spec:
 EOM
 `
 
-function wait-k8s-apiserver {
-  echo "waiting for k8s api-server"
+function build-success-status {
+  local status=()
+  kubectl_num_status_nodes=$(kubectl get cs -o go-template --template="{{len .items}}")
+
+  for (( i=$kubectl_num_status_nodes; i>0; i-- )) do
+    status+="True"
+  done
+  echo ${status[@]}
+}
+
+function cluster-status {
+  kubectl get cs -o go-template --template="{{range .items}}{{range .conditions}}{{.status}}{{end}}{{end}}"
+}
+
+function wait-for-apiserver {
+  echo "waiting for api-server"
 
   local n=60
-  while [ -n "$(kubectl version 2>&1 >/dev/null)" ] && [ "$n" -gt 0 ]; do
-    echo "failed to query k8s api-server version"
+  while [ -n "$(kubectl version >/dev/null 2>&1)" ] && [ "$n" -gt 0 ]; do
+    echo "failed to query api-server version"
     n=$(($n-1))
     sleep 5
   done
 
-  return 1
+  if [ "$n" -eq 0 ]; then
+    exit 1
+  fi
 }
 
-wait-k8s-apiserver
+function wait-for-cluster {
+  echo "waiting for cluster to become healthy"
 
-# create kube-system namespace
-kubectl get namespace kube-system
-if [ "$?" != "0" ]; then
-  kubectl create -f  <(echo "$KUBE_NS")
-fi
+  local success=$(build-success-status)
+  local n=60
+  while [ "$(cluster-status)" != "$success" ] && [ "$n" -gt 0 ]; do
+    echo "cluster status is unhealthy"
+    n=$(($n-1))
+    sleep 5
+  done
 
-# create etcd service/endpoint
-kubectl get svc etcd --namespace=kube-system
-if [ "$?" != "0" ]; then
+  if [ "$n" -eq 0 ]; then
+    exit 2
+  fi
+}
+
+function create-kube-namespace {
+  kubectl get namespace kube-system >/dev/null 2>&1
+  if [ "$?" != "0" ]; then
+    kubectl create -f <(echo "$KUBE_NS")
+  fi
+}
+
+function create-etcd-service {
+  kubectl get svc etcd --namespace=kube-system >/dev/null 2>&1
+  if [ "$?" = "0" ]; then
+    kubectl delete -f <(echo "$ETCD_SVC") >/dev/null 2>&1
+  fi
   kubectl create -f <(echo "$ETCD_SVC")
-fi
+  kubectl get svc etcd --namespace=kube-system
+}
 
-# create kube-dns service
-kubectl get svc kube-dns --namespace=kube-system
-if [ "$?" != "0" ]; then
+function create-kube-dns-service {
+  kubectl get svc kube-dns --namespace=kube-system >/dev/null 2>&1
+  if [ "$?" = "0" ]; then
+    kubectl delete -f <(echo "$KUBE_DNS_SVC") >/dev/null 2>&1
+  fi
   kubectl create -f <(echo "$KUBE_DNS_SVC")
-fi
+  kubectl get svc kube-dns --namespace=kube-system
+}
+
+wait-for-apiserver
+wait-for-cluster
+
+trap - ERR
+
+create-kube-namespace
+create-etcd-service
+create-kube-dns-service
