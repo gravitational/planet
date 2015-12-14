@@ -129,7 +129,8 @@ func start(conf Config, monitorc chan<- bool) (*box.Box, error) {
 	}
 
 	cfg := box.Config{
-		Rootfs: conf.Rootfs,
+		Rootfs:     conf.Rootfs,
+		SocketPath: conf.SocketPath,
 		EnvFiles: []box.EnvFile{
 			box.EnvFile{
 				Path: ContainerEnvironmentFile,

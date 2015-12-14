@@ -28,7 +28,7 @@ type Config struct {
 	// Rootfs is a root filesystem of the container
 	Rootfs string
 
-	// SocketPath is a path to the socket file.
+	// SocketPath is a path to the socket file for remote command control.
 	// Ignored with systemd socket-activation.
 	SocketPath string
 

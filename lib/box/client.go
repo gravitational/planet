@@ -32,7 +32,9 @@ type client struct {
 }
 
 func Connect(config *ClientConfig) (ContainerServer, error) {
-	socketPath, err := serverSockPath(config.Rootfs, config.SocketPath)
+	notExecutable := false
+	socketPath, err := checkPath(config.SocketPath, notExecutable)
+	socketPath = serverSockPath(config.Rootfs, socketPath)
 	if err != nil {
 		return nil, trace.Wrap(err)
 	}

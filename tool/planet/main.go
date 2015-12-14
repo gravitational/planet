@@ -40,7 +40,7 @@ func run() error {
 		app           = kingpin.New("planet", "Planet is a Kubernetes delivered as an orbit container")
 		debug         = app.Flag("debug", "Enable debug mode").Bool()
 		fromContainer = app.Flag("from-container", "Specifies if a command is run in container context").Bool()
-		socketPath    = app.Flag("socket-path", "Path to the socket file").Default("run/planet.socket").String()
+		socketPath    = app.Flag("socket-path", "Path to the socket file").Default("/var/run/planet.socket").String()
 
 		// internal init command used by libcontainer
 		cinit = app.Command("init", "Internal init command").Hidden()
@@ -146,12 +146,8 @@ func run() error {
 		if err != nil {
 			break
 		}
-		config := &box.ClientConfig{
-			Rootfs:     rootfs,
-			SocketPath: *socketPath,
-		}
 		err = enterConsole(
-			config, *centerArgs, *centerUser, !*centerNoTTY, extraArgs)
+			rootfs, *socketPath, *centerArgs, *centerUser, !*centerNoTTY, extraArgs)
 
 	// "stop" command
 	case cstop.FullCommand():
@@ -159,10 +155,7 @@ func run() error {
 		if err != nil {
 			break
 		}
-		err = stop(&box.ClientConfig{
-			Rootfs:     rootfs,
-			SocketPath: *socketPath,
-		})
+		err = stop(rootfs, *socketPath)
 
 	// "status" command
 	case cstatus.FullCommand():
@@ -177,10 +170,7 @@ func run() error {
 			if err != nil {
 				break
 			}
-			err = status(&box.ClientConfig{
-				Rootfs:     rootfs,
-				SocketPath: *socketPath,
-			})
+			err = status(rootfs, *socketPath)
 		}
 
 	// "test" command
@@ -225,10 +215,7 @@ func selfTest(config Config, repoDir, spec string, extraArgs []string) error {
 		case <-time.After(idleTimeout):
 			err = trace.Wrap(fmt.Errorf("timed out waiting for units to come up"))
 		}
-		stop(&box.ClientConfig{
-			Rootfs:     config.Rootfs,
-			SocketPath: config.SocketPath,
-		})
+		stop(config.Rootfs, config.SocketPath)
 		process.Close()
 	}
 
@@ -300,10 +287,7 @@ func setupSignalHanlders(rootfs, socketPath string) {
 	go func() {
 		sig := <-c
 		log.Infof("received a signal %v. stopping...\n", sig)
-		err := stop(&box.ClientConfig{
-			Rootfs:     rootfs,
-			SocketPath: socketPath,
-		})
+		err := stop(rootfs, socketPath)
 		if err != nil {
 			log.Errorf("error: %v", err)
 		}

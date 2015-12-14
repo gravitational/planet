@@ -84,14 +84,15 @@ func fileListener() (net.Listener, error) {
 	return listener, nil
 }
 
-func serverSockPath(rootfs, socketPath string) (string, error) {
-	if filepath.IsAbs(socketPath) {
-		notExecutable := false
-		return checkPath(socketPath, notExecutable)
-	} else if strings.HasPrefix(socketPath, "@") {
-		return socketPath, nil
+func serverSockPath(rootfs, socketPath string) string {
+	if filepath.IsAbs(socketPath) || isAbstractSocket(socketPath) {
+		return socketPath
 	}
-	return filepath.Join(rootfs, socketPath), nil
+	return filepath.Join(rootfs, socketPath)
+}
+
+func isAbstractSocket(socketPath string) bool {
+	return strings.HasPrefix(socketPath, "@")
 }
 
 func checkError(err error) error {
