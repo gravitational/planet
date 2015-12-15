@@ -38,7 +38,7 @@ ASSETS := $(PWD)/build.assets
 BUILDDIR ?= $(PWD)/build
 BUILDDIR := $(shell realpath $(BUILDDIR))
 PLANETVER:=0.02
-KUBE_VER:=v1.1.3
+KUBE_VER:=v1.1.1
 PUBLIC_IP:=127.0.0.1
 export
 PLANET_GO_LDFLAGS="$(shell ./version.sh) -w"
