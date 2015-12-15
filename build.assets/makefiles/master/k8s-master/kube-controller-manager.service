@@ -5,7 +5,6 @@ Requires=kube-apiserver.service
 After=kube-apiserver.service
 
 [Service]
-EnvironmentFile=/etc/network-environment
 EnvironmentFile=/etc/container-environment
 ExecStart=/usr/bin/kube-controller-manager \
         --service-account-private-key-file=/var/state/apiserver.key \

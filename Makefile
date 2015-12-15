@@ -29,6 +29,7 @@
 #     7. build/current/rootfs is basically the output of the build.
 #     8. Later, root FS is tarballed and ready for distribution.
 #
+.DEFAULT_GOAL:=all
 SHELL:=/bin/bash
 .PHONY: build os base buildbox dev master node testbox test
 
@@ -37,30 +38,33 @@ ASSETS := $(PWD)/build.assets
 BUILDDIR ?= $(PWD)/build
 BUILDDIR := $(shell realpath $(BUILDDIR))
 PLANETVER:=0.02
-KUBE_VER := v1.1.1
-PUBLIC_IP:= 127.0.0.1
+KUBE_VER:=v1.1.3
+PUBLIC_IP:=127.0.0.1
 export
+PLANET_GO_LDFLAGS="$(shell ./version.sh) -w"
 
-# 'make build' compiles GO portion of Planet, meant for quick & iterative 
-# devlopment on an _already built image_. You need to build an image first, for 
+all: master node dev
+
+# 'make build' compiles the Go portion of Planet, meant for quick & iterative 
+# development on an _already built image_. You need to build an image first, for 
 # example with "make dev"
 build: $(BUILDDIR)/current
-	go install github.com/gravitational/planet/tool/planet
+	GOOS=linux GOARCH=amd64 go install -a -installsuffix cgo -ldflags $(PLANET_GO_LDFLAGS) github.com/gravitational/planet/tool/planet
 	cp -f $$GOPATH/bin/planet $(BUILDDIR)/current/planet 
 	rm -f $(BUILDDIR)/current/rootfs/usr/bin/planet
 	cp -f $$GOPATH/bin/planet $(BUILDDIR)/current/rootfs/usr/bin/planet
 
 # Makes a "developer" image, with _all_ parts of Kubernetes installed
 dev: buildbox
-	$(MAKE) -C $(ASSETS)/makefiles -e TARGET=dev -f buildbox.mk
+	$(MAKE) -C $(ASSETS)/makefiles -e TARGET=dev PLANET_GO_LDFLAGS=$(PLANET_GO_LDFLAGS) -f buildbox.mk
 
 # Makes a "master" image, with only master components of Kubernetes installed
 master: buildbox
-	$(MAKE) -C $(ASSETS)/makefiles -e TARGET=master -f buildbox.mk
+	$(MAKE) -C $(ASSETS)/makefiles -e TARGET=master PLANET_GO_LDFLAGS=$(PLANET_GO_LDFLAGS) -f buildbox.mk
 
 # Makes a "node" image, with only node components of Kubernetes installed
 node: buildbox
-	$(MAKE) -C $(ASSETS)/makefiles -e TARGET=node -f buildbox.mk
+	$(MAKE) -C $(ASSETS)/makefiles -e TARGET=node PLANET_GO_LDFLAGS=$(PLANET_GO_LDFLAGS) -f buildbox.mk
 
 # Runs end-to-end tests in the specific environment
 test: buildbox testbox prepare-to-run
@@ -81,7 +85,7 @@ dev-test: dev prepare-to-run
 		--volume=/var/planet/docker:/ext/docker\
 		-- -progress -trace -p -noisyPendings=false -failFast=true
 
-# Starts "planet-dev" build. It needs to be built first with "make dev"
+# Starts "planet-dev" build.
 dev-start: dev prepare-to-run
 	cd $(BUILDDIR)/current && sudo rootfs/usr/bin/planet start\
 		--debug\
@@ -92,8 +96,8 @@ dev-start: dev prepare-to-run
 		--volume=/var/planet/registry:/ext/registry\
 		--volume=/var/planet/docker:/ext/docker
 
-# Starts "planet-node" image. It needs to be built first with "make node"
-node-start: prepare-to-run
+# Starts "planet-node" image.
+node-start: node prepare-to-run
 	cd $(BUILDDIR)/current && sudo rootfs/usr/bin/planet start\
 		--role=node\
 		--public-ip=$(PUBLIC_IP)\
@@ -101,8 +105,8 @@ node-start: prepare-to-run
 		--volume=/var/planet/registry:/ext/registry\
 		--volume=/var/planet/docker:/ext/docker
 
-# Starts "planet-master" image. It needs to be built first with "make master"
-master-start: prepare-to-run
+# Starts "planet-master" image.
+master-start: master prepare-to-run
 	cd $(BUILDDIR)/current && sudo rootfs/usr/bin/planet start\
 		--role=master\
 		--public-ip=$(PUBLIC_IP)\

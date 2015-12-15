@@ -1,7 +1,7 @@
 # This makefile runs right after an image was created
 # Its purpose is to remove as much garbage out of $(ROOTFS) as possible
 all:
-	@echo -e "\\n---> Shrinking Planet image in ($(ROOTFS))...\\n"
+	@echo "\n---> Shrinking Planet image in ($(ROOTFS))...\n"
 	rm -rf $(ROOTFS)/usr/share/man
 	rm -rf $(ROOTFS)/usr/share/doc
 	rm -rf $(ROOTFS)/var/lib/apt

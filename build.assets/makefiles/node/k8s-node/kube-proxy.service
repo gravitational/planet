@@ -1,8 +1,6 @@
 [Unit]
 Description=Kubernetes Proxy
 Documentation=https://github.com/GoogleCloudPlatform/kubernetes
-Requires=setup-network-environment.service
-After=setup-network-environment.service
 
 [Service]
 EnvironmentFile=/etc/container-environment
