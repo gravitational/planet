@@ -8,7 +8,7 @@
 #    GIT_TREE_STATE - 
 #         "clean" indicates no changes since the git commit id
 #         "dirty" indicates source code changes after the git commit id
-#    GIT_VERSION - "vX.Y" used to indicate the last release version.
+#    VERSION - "vX.Y" used to indicate the last release version.
 
 ROOT=$(pwd)
 GO_PACKAGE=github.com/gravitational/planet
@@ -27,17 +27,17 @@ get_version_vars() {
     fi
 
     # Use git describe to find the version based on annotated tags.
-    if [[ -n ${GIT_VERSION-} ]] || GIT_VERSION=$("${git[@]}" describe --tags --abbrev=14 "${GIT_COMMIT}^{commit}" 2>/dev/null); then
+    if [[ -n ${VERSION-} ]] || VERSION=$("${git[@]}" describe --tags --abbrev=14 "${GIT_COMMIT}^{commit}" 2>/dev/null); then
       # This translates the "git describe" to an actual semver.org
       # compatible semantic version that looks something like this:
       #   v1.1.0-alpha.0.6+84c76d1142ea4d
       #
-      GIT_VERSION=$(echo "${GIT_VERSION}" | sed "s/-\([0-9]\{1,\}\)-g\([0-9a-f]\{14\}\)$/.\1\+\2/")
+      VERSION=$(echo "${VERSION}" | sed "s/-\([0-9]\{1,\}\)-g\([0-9a-f]\{14\}\)$/.\1\+\2/")
       if [[ "${GIT_TREE_STATE}" == "dirty" ]]; then
         # git describe --dirty only considers changes to existing files, but
         # that is problematic since new untracked .go files affect the build,
         # so use our idea of "dirty" from git status instead.
-        GIT_VERSION+="-dirty"
+        VERSION+="-dirty"
       fi
     fi
   fi
@@ -68,8 +68,8 @@ ldflags() {
     ldflags+=($(ldflag "gitTreeState" "${GIT_TREE_STATE}"))
   fi
 
-  if [[ -n ${GIT_VERSION-} ]]; then
-    ldflags+=($(ldflag "gitVersion" "${GIT_VERSION}"))
+  if [[ -n ${VERSION-} ]]; then
+    ldflags+=($(ldflag "version" "${VERSION}"))
   fi
 
   # The -ldflags parameter takes a single string, so join the output.

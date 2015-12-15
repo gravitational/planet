@@ -2,19 +2,19 @@ package version
 
 // Version information
 type Info struct {
-	GitVersion   string `json:"gitVersion"`
+	Version      string `json:"version"`
 	GitCommit    string `json:"gitCommit"`
 	GitTreeState string `json:"gitTreeState"`
 }
 
 func Get() Info {
 	return Info{
-		GitVersion:   gitVersion,
+		Version:      version,
 		GitCommit:    gitCommit,
 		GitTreeState: gitTreeState,
 	}
 }
 
 func (r Info) String() string {
-	return r.GitVersion
+	return r.Version
 }
