@@ -16,4 +16,4 @@ $(ASSETDIR)/planet:
 	# Uncomment to build a completely static version of the planet binary (usual build command builds
 	# an executable that depends on glibc due to dependency on docker
 	# GOOS=linux GOARCH=amd64 go build --ldflags '-extldflags "-static"' -o $(ROOTFS)/usr/bin/planet github.com/gravitational/planet/tool/planet
-	GOOS=linux GOARCH=amd64 go build -a -installsuffix cgo -ldflags "$(PLANET_GO_LDFLAGS)" -o $@ github.com/gravitational/planet/tool/planet
+	GOOS=linux GOARCH=amd64 go build -ldflags "$(PLANET_GO_LDFLAGS)" -o $@ github.com/gravitational/planet/tool/planet
