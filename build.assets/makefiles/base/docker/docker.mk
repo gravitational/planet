@@ -7,8 +7,9 @@
 ARCH := x86_64
 OS := Linux
 VER := 1.8.2
+BINARIES := $(ASSETDIR)/docker-$(VER)
 
-$(ROOTFS)/usr/bin/docker: $(ASSETDIR)/docker
+$(ROOTFS)/usr/bin/docker: $(BINARIES)
 # install socket-activated metadata service
 	@echo "\n---> Installing Docker to be used with Kubernetes:\n"
 	cp -af ./docker.service $(ROOTFS)/lib/systemd/system
@@ -20,9 +21,9 @@ $(ROOTFS)/usr/bin/docker: $(ASSETDIR)/docker
 
 # copy docker from the build dir into rootfs:
 	mkdir -p $(ROOTFS)/usr/bin
-	cp $(ASSETDIR)/docker $(ROOTFS)/usr/bin/docker
+	cp $(BINARIES) $(ROOTFS)/usr/bin/docker
 
-$(ASSETDIR)/docker:
+$(BINARIES):
 # download release
-	curl -L https://get.docker.com/builds/$(OS)/$(ARCH)/docker-$(VER) -o $(ASSETDIR)/docker
-	chmod +x $(ASSETDIR)/docker
+	curl -L https://get.docker.com/builds/$(OS)/$(ARCH)/docker-$(VER) -o $@
+	chmod +x $@

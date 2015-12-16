@@ -21,7 +21,7 @@ var Version = "$(VER)"
 endef
 export VERSION_PACKAGE
 
-BINARIES=$(ASSETDIR)/registry
+BINARIES:=$(ASSETDIR)/registry-$(VER)
 GO_LDFLAGS=-ldflags "-X `go list ./version`.Version=$(VER) -w"
 
 all: $(BINARIES) install
@@ -39,6 +39,6 @@ install: registry.mk $(BINARIES)
 	cp -af $(ASSETS)/makefiles/base/docker/registry.service $(ROOTFS)/lib/systemd/system
 	ln -sf /lib/systemd/system/registry.service  $(ROOTFS)/lib/systemd/system/multi-user.target.wants/
 	mkdir -p $(ROOTFS)/usr/bin
-	cp $(ASSETDIR)/registry $(ROOTFS)/usr/bin/
+	cp $(BINARIES) $(ROOTFS)/usr/bin/registry
 	mkdir -p $(ROOTFS)/etc/docker/registry
 	cp $(ASSETS)/docker/registry/config.yml $(ROOTFS)/etc/docker/registry/

@@ -43,7 +43,6 @@ func run() error {
 		fromContainer = app.Flag("from-container", "Specifies if a command is run in container context").Bool()
 		socketPath    = app.Flag("socket-path", "Path to the socket file").Default("/var/run/planet.socket").String()
 		cversion      = app.Command("version", "Print version information")
-		cversionRaw   = cversion.Flag("raw", "Print version information as a Go structure").Bool()
 
 		// internal init command used by libcontainer
 		cinit = app.Command("init", "Internal init command").Hidden()
@@ -108,7 +107,7 @@ func run() error {
 
 	// "version" command
 	case cversion.FullCommand():
-		printVersion(*cversionRaw)
+		version.Print()
 	// "start" command
 	case cstart.FullCommand():
 		if emptyIP(cstartPublicIP) && os.Getpid() > 5 {
@@ -303,12 +302,4 @@ func setupSignalHanlders(rootfs, socketPath string) {
 
 func emptyIP(addr *net.IP) bool {
 	return len(*addr) == 0
-}
-
-func printVersion(raw bool) {
-	if raw {
-		fmt.Printf("%#v", version.Get())
-	} else {
-		fmt.Printf("%s", version.Get())
-	}
 }
