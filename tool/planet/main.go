@@ -14,10 +14,10 @@ import (
 	"github.com/gravitational/planet/Godeps/_workspace/src/github.com/gravitational/log"
 	"github.com/gravitational/planet/Godeps/_workspace/src/github.com/gravitational/orbit/lib/utils"
 	"github.com/gravitational/planet/Godeps/_workspace/src/github.com/gravitational/trace"
+	"github.com/gravitational/planet/Godeps/_workspace/src/github.com/gravitational/version"
 	"github.com/gravitational/planet/Godeps/_workspace/src/github.com/opencontainers/runc/libcontainer"
 	"github.com/gravitational/planet/Godeps/_workspace/src/gopkg.in/alecthomas/kingpin.v2"
 	"github.com/gravitational/planet/lib/box"
-	"github.com/gravitational/planet/lib/version"
 	"github.com/gravitational/planet/test/e2e"
 )
 

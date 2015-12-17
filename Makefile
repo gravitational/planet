@@ -41,15 +41,18 @@ PLANETVER:=0.02
 KUBE_VER:=v1.1.1
 PUBLIC_IP:=127.0.0.1
 export
-PLANET_GO_LDFLAGS="$(shell ./version.sh) -w"
+PLANET_PACKAGE_PATH=$(PWD)
+PLANET_PACKAGE=github.com/gravitational/planet
+PLANET_VERSION_PACKAGE_PATH=$(PLANET_PACKAGE)/Godeps/_workspace/src/github.com/gravitational/version
+PLANET_GO_LDFLAGS="$(shell linkflags -pkg=$(PLANET_PACKAGE_PATH) -verpkg=$(PLANET_VERSION_PACKAGE_PATH))"
 
-all: master node dev
+all: production dev
 
 # 'make build' compiles the Go portion of Planet, meant for quick & iterative 
 # development on an _already built image_. You need to build an image first, for 
 # example with "make dev"
 build: $(BUILDDIR)/current
-	GOOS=linux GOARCH=amd64 go install -a -installsuffix cgo -ldflags $(PLANET_GO_LDFLAGS) github.com/gravitational/planet/tool/planet
+	GOOS=linux GOARCH=amd64 go install -ldflags $(PLANET_GO_LDFLAGS) github.com/gravitational/planet/tool/planet
 	cp -f $$GOPATH/bin/planet $(BUILDDIR)/current/planet 
 	rm -f $(BUILDDIR)/current/rootfs/usr/bin/planet
 	cp -f $$GOPATH/bin/planet $(BUILDDIR)/current/rootfs/usr/bin/planet
@@ -58,12 +61,9 @@ build: $(BUILDDIR)/current
 dev: buildbox
 	$(MAKE) -C $(ASSETS)/makefiles -e TARGET=dev PLANET_GO_LDFLAGS=$(PLANET_GO_LDFLAGS) -f buildbox.mk
 
-# Makes a "master" image, with only master components of Kubernetes installed
-master: buildbox
+# Composite image target that creates master/node images
+production: buildbox
 	$(MAKE) -C $(ASSETS)/makefiles -e TARGET=master PLANET_GO_LDFLAGS=$(PLANET_GO_LDFLAGS) -f buildbox.mk
-
-# Makes a "node" image, with only node components of Kubernetes installed
-node: buildbox
 	$(MAKE) -C $(ASSETS)/makefiles -e TARGET=node PLANET_GO_LDFLAGS=$(PLANET_GO_LDFLAGS) -f buildbox.mk
 
 # Runs end-to-end tests in the specific environment
