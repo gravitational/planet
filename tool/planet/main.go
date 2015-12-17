@@ -14,6 +14,7 @@ import (
 	"github.com/gravitational/planet/Godeps/_workspace/src/github.com/gravitational/log"
 	"github.com/gravitational/planet/Godeps/_workspace/src/github.com/gravitational/orbit/lib/utils"
 	"github.com/gravitational/planet/Godeps/_workspace/src/github.com/gravitational/trace"
+	"github.com/gravitational/planet/Godeps/_workspace/src/github.com/gravitational/version"
 	"github.com/gravitational/planet/Godeps/_workspace/src/github.com/opencontainers/runc/libcontainer"
 	"github.com/gravitational/planet/Godeps/_workspace/src/gopkg.in/alecthomas/kingpin.v2"
 	"github.com/gravitational/planet/lib/box"
@@ -41,6 +42,7 @@ func run() error {
 		debug         = app.Flag("debug", "Enable debug mode").Bool()
 		fromContainer = app.Flag("from-container", "Specifies if a command is run in container context").Bool()
 		socketPath    = app.Flag("socket-path", "Path to the socket file").Default("/var/run/planet.socket").String()
+		cversion      = app.Command("version", "Print version information")
 
 		// internal init command used by libcontainer
 		cinit = app.Command("init", "Internal init command").Hidden()
@@ -103,6 +105,9 @@ func run() error {
 	var rootfs string
 	switch cmd {
 
+	// "version" command
+	case cversion.FullCommand():
+		version.Print()
 	// "start" command
 	case cstart.FullCommand():
 		if emptyIP(cstartPublicIP) && os.Getpid() > 5 {

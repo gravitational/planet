@@ -29,42 +29,12 @@
 			"Rev": "f743bc15d6bddd23662280b4ad20f7c874cdd5ad"
 		},
 		{
-			"ImportPath": "github.com/docker/docker/pkg/archive",
-			"Comment": "v1.4.1-4715-ga893700",
-			"Rev": "a89370039a65f235d3dde5d36f20d0f463c615e9"
-		},
-		{
-			"ImportPath": "github.com/docker/docker/pkg/fileutils",
-			"Comment": "v1.4.1-4715-ga893700",
-			"Rev": "a89370039a65f235d3dde5d36f20d0f463c615e9"
-		},
-		{
-			"ImportPath": "github.com/docker/docker/pkg/ioutils",
-			"Comment": "v1.4.1-4715-ga893700",
-			"Rev": "a89370039a65f235d3dde5d36f20d0f463c615e9"
-		},
-		{
 			"ImportPath": "github.com/docker/docker/pkg/mount",
 			"Comment": "v1.4.1-4715-ga893700",
 			"Rev": "a89370039a65f235d3dde5d36f20d0f463c615e9"
 		},
 		{
-			"ImportPath": "github.com/docker/docker/pkg/pools",
-			"Comment": "v1.4.1-4715-ga893700",
-			"Rev": "a89370039a65f235d3dde5d36f20d0f463c615e9"
-		},
-		{
-			"ImportPath": "github.com/docker/docker/pkg/promise",
-			"Comment": "v1.4.1-4715-ga893700",
-			"Rev": "a89370039a65f235d3dde5d36f20d0f463c615e9"
-		},
-		{
 			"ImportPath": "github.com/docker/docker/pkg/symlink",
-			"Comment": "v1.4.1-4715-ga893700",
-			"Rev": "a89370039a65f235d3dde5d36f20d0f463c615e9"
-		},
-		{
-			"ImportPath": "github.com/docker/docker/pkg/system",
 			"Comment": "v1.4.1-4715-ga893700",
 			"Rev": "a89370039a65f235d3dde5d36f20d0f463c615e9"
 		},
@@ -92,18 +62,6 @@
 			"Rev": "8e1bbf1bba0515719dbb17adf1da20b5390ac8da"
 		},
 		{
-			"ImportPath": "github.com/gravitational/orbit/lib/check",
-			"Rev": "39fabb3a51f4dffd8bfe32a9eb7cc2dbbdd8f633"
-		},
-		{
-			"ImportPath": "github.com/gravitational/orbit/lib/configure",
-			"Rev": "39fabb3a51f4dffd8bfe32a9eb7cc2dbbdd8f633"
-		},
-		{
-			"ImportPath": "github.com/gravitational/orbit/lib/pkg",
-			"Rev": "39fabb3a51f4dffd8bfe32a9eb7cc2dbbdd8f633"
-		},
-		{
 			"ImportPath": "github.com/gravitational/orbit/lib/utils",
 			"Rev": "39fabb3a51f4dffd8bfe32a9eb7cc2dbbdd8f633"
 		},
@@ -116,8 +74,8 @@
 			"Rev": "ef858f0ffc8fd474f9b5f5706bdcb69bcd4ba733"
 		},
 		{
-			"ImportPath": "github.com/hashicorp/go-version",
-			"Rev": "999359b6b7a041ce16e695d51e92145b83f01087"
+			"ImportPath": "github.com/gravitational/version",
+			"Rev": "a0f162ed62e1fcec2cd454698feab021af0ccbdd"
 		},
 		{
 			"ImportPath": "github.com/julienschmidt/httprouter",
@@ -140,6 +98,10 @@
 			"ImportPath": "gopkg.in/alecthomas/kingpin.v2",
 			"Comment": "v2.0.11",
 			"Rev": "3eb8ffbc54a2f5e806181081e23098b67fe06d06"
+		},
+		{
+			"ImportPath": "gopkg.in/check.v1",
+			"Rev": "64131543e7896d5bcc6bd5a76287eb75ea96c673"
 		}
 	]
 }

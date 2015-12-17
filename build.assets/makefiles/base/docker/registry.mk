@@ -21,24 +21,24 @@ var Version = "$(VER)"
 endef
 export VERSION_PACKAGE
 
-BINARIES=$(TARGETDIR)/registry
+BINARIES:=$(ASSETDIR)/registry-$(VER)
 GO_LDFLAGS=-ldflags "-X `go list ./version`.Version=$(VER) -w"
 
 all: $(BINARIES) install
 
 $(BINARIES):
-	@echo "\n---> Building docker registry\n"
+	@echo "\n---> Building docker registry:\n"
 	mkdir -p $(REPODIR)
 	cd $(REPODIR) && git clone https://github.com/docker/distribution -b $(VER) --depth 1
 	cd $(REPODIR)/distribution && \
 	echo "$$VERSION_PACKAGE" > version/version.go && \
-	GOPATH=$(GOPATH):$(GOPATH)/src/github.com/docker/distribution/Godeps/_workspace GOOS=linux GOARCH=amd64 CGO_ENABLED=0 go build -tags "$(DOCKER_BUILDTAGS)" -a -installsuffix cgo -o $@ $(GO_LDFLAGS) $(GO_GCFLAGS) ./cmd/registry
+	GOPATH=$(GOPATH):$(GOPATH)/src/github.com/docker/distribution/Godeps/_workspace GOOS=linux GOARCH=amd64 CGO_ENABLED=0 go build -tags "$(DOCKER_BUILDTAGS)" -a -installsuffix cgo -o $@ $(GO_LDFLAGS) ./cmd/registry
 
 install: registry.mk $(BINARIES)
-	@echo "\n---> Installing docker registry\n"
+	@echo "\n---> Installing docker registry:\n"
 	cp -af $(ASSETS)/makefiles/base/docker/registry.service $(ROOTFS)/lib/systemd/system
 	ln -sf /lib/systemd/system/registry.service  $(ROOTFS)/lib/systemd/system/multi-user.target.wants/
 	mkdir -p $(ROOTFS)/usr/bin
-	cp $(TARGETDIR)/registry $(ROOTFS)/usr/bin/
+	cp $(BINARIES) $(ROOTFS)/usr/bin/registry
 	mkdir -p $(ROOTFS)/etc/docker/registry
 	cp $(ASSETS)/docker/registry/config.yml $(ROOTFS)/etc/docker/registry/

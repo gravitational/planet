@@ -2,26 +2,29 @@
 # to kick off inside-buildbox building
 SHELL:=/bin/bash
 TARGETDIR:=$(BUILDDIR)/$(TARGET)
+ASSETDIR:=$(BUILDDIR)/assets
 ROOTFS:=$(TARGETDIR)/rootfs
 CONTAINERNAME:=planet-base-$(TARGET)
 TARBALL:=$(TARGETDIR)/planet-$(TARGET).$(PLANETVER).tar.gz
 
 .PHONY: all clean
 
-# invoke "TARGET-docker.mk" from inside of 'buildbox' docker image:
 all: $(ROOTFS)/bin/bash 
 	@echo -e "\n---> Launching 'buildbox' Docker container to build $(TARGET):\n"
 	docker run -ti --rm=true \
 		--volume=$(ASSETS):/assets \
 		--volume=$(ROOTFS):/rootfs \
 		--volume=$(TARGETDIR):/targetdir \
+		--volume=$(ASSETDIR):/assetdir \
 		--volume=$(PWD):/gopath/src/github.com/gravitational/planet \
 		--env="ASSETS=/assets" \
 		--env="ROOTFS=/rootfs" \
 		--env="TARGETDIR=/targetdir" \
+		--env="ASSETDIR=/assetdir" \
 		planet/buildbox \
-		make -e KUBE_VER=$(KUBE_VER) -f assets/makefiles/$(TARGET)-docker.mk
+		make -e KUBE_VER=$(KUBE_VER) PLANET_GO_LDFLAGS="$(PLANET_GO_LDFLAGS)" -C /assets/makefiles -f $(TARGET)-docker.mk
 	cp $(ASSETS)/orbit.manifest.json $(TARGETDIR)
+	cp $(ASSETDIR)/planet $(ROOTFS)/usr/bin/
 	@echo -e "\n---> Moving current symlink to $(TARGETDIR)\n"
 	@rm -f $(BUILDDIR)/current
 	@cd $(BUILDDIR) && ln -fs $(TARGET) $(BUILDDIR)/current
