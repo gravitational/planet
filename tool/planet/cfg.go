@@ -29,7 +29,9 @@ type Config struct {
 	DockerBackend      string
 	ServiceSubnet      CIDR
 	PODSubnet          CIDR
-	PlanetUser         *user.User
+	ServiceUser        *user.User
+	ServiceUID         string
+	ServiceGID         string
 }
 
 func (cfg *Config) hasRole(r string) bool {

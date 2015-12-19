@@ -3,6 +3,7 @@ package main
 import (
 	"bytes"
 	"fmt"
+	"io/ioutil"
 	"os"
 	"path/filepath"
 	"sort"
@@ -23,7 +24,7 @@ const (
 	CheckCgroupMounts = true
 )
 
-func startAndWait(config Config) error {
+func startAndWait(config *Config) error {
 	process, err := start(config, nil)
 
 	if err != nil {
@@ -40,8 +41,8 @@ func startAndWait(config Config) error {
 	return nil
 }
 
-func start(conf Config, monitorc chan<- bool) (*box.Box, error) {
-	log.Infof("starting with config: %#v", conf)
+func start(config *Config, monitorc chan<- bool) (*box.Box, error) {
+	log.Infof("starting with config: %#v", config)
 
 	if !isRoot() {
 		return nil, trace.Errorf("must be run as root")
@@ -59,7 +60,7 @@ func start(conf Config, monitorc chan<- bool) (*box.Box, error) {
 		if v < MinKernelVersion {
 			err := trace.Errorf(
 				"current minimum supported kernel version is %0.2f. Upgrade kernel before moving on.", MinKernelVersion/100.0)
-			if !conf.IgnoreChecks {
+			if !config.IgnoreChecks {
 				return nil, err
 			}
 			log.Infof("warning: %v", err)
@@ -74,71 +75,74 @@ func start(conf Config, monitorc chan<- bool) (*box.Box, error) {
 	}
 
 	// check supported storage back-ends for docker
-	conf.DockerBackend, err = pickDockerStorageBackend()
+	config.DockerBackend, err = pickDockerStorageBackend()
 	if err != nil {
 		return nil, trace.Wrap(err)
 	}
 
-	// check/create 'planet' user and set the permissions
-	conf.PlanetUser, err = check.CheckPlanetUser()
-	if err != nil {
+	// check/create user accounts and set permissions
+	if err = ensureUsersGroups(config); err != nil {
+		return nil, trace.Wrap(err)
+	}
+
+	if err = mountHostUsersGroups(config); err != nil {
 		return nil, trace.Wrap(err)
 	}
 
 	// validate the mounts:
-	if conf.hasRole("master") {
-		if err = checkMasterMounts(&conf); err != nil {
+	if config.hasRole("master") {
+		if err = checkMasterMounts(config); err != nil {
 			return nil, trace.Wrap(err)
 		}
-	} else if conf.hasRole("node") {
-		if err = checkNodeMounts(&conf); err != nil {
+	} else if config.hasRole("node") {
+		if err = checkNodeMounts(config); err != nil {
 			return nil, trace.Wrap(err)
 		}
 	} else {
 		return nil, trace.Errorf("--role parameter must be set")
 	}
 
-	if err = configureMonitrcPermissions(conf.Rootfs); err != nil {
+	if err = configureMonitrcPermissions(config.Rootfs); err != nil {
 		return nil, trace.Wrap(err)
 	}
 
-	conf.Env = append(conf.Env,
-		box.EnvPair{Name: "KUBE_MASTER_IP", Val: conf.MasterIP},
-		box.EnvPair{Name: "KUBE_CLOUD_PROVIDER", Val: conf.CloudProvider},
-		box.EnvPair{Name: "KUBE_SERVICE_SUBNET", Val: conf.ServiceSubnet.String()},
-		box.EnvPair{Name: "KUBE_POD_SUBNET", Val: conf.PODSubnet.String()},
-		box.EnvPair{Name: "PLANET_PUBLIC_IP", Val: conf.PublicIP},
-		box.EnvPair{Name: "KUBE_CLUSTER_DNS_IP", Val: conf.ServiceSubnet.RelativeIP(3).String()},
+	config.Env = append(config.Env,
+		box.EnvPair{Name: "KUBE_MASTER_IP", Val: config.MasterIP},
+		box.EnvPair{Name: "KUBE_CLOUD_PROVIDER", Val: config.CloudProvider},
+		box.EnvPair{Name: "KUBE_SERVICE_SUBNET", Val: config.ServiceSubnet.String()},
+		box.EnvPair{Name: "KUBE_POD_SUBNET", Val: config.PODSubnet.String()},
+		box.EnvPair{Name: "PLANET_PUBLIC_IP", Val: config.PublicIP},
+		box.EnvPair{Name: "KUBE_CLUSTER_DNS_IP", Val: config.ServiceSubnet.RelativeIP(3).String()},
 	)
 
 	// Always trust local registry (for now)
-	conf.InsecureRegistries = append(
-		conf.InsecureRegistries, fmt.Sprintf("%v:5000", conf.MasterIP))
+	config.InsecureRegistries = append(
+		config.InsecureRegistries, fmt.Sprintf("%v:5000", config.MasterIP))
 
-	addInsecureRegistries(&conf)
-	addDockerOptions(&conf)
-	setupFlannel(&conf)
-	if err = setupCloudOptions(&conf); err != nil {
+	addInsecureRegistries(config)
+	addDockerOptions(config)
+	setupFlannel(config)
+	if err = setupCloudOptions(config); err != nil {
 		return nil, err
 	}
-	if err = addResolv(&conf); err != nil {
+	if err = addResolv(config); err != nil {
 		return nil, err
 	}
-	if err = initState(&conf); err != nil {
+	if err = initState(config); err != nil {
 		return nil, err
 	}
 
 	cfg := box.Config{
-		Rootfs:     conf.Rootfs,
-		SocketPath: conf.SocketPath,
+		Rootfs:     config.Rootfs,
+		SocketPath: config.SocketPath,
 		EnvFiles: []box.EnvFile{
 			box.EnvFile{
 				Path: ContainerEnvironmentFile,
-				Env:  conf.Env,
+				Env:  config.Env,
 			},
 		},
-		Files:        conf.Files,
-		Mounts:       conf.Mounts,
+		Files:        config.Files,
+		Mounts:       config.Mounts,
 		DataDir:      "/var/run/planet",
 		InitUser:     "root",
 		InitArgs:     []string{"/bin/systemd"},
@@ -154,16 +158,71 @@ func start(conf Config, monitorc chan<- bool) (*box.Box, error) {
 	}
 
 	units := []string{}
-	if conf.hasRole("master") {
+	if config.hasRole("master") {
 		units = append(units, masterUnits...)
 	}
-	if conf.hasRole("node") {
+	if config.hasRole("node") {
 		units = appendUnique(units, nodeUnits)
 	}
 
 	go monitorUnits(b.Container, units, monitorc)
 
 	return b, nil
+}
+
+// ensureUsersGroups ensures that all user accounts exist.
+// If an account has not been created - it will attempt to create one.
+func ensureUsersGroups(config *Config) error {
+	var err error
+	if config.ServiceGID == "" {
+		config.ServiceGID = config.ServiceUID
+	}
+	config.ServiceUser, err = check.CheckUserGroup(check.PlanetUser, check.PlanetGroup, config.ServiceUID, config.ServiceGID)
+	if err != nil {
+		return trace.Wrap(err)
+	}
+	return nil
+}
+
+// mountHostUsersGroups mounts host /etc/passwd and /etc/group files
+// inside container so that the users planet creates are available in
+// container context.
+func mountHostUsersGroups(config *Config) error {
+	tmpEtcDir := filepath.Join(config.Rootfs, "tmp", "etc")
+	if err := os.MkdirAll(tmpEtcDir, 0755); err != nil {
+		return trace.Wrap(err)
+	}
+	localPasswd := filepath.Join(tmpEtcDir, "passwd")
+	localGroup := filepath.Join(tmpEtcDir, "group")
+	if err := copyFile("/etc/passwd", localPasswd); err != nil {
+		return trace.Wrap(err)
+	}
+	if err := copyFile("/etc/group", localGroup); err != nil {
+		return trace.Wrap(err)
+	}
+	config.Mounts = append(config.Mounts, []box.Mount{
+		{
+			Src: localPasswd,
+			Dst: "/etc/passwd",
+		},
+		{
+			Src: localGroup,
+			Dst: "/etc/group",
+		},
+	}...)
+	return nil
+}
+
+// copyFile copies src to dst.
+func copyFile(src, dst string) error {
+	contents, err := ioutil.ReadFile(src)
+	if err != nil {
+		return trace.Wrap(err)
+	}
+	if err = ioutil.WriteFile(dst, contents, 0644); err != nil {
+		return trace.Wrap(err)
+	}
+	return nil
 }
 
 // setupCloudOptions sets up cloud flags and files passed to kubernetes
@@ -236,18 +295,18 @@ func pickDockerStorageBackend() (dockerBackend string, err error) {
 
 // addDockerStorage adds a given docker storage back-end to DOCKER_OPTS environment
 // variable
-func addDockerOptions(c *Config) {
+func addDockerOptions(config *Config) {
 	// add supported storage backend
-	c.Env.Append("DOCKER_OPTS",
-		fmt.Sprintf("--storage-driver=%s", c.DockerBackend), " ")
+	config.Env.Append("DOCKER_OPTS",
+		fmt.Sprintf("--storage-driver=%s", config.DockerBackend), " ")
 
 	// use cgroups native driver, because of this:
 	// https://github.com/docker/docker/issues/16256
-	c.Env.Append("DOCKER_OPTS", "--exec-opt native.cgroupdriver=cgroupfs", " ")
+	config.Env.Append("DOCKER_OPTS", "--exec-opt native.cgroupdriver=cgroupfs", " ")
 }
 
 // addResolv adds resolv conf from the host's /etc/resolv.conf
-func addResolv(c *Config) error {
+func addResolv(config *Config) error {
 	path, err := filepath.EvalSymlinks("/etc/resolv.conf")
 	if err != nil {
 		if os.IsNotExist(err) {
@@ -255,7 +314,7 @@ func addResolv(c *Config) error {
 		}
 		return trace.Wrap(err)
 	}
-	c.Mounts = append(c.Mounts, box.Mount{
+	config.Mounts = append(config.Mounts, box.Mount{
 		Src:      path,
 		Dst:      "/etc/resolv.conf",
 		Readonly: true,
@@ -318,15 +377,15 @@ func checkMasterMounts(cfg *Config) error {
 		DockerWorkDir: false,
 		RegstrWorkDir: false,
 	}
+	uid := atoi(cfg.ServiceUser.Uid)
+	gid := atoi(cfg.ServiceUser.Gid)
 	for _, m := range cfg.Mounts {
 		dst := filepath.Clean(m.Dst)
 		if _, ok := expected[dst]; ok {
 			expected[dst] = true
 		}
 		if dst == EtcdWorkDir && cfg.hasRole("master") {
-			uid := atoi(cfg.PlanetUser.Uid)
-			gid := atoi(cfg.PlanetUser.Gid)
-			// chown planet:planet /ext/etcd -r
+			// chown <service user>:<service group> /ext/etcd -r
 			if err := chownDir(m.Src, uid, gid); err != nil {
 				return err
 			}

@@ -7,3 +7,5 @@ After=docker.service
 ExecStart=/usr/bin/registry /etc/docker/registry/config.yml
 Restart=always
 RestartSec=10
+User=planet
+Group=planet

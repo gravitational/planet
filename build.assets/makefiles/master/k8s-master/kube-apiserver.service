@@ -25,3 +25,5 @@ ExecStart=/usr/bin/kube-apiserver \
         --logtostderr=true
 Restart=always
 RestartSec=10
+User=planet
+Group=planet

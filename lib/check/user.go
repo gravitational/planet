@@ -1,65 +1,70 @@
 package check
 
 import (
+	"bytes"
 	"os"
 	"os/exec"
 	"os/user"
-	"strings"
 
 	"github.com/gravitational/planet/Godeps/_workspace/src/github.com/gravitational/trace"
 )
 
 const (
-	PlanetUID   string = "1000" // planet tarball must have all files owned by UID:GID of 1000:1000
-	PlanetGID   string = "1000"
 	PlanetUser  string = "planet"
 	PlanetGroup string = "planet"
 )
 
-// checks to se
-func CheckPlanetUser() (u *user.User, err error) {
+// CheckUserGroup checks if a user specified with userName has been created.
+// If no user has been created - it will attempt to create one.
+// It will also attempt to create a group specified with groupName.
+func CheckUserGroup(userName, groupName, uid, gid string) (u *user.User, err error) {
 	// already exists?
-	u, err = user.Lookup(PlanetUser)
+	u, err = user.Lookup(userName)
 	if err == nil {
 		return u, nil
 	}
 
-	// create a new group:
-	groupadd := exec.Command("/usr/sbin/groupadd",
-		"--system",
-		"--non-unique",
-		"--gid", PlanetGID,
-		PlanetGroup)
-	output, err := groupadd.CombinedOutput()
+	output, err := run(groupAddCommand(groupName, gid))
+	if err != nil {
+		return nil, trace.Wrap(err, "failed to create group '%s': %s", groupName, output)
+	}
+
+	output, err = run(userAddCommand(userName, uid, gid))
+	if err != nil {
+		return nil, trace.Wrap(err, "failed to create user '%s' in group '%s': %s", userName, groupName, output)
+	}
+
+	return user.Lookup(userName)
+}
+
+// run runs the command cmd and returns the output.
+func run(cmd *exec.Cmd) ([]byte, error) {
+	output, err := cmd.CombinedOutput()
 	if err != nil {
 		if os.IsNotExist(err) {
 			return nil, err
 		}
-		errMsg := flattenString(string(output))
-		return nil, trace.Wrap(err, "failed to create group '%v': %v", PlanetUser, errMsg)
+		return bytes.TrimSpace(output), err
 	}
+	return nil, nil
+}
 
-	// create a new user:
-	useradd := exec.Command("/usr/sbin/useradd",
+func userAddCommand(userName, uid, gid string) *exec.Cmd {
+	cmd := exec.Command("/usr/sbin/useradd",
 		"--system",
 		"--no-create-home",
 		"--non-unique",
-		"--gid", PlanetGID,
-		"--uid", PlanetUID,
-		PlanetUser)
-	output, err = useradd.CombinedOutput()
-	if err != nil {
-		if os.IsNotExist(err) {
-			return nil, err
-		}
-		errMsg := flattenString(string(output))
-		return nil, trace.Wrap(err, "failed to create user '%v': %v", PlanetUser, errMsg)
-	}
-
-	// now it should work:
-	return user.Lookup(PlanetUser)
+		"--gid", gid,
+		"--uid", uid,
+		userName)
+	return cmd
 }
 
-func flattenString(s string) string {
-	return strings.Join(strings.Split(s, "\n"), " ")
+func groupAddCommand(groupName, gid string) *exec.Cmd {
+	cmd := exec.Command("/usr/sbin/groupadd",
+		"--system",
+		"--non-unique",
+		"--gid", gid,
+		groupName)
+	return cmd
 }

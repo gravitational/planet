@@ -21,3 +21,5 @@ ExecStart=/usr/bin/kubelet \
 	--cluster-domain=cluster.local
 Restart=always
 RestartSec=10
+User=planet
+Group=planet
