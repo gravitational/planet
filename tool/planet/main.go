@@ -62,6 +62,8 @@ func run() error {
 		cstartStateDir           = cstart.Flag("state-dir", "directory where planet-specific state like keys and certificates is stored").Default("/var/planet/state").OverrideDefaultFromEnvar("PLANET_STATE_DIR").String()
 		cstartServiceSubnet      = CIDRFlag(cstart.Flag("service-subnet", "subnet dedicated to the services in cluster").Default("10.100.0.0/16").OverrideDefaultFromEnvar("PLANET_SERVICE_SUBNET"))
 		cstartPODSubnet          = CIDRFlag(cstart.Flag("pod-subnet", "subnet dedicated to the pods in the cluster").Default("10.244.0.0/16").OverrideDefaultFromEnvar("PLANET_POD_SUBNET"))
+		cstartServiceUID         = cstart.Flag("service-uid", "uid to use for services").Default("1000").String()
+		cstartServiceGID         = cstart.Flag("service-gid", "gid to use for services (defaults to service-uid)").String()
 		cstartSelfTest           = cstart.Flag("self-test", "Run end-to-end tests on the started cluster").Bool()
 		cstartTestSpec           = cstart.Flag("test-spec", "Regexp of the test specs to run (self-test mode only)").Default("Networking|Pods").String()
 		cstartTestKubeRepoPath   = cstart.Flag("repo-path", "Path to either a k8s repository or a directory with test configuration files (self-test mode only)").String()
@@ -119,7 +121,7 @@ func run() error {
 			break
 		}
 		setupSignalHanlders(rootfs, *socketPath)
-		config := Config{
+		config := &Config{
 			Rootfs:             rootfs,
 			SocketPath:         *socketPath,
 			Env:                *cstartEnv,
@@ -134,6 +136,8 @@ func run() error {
 			StateDir:           *cstartStateDir,
 			ServiceSubnet:      *cstartServiceSubnet,
 			PODSubnet:          *cstartPODSubnet,
+			ServiceUID:         *cstartServiceUID,
+			ServiceGID:         *cstartServiceGID,
 		}
 		if *cstartSelfTest {
 			err = selfTest(config, *cstartTestKubeRepoPath, *cstartTestSpec, extraArgs)
@@ -193,7 +197,7 @@ func run() error {
 	return err
 }
 
-func selfTest(config Config, repoDir, spec string, extraArgs []string) error {
+func selfTest(config *Config, repoDir, spec string, extraArgs []string) error {
 	var process *box.Box
 	var err error
 	const idleTimeout = 30 * time.Second
