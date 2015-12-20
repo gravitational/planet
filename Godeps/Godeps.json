@@ -24,6 +24,10 @@
 			"Rev": "6b4e7dc5e3143b85ea77909c72caf89416fc2915"
 		},
 		{
+			"ImportPath": "github.com/armon/go-metrics",
+			"Rev": "06b60999766278efd6d2b5d8418a58c3d5b99e87"
+		},
+		{
 			"ImportPath": "github.com/coreos/go-systemd/dbus",
 			"Comment": "v2",
 			"Rev": "f743bc15d6bddd23662280b4ad20f7c874cdd5ad"
@@ -76,6 +80,33 @@
 		{
 			"ImportPath": "github.com/gravitational/version",
 			"Rev": "a0f162ed62e1fcec2cd454698feab021af0ccbdd"
+		},
+		{
+			"ImportPath": "github.com/hashicorp/go-msgpack/codec",
+			"Rev": "fa3f63826f7c23912c15263591e65d54d080b458"
+		},
+		{
+			"ImportPath": "github.com/hashicorp/logutils",
+			"Rev": "0dc08b1671f34c4250ce212759ebd880f743d883"
+		},
+		{
+			"ImportPath": "github.com/hashicorp/memberlist",
+			"Rev": "9888dc523910e5d22c5be4f6e34520943df21809"
+		},
+		{
+			"ImportPath": "github.com/hashicorp/serf/client",
+			"Comment": "v0.6.4-176-g11bb88a",
+			"Rev": "11bb88abf7b17f0b794b51416a9107d781e95f35"
+		},
+		{
+			"ImportPath": "github.com/hashicorp/serf/coordinate",
+			"Comment": "v0.6.4-176-g11bb88a",
+			"Rev": "11bb88abf7b17f0b794b51416a9107d781e95f35"
+		},
+		{
+			"ImportPath": "github.com/hashicorp/serf/serf",
+			"Comment": "v0.6.4-176-g11bb88a",
+			"Rev": "11bb88abf7b17f0b794b51416a9107d781e95f35"
 		},
 		{
 			"ImportPath": "github.com/julienschmidt/httprouter",
