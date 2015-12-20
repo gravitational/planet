@@ -85,9 +85,7 @@ func start(config *Config, monitorc chan<- bool) (*box.Box, error) {
 		return nil, trace.Wrap(err)
 	}
 
-	if err = mountHostUsersGroups(config); err != nil {
-		return nil, trace.Wrap(err)
-	}
+	mountHostUsersGroups(config)
 
 	// validate the mounts:
 	if config.hasRole("master") {
@@ -187,30 +185,19 @@ func ensureUsersGroups(config *Config) error {
 // mountHostUsersGroups mounts host /etc/passwd and /etc/group files
 // inside container so that the users planet creates are available in
 // container context.
-func mountHostUsersGroups(config *Config) error {
-	mountPath := filepath.Join(config.Rootfs, "tmp", "etc")
-	if err := os.MkdirAll(mountPath, 0755); err != nil {
-		return trace.Wrap(err)
-	}
-	localPasswd := filepath.Join(mountPath, "passwd")
-	localGroup := filepath.Join(mountPath, "group")
-	if err := copyFile("/etc/passwd", localPasswd); err != nil {
-		return trace.Wrap(err)
-	}
-	if err := copyFile("/etc/group", localGroup); err != nil {
-		return trace.Wrap(err)
-	}
+func mountHostUsersGroups(config *Config) {
+	const passwdFile = "/etc/passwd"
+	const groupFile = "/etc/group"
 	config.Mounts = append(config.Mounts, []box.Mount{
 		{
-			Src: localPasswd,
-			Dst: "/etc/passwd",
+			Src: passwdFile,
+			Dst: passwdFile,
 		},
 		{
-			Src: localGroup,
-			Dst: "/etc/group",
+			Src: groupFile,
+			Dst: groupFile,
 		},
 	}...)
-	return nil
 }
 
 // copyFile copies src to dst.

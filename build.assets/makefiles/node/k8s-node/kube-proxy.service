@@ -7,5 +7,3 @@ EnvironmentFile=/etc/container-environment
 ExecStart=/usr/bin/kube-proxy --master=${KUBE_MASTER_IP}:8080 --logtostderr=true
 Restart=always
 RestartSec=10
-User=planet
-Group=planet
