@@ -188,12 +188,12 @@ func ensureUsersGroups(config *Config) error {
 // inside container so that the users planet creates are available in
 // container context.
 func mountHostUsersGroups(config *Config) error {
-	tmpEtcDir := filepath.Join(config.Rootfs, "tmp", "etc")
-	if err := os.MkdirAll(tmpEtcDir, 0755); err != nil {
+	mountPath := filepath.Join(config.Rootfs, "tmp", "etc")
+	if err := os.MkdirAll(mountPath, 0755); err != nil {
 		return trace.Wrap(err)
 	}
-	localPasswd := filepath.Join(tmpEtcDir, "passwd")
-	localGroup := filepath.Join(tmpEtcDir, "group")
+	localPasswd := filepath.Join(mountPath, "passwd")
+	localGroup := filepath.Join(mountPath, "group")
 	if err := copyFile("/etc/passwd", localPasswd); err != nil {
 		return trace.Wrap(err)
 	}
@@ -215,11 +215,12 @@ func mountHostUsersGroups(config *Config) error {
 
 // copyFile copies src to dst.
 func copyFile(src, dst string) error {
+	const permissions = 0644
 	contents, err := ioutil.ReadFile(src)
 	if err != nil {
 		return trace.Wrap(err)
 	}
-	if err = ioutil.WriteFile(dst, contents, 0644); err != nil {
+	if err = ioutil.WriteFile(dst, contents, permissions); err != nil {
 		return trace.Wrap(err)
 	}
 	return nil
