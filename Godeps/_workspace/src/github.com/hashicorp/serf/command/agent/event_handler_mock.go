@@ -1,7 +1,7 @@
 package agent
 
 import (
-	"github.com/hashicorp/serf/serf"
+	"github.com/gravitational/planet/Godeps/_workspace/src/github.com/hashicorp/serf/serf"
 	"sync"
 )
 

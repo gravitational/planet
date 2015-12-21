@@ -13,12 +13,12 @@ import (
 	"syscall"
 	"time"
 
-	"github.com/armon/go-metrics"
-	"github.com/hashicorp/go-syslog"
-	"github.com/hashicorp/logutils"
-	"github.com/hashicorp/memberlist"
-	"github.com/hashicorp/serf/serf"
-	"github.com/mitchellh/cli"
+	"github.com/gravitational/planet/Godeps/_workspace/src/github.com/armon/go-metrics"
+	"github.com/gravitational/planet/Godeps/_workspace/src/github.com/hashicorp/go-syslog"
+	"github.com/gravitational/planet/Godeps/_workspace/src/github.com/hashicorp/logutils"
+	"github.com/gravitational/planet/Godeps/_workspace/src/github.com/hashicorp/memberlist"
+	"github.com/gravitational/planet/Godeps/_workspace/src/github.com/hashicorp/serf/serf"
+	"github.com/gravitational/planet/Godeps/_workspace/src/github.com/mitchellh/cli"
 )
 
 const (

@@ -2,9 +2,9 @@ package agent
 
 import (
 	"fmt"
-	"github.com/armon/circbuf"
-	"github.com/armon/go-metrics"
-	"github.com/hashicorp/serf/serf"
+	"github.com/gravitational/planet/Godeps/_workspace/src/github.com/armon/circbuf"
+	"github.com/gravitational/planet/Godeps/_workspace/src/github.com/armon/go-metrics"
+	"github.com/gravitational/planet/Godeps/_workspace/src/github.com/hashicorp/serf/serf"
 	"io"
 	"log"
 	"os"

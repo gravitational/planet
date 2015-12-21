@@ -12,8 +12,8 @@ import (
 	"strings"
 	"time"
 
-	"github.com/hashicorp/serf/serf"
-	"github.com/mitchellh/mapstructure"
+	"github.com/gravitational/planet/Godeps/_workspace/src/github.com/hashicorp/serf/serf"
+	"github.com/gravitational/planet/Godeps/_workspace/src/github.com/mitchellh/mapstructure"
 )
 
 // This is the default port that we use for Serf communication

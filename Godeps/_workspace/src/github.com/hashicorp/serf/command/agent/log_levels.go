@@ -1,7 +1,7 @@
 package agent
 
 import (
-	"github.com/hashicorp/logutils"
+	"github.com/gravitational/planet/Godeps/_workspace/src/github.com/hashicorp/logutils"
 	"io/ioutil"
 )
 

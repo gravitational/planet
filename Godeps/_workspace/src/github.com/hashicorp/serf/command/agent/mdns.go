@@ -7,7 +7,7 @@ import (
 	"net"
 	"time"
 
-	"github.com/hashicorp/mdns"
+	"github.com/gravitational/planet/Godeps/_workspace/src/github.com/hashicorp/mdns"
 )
 
 const (
