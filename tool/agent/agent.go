@@ -1,6 +1,7 @@
 package main
 
 import (
+	"encoding/json"
 	"io"
 	"net"
 	"strconv"
@@ -9,6 +10,8 @@ import (
 	"github.com/gravitational/planet/Godeps/_workspace/src/github.com/gravitational/trace"
 	serfAgent "github.com/gravitational/planet/Godeps/_workspace/src/github.com/hashicorp/serf/command/agent"
 	serf "github.com/gravitational/planet/Godeps/_workspace/src/github.com/hashicorp/serf/serf"
+	"github.com/gravitational/planet/tool/agent/monitoring"
+	"github.com/gravitational/planet/tool/agent/monitoring/check"
 )
 
 type testAgent struct {
@@ -24,6 +27,10 @@ type config struct {
 	tags     map[string]string
 }
 
+type reporter struct {
+	status *monitoring.Status
+}
+
 type agentMode string
 
 const (
@@ -36,6 +43,8 @@ type queryCommand string
 const (
 	cmdStatus queryCommand = "status"
 )
+
+var checkers []check.Checker
 
 func newAgent(config *config, logOutput io.Writer) (*testAgent, error) {
 	agentConfig := setupAgent(config)
@@ -108,9 +117,15 @@ func (r *testAgent) HandleEvent(event serf.Event) {
 
 func (r *testAgent) handleStatus(q *serf.Query) error {
 	log.Infof("testAgent:handleStatus for %v", q)
-	// TODO: respond to query with the collected results
-	var result = []byte("node-status: ok!")
-	if err := q.Respond(result); err != nil {
+	var reporter *reporter
+	for _, checker := range checkers {
+		checker.Check(reporter)
+	}
+	payload, err := reporter.encode()
+	if err != nil {
+		return trace.Wrap(err)
+	}
+	if err := q.Respond(payload); err != nil {
 		return trace.Wrap(err)
 	}
 	return nil
@@ -122,4 +137,12 @@ func mustAtoi(value string) int {
 		panic(err)
 	}
 	return result
+}
+
+func (r *reporter) Add(name string, payload []byte) {
+	// TODO
+}
+
+func (r *reporter) encode() ([]byte, error) {
+	return json.Marshal(r.status)
 }

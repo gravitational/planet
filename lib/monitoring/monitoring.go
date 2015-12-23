@@ -11,17 +11,16 @@ type (
 		Status() ([]ServiceStatus, error)
 	}
 
-	ServiceStatus struct {
-		Name string `json:"name"`
-		// Timestamp time.Time
-		Status string `json:"status"`
-		// Human-friendly description of the current service status
-		Message string `json:"info"`
-	}
-
 	SystemStatus struct {
 		Status   string          `json:"status"`
 		Services []ServiceStatus `json:"services"`
+	}
+
+	ServiceStatus struct {
+		Name   string `json:"name"`
+		Status string `json:"status"`
+		// Human-friendly description of the current service status
+		Message string `json:"info"`
 	}
 )
 
