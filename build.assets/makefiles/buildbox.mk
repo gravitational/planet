@@ -11,7 +11,7 @@ TARBALL:=$(TARGETDIR)/planet-$(TARGET).$(PLANETVER).tar.gz
 
 all: $(ROOTFS)/bin/bash 
 	@echo -e "\n---> Launching 'buildbox' Docker container to build $(TARGET):\n"
-	docker run -ti --rm=true \
+	docker run -i --rm=true \
 		--volume=$(ASSETS):/assets \
 		--volume=$(ROOTFS):/rootfs \
 		--volume=$(TARGETDIR):/targetdir \
@@ -37,7 +37,9 @@ $(ROOTFS)/bin/bash: clean-rootfs
 	@echo -e "\n---> Creating RootFS for Planet image:\n"
 	@mkdir -p $(ROOTFS)
 # create rootfs based in RAM. you can uncomment the next line to use disk
-	sudo mount -t tmpfs -o size=600m tmpfs $(ROOTFS)
+	if [ $$USER != jenkins ]; then \
+	  sudo mount -t tmpfs -o size=600m tmpfs $(ROOTFS) ;\
+	fi
 # populate Rootfs using docker image 'planet/base'
 	docker create --name=$(CONTAINERNAME) planet/base
 	@echo "Exporting base Docker image into a fresh RootFS into $(ROOTFS)...."
