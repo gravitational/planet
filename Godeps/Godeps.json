@@ -24,6 +24,10 @@
 			"Rev": "6b4e7dc5e3143b85ea77909c72caf89416fc2915"
 		},
 		{
+			"ImportPath": "github.com/armon/circbuf",
+			"Rev": "bbbad097214e2918d8543d5201d12bfd7bca254d"
+		},
+		{
 			"ImportPath": "github.com/armon/go-metrics",
 			"Rev": "06b60999766278efd6d2b5d8418a58c3d5b99e87"
 		},
@@ -86,8 +90,28 @@
 			"Rev": "fa3f63826f7c23912c15263591e65d54d080b458"
 		},
 		{
+			"ImportPath": "github.com/hashicorp/go-syslog",
+			"Rev": "42a2b573b664dbf281bd48c3cc12c086b17a39ba"
+		},
+		{
+			"ImportPath": "github.com/hashicorp/go.net/internal/iana",
+			"Rev": "104dcad90073cd8d1e6828b2af19185b60cf3e29"
+		},
+		{
+			"ImportPath": "github.com/hashicorp/go.net/ipv4",
+			"Rev": "104dcad90073cd8d1e6828b2af19185b60cf3e29"
+		},
+		{
+			"ImportPath": "github.com/hashicorp/go.net/ipv6",
+			"Rev": "104dcad90073cd8d1e6828b2af19185b60cf3e29"
+		},
+		{
 			"ImportPath": "github.com/hashicorp/logutils",
 			"Rev": "0dc08b1671f34c4250ce212759ebd880f743d883"
+		},
+		{
+			"ImportPath": "github.com/hashicorp/mdns",
+			"Rev": "9d85cf22f9f8d53cb5c81c1b2749f438b2ee333f"
 		},
 		{
 			"ImportPath": "github.com/hashicorp/memberlist",
@@ -95,6 +119,11 @@
 		},
 		{
 			"ImportPath": "github.com/hashicorp/serf/client",
+			"Comment": "v0.6.4-176-g11bb88a",
+			"Rev": "11bb88abf7b17f0b794b51416a9107d781e95f35"
+		},
+		{
+			"ImportPath": "github.com/hashicorp/serf/command/agent",
 			"Comment": "v0.6.4-176-g11bb88a",
 			"Rev": "11bb88abf7b17f0b794b51416a9107d781e95f35"
 		},
@@ -113,6 +142,18 @@
 			"Rev": "8c199fb6259ffc1af525cc3ad52ee60ba8359669"
 		},
 		{
+			"ImportPath": "github.com/miekg/dns",
+			"Rev": "d27455715200c7d3e321a1e5cadb27c9ee0b0f02"
+		},
+		{
+			"ImportPath": "github.com/mitchellh/cli",
+			"Rev": "8102d0ed5ea2709ade1243798785888175f6e415"
+		},
+		{
+			"ImportPath": "github.com/mitchellh/mapstructure",
+			"Rev": "2caf8efc93669b6c43e0441cdc6aed17546c96f3"
+		},
+		{
 			"ImportPath": "github.com/opencontainers/runc/libcontainer",
 			"Comment": "v0.0.2",
 			"Rev": "1eeb86fbf2ec75661b9d843fd46679c868bc242d"
@@ -120,6 +161,10 @@
 		{
 			"ImportPath": "github.com/syndtr/gocapability/capability",
 			"Rev": "2c00daeb6c3b45114c80ac44119e7b8801fdd852"
+		},
+		{
+			"ImportPath": "golang.org/x/crypto/ssh/terminal",
+			"Rev": "575fdbe86e5dd89229707ebec0575ce7d088a4a6"
 		},
 		{
 			"ImportPath": "golang.org/x/net/websocket",
