@@ -2,6 +2,7 @@ package main
 
 import (
 	"encoding/json"
+	"errors"
 	"io"
 	"net"
 	"strconv"
@@ -14,6 +15,8 @@ import (
 	"github.com/gravitational/planet/tool/agent/monitoring/check"
 )
 
+var errUnknownQuery = errors.New("unknown query")
+
 type testAgent struct {
 	*serfAgent.Agent
 	config    *config
@@ -21,10 +24,11 @@ type testAgent struct {
 }
 
 type config struct {
-	bindAddr string
-	rpcAddr  string
-	mode     agentMode
-	tags     map[string]string
+	bindAddr     string
+	rpcAddr      string
+	kubeHostPort string
+	mode         agentMode
+	tags         map[string]string
 }
 
 type reporter struct {
@@ -44,7 +48,12 @@ const (
 	cmdStatus queryCommand = "status"
 )
 
-var checkers []check.Checker
+type checker struct {
+	tags    map[string]string
+	checker check.Checker
+}
+
+var checkers []checker
 
 func newAgent(config *config, logOutput io.Writer) (*testAgent, error) {
 	agentConfig := setupAgent(config)
@@ -108,7 +117,7 @@ func (r *testAgent) HandleEvent(event serf.Event) {
 				log.Errorf("failed to handle status query: %v", err)
 			}
 		default:
-			if err := query.Respond([]byte("unknown query")); err != nil {
+			if err := query.Respond([]byte(errUnknownQuery.Error())); err != nil {
 				log.Errorf("failed to respond to query: %v", err)
 			}
 		}
@@ -118,8 +127,14 @@ func (r *testAgent) HandleEvent(event serf.Event) {
 func (r *testAgent) handleStatus(q *serf.Query) error {
 	log.Infof("testAgent:handleStatus for %v", q)
 	var reporter *reporter
-	for _, checker := range checkers {
-		checker.Check(reporter)
+	ctx := &check.Context{
+		Reporter: reporter,
+		Config: &check.Config{
+			KubeHostPort: r.config.kubeHostPort,
+		},
+	}
+	for _, t := range check.Testers {
+		t.Checker.Check(ctx)
 	}
 	payload, err := reporter.encode()
 	if err != nil {
@@ -131,6 +146,14 @@ func (r *testAgent) handleStatus(q *serf.Query) error {
 	return nil
 }
 
+func (r *reporter) Add(name string, payload string) {
+	// TODO
+}
+
+func (r *reporter) encode() ([]byte, error) {
+	return json.Marshal(r.status)
+}
+
 func mustAtoi(value string) int {
 	result, err := strconv.Atoi(value)
 	if err != nil {
@@ -139,10 +162,6 @@ func mustAtoi(value string) int {
 	return result
 }
 
-func (r *reporter) Add(name string, payload []byte) {
-	// TODO
-}
-
-func (r *reporter) encode() ([]byte, error) {
-	return json.Marshal(r.status)
+func AddChecker(c check.Checker, tags map[string]string) {
+	checkers = append(checkers, checker{checker: c, tags: tags})
 }

@@ -25,6 +25,7 @@ func run() error {
 		// FIXME: wrap as HostPort
 		cagentBindAddr = cagent.Flag("bind-addr", "address to bind network listeners to.  To use an IPv6 address, specify [::1] or [::1]:7946.").Default("0.0.0.0:7946").String()
 		cagentRPCAddr  = cagent.Flag("rpc-addr", "address to bind the RPC listener").Default("127.0.0.1:7373").String()
+		cagentKubeAddr = cagent.Flag("kube-addr", "address of the k8s api server").Default("127.0.0.1:8080").String()
 		cagentJoin     = cagent.Flag("join", "address of the agent to join").String()
 		cagentMode     = cagent.Flag("mode", "agent operating mode (master/node)").String()
 
@@ -45,9 +46,10 @@ func run() error {
 	switch cmd {
 	case cagent.FullCommand():
 		conf := &config{
-			bindAddr: *cagentBindAddr,
-			rpcAddr:  *cagentRPCAddr,
-			mode:     agentMode(*cagentMode),
+			bindAddr:     *cagentBindAddr,
+			rpcAddr:      *cagentRPCAddr,
+			kubeHostPort: *cagentKubeAddr,
+			mode:         agentMode(*cagentMode),
 		}
 		err = runAgent(conf, *cagentJoin)
 	case cstatus.FullCommand():
