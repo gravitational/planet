@@ -10,7 +10,8 @@ import (
 	"github.com/gravitational/planet/Godeps/_workspace/src/github.com/gravitational/log"
 	"github.com/gravitational/planet/Godeps/_workspace/src/github.com/gravitational/trace"
 	serfAgent "github.com/gravitational/planet/Godeps/_workspace/src/github.com/hashicorp/serf/command/agent"
-	serf "github.com/gravitational/planet/Godeps/_workspace/src/github.com/hashicorp/serf/serf"
+	"github.com/gravitational/planet/Godeps/_workspace/src/github.com/hashicorp/serf/serf"
+	systemMonitoring "github.com/gravitational/planet/lib/monitoring"
 	"github.com/gravitational/planet/tool/agent/monitoring"
 	"github.com/gravitational/planet/tool/agent/monitoring/health"
 )
@@ -24,6 +25,7 @@ type testAgent struct {
 }
 
 type config struct {
+	name         string
 	bindAddr     string
 	rpcAddr      string
 	kubeHostPort string
@@ -32,7 +34,7 @@ type config struct {
 }
 
 type reporter struct {
-	status *monitoring.Status
+	status *monitoring.NodeStatus
 }
 
 type agentMode string
@@ -47,13 +49,6 @@ type queryCommand string
 const (
 	cmdStatus queryCommand = "status"
 )
-
-type checker struct {
-	tags    map[string]string
-	checker health.Checker
-}
-
-var checkers []checker
 
 func newAgent(config *config, logOutput io.Writer) (*testAgent, error) {
 	agentConfig := setupAgent(config)
@@ -78,7 +73,6 @@ func setupAgent(config *config) *serfAgent.Config {
 	c := serfAgent.DefaultConfig()
 	c.BindAddr = config.bindAddr
 	c.RPCAddr = config.rpcAddr
-	c.Tags["mode"] = string(config.mode)
 	return c
 }
 
@@ -88,8 +82,10 @@ func setupSerf(config *config) (*serf.Config, error) {
 		return nil, err
 	}
 	c := serf.DefaultConfig()
+	c.Init()
 	c.MemberlistConfig.BindAddr = host
 	c.MemberlistConfig.BindPort = mustAtoi(port)
+	c.Tags["mode"] = string(config.mode)
 	return c, nil
 }
 
@@ -126,15 +122,19 @@ func (r *testAgent) HandleEvent(event serf.Event) {
 
 func (r *testAgent) handleStatus(q *serf.Query) error {
 	log.Infof("testAgent:handleStatus for %v", q)
-	var reporter *reporter
+	reporter := &reporter{status: &monitoring.NodeStatus{Name: r.config.name}}
 	ctx := &health.Context{
 		Reporter: reporter,
 		Config: &health.Config{
 			KubeHostPort: r.config.kubeHostPort,
 		},
 	}
+	log.Infof("available checkers: %#v, node tags: %#v", health.Testers, r.SerfConfig().Tags)
 	for _, t := range health.Testers {
-		t.Checker.Check(ctx)
+		if tagsInclude(r.SerfConfig().Tags, t.Tags) {
+			log.Infof("running checker %s", t.Name)
+			t.Checker.Check(ctx)
+		}
 	}
 	payload, err := reporter.encode()
 	if err != nil {
@@ -147,7 +147,11 @@ func (r *testAgent) handleStatus(q *serf.Query) error {
 }
 
 func (r *reporter) Add(name string, payload string) {
-	// TODO
+	r.status.SystemStatus.Services = append(r.status.SystemStatus.Services, systemMonitoring.ServiceStatus{
+		Name:    name,
+		Message: payload,
+		Status:  systemMonitoring.StatusFailed,
+	})
 }
 
 func (r *reporter) encode() ([]byte, error) {
@@ -162,6 +166,12 @@ func mustAtoi(value string) int {
 	return result
 }
 
-func AddChecker(c health.Checker, tags map[string]string) {
-	checkers = append(checkers, checker{checker: c, tags: tags})
+// tagsInclude determines if any items from include are included in source.
+func tagsInclude(source, include map[string]string) bool {
+	for key, value := range include {
+		if sourceValue, ok := source[key]; ok && sourceValue == value {
+			return true
+		}
+	}
+	return false
 }

@@ -27,7 +27,8 @@ func run() error {
 		cagentRPCAddr  = cagent.Flag("rpc-addr", "address to bind the RPC listener").Default("127.0.0.1:7373").String()
 		cagentKubeAddr = cagent.Flag("kube-addr", "address of the k8s api server").Default("127.0.0.1:8080").String()
 		cagentJoin     = cagent.Flag("join", "address of the agent to join").String()
-		cagentMode     = cagent.Flag("mode", "agent operating mode (master/node)").String()
+		cagentMode     = cagent.Flag("mode", "agent operating mode (master/node)").Default("master").String()
+		cagentName     = cagent.Flag("name", "node name").String()
 
 		cstatus     = app.Command("status", "query the state of the running cluster")
 		cstatusAddr = cstatus.Flag("addr", "agent RPC address").Default("127.0.0.1:7373").String()
@@ -45,7 +46,14 @@ func run() error {
 
 	switch cmd {
 	case cagent.FullCommand():
+		if *cagentName == "" {
+			*cagentName, err = os.Hostname()
+			if err != nil {
+				break
+			}
+		}
 		conf := &config{
+			name:         *cagentName,
 			bindAddr:     *cagentBindAddr,
 			rpcAddr:      *cagentRPCAddr,
 			kubeHostPort: *cagentKubeAddr,
