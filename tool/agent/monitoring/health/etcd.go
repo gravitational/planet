@@ -8,7 +8,6 @@ import (
 	"net/url"
 	"time"
 
-	"github.com/gravitational/planet/Godeps/_workspace/src/github.com/gravitational/log"
 	kube "github.com/gravitational/planet/Godeps/_workspace/src/k8s.io/kubernetes/pkg/client/unversioned"
 )
 
@@ -56,7 +55,6 @@ func checkEtcd(client *kube.Client) error {
 		return err
 	}
 
-	log.Infof("etcd: %v (%v)", result, nresult)
 	if result.Health != "true" && nresult.Health != true {
 		return fmt.Errorf("unhealthy: %s", baseURL)
 	}
