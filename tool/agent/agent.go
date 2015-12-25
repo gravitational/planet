@@ -12,7 +12,7 @@ import (
 	serfAgent "github.com/gravitational/planet/Godeps/_workspace/src/github.com/hashicorp/serf/command/agent"
 	serf "github.com/gravitational/planet/Godeps/_workspace/src/github.com/hashicorp/serf/serf"
 	"github.com/gravitational/planet/tool/agent/monitoring"
-	"github.com/gravitational/planet/tool/agent/monitoring/check"
+	"github.com/gravitational/planet/tool/agent/monitoring/health"
 )
 
 var errUnknownQuery = errors.New("unknown query")
@@ -50,7 +50,7 @@ const (
 
 type checker struct {
 	tags    map[string]string
-	checker check.Checker
+	checker health.Checker
 }
 
 var checkers []checker
@@ -127,13 +127,13 @@ func (r *testAgent) HandleEvent(event serf.Event) {
 func (r *testAgent) handleStatus(q *serf.Query) error {
 	log.Infof("testAgent:handleStatus for %v", q)
 	var reporter *reporter
-	ctx := &check.Context{
+	ctx := &health.Context{
 		Reporter: reporter,
-		Config: &check.Config{
+		Config: &health.Config{
 			KubeHostPort: r.config.kubeHostPort,
 		},
 	}
-	for _, t := range check.Testers {
+	for _, t := range health.Testers {
 		t.Checker.Check(ctx)
 	}
 	payload, err := reporter.encode()
@@ -162,6 +162,6 @@ func mustAtoi(value string) int {
 	return result
 }
 
-func AddChecker(c check.Checker, tags map[string]string) {
+func AddChecker(c health.Checker, tags map[string]string) {
 	checkers = append(checkers, checker{checker: c, tags: tags})
 }

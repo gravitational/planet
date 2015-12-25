@@ -1,4 +1,4 @@
-package check
+package health
 
 import (
 	"encoding/json"
@@ -16,6 +16,10 @@ const defaultDialTimeout = 30 * time.Second
 
 var etcdTags = map[string]string{
 	"mode": "node",
+}
+
+func init() {
+	AddChecker(KubeChecker(checkEtcd), "etcd", etcdTags)
 }
 
 func checkEtcd(client *kube.Client) error {
@@ -56,5 +60,3 @@ func checkEtcd(client *kube.Client) error {
 	}
 	return nil
 }
-
-// AddChecker(KubeChecker(checkEtcd), "etcd", etcdTags)

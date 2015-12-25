@@ -1,3 +1,3 @@
-package check
+package health
 
 // TODO: dns checkers.

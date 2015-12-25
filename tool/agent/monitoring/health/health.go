@@ -1,5 +1,5 @@
 // package check abstracts a process of running a health check.
-package check
+package health
 
 import (
 	"fmt"
@@ -41,18 +41,19 @@ type Reporter interface {
 
 // Tester describes an instance of a health checker.
 type Tester struct {
+	Name    string
 	Tags    map[string]string
 	Checker Checker
 }
 
 var Testers []Tester
 
-func AddChecker(checker Checker, tags map[string]string) {
-	Testers = append(Testers, Tester{Checker: checker, Tags: tags})
+func AddChecker(checker Checker, name string, tags map[string]string) {
+	Testers = append(Testers, Tester{Checker: checker, Name: name, Tags: tags})
 }
 
 // KubeChecker is a Checker that needs to communicate with a kube API server
-type KubeChecker func(client *kube.Client) *Error
+type KubeChecker func(client *kube.Client) error
 
 func connectToKube(host string) (*kube.Client, error) {
 	var baseURL *url.URL
@@ -86,8 +87,8 @@ func (r KubeChecker) Check(ctx *Context) {
 		ctx.Reporter.Add("kube-checker", err.Error())
 		return
 	}
-	errCheck := r(client)
-	if errCheck != nil {
-		ctx.Reporter.Add(errCheck.Name, errCheck.Err.Error())
+	err = r(client)
+	if err != nil {
+		ctx.Reporter.Add("kube-checker", err.Error())
 	}
 }
