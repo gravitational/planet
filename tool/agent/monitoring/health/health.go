@@ -39,16 +39,18 @@ type Reporter interface {
 	Add(name string, payload string)
 }
 
+type Tags map[string][]string
+
 // Tester describes an instance of a health checker.
 type Tester struct {
 	Name    string
-	Tags    map[string]string
+	Tags    Tags
 	Checker Checker
 }
 
 var Testers []Tester
 
-func AddChecker(checker Checker, name string, tags map[string]string) {
+func AddChecker(checker Checker, name string, tags Tags) {
 	Testers = append(Testers, Tester{Checker: checker, Name: name, Tags: tags})
 }
 

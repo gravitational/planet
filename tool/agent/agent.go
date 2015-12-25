@@ -167,9 +167,19 @@ func mustAtoi(value string) int {
 }
 
 // tagsInclude determines if any items from include are included in source.
-func tagsInclude(source, include map[string]string) bool {
-	for key, value := range include {
-		if sourceValue, ok := source[key]; ok && sourceValue == value {
+func tagsInclude(source map[string]string, include health.Tags) bool {
+	for key, values := range include {
+		if sourceValue, ok := source[key]; ok && inSlice(sourceValue, values) {
+			return true
+		}
+	}
+	return false
+}
+
+// inSlice determines if value is in slice.
+func inSlice(value string, slice []string) bool {
+	for _, v := range slice {
+		if v == value {
 			return true
 		}
 	}

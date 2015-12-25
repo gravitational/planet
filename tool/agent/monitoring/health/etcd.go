@@ -8,14 +8,15 @@ import (
 	"net/url"
 	"time"
 
+	"github.com/gravitational/planet/Godeps/_workspace/src/github.com/gravitational/log"
 	kube "github.com/gravitational/planet/Godeps/_workspace/src/k8s.io/kubernetes/pkg/client/unversioned"
 )
 
 // defaultDialTimeout is the maximum amount of time a dial will wait for a connection to setup.
 const defaultDialTimeout = 30 * time.Second
 
-var etcdTags = map[string]string{
-	"mode": "node",
+var etcdTags = Tags{
+	"mode": {"node"},
 }
 
 func init() {
@@ -55,7 +56,8 @@ func checkEtcd(client *kube.Client) error {
 		return err
 	}
 
-	if result.Health != "true" || nresult.Health != true {
+	log.Infof("etcd: %v (%v)", result, nresult)
+	if result.Health != "true" && nresult.Health != true {
 		return fmt.Errorf("unhealthy: %s", baseURL)
 	}
 	return nil

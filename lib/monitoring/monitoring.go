@@ -13,7 +13,7 @@ type (
 
 	SystemStatus struct {
 		Status   string          `json:"status"`
-		Services []ServiceStatus `json:"services"`
+		Services []ServiceStatus `json:"services,omitempty"`
 	}
 
 	ServiceStatus struct {

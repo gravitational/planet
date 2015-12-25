@@ -55,7 +55,7 @@ func newQuery(cmd queryCommand) *query {
 	responsec := make(chan serf.NodeResponse, 1)
 	params := &serf.QueryParam{
 		Name:       string(cmd),
-		Timeout:    200 * time.Millisecond,
+		Timeout:    5 * time.Second,
 		RequestAck: true,
 		AckCh:      ackc,
 		RespCh:     responsec,

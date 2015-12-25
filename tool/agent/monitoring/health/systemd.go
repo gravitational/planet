@@ -6,12 +6,11 @@ import (
 	"github.com/gravitational/planet/lib/monitoring"
 )
 
-// TODO: systemd/monit checkers.
+// systemChecker is a health checker for services managed by systemd/monit.
 type systemChecker struct{}
 
-// TODO: dns checkers.
-var systemTags = map[string]string{
-	"mode": "master",
+var systemTags = Tags{
+	"mode": {"master", "node"},
 }
 
 func init() {
