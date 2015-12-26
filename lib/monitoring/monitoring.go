@@ -12,29 +12,33 @@ type (
 	}
 
 	SystemStatus struct {
-		Status   string          `json:"status"`
-		Services []ServiceStatus `json:"services,omitempty"`
+		Status   SystemStatusType `json:"status"`
+		Services []ServiceStatus  `json:"services,omitempty"`
 	}
 
 	ServiceStatus struct {
-		Name   string `json:"name"`
-		Status string `json:"status"`
+		Name   string     `json:"name"`
+		Status StatusType `json:"status"`
 		// Human-friendly description of the current service status
 		Message string `json:"info"`
 	}
 )
 
-const (
-	StatusRunning = "running"
-	StatusFailed  = "failed"
-)
+type StatusType string
 
 const (
-	SystemStatusRunning  = "running"
-	SystemStatusDegraded = "degraded"
-	SystemStatusLoading  = "loading"
-	SystemStatusStopped  = "stopped"
-	SystemStatusUnknown  = ""
+	StatusRunning StatusType = "running"
+	StatusFailed             = "failed"
+)
+
+type SystemStatusType string
+
+const (
+	SystemStatusRunning  SystemStatusType = "running"
+	SystemStatusDegraded                  = "degraded"
+	SystemStatusLoading                   = "loading"
+	SystemStatusStopped                   = "stopped"
+	SystemStatusUnknown                   = ""
 )
 
 var ErrMonitorNotReady = errors.New("monitor service not ready")
@@ -58,12 +62,12 @@ func Status() (*SystemStatus, error) {
 	conditions := append([]ServiceStatus{}, systemdConditions...)
 	conditions = append(conditions, monitConditions...)
 
-	if len(conditions) > 0 && systemStatus == SystemStatusRunning {
+	if len(conditions) > 0 && SystemStatusType(systemStatus) == SystemStatusRunning {
 		systemStatus = SystemStatusDegraded
 	}
 
 	return &SystemStatus{
-		Status:   systemStatus,
+		Status:   SystemStatusType(systemStatus),
 		Services: conditions,
 	}, nil
 }

@@ -65,13 +65,13 @@ func (r systemd) Status() ([]ServiceStatus, error) {
 	return conditions, nil
 }
 
-func isSystemRunning() (string, error) {
+func isSystemRunning() (SystemStatusType, error) {
 	output, err := exec.Command(systemStatusCmd[0], systemStatusCmd[1:]...).CombinedOutput()
 	if err != nil && !isExitError(err) {
 		return SystemStatusUnknown, trace.Wrap(err)
 	}
 
-	var status string
+	var status SystemStatusType
 	switch string(bytes.TrimSpace(output)) {
 	case "initializing", "starting":
 		status = SystemStatusLoading

@@ -17,6 +17,11 @@ type Checker interface {
 	Check(Reporter, *Config)
 }
 
+// Reporter defines an obligation to report errors with a specified name.
+type Reporter interface {
+	Add(name string, err error)
+}
+
 type checker interface {
 	// Check runs a health check and records any errors into the specified reporter.
 	check(reporter, *Config)
@@ -25,11 +30,6 @@ type checker interface {
 // reporter defines an obligation to report errors.
 type reporter interface {
 	add(err error)
-}
-
-// Reporter defines an obligation to report errors with a specified name.
-type Reporter interface {
-	Add(name string, err error)
 }
 
 type Tags map[string][]string
@@ -41,7 +41,7 @@ type Tester struct {
 	Name string
 }
 
-// List of registered testers.
+// List of registered checkers.
 var Testers []Tester
 
 // AddChecker registers a new checker specified by name and a set of tags.
@@ -54,10 +54,7 @@ func AddChecker(checker checker, name string, tags Tags) {
 	Testers = append(Testers, Tester{checker: checker, Name: name, Tags: tags})
 }
 
-// delegatingReporter is a bridge between internal reporter and exported Reporter
-// implementations.
-// It implements reporter and delegates to the given Reporter using the specified
-// tester.
+// delegatingReporter binds a tester to an external reporter.
 type delegatingReporter struct {
 	Reporter
 	tester *Tester

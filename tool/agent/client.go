@@ -1,25 +1,20 @@
 package main
 
 import (
+	"encoding/json"
+	"sort"
 	"time"
 
 	"github.com/gravitational/planet/Godeps/_workspace/src/github.com/gravitational/log"
 	"github.com/gravitational/planet/Godeps/_workspace/src/github.com/gravitational/trace"
 	serf "github.com/gravitational/planet/Godeps/_workspace/src/github.com/hashicorp/serf/client"
+	systemMonitoring "github.com/gravitational/planet/lib/monitoring"
 	"github.com/gravitational/planet/tool/agent/monitoring"
 )
 
 type client struct {
 	*serf.RPCClient
 	node string
-}
-
-type query struct {
-	ackc      chan string
-	responsec chan serf.NodeResponse
-	params    *serf.QueryParam
-	acks      map[string]struct{}
-	response  map[string][]byte
 }
 
 func newClient(node, rpcAddr string) (*client, error) {
@@ -34,20 +29,58 @@ func newClient(node, rpcAddr string) (*client, error) {
 }
 
 func (r *client) status() (*monitoring.Status, error) {
-	// members, err := r.Members()
-	// if err != nil {
-	// 	return nil, trace.Wrap(err)
-	// }
-	q := newQuery(cmdStatus)
-	if err := r.Query(q.params); err != nil {
+	memberNodes, err := r.memberNames()
+	if err != nil {
 		return nil, trace.Wrap(err)
 	}
-	if err := q.run(); err != nil {
+	q := newQuery(cmdStatus)
+	if err = r.Query(q.params); err != nil {
+		return nil, trace.Wrap(err)
+	}
+	if err = q.run(); err != nil {
 		return nil, trace.Wrap(err)
 	}
 	var status monitoring.Status
-	// TODO: interpret query results as monitoring.Status
+	var healthyNodes []string
+	var healthy bool = true
+	for node, response := range q.responses {
+		var nodeStatus monitoring.NodeStatus
+		if err = json.Unmarshal(response, &nodeStatus); err != nil {
+			return nil, trace.Wrap(err, "failed to unmarshal query result")
+		}
+		status.Nodes = append(status.Nodes, nodeStatus)
+		if nodeStatus.SystemStatus.Status == systemMonitoring.SystemStatusRunning {
+			healthyNodes = append(healthyNodes, node)
+		} else {
+			healthy = false
+		}
+	}
+	if !healthy || !slicesEqual(healthyNodes, memberNodes) {
+		status.Status = monitoring.StatusDegraded
+	} else {
+		status.Status = monitoring.StatusRunning
+	}
 	return &status, nil
+}
+
+func (r *client) memberNames() ([]string, error) {
+	members, err := r.Members()
+	if err != nil {
+		return nil, trace.Wrap(err)
+	}
+	var nodes []string
+	for _, member := range members {
+		nodes = append(nodes, member.Name)
+	}
+	return nodes, nil
+}
+
+type query struct {
+	ackc      chan string
+	responsec chan serf.NodeResponse
+	params    *serf.QueryParam
+	acks      map[string]struct{}
+	responses map[string][]byte
 }
 
 func newQuery(cmd queryCommand) *query {
@@ -65,7 +98,7 @@ func newQuery(cmd queryCommand) *query {
 		responsec: responsec,
 		params:    params,
 		acks:      make(map[string]struct{}),
-		response:  make(map[string][]byte),
+		responses: make(map[string][]byte),
 	}
 }
 
@@ -84,11 +117,27 @@ func (r *query) run() error {
 			if !ok {
 				r.responsec = nil
 			} else {
-				r.response[response.From] = response.Payload
+				r.responses[response.From] = response.Payload
 			}
 		}
 		if r.ackc == nil && r.responsec == nil {
 			return nil
 		}
 	}
+}
+
+// slicesEqual returns true if a equals b.
+// Side-effect: the slice arguments are sorted in-place.
+func slicesEqual(a, b []string) bool {
+	if len(a) != len(b) {
+		return false
+	}
+	sort.Sort(sort.StringSlice(a))
+	sort.Sort(sort.StringSlice(b))
+	for i, _ := range a {
+		if a[i] != b[i] {
+			return false
+		}
+	}
+	return true
 }

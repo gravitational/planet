@@ -34,7 +34,7 @@ type config struct {
 }
 
 type reporter struct {
-	status *monitoring.NodeStatus
+	status monitoring.NodeStatus
 }
 
 type agentMode string
@@ -121,7 +121,7 @@ func (r *testAgent) HandleEvent(event serf.Event) {
 }
 
 func (r *testAgent) handleStatus(q *serf.Query) error {
-	reporter := &reporter{status: &monitoring.NodeStatus{Name: r.config.name}}
+	reporter := &reporter{monitoring.NodeStatus{Name: r.config.name}}
 	config := &health.Config{
 		KubeHostPort: r.config.kubeHostPort,
 	}
@@ -151,6 +151,12 @@ func (r *reporter) Add(name string, err error) {
 }
 
 func (r *reporter) encode() ([]byte, error) {
+	if len(r.status.SystemStatus.Services) > 0 {
+		r.status.SystemStatus.Status = systemMonitoring.SystemStatusDegraded
+	} else {
+		// FIXME: refine the status
+		r.status.SystemStatus.Status = systemMonitoring.SystemStatusRunning
+	}
 	return json.Marshal(r.status)
 }
 
