@@ -17,47 +17,59 @@ type Checker interface {
 	Check(Reporter, *Config)
 }
 
-type Reporter interface {
-	// Add adds a new error.
-	Add(err error)
+type checker interface {
+	// Check runs a health check and records any errors into the specified reporter.
+	check(reporter, *Config)
 }
 
-type NamedReporter interface {
-	// AddNamed adds a new problem payload with the specified name.
-	AddNamed(name string, err error)
+// reporter defines an obligation to report errors.
+type reporter interface {
+	add(err error)
+}
+
+// Reporter defines an obligation to report errors with a specified name.
+type Reporter interface {
+	Add(name string, err error)
 }
 
 type Tags map[string][]string
 
 // Tester describes an instance of a health checker.
 type Tester struct {
-	Checker
+	checker
 	Tags Tags
 	Name string
 }
 
+// List of registered testers.
 var Testers []Tester
 
-func AddChecker(checker Checker, name string, tags Tags) {
-	Testers = append(Testers, Tester{Checker: checker, Name: name, Tags: tags})
+// AddChecker registers a new checker specified by name and a set of tags.
+//
+// Tags can be used to annotate a checker with a set of labels.
+// For instance, checkers can easily be bound to a certain agent (and thus,
+// a certain node) by starting an agent with the same set of tags as those
+// specified by the checker and the checker will only run on that agent.
+func AddChecker(checker checker, name string, tags Tags) {
+	Testers = append(Testers, Tester{checker: checker, Name: name, Tags: tags})
 }
 
+// delegatingReporter is a bridge between internal reporter and exported Reporter
+// implementations.
+// It implements reporter and delegates to the given Reporter using the specified
+// tester.
 type delegatingReporter struct {
-	NamedReporter
+	Reporter
 	tester *Tester
 }
 
 func (r *Tester) Check(reporter Reporter, config *Config) {
-	if nreporter, ok := reporter.(NamedReporter); ok {
-		rep := &delegatingReporter{NamedReporter: nreporter, tester: r}
-		r.Checker.Check(rep, config)
-	} else {
-		r.Checker.Check(reporter, config)
-	}
+	rep := &delegatingReporter{Reporter: reporter, tester: r}
+	r.check(rep, config)
 }
 
-func (r *delegatingReporter) Add(err error) {
-	r.NamedReporter.AddNamed(r.tester.Name, err)
+func (r *delegatingReporter) add(err error) {
+	r.Reporter.Add(r.tester.Name, err)
 }
 
 // KubeChecker is a Checker that needs to communicate with a kube API server
@@ -88,14 +100,14 @@ func connectToKube(host string) (*kube.Client, error) {
 	return client, nil
 }
 
-func (r KubeChecker) Check(reporter Reporter, config *Config) {
+func (r KubeChecker) check(reporter reporter, config *Config) {
 	client, err := connectToKube(config.KubeHostPort)
 	if err != nil {
-		reporter.Add(err)
+		reporter.add(err)
 		return
 	}
 	err = r(client)
 	if err != nil {
-		reporter.Add(err)
+		reporter.add(err)
 	}
 }

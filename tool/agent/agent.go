@@ -121,7 +121,6 @@ func (r *testAgent) HandleEvent(event serf.Event) {
 }
 
 func (r *testAgent) handleStatus(q *serf.Query) error {
-	log.Infof("testAgent:handleStatus for %v", q)
 	reporter := &reporter{status: &monitoring.NodeStatus{Name: r.config.name}}
 	config := &health.Config{
 		KubeHostPort: r.config.kubeHostPort,
@@ -143,11 +142,7 @@ func (r *testAgent) handleStatus(q *serf.Query) error {
 	return nil
 }
 
-func (r *reporter) Add(err error) {
-	// unused
-}
-
-func (r *reporter) AddNamed(name string, err error) {
+func (r *reporter) Add(name string, err error) {
 	r.status.SystemStatus.Services = append(r.status.SystemStatus.Services, systemMonitoring.ServiceStatus{
 		Name:    name,
 		Message: err.Error(),

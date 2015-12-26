@@ -17,14 +17,14 @@ func init() {
 	AddChecker(&systemChecker{}, "system", csTags)
 }
 
-func (r *systemChecker) Check(reporter Reporter, config *Config) {
+func (r *systemChecker) check(reporter reporter, config *Config) {
 	status, err := monitoring.Status()
 	if err != nil {
-		reporter.Add(fmt.Errorf("failed to check system health: %v", err))
+		reporter.add(fmt.Errorf("failed to check system health: %v", err))
 		return
 	}
 	for _, service := range status.Services {
-		reporter.Add(fmt.Errorf("service `%s` unhealthy: %s (%s)",
+		reporter.add(fmt.Errorf("service `%s` unhealthy: %s (%s)",
 			service.Name, service.Status, service.Message))
 	}
 }
