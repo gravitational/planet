@@ -123,7 +123,7 @@ func (r *testAgent) handleStatus(q *serf.Query) error {
 	config := &monitoring.Config{
 		KubeHostPort: r.config.kubeHostPort,
 	}
-	log.Infof("available checkers: %#v, node tags: %#v", monitoring.Testers, r.SerfConfig().Tags)
+	log.Infof("available checkers: %v, node tags: %#v", monitoring.Testers, r.SerfConfig().Tags)
 	for _, t := range monitoring.Testers {
 		if tagsInclude(r.SerfConfig().Tags, t.Tags) {
 			log.Infof("running checker %s", t.Name)
@@ -141,11 +141,15 @@ func (r *testAgent) handleStatus(q *serf.Query) error {
 }
 
 func (r *reporter) Add(name string, err error) {
-	r.status.Events = append(r.status.Events, monitoring.ServiceStatus{
+	r.status.Events = append(r.status.Events, monitoring.Event{
 		Name:    name,
 		Message: err.Error(),
-		Status:  monitoring.ServiceStatusFailed,
+		Status:  monitoring.StatusFailed,
 	})
+}
+
+func (r *reporter) AddEvent(event monitoring.Event) {
+	r.status.Events = append(r.status.Events, event)
 }
 
 func (r *reporter) encode() ([]byte, error) {

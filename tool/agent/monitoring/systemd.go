@@ -50,8 +50,8 @@ func systemdStatus() ([]serviceStatus, error) {
 		if unit.ActiveState == activeStateFailed || unit.LoadState == loadStateError {
 			conditions = append(conditions, serviceStatus{
 				name:   unit.Name,
-				status: ServiceStatusFailed,
-				err:    fmt.Errorf("systemd: %s", unit.SubState),
+				status: StatusFailed,
+				err:    fmt.Errorf("%s", unit.SubState),
 			})
 		}
 	}
@@ -59,24 +59,24 @@ func systemdStatus() ([]serviceStatus, error) {
 	return conditions, nil
 }
 
-func isSystemRunning() (SystemStatusType, error) {
+func isSystemRunning() (systemStatusType, error) {
 	output, err := exec.Command(systemStatusCmd[0], systemStatusCmd[1:]...).CombinedOutput()
 	if err != nil && !isExitError(err) {
-		return SystemStatusUnknown, trace.Wrap(err)
+		return systemStatusUnknown, trace.Wrap(err)
 	}
 
-	var status SystemStatusType
+	var status systemStatusType
 	switch string(bytes.TrimSpace(output)) {
 	case "initializing", "starting":
-		status = SystemStatusLoading
+		status = systemStatusLoading
 	case "stopping", "offline":
-		status = SystemStatusStopped
+		status = systemStatusStopped
 	case "degraded":
-		status = SystemStatusDegraded
+		status = systemStatusDegraded
 	case "running":
-		status = SystemStatusRunning
+		status = systemStatusRunning
 	default:
-		status = SystemStatusUnknown
+		status = systemStatusUnknown
 	}
 	return status, nil
 }

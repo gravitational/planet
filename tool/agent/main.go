@@ -92,11 +92,7 @@ func runAgent(conf *config, join string) error {
 }
 
 func status(rpcAddr string) error {
-	node, err := os.Hostname()
-	if err != nil {
-		return trace.Wrap(err)
-	}
-	client, err := newClient(node, rpcAddr)
+	client, err := newClient(rpcAddr)
 	if err != nil {
 		return trace.Wrap(err)
 	}
@@ -104,7 +100,7 @@ func status(rpcAddr string) error {
 	if err != nil {
 		return trace.Wrap(err)
 	}
-	log.Infof("%v", clusterStatus)
+	log.Infof("%#v", clusterStatus)
 	return nil
 }
 

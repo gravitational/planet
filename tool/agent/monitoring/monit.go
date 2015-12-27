@@ -96,7 +96,7 @@ func monitStatus() ([]serviceStatus, error) {
 
 		conditions = append(conditions, serviceStatus{
 			name:   svc.Name,
-			status: ServiceStatusFailed,
+			status: StatusFailed,
 			err:    fmt.Errorf(svc.ErrorMask.String()),
 		})
 	}

@@ -13,12 +13,22 @@ type serviceStatus struct {
 	err    error
 }
 
+type systemStatusType string
+
+const (
+	systemStatusRunning  systemStatusType = "running"
+	systemStatusDegraded                  = "degraded"
+	systemStatusLoading                   = "loading"
+	systemStatusStopped                   = "stopped"
+	systemStatusUnknown                   = ""
+)
+
 var systemTags = Tags{
 	"mode": {"master", "node"},
 }
 
 func init() {
-	AddChecker(&systemChecker{}, "system", csTags)
+	addChecker(&systemChecker{}, "system", systemTags)
 }
 
 func (r *systemChecker) check(reporter reporter, config *Config) {
@@ -40,16 +50,20 @@ func (r *systemChecker) check(reporter reporter, config *Config) {
 	conditions := append([]serviceStatus{}, systemdConditions...)
 	conditions = append(conditions, monitConditions...)
 
-	if len(conditions) > 0 && SystemStatusType(systemStatus) == SystemStatusRunning {
-		systemStatus = SystemStatusDegraded
+	if len(conditions) > 0 && systemStatusType(systemStatus) == systemStatusRunning {
+		systemStatus = systemStatusDegraded
 	}
 
-	if systemStatus != SystemStatusRunning {
-		reporter.add(fmt.Errorf("system status: %v", systemStatus))
-	}
+	// FIXME: do away with system state
+	// if systemStatus != systemStatusRunning {
+	// 	reporter.add(fmt.Errorf("system status: %v", systemStatus))
+	// }
 
 	for _, condition := range conditions {
-		reporter.add(fmt.Errorf("service `%s` status: %s (%v)",
-			condition.name, condition.status, condition.err))
+		reporter.addEvent(Event{
+			Service: condition.name,
+			Status:  condition.status,
+			Message: condition.err.Error(),
+		})
 	}
 }

@@ -17,7 +17,7 @@ var csTags = Tags{
 type componentStatusChecker struct{}
 
 func init() {
-	AddChecker(&componentStatusChecker{}, "cs", csTags)
+	addChecker(&componentStatusChecker{}, "cs", csTags)
 }
 
 func (r *componentStatusChecker) check(reporter reporter, config *Config) {
@@ -35,8 +35,11 @@ func (r *componentStatusChecker) check(reporter reporter, config *Config) {
 	for _, item := range statuses.Items {
 		for _, condition := range item.Conditions {
 			if condition.Type != api.ComponentHealthy || condition.Status != api.ConditionTrue {
-				reporter.add(fmt.Errorf("component unhealthy (%s): %s (%s)",
-					condition.Type, condition.Message, condition.Error))
+				reporter.addEvent(Event{
+					Service: item.Name,
+					Status:  StatusFailed,
+					Message: fmt.Sprintf("%s (%s)", condition.Message, condition.Error),
+				})
 			}
 		}
 	}

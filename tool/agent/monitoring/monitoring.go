@@ -20,6 +20,7 @@ type Checker interface {
 // Reporter defines an obligation to report errors with a specified name.
 type Reporter interface {
 	Add(name string, err error)
+	AddEvent(event Event)
 }
 
 type checker interface {
@@ -29,7 +30,8 @@ type checker interface {
 
 // reporter defines an obligation to report errors.
 type reporter interface {
-	add(err error)
+	add(error)
+	addEvent(Event)
 }
 
 type Tags map[string][]string
@@ -50,7 +52,7 @@ var Testers []Tester
 // For instance, checkers can easily be bound to a certain agent (and thus,
 // a certain node) by starting an agent with the same set of tags as those
 // specified by the checker and the checker will only run on that agent.
-func AddChecker(checker checker, name string, tags Tags) {
+func addChecker(checker checker, name string, tags Tags) {
 	Testers = append(Testers, Tester{checker: checker, Name: name, Tags: tags})
 }
 
@@ -67,6 +69,11 @@ func (r *Tester) Check(reporter Reporter, config *Config) {
 
 func (r *delegatingReporter) add(err error) {
 	r.Reporter.Add(r.tester.Name, err)
+}
+
+func (r *delegatingReporter) addEvent(event Event) {
+	event.Name = r.tester.Name
+	r.Reporter.AddEvent(event)
 }
 
 // KubeChecker is a Checker that needs to communicate with a kube API server

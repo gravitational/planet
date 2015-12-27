@@ -13,17 +13,15 @@ import (
 
 type client struct {
 	*serf.RPCClient
-	node string
 }
 
-func newClient(node, rpcAddr string) (*client, error) {
+func newClient(rpcAddr string) (*client, error) {
 	serfClient, err := serf.NewRPCClient(rpcAddr)
 	if err != nil {
 		return nil, err
 	}
 	return &client{
 		RPCClient: serfClient,
-		node:      node,
 	}, nil
 }
 
@@ -32,8 +30,8 @@ func (r *client) status() (*monitoring.Status, error) {
 	if err != nil {
 		return nil, trace.Wrap(err)
 	}
-	q := newQuery(cmdStatus)
-	if err = r.Query(q.params); err != nil {
+	q, err := newQuery(cmdStatus, r, memberNodes)
+	if err != nil {
 		return nil, trace.Wrap(err)
 	}
 	if err = q.run(); err != nil {
@@ -51,10 +49,10 @@ func (r *client) status() (*monitoring.Status, error) {
 			healthyNodes = append(healthyNodes, node)
 		}
 	}
-	if !slicesEqual(healthyNodes, memberNodes) {
-		status.Status = monitoring.StatusDegraded
+	if !sliceEquals(healthyNodes, memberNodes) {
+		status.SystemStatus = monitoring.SystemStatusDegraded
 	} else {
-		status.Status = monitoring.StatusRunning
+		status.SystemStatus = monitoring.SystemStatusRunning
 	}
 	return &status, nil
 }
@@ -72,59 +70,53 @@ func (r *client) memberNames() ([]string, error) {
 }
 
 type query struct {
-	ackc      chan string
 	responsec chan serf.NodeResponse
-	params    *serf.QueryParam
-	acks      map[string]struct{}
 	responses map[string][]byte
+	members   []string
 }
 
-func newQuery(cmd queryCommand) *query {
-	ackc := make(chan string, 1)
+func newQuery(cmd queryCommand, client *client, members []string) (result *query, err error) {
 	responsec := make(chan serf.NodeResponse, 1)
 	params := &serf.QueryParam{
-		Name:       string(cmd),
-		Timeout:    1 * time.Second,
-		RequestAck: true,
-		AckCh:      ackc,
-		RespCh:     responsec,
+		Name:    string(cmd),
+		Timeout: 1 * time.Second,
+		RespCh:  responsec,
 	}
-	return &query{
-		ackc:      ackc,
+	result = &query{
 		responsec: responsec,
-		params:    params,
-		acks:      make(map[string]struct{}),
 		responses: make(map[string][]byte),
+		members:   members,
 	}
+	err = client.Query(params)
+	if err != nil {
+		return nil, trace.Wrap(err)
+	}
+	return result, nil
 }
 
 func (r *query) run() error {
-	for {
+	var responsesFrom []string
+	for r.responsec != nil {
 		select {
-		case ack, ok := <-r.ackc:
-			log.Infof("ack: %s", ack)
-			if !ok {
-				r.ackc = nil
-			} else {
-				r.acks[ack] = struct{}{}
-			}
 		case response, ok := <-r.responsec:
-			log.Infof("response: %s (%v -> %T)", response, ok, response)
+			log.Infof("response from %s: %s", response.From, response)
 			if !ok {
 				r.responsec = nil
 			} else {
 				r.responses[response.From] = response.Payload
+				responsesFrom = append(responsesFrom, response.From)
+				if len(responsesFrom) == len(r.members) && sliceEquals(responsesFrom, r.members) {
+					r.responsec = nil
+				}
 			}
 		}
-		if r.ackc == nil && r.responsec == nil {
-			return nil
-		}
 	}
+	return nil
 }
 
-// slicesEqual returns true if a equals b.
+// sliceEquals returns true if a equals b.
 // Side-effect: the slice arguments are sorted in-place.
-func slicesEqual(a, b []string) bool {
+func sliceEquals(a, b []string) bool {
 	if len(a) != len(b) {
 		return false
 	}

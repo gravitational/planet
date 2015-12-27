@@ -19,7 +19,7 @@ var etcdTags = Tags{
 }
 
 func init() {
-	AddChecker(KubeChecker(checkEtcd), "etcd", etcdTags)
+	addChecker(KubeChecker(checkEtcd), "etcd", etcdTags)
 }
 
 func checkEtcd(client *kube.Client) error {
