@@ -11,9 +11,7 @@ import (
 	"github.com/gravitational/planet/Godeps/_workspace/src/github.com/gravitational/trace"
 	serfAgent "github.com/gravitational/planet/Godeps/_workspace/src/github.com/hashicorp/serf/command/agent"
 	"github.com/gravitational/planet/Godeps/_workspace/src/github.com/hashicorp/serf/serf"
-	systemMonitoring "github.com/gravitational/planet/lib/monitoring"
 	"github.com/gravitational/planet/tool/agent/monitoring"
-	"github.com/gravitational/planet/tool/agent/monitoring/health"
 )
 
 var errUnknownQuery = errors.New("unknown query")
@@ -122,11 +120,11 @@ func (r *testAgent) HandleEvent(event serf.Event) {
 
 func (r *testAgent) handleStatus(q *serf.Query) error {
 	reporter := &reporter{monitoring.NodeStatus{Name: r.config.name}}
-	config := &health.Config{
+	config := &monitoring.Config{
 		KubeHostPort: r.config.kubeHostPort,
 	}
-	log.Infof("available checkers: %#v, node tags: %#v", health.Testers, r.SerfConfig().Tags)
-	for _, t := range health.Testers {
+	log.Infof("available checkers: %#v, node tags: %#v", monitoring.Testers, r.SerfConfig().Tags)
+	for _, t := range monitoring.Testers {
 		if tagsInclude(r.SerfConfig().Tags, t.Tags) {
 			log.Infof("running checker %s", t.Name)
 			t.Check(reporter, config)
@@ -143,20 +141,14 @@ func (r *testAgent) handleStatus(q *serf.Query) error {
 }
 
 func (r *reporter) Add(name string, err error) {
-	r.status.SystemStatus.Services = append(r.status.SystemStatus.Services, systemMonitoring.ServiceStatus{
+	r.status.Events = append(r.status.Events, monitoring.ServiceStatus{
 		Name:    name,
 		Message: err.Error(),
-		Status:  systemMonitoring.StatusFailed,
+		Status:  monitoring.ServiceStatusFailed,
 	})
 }
 
 func (r *reporter) encode() ([]byte, error) {
-	if len(r.status.SystemStatus.Services) > 0 {
-		r.status.SystemStatus.Status = systemMonitoring.SystemStatusDegraded
-	} else {
-		// FIXME: refine the status
-		r.status.SystemStatus.Status = systemMonitoring.SystemStatusRunning
-	}
 	return json.Marshal(r.status)
 }
 
@@ -169,7 +161,7 @@ func mustAtoi(value string) int {
 }
 
 // tagsInclude determines if any items from include are included in source.
-func tagsInclude(source map[string]string, include health.Tags) bool {
+func tagsInclude(source map[string]string, include monitoring.Tags) bool {
 	for key, values := range include {
 		if sourceValue, ok := source[key]; ok && inSlice(sourceValue, values) {
 			return true

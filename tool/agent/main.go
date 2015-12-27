@@ -3,6 +3,8 @@ package main
 import (
 	stdlog "log"
 	"os"
+	"os/signal"
+	"syscall"
 
 	"github.com/gravitational/planet/Godeps/_workspace/src/github.com/gravitational/log"
 	"github.com/gravitational/planet/Godeps/_workspace/src/gopkg.in/alecthomas/kingpin.v2"
@@ -86,10 +88,7 @@ func runAgent(conf *config, join string) error {
 		noReplay := false
 		agent.Join([]string{join}, noReplay)
 	}
-	select {
-	case <-agent.ShutdownCh():
-	}
-	return nil
+	return handleSignals(agent)
 }
 
 func status(rpcAddr string) error {
@@ -107,4 +106,17 @@ func status(rpcAddr string) error {
 	}
 	log.Infof("%v", clusterStatus)
 	return nil
+}
+
+func handleSignals(agent *testAgent) error {
+	signalc := make(chan os.Signal, 2)
+	signal.Notify(signalc, os.Interrupt, syscall.SIGTERM)
+
+	select {
+	case <-signalc:
+		agent.Leave()
+		return agent.Shutdown()
+	case <-agent.ShutdownCh():
+		return nil
+	}
 }

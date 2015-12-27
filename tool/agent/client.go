@@ -8,7 +8,6 @@ import (
 	"github.com/gravitational/planet/Godeps/_workspace/src/github.com/gravitational/log"
 	"github.com/gravitational/planet/Godeps/_workspace/src/github.com/gravitational/trace"
 	serf "github.com/gravitational/planet/Godeps/_workspace/src/github.com/hashicorp/serf/client"
-	systemMonitoring "github.com/gravitational/planet/lib/monitoring"
 	"github.com/gravitational/planet/tool/agent/monitoring"
 )
 
@@ -42,20 +41,17 @@ func (r *client) status() (*monitoring.Status, error) {
 	}
 	var status monitoring.Status
 	var healthyNodes []string
-	var healthy bool = true
 	for node, response := range q.responses {
 		var nodeStatus monitoring.NodeStatus
 		if err = json.Unmarshal(response, &nodeStatus); err != nil {
 			return nil, trace.Wrap(err, "failed to unmarshal query result")
 		}
 		status.Nodes = append(status.Nodes, nodeStatus)
-		if nodeStatus.SystemStatus.Status == systemMonitoring.SystemStatusRunning {
+		if len(nodeStatus.Events) == 0 {
 			healthyNodes = append(healthyNodes, node)
-		} else {
-			healthy = false
 		}
 	}
-	if !healthy || !slicesEqual(healthyNodes, memberNodes) {
+	if !slicesEqual(healthyNodes, memberNodes) {
 		status.Status = monitoring.StatusDegraded
 	} else {
 		status.Status = monitoring.StatusRunning

@@ -1,4 +1,4 @@
-package health
+package monitoring
 
 import (
 	"fmt"
