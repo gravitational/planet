@@ -29,9 +29,63 @@ const (
 	activeStateDeactivating             = "deactivating"
 )
 
-var (
-	systemStatusCmd = []string{"/bin/systemctl", "is-system-running"}
+var systemStatusCmd = []string{"/bin/systemctl", "is-system-running"}
+
+// systemChecker is a health checker for services managed by systemd/monit.
+type systemdChecker struct{}
+
+type serviceStatus struct {
+	name   string
+	status StatusType
+	err    error
+}
+
+type systemStatusType string
+
+const (
+	systemStatusRunning  systemStatusType = "running"
+	systemStatusDegraded                  = "degraded"
+	systemStatusLoading                   = "loading"
+	systemStatusStopped                   = "stopped"
+	systemStatusUnknown                   = ""
 )
+
+var systemdTags = Tags{
+	"mode": {"master", "node"},
+}
+
+func init() {
+	addChecker(systemdChecker{}, "systemd", systemdTags)
+}
+
+func (r systemdChecker) check(reporter reporter, config *Config) {
+	systemStatus, err := isSystemRunning()
+	if err != nil {
+		reporter.add(fmt.Errorf("failed to check system health: %v", err))
+	}
+
+	conditions, err := systemdStatus()
+	if err != nil {
+		reporter.add(fmt.Errorf("failed to check systemd status: %v", err))
+	}
+
+	if len(conditions) > 0 && systemStatusType(systemStatus) == systemStatusRunning {
+		systemStatus = systemStatusDegraded
+	}
+
+	// FIXME: do away with system state
+	// if systemStatus != systemStatusRunning {
+	// 	reporter.add(fmt.Errorf("system status: %v", systemStatus))
+	// }
+
+	for _, condition := range conditions {
+		reporter.addEvent(Event{
+			Service: condition.name,
+			Status:  condition.status,
+			Message: condition.err.Error(),
+		})
+	}
+}
 
 func systemdStatus() ([]serviceStatus, error) {
 	conn, err := dbus.New()

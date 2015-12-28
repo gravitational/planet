@@ -3,6 +3,7 @@ package monitoring
 import (
 	"encoding/json"
 	"fmt"
+	"io"
 	"io/ioutil"
 	"net/http"
 	"net/url"
@@ -18,11 +19,16 @@ var etcdTags = Tags{
 	"mode": {"node"},
 }
 
-func init() {
-	addChecker(KubeChecker(checkEtcd), "etcd", etcdTags)
+var etcdHealthzTags = Tags{
+	"mode": {"master"},
 }
 
-func checkEtcd(client *kube.Client) error {
+func init() {
+	addChecker(KubeChecker(etcdKubeServiceCheck), "etcd", etcdTags)
+	addChecker(newHTTPHealthzChecker("http://127.0.0.1:2379/health", etcdHealthz), "etcd-healthz", etcdHealthzTags)
+}
+
+func etcdKubeServiceCheck(client *kube.Client) error {
 	const namespace = "kube-system"
 	service, err := client.Services(namespace).Get("etcd")
 	if err != nil {
@@ -40,23 +46,49 @@ func checkEtcd(client *kube.Client) error {
 	}
 	defer resp.Body.Close()
 
-	result := struct{ Health string }{}
-	nresult := struct{ Health bool }{}
 	payload, err := ioutil.ReadAll(resp.Body)
 	if err != nil {
 		return err
 	}
 
+	healthy, err := etcdStatus(payload)
+	if err != nil {
+		return err
+	}
+
+	if !healthy {
+		return fmt.Errorf("etcd at %s unhealthy", baseURL)
+	}
+	return nil
+}
+
+func etcdHealthz(response io.Reader) error {
+	payload, err := ioutil.ReadAll(response)
+	if err != nil {
+		return err
+	}
+
+	healthy, err := etcdStatus(payload)
+	if err != nil {
+		return err
+	}
+
+	if !healthy {
+		return errHealthzCheck
+	}
+	return nil
+}
+
+func etcdStatus(payload []byte) (healthy bool, err error) {
+	result := struct{ Health string }{}
+	nresult := struct{ Health bool }{}
 	err = json.Unmarshal(payload, &result)
 	if err != nil {
 		err = json.Unmarshal(payload, &nresult)
 	}
 	if err != nil {
-		return err
+		return false, err
 	}
 
-	if result.Health != "true" && nresult.Health != true {
-		return fmt.Errorf("unhealthy: %s", baseURL)
-	}
-	return nil
+	return (result.Health == "true" || nresult.Health == true), nil
 }
