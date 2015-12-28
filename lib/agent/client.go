@@ -1,4 +1,4 @@
-package main
+package agent
 
 import (
 	"encoding/json"
@@ -8,14 +8,18 @@ import (
 	"github.com/gravitational/planet/Godeps/_workspace/src/github.com/gravitational/log"
 	"github.com/gravitational/planet/Godeps/_workspace/src/github.com/gravitational/trace"
 	serf "github.com/gravitational/planet/Godeps/_workspace/src/github.com/hashicorp/serf/client"
-	"github.com/gravitational/planet/tool/agent/monitoring"
+	"github.com/gravitational/planet/lib/agent/monitoring"
 )
+
+type Client interface {
+	Status() (*monitoring.Status, error)
+}
 
 type client struct {
 	*serf.RPCClient
 }
 
-func newClient(rpcAddr string) (*client, error) {
+func NewClient(rpcAddr string) (Client, error) {
 	serfClient, err := serf.NewRPCClient(rpcAddr)
 	if err != nil {
 		return nil, err
@@ -25,7 +29,7 @@ func newClient(rpcAddr string) (*client, error) {
 	}, nil
 }
 
-func (r *client) status() (*monitoring.Status, error) {
+func (r *client) Status() (*monitoring.Status, error) {
 	memberNodes, err := r.memberNames()
 	if err != nil {
 		return nil, trace.Wrap(err)

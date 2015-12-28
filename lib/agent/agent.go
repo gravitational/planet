@@ -1,4 +1,4 @@
-package main
+package agent
 
 import (
 	"encoding/json"
@@ -11,35 +11,47 @@ import (
 	"github.com/gravitational/planet/Godeps/_workspace/src/github.com/gravitational/trace"
 	serfAgent "github.com/gravitational/planet/Godeps/_workspace/src/github.com/hashicorp/serf/command/agent"
 	"github.com/gravitational/planet/Godeps/_workspace/src/github.com/hashicorp/serf/serf"
-	"github.com/gravitational/planet/tool/agent/monitoring"
+	"github.com/gravitational/planet/lib/agent/monitoring"
 )
+
+type Agent interface {
+	Start() (Closer, error)
+	Leave() error
+	Shutdown() error
+	ShutdownCh() <-chan struct{}
+	Join([]string, bool) (int, error)
+}
+
+type Closer interface {
+	Shutdown()
+}
 
 var errUnknownQuery = errors.New("unknown query")
 
 type testAgent struct {
 	*serfAgent.Agent
-	config    *config
+	config    *Config
 	logOutput io.Writer
 }
 
-type config struct {
-	name         string
-	bindAddr     string
-	rpcAddr      string
-	kubeHostPort string
-	mode         agentMode
-	tags         map[string]string
+type Config struct {
+	Name         string
+	BindAddr     string
+	RPCAddr      string
+	KubeHostPort string
+	Mode         Mode
+	Tags         map[string]string
 }
 
 type reporter struct {
 	status monitoring.NodeStatus
 }
 
-type agentMode string
+type Mode string
 
 const (
-	master agentMode = "master"
-	node             = "node"
+	Master Mode = "master"
+	Node        = "node"
 )
 
 type queryCommand string
@@ -48,34 +60,34 @@ const (
 	cmdStatus queryCommand = "status"
 )
 
-func newAgent(config *config, logOutput io.Writer) (*testAgent, error) {
+func NewAgent(config *Config, logOutput io.Writer) (Agent, error) {
 	agentConfig := setupAgent(config)
 	serfConfig, err := setupSerf(config)
 	if err != nil {
 		return nil, trace.Wrap(err)
 	}
-	agent, err := serfAgent.Create(agentConfig, serfConfig, logOutput)
+	serfAgent, err := serfAgent.Create(agentConfig, serfConfig, logOutput)
 	if err != nil {
 		return nil, trace.Wrap(err)
 	}
 	testAgent := &testAgent{
-		Agent:     agent,
+		Agent:     serfAgent,
 		config:    config,
 		logOutput: logOutput,
 	}
-	agent.RegisterEventHandler(testAgent)
+	serfAgent.RegisterEventHandler(testAgent)
 	return testAgent, nil
 }
 
-func setupAgent(config *config) *serfAgent.Config {
+func setupAgent(config *Config) *serfAgent.Config {
 	c := serfAgent.DefaultConfig()
-	c.BindAddr = config.bindAddr
-	c.RPCAddr = config.rpcAddr
+	c.BindAddr = config.BindAddr
+	c.RPCAddr = config.RPCAddr
 	return c
 }
 
-func setupSerf(config *config) (*serf.Config, error) {
-	host, port, err := net.SplitHostPort(config.bindAddr)
+func setupSerf(config *Config) (*serf.Config, error) {
+	host, port, err := net.SplitHostPort(config.BindAddr)
 	if err != nil {
 		return nil, err
 	}
@@ -83,17 +95,16 @@ func setupSerf(config *config) (*serf.Config, error) {
 	c.Init()
 	c.MemberlistConfig.BindAddr = host
 	c.MemberlistConfig.BindPort = mustAtoi(port)
-	c.Tags["mode"] = string(config.mode)
+	c.Tags["mode"] = string(config.Mode)
 	return c, nil
 }
 
-// FIXME: hide AgentIPC behind a meaningful interface
-func (r *testAgent) start() (*serfAgent.AgentIPC, error) {
-	err := r.Start()
+func (r *testAgent) Start() (Closer, error) {
+	err := r.Agent.Start()
 	if err != nil {
 		return nil, trace.Wrap(err)
 	}
-	listener, err := net.Listen("tcp", r.config.rpcAddr)
+	listener, err := net.Listen("tcp", r.config.RPCAddr)
 	if err != nil {
 		return nil, trace.Wrap(err)
 	}
@@ -119,9 +130,9 @@ func (r *testAgent) HandleEvent(event serf.Event) {
 }
 
 func (r *testAgent) handleStatus(q *serf.Query) error {
-	reporter := &reporter{monitoring.NodeStatus{Name: r.config.name}}
+	reporter := &reporter{monitoring.NodeStatus{Name: r.config.Name}}
 	config := &monitoring.Config{
-		KubeHostPort: r.config.kubeHostPort,
+		KubeHostPort: r.config.KubeHostPort,
 	}
 	log.Infof("available checkers: %v, node tags: %#v", monitoring.Testers, r.SerfConfig().Tags)
 	for _, t := range monitoring.Testers {

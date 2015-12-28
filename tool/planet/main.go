@@ -17,6 +17,7 @@ import (
 	"github.com/gravitational/planet/Godeps/_workspace/src/github.com/gravitational/version"
 	"github.com/gravitational/planet/Godeps/_workspace/src/github.com/opencontainers/runc/libcontainer"
 	"github.com/gravitational/planet/Godeps/_workspace/src/gopkg.in/alecthomas/kingpin.v2"
+	"github.com/gravitational/planet/lib/agent"
 	"github.com/gravitational/planet/lib/box"
 	"github.com/gravitational/planet/test/e2e"
 )
@@ -75,8 +76,19 @@ func run() error {
 		centerNoTTY = center.Flag("notty", "do not attach TTY to this process").Bool()
 		centerUser  = center.Flag("user", "user to execute the command").Default("root").String()
 
-		// report status of a running container
-		cstatus = app.Command("status", "Get status of a running container")
+		// planet agent mode
+		cagent = app.Command("agent", "run the planet agent")
+		// FIXME: wrap as HostPort
+		cagentBindAddr = cagent.Flag("bind-addr", "address to bind network listeners to.  To use an IPv6 address, specify [::1] or [::1]:7946.").Default("0.0.0.0:7946").String()
+		cagentRPCAddr  = cagent.Flag("rpc-addr", "address to bind the RPC listener").Default("127.0.0.1:7373").String()
+		cagentKubeAddr = cagent.Flag("kube-addr", "address of the k8s api server").Default("127.0.0.1:8080").String()
+		cagentJoin     = cagent.Flag("join", "address of the agent to join").String()
+		cagentMode     = cagent.Flag("mode", "agent operating mode (master/node)").Default("master").String()
+		cagentName     = cagent.Flag("name", "node name").String()
+
+		// report status of the cluster
+		cstatus        = app.Command("status", "query the state of the cluster")
+		cstatusRPCAddr = cstatus.Flag("rpc-addr", "agent RPC address").Default("127.0.0.1:7373").String()
 
 		// test command
 		ctest             = app.Command("test", "Run end-to-end tests on a running cluster")
@@ -108,6 +120,23 @@ func run() error {
 	// "version" command
 	case cversion.FullCommand():
 		version.Print()
+
+	case cagent.FullCommand():
+		if *cagentName == "" {
+			*cagentName, err = os.Hostname()
+			if err != nil {
+				break
+			}
+		}
+		conf := &agent.Config{
+			Name:         *cagentName,
+			BindAddr:     *cagentBindAddr,
+			RPCAddr:      *cagentRPCAddr,
+			KubeHostPort: *cagentKubeAddr,
+			Mode:         agent.Mode(*cagentMode),
+		}
+		err = runAgent(conf, *cagentJoin)
+
 	// "start" command
 	case cstart.FullCommand():
 		if emptyIP(cstartPublicIP) && os.Getpid() > 5 {
@@ -166,7 +195,7 @@ func run() error {
 	case cstatus.FullCommand():
 		if *fromContainer {
 			var ok bool
-			ok, err = containerStatus()
+			ok, err = clusterStatus(*cstatusRPCAddr)
 			if err == nil && !ok {
 				err = &box.ExitError{Code: 1}
 			}
@@ -175,7 +204,7 @@ func run() error {
 			if err != nil {
 				break
 			}
-			err = status(rootfs, *socketPath)
+			err = status(rootfs, *socketPath, *cstatusRPCAddr)
 		}
 
 	// "test" command

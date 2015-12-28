@@ -2,14 +2,12 @@ package main
 
 import (
 	"bytes"
-	"encoding/json"
 	"os"
 
 	"github.com/gravitational/planet/Godeps/_workspace/src/github.com/docker/docker/pkg/term"
 	"github.com/gravitational/planet/Godeps/_workspace/src/github.com/gravitational/log"
 	"github.com/gravitational/planet/Godeps/_workspace/src/github.com/gravitational/trace"
 	"github.com/gravitational/planet/lib/box"
-	"github.com/gravitational/planet/lib/monitoring"
 )
 
 func enterConsole(rootfs, socketPath, cmd, user string, tty bool, args []string) (err error) {
@@ -70,13 +68,16 @@ func stop(rootfs, socketPath string) error {
 	return enter(rootfs, socketPath, cfg)
 }
 
-// status checks status of the running planet cluster and outputs results as
-// JSON to stdout.
-func status(rootfs, socketPath string) (err error) {
+// status checks status of the running planet cluster and outputs results to stdout.
+func status(rootfs, socketPath, rpcAddr string) (err error) {
 	log.Infof("checking status in %s", rootfs)
 
 	var statusCmd = []string{"/usr/bin/planet", "--from-container", "status"}
 	var data []byte
+
+	if rpcAddr != "" {
+		statusCmd = append(statusCmd, []string{"--rpc-addr", rpcAddr}...)
+	}
 
 	data, err = enterCommand(rootfs, socketPath, statusCmd)
 	if data != nil {
@@ -85,26 +86,6 @@ func status(rootfs, socketPath string) (err error) {
 		}
 	}
 	return err
-}
-
-// containerStatus reports the current cluster status.
-// It assumes the context of the planet container.
-func containerStatus() (ok bool, err error) {
-	systemStatus, err := monitoring.Status()
-	if err != nil {
-		return false, trace.Wrap(err, "failed to check system status")
-	}
-	ok = systemStatus.Status == monitoring.SystemStatusRunning
-
-	data, err := json.Marshal(systemStatus)
-	if err != nil {
-		return ok, trace.Wrap(err, "failed to unmarshal status data")
-	}
-	if _, err = os.Stdout.Write(data); err != nil {
-		return ok, trace.Wrap(err, "failed to output status")
-	}
-
-	return ok, nil
 }
 
 // enterCommand is a helper function that runs a command as a root
