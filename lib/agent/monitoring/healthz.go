@@ -22,7 +22,7 @@ type httpHealthzChecker struct {
 	checkerFunc checkerFunc
 }
 
-func (r *httpHealthzChecker) check(reporter reporter, config *Config) {
+func (r *httpHealthzChecker) check(reporter reporter) {
 	resp, err := r.client.Get(r.URL)
 	if err != nil {
 		reporter.add(err)

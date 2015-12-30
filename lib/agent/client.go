@@ -11,6 +11,8 @@ import (
 	"github.com/gravitational/planet/lib/agent/monitoring"
 )
 
+// Client defines an obligation to handle status queries.
+// Client is used to communicate to the cluster of test agents.
 type Client interface {
 	Status() (*monitoring.Status, error)
 }
@@ -19,6 +21,7 @@ type client struct {
 	*serf.RPCClient
 }
 
+// NewClient creates a new agent client.
 func NewClient(rpcAddr string) (Client, error) {
 	serfClient, err := serf.NewRPCClient(rpcAddr)
 	if err != nil {
@@ -29,6 +32,7 @@ func NewClient(rpcAddr string) (Client, error) {
 	}, nil
 }
 
+// Status reports the status of the serf cluster.
 func (r *client) Status() (*monitoring.Status, error) {
 	memberNodes, err := r.memberNames()
 	if err != nil {
@@ -61,6 +65,7 @@ func (r *client) Status() (*monitoring.Status, error) {
 	return &status, nil
 }
 
+// memberNames returns a list of names of all currently active nodes.
 func (r *client) memberNames() ([]string, error) {
 	members, err := r.Members()
 	if err != nil {
@@ -73,12 +78,14 @@ func (r *client) memberNames() ([]string, error) {
 	return nodes, nil
 }
 
+// query represents a running agent query.
 type query struct {
 	responsec chan serf.NodeResponse
 	responses map[string][]byte
 	members   []string
 }
 
+// newQuery creates a new query for the specified query command and a list of known members.
 func newQuery(cmd queryCommand, client *client, members []string) (result *query, err error) {
 	responsec := make(chan serf.NodeResponse, 1)
 	params := &serf.QueryParam{
@@ -98,22 +105,17 @@ func newQuery(cmd queryCommand, client *client, members []string) (result *query
 	return result, nil
 }
 
+// run runs a query until all responses have been collected or a timeout is signalled.
 func (r *query) run() error {
 	var responsesFrom []string
-	for r.responsec != nil {
-		select {
-		case response, ok := <-r.responsec:
-			log.Infof("response from %s: %s", response.From, response)
-			if !ok {
-				r.responsec = nil
-			} else {
-				r.responses[response.From] = response.Payload
-				responsesFrom = append(responsesFrom, response.From)
-				if len(responsesFrom) == len(r.members) && sliceEquals(responsesFrom, r.members) {
-					r.responsec = nil
-				}
-			}
-		}
+	for response := range r.responsec {
+		log.Infof("response from %s: %s", response.From, response)
+		r.responses[response.From] = response.Payload
+		responsesFrom = append(responsesFrom, response.From)
+		// FIXME: bail out as soon as responses from all known nodes have been collected
+		// if len(responsesFrom) == len(r.members) && sliceEquals(responsesFrom, r.members) {
+		// 	r.responsec = nil
+		// }
 	}
 	return nil
 }

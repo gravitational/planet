@@ -35,16 +35,11 @@ type testAgent struct {
 }
 
 type Config struct {
-	Name         string
-	BindAddr     string
-	RPCAddr      string
-	KubeHostPort string
-	Mode         Mode
-	Tags         map[string]string
-}
-
-type reporter struct {
-	status monitoring.NodeStatus
+	Name     string
+	BindAddr string
+	RPCAddr  string
+	Mode     Mode
+	Tags     map[string]string
 }
 
 type Mode string
@@ -130,18 +125,15 @@ func (r *testAgent) HandleEvent(event serf.Event) {
 }
 
 func (r *testAgent) handleStatus(q *serf.Query) error {
-	reporter := &reporter{monitoring.NodeStatus{Name: r.config.Name}}
-	config := &monitoring.Config{
-		KubeHostPort: r.config.KubeHostPort,
-	}
+	reporter := monitoring.NewDefaultReporter(r.config.Name)
 	log.Infof("available checkers: %v, node tags: %#v", monitoring.Testers, r.SerfConfig().Tags)
 	for _, t := range monitoring.Testers {
 		if tagsInclude(r.SerfConfig().Tags, t.Tags) {
 			log.Infof("running checker %s", t.Name)
-			t.Check(reporter, config)
+			t.Check(reporter)
 		}
 	}
-	payload, err := reporter.encode()
+	payload, err := json.Marshal(reporter.Status())
 	if err != nil {
 		return trace.Wrap(err)
 	}
@@ -149,22 +141,6 @@ func (r *testAgent) handleStatus(q *serf.Query) error {
 		return trace.Wrap(err)
 	}
 	return nil
-}
-
-func (r *reporter) Add(name string, err error) {
-	r.status.Events = append(r.status.Events, monitoring.Event{
-		Name:    name,
-		Message: err.Error(),
-		Status:  monitoring.StatusFailed,
-	})
-}
-
-func (r *reporter) AddEvent(event monitoring.Event) {
-	r.status.Events = append(r.status.Events, event)
-}
-
-func (r *reporter) encode() ([]byte, error) {
-	return json.Marshal(r.status)
 }
 
 func mustAtoi(value string) int {

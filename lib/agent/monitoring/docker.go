@@ -11,9 +11,9 @@ var dockerRegistryTags = Tags{
 }
 
 func init() {
-	addChecker(newUnixSocketHealthzChecker("http://docker/version", "/var/run/docker.sock",
+	AddChecker(newUnixSocketHealthzChecker("http://docker/version", "/var/run/docker.sock",
 		dockerHealthz), "docker", dockerTags)
-	addChecker(newHTTPHealthzChecker("http://127.0.0.1:5000/v2/", dockerRegistryHealthz), "docker-registry", dockerRegistryTags)
+	AddChecker(newHTTPHealthzChecker("http://127.0.0.1:5000/v2/", dockerRegistryHealthz), "docker-registry", dockerRegistryTags)
 }
 
 func dockerHealthz(response io.Reader) error {

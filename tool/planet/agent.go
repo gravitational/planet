@@ -6,9 +6,9 @@ import (
 	"os/signal"
 	"syscall"
 
+	"github.com/gravitational/planet/Godeps/_workspace/src/github.com/gravitational/trace"
 	"github.com/gravitational/planet/lib/agent"
 	"github.com/gravitational/planet/lib/agent/monitoring"
-	"github.com/gravitational/trace"
 )
 
 func runAgent(conf *agent.Config, join string) error {

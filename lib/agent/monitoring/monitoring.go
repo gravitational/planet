@@ -1,31 +1,22 @@
 // package check abstracts a process of running health checks.
 package monitoring
 
-import (
-	"net/url"
-
-	kube "github.com/gravitational/planet/Godeps/_workspace/src/k8s.io/kubernetes/pkg/client/unversioned"
-)
-
-type Config struct {
-	KubeHostPort string
-}
-
 // Checker defines an obligation to run a health check.
 type Checker interface {
 	// Check runs a health check and records any errors into the specified reporter.
-	Check(Reporter, *Config)
+	Check(Reporter)
 }
 
 // Reporter defines an obligation to report errors with a specified name.
 type Reporter interface {
 	Add(name string, err error)
 	AddEvent(event Event)
+	Status() NodeStatus
 }
 
 type checker interface {
 	// Check runs a health check and records any errors into the specified reporter.
-	check(reporter, *Config)
+	check(reporter)
 }
 
 // reporter defines an obligation to report errors.
@@ -52,19 +43,27 @@ var Testers []Tester
 // For instance, checkers can easily be bound to a certain agent (and thus,
 // a certain node) by starting an agent with the same set of tags as those
 // specified by the checker and the checker will only run on that agent.
-func addChecker(checker checker, name string, tags Tags) {
+func AddChecker(checker checker, name string, tags Tags) {
 	Testers = append(Testers, Tester{checker: checker, Name: name, Tags: tags})
+}
+
+func (r *Tester) Check(reporter Reporter) {
+	rep := &delegatingReporter{Reporter: reporter, tester: r}
+	r.check(rep)
+}
+
+type defaultReporter struct {
+	status NodeStatus
+}
+
+func NewDefaultReporter(name string) Reporter {
+	return &defaultReporter{status: NodeStatus{Name: name}}
 }
 
 // delegatingReporter binds a tester to an external reporter.
 type delegatingReporter struct {
 	Reporter
 	tester *Tester
-}
-
-func (r *Tester) Check(reporter Reporter, config *Config) {
-	rep := &delegatingReporter{Reporter: reporter, tester: r}
-	r.check(rep, config)
 }
 
 func (r *delegatingReporter) add(err error) {
@@ -76,42 +75,18 @@ func (r *delegatingReporter) addEvent(event Event) {
 	r.Reporter.AddEvent(event)
 }
 
-// KubeChecker is a Checker that needs to communicate with a kube API server
-type KubeChecker func(client *kube.Client) error
-
-func connectToKube(host string) (*kube.Client, error) {
-	var baseURL *url.URL
-	var err error
-	if host == "" {
-		host = "127.0.0.1:8080"
-		baseURL = &url.URL{
-			Host:   host,
-			Scheme: "http",
-		}
-	} else {
-		baseURL, err = url.Parse(host)
-		if err != nil {
-			return nil, err
-		}
-	}
-	config := &kube.Config{
-		Host: baseURL.String(),
-	}
-	client, err := kube.New(config)
-	if err != nil {
-		return nil, err
-	}
-	return client, nil
+func (r *defaultReporter) Add(name string, err error) {
+	r.status.Events = append(r.status.Events, Event{
+		Name:    name,
+		Message: err.Error(),
+		Status:  StatusFailed,
+	})
 }
 
-func (r KubeChecker) check(reporter reporter, config *Config) {
-	client, err := connectToKube(config.KubeHostPort)
-	if err != nil {
-		reporter.add(err)
-		return
-	}
-	err = r(client)
-	if err != nil {
-		reporter.add(err)
-	}
+func (r *defaultReporter) AddEvent(event Event) {
+	r.status.Events = append(r.status.Events, event)
+}
+
+func (r *defaultReporter) Status() NodeStatus {
+	return r.status
 }

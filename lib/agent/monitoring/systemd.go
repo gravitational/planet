@@ -55,10 +55,10 @@ var systemdTags = Tags{
 }
 
 func init() {
-	addChecker(systemdChecker{}, "systemd", systemdTags)
+	AddChecker(systemdChecker{}, "systemd", systemdTags)
 }
 
-func (r systemdChecker) check(reporter reporter, config *Config) {
+func (r systemdChecker) check(reporter reporter) {
 	systemStatus, err := isSystemRunning()
 	if err != nil {
 		reporter.add(fmt.Errorf("failed to check system health: %v", err))

@@ -18,6 +18,7 @@ import (
 	"github.com/gravitational/planet/Godeps/_workspace/src/github.com/opencontainers/runc/libcontainer"
 	"github.com/gravitational/planet/Godeps/_workspace/src/gopkg.in/alecthomas/kingpin.v2"
 	"github.com/gravitational/planet/lib/agent"
+	"github.com/gravitational/planet/lib/agent/monitoring"
 	"github.com/gravitational/planet/lib/box"
 	"github.com/gravitational/planet/test/e2e"
 )
@@ -81,10 +82,10 @@ func run() error {
 		// FIXME: wrap as HostPort
 		cagentBindAddr = cagent.Flag("bind-addr", "address to bind network listeners to.  To use an IPv6 address, specify [::1] or [::1]:7946.").Default("0.0.0.0:7946").String()
 		cagentRPCAddr  = cagent.Flag("rpc-addr", "address to bind the RPC listener").Default("127.0.0.1:7373").String()
-		cagentKubeAddr = cagent.Flag("kube-addr", "address of the k8s api server").Default("127.0.0.1:8080").String()
+		cagentKubeAddr = cagent.Flag("kube-addr", "address of the kubernetes api server").Default("127.0.0.1:8080").String()
 		cagentJoin     = cagent.Flag("join", "address of the agent to join").String()
 		cagentMode     = cagent.Flag("mode", "agent operating mode (master/node)").Default("master").String()
-		cagentName     = cagent.Flag("name", "node name").String()
+		cagentName     = cagent.Flag("name", "agent name").String()
 
 		// report status of the cluster
 		cstatus        = app.Command("status", "query the state of the cluster")
@@ -129,12 +130,12 @@ func run() error {
 			}
 		}
 		conf := &agent.Config{
-			Name:         *cagentName,
-			BindAddr:     *cagentBindAddr,
-			RPCAddr:      *cagentRPCAddr,
-			KubeHostPort: *cagentKubeAddr,
-			Mode:         agent.Mode(*cagentMode),
+			Name:     *cagentName,
+			BindAddr: *cagentBindAddr,
+			RPCAddr:  *cagentRPCAddr,
+			Mode:     agent.Mode(*cagentMode),
 		}
+		monitoring.AddKubeCheckers(*cagentKubeAddr)
 		err = runAgent(conf, *cagentJoin)
 
 	// "start" command
