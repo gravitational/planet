@@ -107,11 +107,11 @@ func newQuery(cmd queryCommand, client *client, members []string) (result *query
 
 // run runs a query until all responses have been collected or a timeout is signalled.
 func (r *query) run() error {
-	var responsesFrom []string
+	// var responsesFrom []string
 	for response := range r.responsec {
 		log.Infof("response from %s: %s", response.From, response)
 		r.responses[response.From] = response.Payload
-		responsesFrom = append(responsesFrom, response.From)
+		// responsesFrom = append(responsesFrom, response.From)
 		// FIXME: bail out as soon as responses from all known nodes have been collected
 		// if len(responsesFrom) == len(r.members) && sliceEquals(responsesFrom, r.members) {
 		// 	r.responsec = nil

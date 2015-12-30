@@ -6,7 +6,7 @@ import (
 	"sync"
 	"time"
 
-	"github.com/prometheus/client_golang/prometheus"
+	"github.com/gravitational/planet/Godeps/_workspace/src/github.com/prometheus/client_golang/prometheus"
 )
 
 type PrometheusSink struct {
