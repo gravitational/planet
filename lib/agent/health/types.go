@@ -1,4 +1,4 @@
-package monitoring
+package health
 
 type Status struct {
 	SystemStatus SystemStatusType `json:"status"`
@@ -18,7 +18,7 @@ type NodeStatus struct {
 }
 
 type Event struct {
-	Name    string     `json:"name"`
+	Checker string     `json:"checker"`
 	Service string     `json:"service"`
 	Status  StatusType `json:"status"`
 	// Human-friendly description of the current service status

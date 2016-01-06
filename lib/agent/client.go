@@ -2,19 +2,17 @@ package agent
 
 import (
 	"encoding/json"
-	"sort"
-	"time"
 
 	"github.com/gravitational/planet/Godeps/_workspace/src/github.com/gravitational/log"
 	"github.com/gravitational/planet/Godeps/_workspace/src/github.com/gravitational/trace"
 	serf "github.com/gravitational/planet/Godeps/_workspace/src/github.com/hashicorp/serf/client"
-	"github.com/gravitational/planet/lib/agent/monitoring"
+	"github.com/gravitational/planet/lib/agent/health"
+	"github.com/gravitational/planet/lib/util"
 )
 
-// Client defines an obligation to handle status queries.
-// Client is used to communicate to the cluster of test agents.
+// Client is an interface to communicate with the serf cluster.
 type Client interface {
-	Status() (*monitoring.Status, error)
+	Status() (*health.Status, error)
 }
 
 type client struct {
@@ -33,7 +31,7 @@ func NewClient(rpcAddr string) (Client, error) {
 }
 
 // Status reports the status of the serf cluster.
-func (r *client) Status() (*monitoring.Status, error) {
+func (r *client) Status() (*health.Status, error) {
 	memberNodes, err := r.memberNames()
 	if err != nil {
 		return nil, trace.Wrap(err)
@@ -45,10 +43,10 @@ func (r *client) Status() (*monitoring.Status, error) {
 	if err = q.run(); err != nil {
 		return nil, trace.Wrap(err)
 	}
-	var status monitoring.Status
+	var status health.Status
 	var healthyNodes []string
 	for node, response := range q.responses {
-		var nodeStatus monitoring.NodeStatus
+		var nodeStatus health.NodeStatus
 		if err = json.Unmarshal(response, &nodeStatus); err != nil {
 			return nil, trace.Wrap(err, "failed to unmarshal query result")
 		}
@@ -57,10 +55,10 @@ func (r *client) Status() (*monitoring.Status, error) {
 			healthyNodes = append(healthyNodes, node)
 		}
 	}
-	if !sliceEquals(healthyNodes, memberNodes) {
-		status.SystemStatus = monitoring.SystemStatusDegraded
+	if !util.StringSliceEquals(healthyNodes, memberNodes) {
+		status.SystemStatus = health.SystemStatusDegraded
 	} else {
-		status.SystemStatus = monitoring.SystemStatusRunning
+		status.SystemStatus = health.SystemStatusRunning
 	}
 	return &status, nil
 }
@@ -89,9 +87,9 @@ type query struct {
 func newQuery(cmd queryCommand, client *client, members []string) (result *query, err error) {
 	responsec := make(chan serf.NodeResponse, 1)
 	params := &serf.QueryParam{
-		Name:    string(cmd),
-		Timeout: 1 * time.Second,
-		RespCh:  responsec,
+		Name: string(cmd),
+		// Timeout: 1 * time.Second,	// w/o Timeout, serf will choose timeout automatically
+		RespCh: responsec,
 	}
 	result = &query{
 		responsec: responsec,
@@ -107,31 +105,9 @@ func newQuery(cmd queryCommand, client *client, members []string) (result *query
 
 // run runs a query until all responses have been collected or a timeout is signalled.
 func (r *query) run() error {
-	// var responsesFrom []string
 	for response := range r.responsec {
 		log.Infof("response from %s: %s", response.From, response)
 		r.responses[response.From] = response.Payload
-		// responsesFrom = append(responsesFrom, response.From)
-		// FIXME: bail out as soon as responses from all known nodes have been collected
-		// if len(responsesFrom) == len(r.members) && sliceEquals(responsesFrom, r.members) {
-		// 	r.responsec = nil
-		// }
 	}
 	return nil
-}
-
-// sliceEquals returns true if a equals b.
-// Side-effect: the slice arguments are sorted in-place.
-func sliceEquals(a, b []string) bool {
-	if len(a) != len(b) {
-		return false
-	}
-	sort.Sort(sort.StringSlice(a))
-	sort.Sort(sort.StringSlice(b))
-	for i, _ := range a {
-		if a[i] != b[i] {
-			return false
-		}
-	}
-	return true
 }

@@ -8,29 +8,35 @@ import (
 
 	"github.com/gravitational/planet/Godeps/_workspace/src/github.com/gravitational/trace"
 	"github.com/gravitational/planet/lib/agent"
-	"github.com/gravitational/planet/lib/agent/monitoring"
+	"github.com/gravitational/planet/lib/agent/health"
+	"github.com/gravitational/planet/lib/monitoring"
 )
 
-func runAgent(conf *agent.Config, join string) error {
+type agentRole monitoring.Role
+
+func runAgent(conf *agent.Config, monitoringConf *monitoring.Config, join string) error {
 	logOutput := os.Stderr
-	testAgent, err := agent.NewAgent(conf, logOutput)
+	if conf.Tags == nil {
+		conf.Tags = make(map[string]string)
+	}
+	conf.Tags["role"] = string(monitoringConf.Role)
+	agent, err := agent.New(conf, logOutput)
 	if err != nil {
 		return err
 	}
 	defer func() {
-		testAgent.Leave()
-		testAgent.Shutdown()
+		agent.Close()
 	}()
-	conn, err := testAgent.Start()
+	monitoring.AddCheckers(agent, monitoringConf)
+	err = agent.Start()
 	if err != nil {
 		return err
 	}
-	defer conn.Shutdown()
-	if conf.Mode == agent.Node {
+	if monitoringConf.Role == monitoring.RoleNode {
 		noReplay := false
-		testAgent.Join([]string{join}, noReplay)
+		agent.Join([]string{join}, noReplay)
 	}
-	return handleAgentSignals(testAgent)
+	return handleAgentSignals(agent)
 }
 
 func clusterStatus(rpcAddr string) (ok bool, err error) {
@@ -42,7 +48,7 @@ func clusterStatus(rpcAddr string) (ok bool, err error) {
 	if err != nil {
 		return false, trace.Wrap(err)
 	}
-	ok = status.SystemStatus == monitoring.SystemStatusRunning
+	ok = status.SystemStatus == health.SystemStatusRunning
 	statusJson, err := json.Marshal(status)
 	if err != nil {
 		return ok, trace.Wrap(err, "failed to marshal status data")
@@ -59,8 +65,7 @@ func handleAgentSignals(agent agent.Agent) error {
 
 	select {
 	case <-signalc:
-		agent.Leave()
-		return agent.Shutdown()
+		return agent.Close()
 	case <-agent.ShutdownCh():
 		return nil
 	}

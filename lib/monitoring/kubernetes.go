@@ -11,23 +11,6 @@ import (
 	kube "github.com/gravitational/planet/Godeps/_workspace/src/k8s.io/kubernetes/pkg/client/unversioned"
 )
 
-var kubeApiServerTags = Tags{
-	"mode": {"master"},
-}
-
-var kubeletTags = Tags{
-	"mode": {"node"},
-}
-
-var etcdTags = Tags{
-	"mode": {"node"},
-}
-
-func init() {
-	AddChecker(newHTTPHealthzChecker("http://127.0.0.1:8080/healthz", kubeHealthz), "kube-apiserver", kubeApiServerTags)
-	AddChecker(newHTTPHealthzChecker("http://127.0.0.1:10248/healthz", kubeHealthz), "kubelet", kubeletTags)
-}
-
 // generic kubernetes healthz checker
 func kubeHealthz(response io.Reader) error {
 	payload, err := ioutil.ReadAll(response)
@@ -48,17 +31,17 @@ type kubeChecker struct {
 	checkerFunc KubeChecker
 }
 
-func connectToKube(host string) (*kube.Client, error) {
+func ConnectToKube(hostPort string) (*kube.Client, error) {
 	var baseURL *url.URL
 	var err error
-	if host == "" {
-		host = "127.0.0.1:8080"
+	if hostPort == "" {
+		hostPort = "127.0.0.1:8080"
 		baseURL = &url.URL{
-			Host:   host,
+			Host:   hostPort,
 			Scheme: "http",
 		}
 	} else {
-		baseURL, err = url.Parse(host)
+		baseURL, err = url.Parse(hostPort)
 		if err != nil {
 			return nil, err
 		}
@@ -86,10 +69,10 @@ func (r *kubeChecker) check(reporter reporter) {
 }
 
 func (r *kubeChecker) connect() (*kube.Client, error) {
-	return connectToKube(r.hostPort)
+	return ConnectToKube(r.hostPort)
 }
 
-func kubeEtcdServiceChecker(client *kube.Client) error {
+func etcdKubeServiceChecker(client *kube.Client) error {
 	const namespace = "kube-system"
 	service, err := client.Services(namespace).Get("etcd")
 	if err != nil {
@@ -121,9 +104,4 @@ func kubeEtcdServiceChecker(client *kube.Client) error {
 		return fmt.Errorf("etcd at %s unhealthy", baseURL)
 	}
 	return nil
-}
-
-func AddKubeCheckers(hostPort string) {
-	AddChecker(&componentStatusChecker{hostPort: hostPort}, "componentstatuses", csTags)
-	AddChecker(&kubeChecker{hostPort: hostPort, checkerFunc: kubeEtcdServiceChecker}, "etcd-service", etcdTags)
 }

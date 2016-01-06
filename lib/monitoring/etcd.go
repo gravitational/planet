@@ -10,15 +10,7 @@ import (
 // defaultDialTimeout is the maximum amount of time a dial will wait for a connection to setup.
 const defaultDialTimeout = 30 * time.Second
 
-var etcdHealthzTags = Tags{
-	"mode": {"master"},
-}
-
-func init() {
-	AddChecker(newHTTPHealthzChecker("http://127.0.0.1:2379/health", etcdHealthzChecker), "etcd-healthz", etcdHealthzTags)
-}
-
-func etcdHealthzChecker(response io.Reader) error {
+func etcdChecker(response io.Reader) error {
 	payload, err := ioutil.ReadAll(response)
 	if err != nil {
 		return err

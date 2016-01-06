@@ -18,8 +18,8 @@ import (
 	"github.com/gravitational/planet/Godeps/_workspace/src/github.com/opencontainers/runc/libcontainer"
 	"github.com/gravitational/planet/Godeps/_workspace/src/gopkg.in/alecthomas/kingpin.v2"
 	"github.com/gravitational/planet/lib/agent"
-	"github.com/gravitational/planet/lib/agent/monitoring"
 	"github.com/gravitational/planet/lib/box"
+	"github.com/gravitational/planet/lib/monitoring"
 	"github.com/gravitational/planet/test/e2e"
 )
 
@@ -78,22 +78,22 @@ func run() error {
 		centerUser  = center.Flag("user", "user to execute the command").Default("root").String()
 
 		// planet agent mode
-		cagent = app.Command("agent", "run the planet agent")
+		cagent = app.Command("agent", "Run planet agent")
 		// FIXME: wrap as HostPort
 		cagentBindAddr = cagent.Flag("bind-addr", "address to bind network listeners to.  To use an IPv6 address, specify [::1] or [::1]:7946.").Default("0.0.0.0:7946").String()
-		cagentRPCAddr  = cagent.Flag("rpc-addr", "address to bind the RPC listener").Default("127.0.0.1:7373").String()
-		cagentKubeAddr = cagent.Flag("kube-addr", "address of the kubernetes api server").Default("127.0.0.1:8080").String()
-		cagentJoin     = cagent.Flag("join", "address of the agent to join").String()
-		cagentMode     = cagent.Flag("mode", "agent operating mode (master/node)").Default("master").String()
-		cagentName     = cagent.Flag("name", "agent name").String()
+		cagentRPCAddr  = cagent.Flag("rpc-addr", "Address to bind the RPC listener").Default("127.0.0.1:7373").String()
+		cagentKubeAddr = cagent.Flag("kube-addr", "Address of the kubernetes api server").Default("127.0.0.1:8080").String()
+		cagentJoin     = cagent.Flag("join", "Address of the agent to join").String()
+		cagentRole     = cagent.Flag("role", "Agent operating role (master/node)").Default("master").String()
+		cagentName     = cagent.Flag("name", "Agent name").String()
 
 		// report status of the cluster
-		cstatus        = app.Command("status", "query the state of the cluster")
+		cstatus        = app.Command("status", "Query the planet cluster status")
 		cstatusRPCAddr = cstatus.Flag("rpc-addr", "agent RPC address").Default("127.0.0.1:7373").String()
 
 		// test command
 		ctest             = app.Command("test", "Run end-to-end tests on a running cluster")
-		ctestKubeAddr     = HostPort(ctest.Flag("kube-master", "Address of kubernetes master").Required())
+		ctestKubeAddr     = HostPort(ctest.Flag("kube-addr", "Address of the kubernetes api server").Required())
 		ctestKubeRepoPath = ctest.Flag("kube-repo", "Path to a kubernetes repository").String()
 		ctestAssetPath    = ctest.Flag("asset-dir", "Path to test executables and data files").String()
 	)
@@ -133,10 +133,14 @@ func run() error {
 			Name:     *cagentName,
 			BindAddr: *cagentBindAddr,
 			RPCAddr:  *cagentRPCAddr,
-			Mode:     agent.Mode(*cagentMode),
 		}
-		monitoring.AddKubeCheckers(*cagentKubeAddr)
-		err = runAgent(conf, *cagentJoin)
+		monitoringConf := &monitoring.Config{
+			Role:     monitoring.Role(*cagentRole),
+			KubeAddr: *cagentKubeAddr,
+			// MasterIP: *cstartMasterIP,
+			// ClusterIP: clusterIP(*cstartServiceSubnet),
+		}
+		err = runAgent(conf, monitoringConf, *cagentJoin)
 
 	// "start" command
 	case cstart.FullCommand():

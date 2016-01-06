@@ -11,43 +11,36 @@ import (
 	"github.com/gravitational/planet/Godeps/_workspace/src/github.com/gravitational/trace"
 	serfAgent "github.com/gravitational/planet/Godeps/_workspace/src/github.com/hashicorp/serf/command/agent"
 	"github.com/gravitational/planet/Godeps/_workspace/src/github.com/hashicorp/serf/serf"
-	"github.com/gravitational/planet/lib/agent/monitoring"
+	"github.com/gravitational/planet/lib/agent/health"
 )
 
 type Agent interface {
-	Start() (Closer, error)
-	Leave() error
-	Shutdown() error
+	Start() error
+	Close() error
 	ShutdownCh() <-chan struct{}
 	Join([]string, bool) (int, error)
+
+	health.CheckerRepository
 }
 
-type Closer interface {
-	Shutdown()
-}
-
-var errUnknownQuery = errors.New("unknown query")
-
-type testAgent struct {
+type agent struct {
 	*serfAgent.Agent
+	health.Checkers
+
+	ipc *serfAgent.AgentIPC
+
 	config    *Config
 	logOutput io.Writer
 }
 
 type Config struct {
-	Name     string
+	// Name of the agent - hostname if not provided
+	Name string
+	// Address for serf layer traffic
 	BindAddr string
 	RPCAddr  string
-	Mode     Mode
 	Tags     map[string]string
 }
-
-type Mode string
-
-const (
-	Master Mode = "master"
-	Node        = "node"
-)
 
 type queryCommand string
 
@@ -55,7 +48,9 @@ const (
 	cmdStatus queryCommand = "status"
 )
 
-func NewAgent(config *Config, logOutput io.Writer) (Agent, error) {
+var errUnknownQuery = errors.New("unknown query")
+
+func New(config *Config, logOutput io.Writer) (Agent, error) {
 	agentConfig := setupAgent(config)
 	serfConfig, err := setupSerf(config)
 	if err != nil {
@@ -65,13 +60,13 @@ func NewAgent(config *Config, logOutput io.Writer) (Agent, error) {
 	if err != nil {
 		return nil, trace.Wrap(err)
 	}
-	testAgent := &testAgent{
+	agent := &agent{
 		Agent:     serfAgent,
 		config:    config,
 		logOutput: logOutput,
 	}
-	serfAgent.RegisterEventHandler(testAgent)
-	return testAgent, nil
+	serfAgent.RegisterEventHandler(agent)
+	return agent, nil
 }
 
 func setupAgent(config *Config) *serfAgent.Config {
@@ -90,26 +85,28 @@ func setupSerf(config *Config) (*serf.Config, error) {
 	c.Init()
 	c.MemberlistConfig.BindAddr = host
 	c.MemberlistConfig.BindPort = mustAtoi(port)
-	c.Tags["mode"] = string(config.Mode)
+	for key, value := range config.Tags {
+		c.Tags[key] = value
+	}
 	return c, nil
 }
 
-func (r *testAgent) Start() (Closer, error) {
+func (r *agent) Start() error {
 	err := r.Agent.Start()
 	if err != nil {
-		return nil, trace.Wrap(err)
+		return trace.Wrap(err)
 	}
 	listener, err := net.Listen("tcp", r.config.RPCAddr)
 	if err != nil {
-		return nil, trace.Wrap(err)
+		return trace.Wrap(err)
 	}
 	authKey := ""
-	return serfAgent.NewAgentIPC(r.Agent, authKey, listener, r.logOutput, nil), nil
+	r.ipc = serfAgent.NewAgentIPC(r.Agent, authKey, listener, r.logOutput, nil)
+	return nil
 }
 
 // agent.EventHandler
-func (r *testAgent) HandleEvent(event serf.Event) {
-	log.Infof("event: %#v", event)
+func (r *agent) HandleEvent(event serf.Event) {
 	if query, ok := event.(*serf.Query); ok {
 		switch query.Name {
 		case string(cmdStatus):
@@ -124,16 +121,22 @@ func (r *testAgent) HandleEvent(event serf.Event) {
 	}
 }
 
-func (r *testAgent) handleStatus(q *serf.Query) error {
-	reporter := monitoring.NewDefaultReporter(r.config.Name)
-	log.Infof("available checkers: %v, node tags: %#v", monitoring.Testers, r.SerfConfig().Tags)
-	for _, t := range monitoring.Testers {
-		if tagsInclude(r.SerfConfig().Tags, t.Tags) {
-			log.Infof("running checker %s", t.Name)
-			t.Check(reporter)
-		}
+func (r *agent) Close() error {
+	if r.ipc != nil {
+		r.ipc.Shutdown()
+		r.ipc = nil
 	}
-	payload, err := json.Marshal(reporter.Status())
+	errLeave := r.Leave()
+	errShutdown := r.Shutdown()
+	if errShutdown != nil {
+		return errShutdown
+	}
+	return errLeave
+}
+
+func (r *agent) handleStatus(q *serf.Query) error {
+	status := r.runChecks()
+	payload, err := json.Marshal(status)
 	if err != nil {
 		return trace.Wrap(err)
 	}
@@ -143,30 +146,19 @@ func (r *testAgent) handleStatus(q *serf.Query) error {
 	return nil
 }
 
+func (r *agent) runChecks() health.NodeStatus {
+	reporter := health.NewDefaultReporter(r.config.Name)
+	for _, c := range r.Checkers {
+		log.Infof("running checker %s", c.Name())
+		c.Check(reporter)
+	}
+	return reporter.Status()
+}
+
 func mustAtoi(value string) int {
 	result, err := strconv.Atoi(value)
 	if err != nil {
 		panic(err)
 	}
 	return result
-}
-
-// tagsInclude determines if any items from include are included in source.
-func tagsInclude(source map[string]string, include monitoring.Tags) bool {
-	for key, values := range include {
-		if sourceValue, ok := source[key]; ok && inSlice(sourceValue, values) {
-			return true
-		}
-	}
-	return false
-}
-
-// inSlice determines if value is in slice.
-func inSlice(value string, slice []string) bool {
-	for _, v := range slice {
-		if v == value {
-			return true
-		}
-	}
-	return false
 }
