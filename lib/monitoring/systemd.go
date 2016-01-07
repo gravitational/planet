@@ -72,7 +72,7 @@ func (r systemdChecker) check(reporter reporter) {
 	// }
 
 	for _, condition := range conditions {
-		reporter.addEvent(health.Event{
+		reporter.addProbe(health.Probe{
 			Service: condition.name,
 			Status:  condition.status,
 			Message: condition.err.Error(),

@@ -6,6 +6,7 @@ import (
 	"io"
 	"net"
 	"strconv"
+	"time"
 
 	"github.com/gravitational/planet/Godeps/_workspace/src/github.com/gravitational/log"
 	"github.com/gravitational/planet/Godeps/_workspace/src/github.com/gravitational/trace"
@@ -23,16 +24,6 @@ type Agent interface {
 	health.CheckerRepository
 }
 
-type agent struct {
-	*serfAgent.Agent
-	health.Checkers
-
-	ipc *serfAgent.AgentIPC
-
-	config    *Config
-	logOutput io.Writer
-}
-
 type Config struct {
 	// Name of the agent - hostname if not provided
 	Name string
@@ -41,14 +32,6 @@ type Config struct {
 	RPCAddr  string
 	Tags     map[string]string
 }
-
-type queryCommand string
-
-const (
-	cmdStatus queryCommand = "status"
-)
-
-var errUnknownQuery = errors.New("unknown query")
 
 func New(config *Config, logOutput io.Writer) (Agent, error) {
 	agentConfig := setupAgent(config)
@@ -69,26 +52,14 @@ func New(config *Config, logOutput io.Writer) (Agent, error) {
 	return agent, nil
 }
 
-func setupAgent(config *Config) *serfAgent.Config {
-	c := serfAgent.DefaultConfig()
-	c.BindAddr = config.BindAddr
-	c.RPCAddr = config.RPCAddr
-	return c
-}
+type agent struct {
+	*serfAgent.Agent
+	health.Checkers
 
-func setupSerf(config *Config) (*serf.Config, error) {
-	host, port, err := net.SplitHostPort(config.BindAddr)
-	if err != nil {
-		return nil, err
-	}
-	c := serf.DefaultConfig()
-	c.Init()
-	c.MemberlistConfig.BindAddr = host
-	c.MemberlistConfig.BindPort = mustAtoi(port)
-	for key, value := range config.Tags {
-		c.Tags[key] = value
-	}
-	return c, nil
+	ipc *serfAgent.AgentIPC
+
+	config    *Config
+	logOutput io.Writer
 }
 
 func (r *agent) Start() error {
@@ -146,7 +117,7 @@ func (r *agent) handleStatus(q *serf.Query) error {
 	return nil
 }
 
-func (r *agent) runChecks() health.NodeStatus {
+func (r *agent) runChecks() *health.NodeStatus {
 	reporter := health.NewDefaultReporter(r.config.Name)
 	for _, c := range r.Checkers {
 		log.Infof("running checker %s", c.Name())
@@ -155,10 +126,73 @@ func (r *agent) runChecks() health.NodeStatus {
 	return reporter.Status()
 }
 
+type queryCommand string
+
+const (
+	cmdStatus queryCommand = "status"
+)
+
+var errUnknownQuery = errors.New("unknown query")
+
+func setupAgent(config *Config) *serfAgent.Config {
+	c := serfAgent.DefaultConfig()
+	c.BindAddr = config.BindAddr
+	c.RPCAddr = config.RPCAddr
+	return c
+}
+
+func setupSerf(config *Config) (*serf.Config, error) {
+	host, port, err := net.SplitHostPort(config.BindAddr)
+	if err != nil {
+		return nil, err
+	}
+	c := serf.DefaultConfig()
+	c.Init()
+	c.MemberlistConfig.BindAddr = host
+	c.MemberlistConfig.BindPort = mustAtoi(port)
+	for key, value := range config.Tags {
+		c.Tags[key] = value
+	}
+	return c, nil
+}
+
 func mustAtoi(value string) int {
 	result, err := strconv.Atoi(value)
 	if err != nil {
 		panic(err)
 	}
 	return result
+}
+
+// queryRunner
+type agentQuery struct {
+	*serf.Serf
+	resp      *serf.QueryResponse
+	cmd       string
+	timeout   time.Duration
+	responses map[string][]byte
+}
+
+func (r *agentQuery) start() (err error) {
+	conf := &serf.QueryParam{
+		Timeout: r.timeout,
+	}
+	var noPayload []byte
+	r.resp, err = r.Serf.Query(r.cmd, noPayload, conf)
+	if err != nil {
+		return trace.Wrap(err)
+	}
+	return nil
+}
+
+func (r *agentQuery) run() error {
+	if err := r.start(); err != nil {
+		return err
+	}
+	r.responses = make(map[string][]byte)
+	for response := range r.resp.ResponseCh() {
+		log.Infof("response from %s: %s", response.From, response)
+		r.responses[response.From] = response.Payload
+	}
+	return nil
 }

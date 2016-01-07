@@ -27,7 +27,7 @@ func (r *componentStatusChecker) check(reporter reporter) {
 	for _, item := range statuses.Items {
 		for _, condition := range item.Conditions {
 			if condition.Type != api.ComponentHealthy || condition.Status != api.ConditionTrue {
-				reporter.addEvent(health.Event{
+				reporter.addProbe(health.Probe{
 					Service: item.Name,
 					Status:  health.StatusFailed,
 					Message: fmt.Sprintf("%s (%s)", condition.Message, condition.Error),

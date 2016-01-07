@@ -14,7 +14,7 @@ type checker interface {
 
 type reporter interface {
 	add(error)
-	addEvent(health.Event)
+	addProbe(health.Probe)
 }
 
 func (r *defaultChecker) Name() string { return r.name }
@@ -39,7 +39,7 @@ func (r *delegatingReporter) add(err error) {
 	r.Reporter.Add(r.checker.Name(), err)
 }
 
-func (r *delegatingReporter) addEvent(event health.Event) {
-	event.Checker = r.checker.Name()
-	r.Reporter.AddEvent(event)
+func (r *delegatingReporter) addProbe(probe health.Probe) {
+	probe.Checker = r.checker.Name()
+	r.Reporter.AddProbe(probe)
 }

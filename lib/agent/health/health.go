@@ -22,31 +22,31 @@ type CheckerRepository interface {
 type Reporter interface {
 	// Add adds an error report for the checker named name
 	Add(checker string, err error)
-	AddEvent(event Event)
-	Status() NodeStatus
+	AddProbe(probe Probe)
+	Status() *NodeStatus
 }
 
 // defaultReporter provides a default Reporter implementation.
 type defaultReporter struct {
-	status NodeStatus
+	status *NodeStatus
 }
 
 func NewDefaultReporter(name string) Reporter {
-	return &defaultReporter{status: NodeStatus{Name: name}}
+	return &defaultReporter{status: &NodeStatus{Name: name}}
 }
 
 func (r *defaultReporter) Add(checker string, err error) {
-	r.status.Events = append(r.status.Events, Event{
+	r.status.Probes = append(r.status.Probes, Probe{
 		Checker: checker,
 		Message: err.Error(),
 		Status:  StatusFailed,
 	})
 }
 
-func (r *defaultReporter) AddEvent(event Event) {
-	r.status.Events = append(r.status.Events, event)
+func (r *defaultReporter) AddProbe(probe Probe) {
+	r.status.Probes = append(r.status.Probes, probe)
 }
 
-func (r *defaultReporter) Status() NodeStatus {
+func (r *defaultReporter) Status() *NodeStatus {
 	return r.status
 }
