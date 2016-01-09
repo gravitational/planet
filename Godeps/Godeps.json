@@ -162,12 +162,22 @@
 			"Rev": "11bb88abf7b17f0b794b51416a9107d781e95f35"
 		},
 		{
+			"ImportPath": "github.com/jmoiron/sqlx",
+			"Comment": "sqlx-v1.1-53-g54aec3f",
+			"Rev": "54aec3fd91a2b2129ffaca0d652b8a9223ee2d9e"
+		},
+		{
 			"ImportPath": "github.com/juju/ratelimit",
 			"Rev": "772f5c38e468398c4511514f4f6aa9a4185bc0a0"
 		},
 		{
 			"ImportPath": "github.com/julienschmidt/httprouter",
 			"Rev": "8c199fb6259ffc1af525cc3ad52ee60ba8359669"
+		},
+		{
+			"ImportPath": "github.com/mattn/go-sqlite3",
+			"Comment": "v1.1.0",
+			"Rev": "3b3f1d01b2696af5501697c35629048c227586ab"
 		},
 		{
 			"ImportPath": "github.com/matttproud/golang_protobuf_extensions/pbutil",
