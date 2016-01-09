@@ -44,7 +44,7 @@ export
 PLANET_PACKAGE_PATH=$(PWD)
 PLANET_PACKAGE=github.com/gravitational/planet
 PLANET_VERSION_PACKAGE_PATH=$(PLANET_PACKAGE)/Godeps/_workspace/src/github.com/gravitational/version
-PLANET_GO_LDFLAGS="$(shell linkflags -pkg=$(PLANET_PACKAGE_PATH) -verpkg=$(PLANET_VERSION_PACKAGE_PATH))"
+PLANET_GO_LDFLAGS="$(shell linkflags -pkg=$(PLANET_PACKAGE_PATH) -verpkg=$(PLANET_VERSION_PACKAGE_PATH) -compat)"
 
 all: production dev
 
