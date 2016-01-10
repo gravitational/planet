@@ -81,7 +81,7 @@ func run() error {
 		cagent = app.Command("agent", "Run planet agent")
 		// FIXME: wrap as HostPort
 		cagentBindAddr = cagent.Flag("bind-addr", "address to bind network listeners to.  To use an IPv6 address, specify [::1] or [::1]:7946.").Default("0.0.0.0:7946").String()
-		cagentRPCAddr  = cagent.Flag("rpc-addr", "Address to bind the RPC listener").Default("127.0.0.1:7373").String()
+		cagentRPCAddr  = cagent.Flag("rpc-addr", "Address to bind the RPC listener").Default("127.0.0.1:7575").String()
 		cagentKubeAddr = cagent.Flag("kube-addr", "Address of the kubernetes api server").Default("127.0.0.1:8080").String()
 		cagentJoin     = cagent.Flag("join", "Address of the agent to join").String()
 		cagentRole     = cagent.Flag("role", "Agent operating role (master/node)").Default("master").String()
@@ -89,7 +89,7 @@ func run() error {
 
 		// report status of the cluster
 		cstatus        = app.Command("status", "Query the planet cluster status")
-		cstatusRPCAddr = cstatus.Flag("rpc-addr", "agent RPC address").Default("127.0.0.1:7373").String()
+		cstatusRPCAddr = cstatus.Flag("rpc-addr", "agent RPC address").Default("127.0.0.1:7575").String()
 
 		// test command
 		ctest             = app.Command("test", "Run end-to-end tests on a running cluster")

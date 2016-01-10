@@ -3,6 +3,7 @@ package sqlite
 import (
 	"database/sql"
 	"path/filepath"
+	"time"
 
 	"github.com/gravitational/planet/Godeps/_workspace/src/github.com/gravitational/log"
 	"github.com/gravitational/planet/Godeps/_workspace/src/github.com/gravitational/trace"
@@ -58,31 +59,26 @@ func New(dataDir string) (*backend, error) {
 	if err != nil {
 		return nil, trace.Wrap(err, "failed to create schema")
 	}
-	return &backend{DB: db}, nil
+	backend := &backend{DB: db}
+	go backend.scavengeLoop()
+	return backend, nil
 }
 
 func (r *backend) AddStats(node string, stats *health.NodeStats) (err error) {
-	var id int64
-	var tx *sqlx.Tx
-	tx, err = r.Beginx()
-	if err != nil {
-		return trace.Wrap(err)
-	}
-	defer func() {
+	err = r.inTx(func(tx *sqlx.Tx) error {
+		var id int64
+		id, err = r.addNode(node)
 		if err != nil {
-			tx.Rollback()
-			return
+			return trace.Wrap(err)
 		}
-		err = tx.Commit()
-	}()
-	id, err = r.addNode(node)
+		err = r.addStats(id, stats)
+		if err != nil {
+			return trace.Wrap(err)
+		}
+		return nil
+	})
 	if err != nil {
-		return trace.Wrap(err)
-	}
-	log.Infof("node: %d", id)
-	err = r.addStats(id, stats)
-	if err != nil {
-		return trace.Wrap(err)
+		return err
 	}
 	return nil
 }
@@ -134,4 +130,57 @@ func (r statusType) String() string {
 	default:
 		return "F"
 	}
+}
+
+const scavengeTimeout = 24 * time.Hour
+
+func (r *backend) scavengeLoop() {
+	var timeout <-chan time.Time
+	for {
+		timeout = time.After(scavengeTimeout)
+		select {
+		case <-timeout:
+			if err := r.deleteOlderThan(time.Now().Add(-scavengeTimeout)); err != nil {
+				log.Errorf("failed to scavenge stats: %v", err)
+			}
+		}
+	}
+}
+
+func (r *backend) deleteOlderThan(limit time.Time) error {
+	const deleteStmt = `DELETE FROM probe WHERE captured_at < ?`
+
+	err := r.inTx(func(tx *sqlx.Tx) error {
+		_, err := r.Exec(deleteStmt, limit)
+		if err != nil {
+			return trace.Wrap(err)
+		}
+		return nil
+	})
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+type cleanup func()
+
+func (r *backend) inTx(f func(tx *sqlx.Tx) error) error {
+	tx, err := r.Beginx()
+	if err != nil {
+		return trace.Wrap(err)
+	}
+	defer func() {
+		if err != nil {
+			tx.Rollback()
+			return
+		}
+		tx.Commit()
+	}()
+	err = f(tx)
+	if err != nil {
+		return trace.Wrap(err)
+	}
+	return nil
 }

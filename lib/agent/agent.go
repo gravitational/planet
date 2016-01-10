@@ -29,8 +29,9 @@ type Config struct {
 	Name string
 	// Address for serf layer traffic
 	BindAddr string
-	RPCAddr  string
-	Tags     map[string]string
+	// RPC address for local agent communication
+	RPCAddr string
+	Tags    map[string]string
 }
 
 func New(config *Config, logOutput io.Writer) (Agent, error) {
@@ -56,7 +57,8 @@ type agent struct {
 	*serfAgent.Agent
 	health.Checkers
 
-	ipc *serfAgent.AgentIPC
+	// ipc *serfAgent.AgentIPC
+	rpc *rpcServer
 
 	config    *Config
 	logOutput io.Writer
@@ -67,12 +69,17 @@ func (r *agent) Start() error {
 	if err != nil {
 		return trace.Wrap(err)
 	}
+	// ipcListener, err := net.Listen("tcp", r.config.SerfRPCAddr)
+	// if err != nil {
+	// 	return trace.Wrap(err)
+	// }
+	// authKey := ""
+	// r.ipc = serfAgent.NewAgentIPC(r.Agent, authKey, ipcListener, r.logOutput, nil)
 	listener, err := net.Listen("tcp", r.config.RPCAddr)
 	if err != nil {
 		return trace.Wrap(err)
 	}
-	authKey := ""
-	r.ipc = serfAgent.NewAgentIPC(r.Agent, authKey, listener, r.logOutput, nil)
+	r.rpc = newRPCServer(r, listener)
 	return nil
 }
 
@@ -93,10 +100,10 @@ func (r *agent) HandleEvent(event serf.Event) {
 }
 
 func (r *agent) Close() error {
-	if r.ipc != nil {
-		r.ipc.Shutdown()
-		r.ipc = nil
-	}
+	// if r.ipc != nil {
+	// 	r.ipc.Shutdown()
+	// 	r.ipc = nil
+	// }
 	errLeave := r.Leave()
 	errShutdown := r.Shutdown()
 	if errShutdown != nil {
@@ -164,7 +171,6 @@ func mustAtoi(value string) int {
 	return result
 }
 
-// queryRunner
 type agentQuery struct {
 	*serf.Serf
 	resp      *serf.QueryResponse
@@ -187,7 +193,7 @@ func (r *agentQuery) start() (err error) {
 
 func (r *agentQuery) run() error {
 	if err := r.start(); err != nil {
-		return err
+		return trace.Wrap(err, "failed to start serf query")
 	}
 	r.responses = make(map[string][]byte)
 	for response := range r.resp.ResponseCh() {

@@ -1,0 +1,50 @@
+syntax = "proto3";
+
+package agentpb;
+
+message StatusRequest {
+}
+
+message StatusResponse {
+  SystemStatus status = 1;
+  repeated Node nodes = 2;
+  repeated NodeStatus node_statuses = 3;
+}
+
+message SystemStatus {
+}
+
+message Node {
+  string name = 1;
+  string addr = 2;
+  string status = 3;
+  map<string, string> tags = 4;
+}
+
+message NodeStatus {
+  string name = 1;
+  repeated Probe probes = 2;
+}
+
+message Probe {
+  Timestamp timestamp = 1;
+
+  string checker = 2;
+  string extra = 3;
+  ServiceStatus status = 4;
+  string error = 5;
+}
+
+enum ServiceStatus {
+  RUNNING = 0;
+  FAILED = 1;
+}
+
+message Timestamp {
+  int64 seconds = 1;
+  int32 nanoseconds = 2;
+}
+
+service AgentService {
+  rpc Status(StatusRequest) returns (StatusResponse) {}
+}
