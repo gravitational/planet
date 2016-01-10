@@ -11,10 +11,12 @@ import (
 
 // This file implements passwd/group facilities to edit passwd/group files.
 
+// SysFile is a base interface of a passwd/group reader/writer.
 type SysFile interface {
 	Save(w io.Writer) error
 }
 
+// PasswdFile defines an interface to a passwd file.
 type PasswdFile interface {
 	SysFile
 
@@ -22,6 +24,7 @@ type PasswdFile interface {
 	Get(name string) (u User, exists bool)
 }
 
+// GroupFile defines an interface to a group file.
 type GroupFile interface {
 	SysFile
 
@@ -42,17 +45,20 @@ type passwdFile struct {
 	w     io.Writer
 }
 
-func NewPasswd(passwd io.Reader) (*passwdFile, error) {
-	users, err := user.ParsePasswd(passwd)
+// NewPasswd creates a passwd file reader.
+// If r also implements io.Writer, it can be used by Save (see details on Save).
+func NewPasswd(r io.Reader) (*passwdFile, error) {
+	users, err := user.ParsePasswd(r)
 	if err != nil {
 		return nil, err
 	}
-	if w, ok := passwd.(io.Writer); ok {
+	if w, ok := r.(io.Writer); ok {
 		return &passwdFile{users: users, w: w}, nil
 	}
 	return &passwdFile{users: users}, nil
 }
 
+// Add adds a new or replaces an existing user.
 func (r *passwdFile) Add(u User) {
 	var found bool
 	for i, usr := range r.users {
@@ -67,6 +73,8 @@ func (r *passwdFile) Add(u User) {
 	}
 }
 
+// Get looks up existing user and returns it.
+// Upon success exists will also be set to true.
 func (r *passwdFile) Get(name string) (u User, exists bool) {
 	for _, user := range r.users {
 		if user.Name == name {
@@ -93,7 +101,7 @@ func (r *passwdFile) Save(w io.Writer) (err error) {
 	return b.err
 }
 
-// buffer simplifies the process of streaming lines of text into an io.Writer
+// textLineBuffer simplifies the process of streaming lines of text into an io.Writer
 type textLineBuffer struct {
 	*bufio.Writer
 	len int
@@ -134,20 +142,20 @@ type groupFile struct {
 	w      io.Writer
 }
 
-func NewGroup(group io.Reader) (*groupFile, error) {
-	groups, err := user.ParseGroup(group)
+// NewGroup creates a group file reader.
+// If r also implements io.Writer, it can be used by Save (see details on Save).
+func NewGroup(r io.Reader) (*groupFile, error) {
+	groups, err := user.ParseGroup(r)
 	if err != nil {
 		return nil, err
 	}
-	if w, ok := group.(io.Writer); ok {
+	if w, ok := r.(io.Writer); ok {
 		return &groupFile{groups: groups, w: w}, nil
 	}
 	return &groupFile{groups: groups}, nil
 }
 
-// Add adds a group g to this group file.
-// If this file already has a group with the same name, then
-// it will be replaced by g.
+// Add adds a new or replaces an existing group.
 func (r *groupFile) Add(g Group) {
 	var found bool
 	for i, group := range r.groups {
@@ -162,6 +170,8 @@ func (r *groupFile) Add(g Group) {
 	}
 }
 
+// Get looks up existing group and returns it.
+// Upon success exists will also be set to true.
 func (r *groupFile) Get(name string) (g Group, exists bool) {
 	for _, group := range r.groups {
 		if group.Name == name {
