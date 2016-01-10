@@ -79,7 +79,7 @@
 		},
 		{
 			"ImportPath": "github.com/golang/protobuf/proto",
-			"Rev": "aece6fb931241ad332956db4f62798dfbea944b3"
+			"Rev": "2402d76f3d41f928c7902a765dfc872356dd3aad"
 		},
 		{
 			"ImportPath": "github.com/google/cadvisor/info/v1",
@@ -249,8 +249,24 @@
 			"Rev": "62ac18b461605b4be188bbc7300e9aa2bc836cd4"
 		},
 		{
+			"ImportPath": "golang.org/x/net/http2",
+			"Rev": "62ac18b461605b4be188bbc7300e9aa2bc836cd4"
+		},
+		{
+			"ImportPath": "golang.org/x/net/internal/timeseries",
+			"Rev": "62ac18b461605b4be188bbc7300e9aa2bc836cd4"
+		},
+		{
+			"ImportPath": "golang.org/x/net/trace",
+			"Rev": "62ac18b461605b4be188bbc7300e9aa2bc836cd4"
+		},
+		{
 			"ImportPath": "golang.org/x/net/websocket",
 			"Rev": "62ac18b461605b4be188bbc7300e9aa2bc836cd4"
+		},
+		{
+			"ImportPath": "google.golang.org/grpc",
+			"Rev": "3e7b7e58f491074e9577050058fb95d2351a60b0"
 		},
 		{
 			"ImportPath": "gopkg.in/alecthomas/kingpin.v2",
