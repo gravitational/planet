@@ -1,6 +1,10 @@
 // package health defines health checking primitives.
 package health
 
+import (
+	pb "github.com/gravitational/planet/lib/agent/proto/agentpb"
+)
+
 // Checker defines an obligation to run a health check.
 type Checker interface {
 	Name() string
@@ -22,31 +26,31 @@ type CheckerRepository interface {
 type Reporter interface {
 	// Add adds an error report for the checker named name
 	Add(checker string, err error)
-	AddProbe(probe Probe)
-	Status() *NodeStatus
+	AddProbe(probe *pb.Probe)
+	Status() *pb.NodeStatus
 }
 
 // defaultReporter provides a default Reporter implementation.
 type defaultReporter struct {
-	status *NodeStatus
+	status *pb.NodeStatus
 }
 
 func NewDefaultReporter(name string) Reporter {
-	return &defaultReporter{status: &NodeStatus{Name: name}}
+	return &defaultReporter{status: &pb.NodeStatus{Name: name}}
 }
 
 func (r *defaultReporter) Add(checker string, err error) {
-	r.status.Probes = append(r.status.Probes, Probe{
+	r.status.Probes = append(r.status.Probes, &pb.Probe{
 		Checker: checker,
-		Message: err.Error(),
-		Status:  StatusFailed,
+		Error:   err.Error(),
+		Status:  pb.ServiceStatusType_ServiceFailed,
 	})
 }
 
-func (r *defaultReporter) AddProbe(probe Probe) {
+func (r *defaultReporter) AddProbe(probe *pb.Probe) {
 	r.status.Probes = append(r.status.Probes, probe)
 }
 
-func (r *defaultReporter) Status() *NodeStatus {
+func (r *defaultReporter) Status() *pb.NodeStatus {
 	return r.status
 }

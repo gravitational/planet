@@ -1,6 +1,9 @@
 package monitoring
 
-import "github.com/gravitational/planet/lib/agent/health"
+import (
+	"github.com/gravitational/planet/lib/agent/health"
+	pb "github.com/gravitational/planet/lib/agent/proto/agentpb"
+)
 
 // defaultChecker is a health.Checker with a simplified interface.
 type defaultChecker struct {
@@ -14,7 +17,7 @@ type checker interface {
 
 type reporter interface {
 	add(error)
-	addProbe(health.Probe)
+	addProbe(*pb.Probe)
 }
 
 func (r *defaultChecker) Name() string { return r.name }
@@ -39,7 +42,7 @@ func (r *delegatingReporter) add(err error) {
 	r.Reporter.Add(r.checker.Name(), err)
 }
 
-func (r *delegatingReporter) addProbe(probe health.Probe) {
+func (r *delegatingReporter) addProbe(probe *pb.Probe) {
 	probe.Checker = r.checker.Name()
 	r.Reporter.AddProbe(probe)
 }

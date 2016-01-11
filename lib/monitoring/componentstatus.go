@@ -6,7 +6,7 @@ import (
 	"github.com/gravitational/planet/Godeps/_workspace/src/k8s.io/kubernetes/pkg/api"
 	"github.com/gravitational/planet/Godeps/_workspace/src/k8s.io/kubernetes/pkg/fields"
 	"github.com/gravitational/planet/Godeps/_workspace/src/k8s.io/kubernetes/pkg/labels"
-	"github.com/gravitational/planet/lib/agent/health"
+	pb "github.com/gravitational/planet/lib/agent/proto/agentpb"
 )
 
 type componentStatusChecker struct {
@@ -27,10 +27,10 @@ func (r *componentStatusChecker) check(reporter reporter) {
 	for _, item := range statuses.Items {
 		for _, condition := range item.Conditions {
 			if condition.Type != api.ComponentHealthy || condition.Status != api.ConditionTrue {
-				reporter.addProbe(health.Probe{
-					Service: item.Name,
-					Status:  health.StatusFailed,
-					Message: fmt.Sprintf("%s (%s)", condition.Message, condition.Error),
+				reporter.addProbe(&pb.Probe{
+					Extra:  item.Name,
+					Status: pb.ServiceStatusType_ServiceFailed,
+					Error:  fmt.Sprintf("%s (%s)", condition.Message, condition.Error),
 				})
 			}
 		}

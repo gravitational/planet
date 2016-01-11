@@ -13,6 +13,7 @@ import (
 	serfAgent "github.com/gravitational/planet/Godeps/_workspace/src/github.com/hashicorp/serf/command/agent"
 	"github.com/gravitational/planet/Godeps/_workspace/src/github.com/hashicorp/serf/serf"
 	"github.com/gravitational/planet/lib/agent/health"
+	pb "github.com/gravitational/planet/lib/agent/proto/agentpb"
 )
 
 type Agent interface {
@@ -124,7 +125,7 @@ func (r *agent) handleStatus(q *serf.Query) error {
 	return nil
 }
 
-func (r *agent) runChecks() *health.NodeStatus {
+func (r *agent) runChecks() *pb.NodeStatus {
 	reporter := health.NewDefaultReporter(r.config.Name)
 	for _, c := range r.Checkers {
 		log.Infof("running checker %s", c.Name())

@@ -8,7 +8,7 @@ import (
 	"github.com/gravitational/planet/Godeps/_workspace/src/k8s.io/kubernetes/pkg/api"
 	kube "github.com/gravitational/planet/Godeps/_workspace/src/k8s.io/kubernetes/pkg/client/unversioned"
 	"github.com/gravitational/planet/Godeps/_workspace/src/k8s.io/kubernetes/pkg/util"
-	"github.com/gravitational/planet/lib/agent/health"
+	pb "github.com/gravitational/planet/lib/agent/proto/agentpb"
 	"github.com/gravitational/planet/lib/monitoring"
 )
 
@@ -102,8 +102,8 @@ type dnsBootstrapper struct {
 // with the agent process and will have to make sure the agent has
 // started before setting up health wait.
 
-func (r *dnsBootstrapper) OnHealthCheck(status health.Status) {
-	if status.SystemStatus == health.SystemStatusRunning {
+func (r *dnsBootstrapper) OnHealthCheck(status *pb.SystemStatus) {
+	if status.Status == pb.SystemStatusType_SystemRunning {
 		r.Do(func() {
 			// TODO: retry on failure
 			client, err := monitoring.ConnectToKube(r.kubeAddr)

@@ -7,7 +7,7 @@ import (
 
 	"github.com/gravitational/planet/Godeps/_workspace/src/github.com/coreos/go-systemd/dbus"
 	"github.com/gravitational/planet/Godeps/_workspace/src/github.com/gravitational/trace"
-	"github.com/gravitational/planet/lib/agent/health"
+	pb "github.com/gravitational/planet/lib/agent/proto/agentpb"
 )
 
 type loadState string
@@ -37,7 +37,7 @@ type systemdChecker struct{}
 
 type serviceStatus struct {
 	name   string
-	status health.StatusType
+	status pb.ServiceStatusType
 	err    error
 }
 
@@ -72,10 +72,10 @@ func (r systemdChecker) check(reporter reporter) {
 	// }
 
 	for _, condition := range conditions {
-		reporter.addProbe(health.Probe{
-			Service: condition.name,
-			Status:  condition.status,
-			Message: condition.err.Error(),
+		reporter.addProbe(&pb.Probe{
+			Extra:  condition.name,
+			Status: condition.status,
+			Error:  condition.err.Error(),
 		})
 	}
 }
@@ -97,7 +97,7 @@ func systemdStatus() ([]serviceStatus, error) {
 		if unit.ActiveState == activeStateFailed || unit.LoadState == loadStateError {
 			conditions = append(conditions, serviceStatus{
 				name:   unit.Name,
-				status: health.StatusFailed,
+				status: pb.ServiceStatusType_ServiceFailed,
 				err:    fmt.Errorf("%s", unit.SubState),
 			})
 		}

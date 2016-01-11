@@ -8,7 +8,7 @@ import (
 
 	"github.com/gravitational/planet/Godeps/_workspace/src/github.com/gravitational/trace"
 	"github.com/gravitational/planet/lib/agent"
-	"github.com/gravitational/planet/lib/agent/health"
+	pb "github.com/gravitational/planet/lib/agent/proto/agentpb"
 	"github.com/gravitational/planet/lib/monitoring"
 )
 
@@ -48,7 +48,7 @@ func clusterStatus(rpcAddr string) (ok bool, err error) {
 	if err != nil {
 		return false, trace.Wrap(err)
 	}
-	ok = status.SystemStatus == health.SystemStatusRunning
+	ok = status.Status == pb.SystemStatusType_SystemRunning
 	statusJson, err := json.Marshal(status)
 	if err != nil {
 		return ok, trace.Wrap(err, "failed to marshal status data")
