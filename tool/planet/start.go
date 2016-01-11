@@ -86,11 +86,11 @@ func start(config *Config, monitorc chan<- bool) (*box.Box, error) {
 		return nil, trace.Wrap(err)
 	}
 
-	if err = addHostUserToContainer(config.Rootfs); err != nil {
+	if err = addUserToContainer(config.Rootfs); err != nil {
 		return nil, trace.Wrap(err)
 	}
 
-	if err = addHostGroupToContainer(config.Rootfs); err != nil {
+	if err = addGroupToContainer(config.Rootfs); err != nil {
 		return nil, trace.Wrap(err)
 	}
 
@@ -189,9 +189,9 @@ func ensureUsersGroups(config *Config) error {
 	return nil
 }
 
-// addHostUserContainer adds a record for planet user from host's passwd file
+// addUserToContainer adds a record for planet user from host's passwd file
 // into container's /etc/passwd.
-func addHostUserToContainer(rootfs string) error {
+func addUserToContainer(rootfs string) error {
 	newSysFile := func(r io.Reader) (user.SysFile, error) {
 		return user.NewPasswd(r)
 	}
@@ -206,17 +206,17 @@ func addHostUserToContainer(rootfs string) error {
 			return trace.Errorf("planet user not in host's passwd file")
 		}
 		log.Infof("adding user %v to container", user.Name)
-		containerFile.Add(user)
+		containerFile.Upsert(user)
 
 		return nil
 	}
 
-	return addHostUserOrGroupToContainer(hostPath, containerPath, newSysFile, rewrite)
+	return upsertFromHost(hostPath, containerPath, newSysFile, rewrite)
 }
 
-// addHostGroupContainer adds a record for planet group from host's group file
+// addGroupToContainer adds a record for planet group from host's group file
 // into container's /etc/group.
-func addHostGroupToContainer(rootfs string) error {
+func addGroupToContainer(rootfs string) error {
 	newSysFile := func(r io.Reader) (user.SysFile, error) {
 		return user.NewGroup(r)
 	}
@@ -231,15 +231,15 @@ func addHostGroupToContainer(rootfs string) error {
 			return trace.Errorf("planet group not in host's group file")
 		}
 		log.Infof("adding group %v to container", group.Name)
-		containerFile.Add(group)
+		containerFile.Upsert(group)
 
 		return nil
 	}
 
-	return addHostUserOrGroupToContainer(hostPath, containerPath, newSysFile, rewrite)
+	return upsertFromHost(hostPath, containerPath, newSysFile, rewrite)
 }
 
-func addHostUserOrGroupToContainer(hostPath, containerPath string, sysFile func(io.Reader) (user.SysFile, error),
+func upsertFromHost(hostPath, containerPath string, sysFile func(io.Reader) (user.SysFile, error),
 	rewrite func(host, container user.SysFile) error) error {
 	hostFile, err := os.Open(hostPath)
 	if err != nil {

@@ -9,7 +9,7 @@ import (
 	"github.com/gravitational/planet/Godeps/_workspace/src/github.com/opencontainers/runc/libcontainer/user"
 )
 
-// This file implements passwd/group facilities to edit passwd/group files.
+// This file implements edit functions for passwd/group files.
 
 // SysFile is a base interface of a passwd/group reader/writer.
 type SysFile interface {
@@ -20,7 +20,7 @@ type SysFile interface {
 type PasswdFile interface {
 	SysFile
 
-	Add(u User)
+	Upsert(u User)
 	Get(name string) (u User, exists bool)
 }
 
@@ -28,12 +28,13 @@ type PasswdFile interface {
 type GroupFile interface {
 	SysFile
 
-	Add(g Group)
+	Upsert(g Group)
 	Get(name string) (g Group, exists bool)
 }
 
 type User user.User
 
+// https://en.wikipedia.org/wiki/Passwd
 func (u User) String() string {
 	return fmt.Sprintf("%s:%s:%d:%d:%s:%s:%s",
 		u.Name, u.Pass, u.Uid, u.Gid, u.Gecos, u.Home, u.Shell)
@@ -58,8 +59,8 @@ func NewPasswd(r io.Reader) (*passwdFile, error) {
 	return &passwdFile{users: users}, nil
 }
 
-// Add adds a new or replaces an existing user.
-func (r *passwdFile) Add(u User) {
+// Upsert adds a new or replaces an existing user.
+func (r *passwdFile) Upsert(u User) {
 	var found bool
 	for i, usr := range r.users {
 		if usr.Name == u.Name {
@@ -91,9 +92,9 @@ func (r *passwdFile) Save(w io.Writer) (err error) {
 	if w == nil {
 		w = r.w
 	}
-	b := newBuffer(w, len(r.users))
+	b := newBuffer(w)
 	for _, user := range r.users {
-		b.Write(User(user).String())
+		b.WriteLine(User(user).String())
 	}
 	if b.err == nil {
 		err = b.Flush()
@@ -104,33 +105,25 @@ func (r *passwdFile) Save(w io.Writer) (err error) {
 // textLineBuffer simplifies the process of streaming lines of text into an io.Writer
 type textLineBuffer struct {
 	*bufio.Writer
-	len int
-	i   int
 	err error
 }
 
-func newBuffer(w io.Writer, len int) *textLineBuffer {
+func newBuffer(w io.Writer) *textLineBuffer {
 	return &textLineBuffer{
 		Writer: bufio.NewWriter(w),
-		len:    len,
 	}
 }
 
-func (r *textLineBuffer) Write(s string) {
+func (r *textLineBuffer) WriteLine(s string) {
 	if r.err != nil {
 		return
 	}
-	_, r.err = r.WriteString(s)
-	if r.err == nil {
-		if r.i < r.len {
-			r.err = r.WriteByte('\n')
-		}
-		r.i++
-	}
+	_, r.err = r.WriteString(s + "\n")
 }
 
 type Group user.Group
 
+// http://www.cyberciti.biz/faq/understanding-etcgroup-file/
 func (g Group) String() string {
 	groups := strings.Join(g.List, ",")
 	return fmt.Sprintf("%s:%s:%d:%s", g.Name, g.Pass, g.Gid, groups)
@@ -155,8 +148,8 @@ func NewGroup(r io.Reader) (*groupFile, error) {
 	return &groupFile{groups: groups}, nil
 }
 
-// Add adds a new or replaces an existing group.
-func (r *groupFile) Add(g Group) {
+// Upsert adds a new or replaces an existing group.
+func (r *groupFile) Upsert(g Group) {
 	var found bool
 	for i, group := range r.groups {
 		if group.Name == g.Name {
@@ -188,9 +181,9 @@ func (r *groupFile) Save(w io.Writer) (err error) {
 	if w == nil {
 		w = r.w
 	}
-	b := newBuffer(w, len(r.groups))
+	b := newBuffer(w)
 	for _, group := range r.groups {
-		b.Write(Group(group).String())
+		b.WriteLine(Group(group).String())
 	}
 	if b.err == nil {
 		err = b.Flush()
