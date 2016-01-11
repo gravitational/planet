@@ -3,7 +3,7 @@ package main
 import (
 	"bytes"
 	"fmt"
-	"io/ioutil"
+	"io"
 	"os"
 	"path/filepath"
 	"sort"
@@ -16,6 +16,7 @@ import (
 	"github.com/gravitational/planet/Godeps/_workspace/src/github.com/opencontainers/runc/libcontainer"
 	"github.com/gravitational/planet/lib/box"
 	"github.com/gravitational/planet/lib/check"
+	"github.com/gravitational/planet/lib/user"
 )
 
 const MinKernelVersion = 310
@@ -85,7 +86,13 @@ func start(config *Config, monitorc chan<- bool) (*box.Box, error) {
 		return nil, trace.Wrap(err)
 	}
 
-	mountHostUsersGroups(config)
+	if err = addUserToContainer(config.Rootfs); err != nil {
+		return nil, trace.Wrap(err)
+	}
+
+	if err = addGroupToContainer(config.Rootfs); err != nil {
+		return nil, trace.Wrap(err)
+	}
 
 	// validate the mounts:
 	if config.hasRole("master") {
@@ -182,32 +189,86 @@ func ensureUsersGroups(config *Config) error {
 	return nil
 }
 
-// mountHostUsersGroups mounts host /etc/passwd and /etc/group files
-// inside container so that the users planet creates are available in
-// container context.
-func mountHostUsersGroups(config *Config) {
-	const passwdFile = "/etc/passwd"
-	const groupFile = "/etc/group"
-	config.Mounts = append(config.Mounts, []box.Mount{
-		{
-			Src: passwdFile,
-			Dst: passwdFile,
-		},
-		{
-			Src: groupFile,
-			Dst: groupFile,
-		},
-	}...)
+// addUserToContainer adds a record for planet user from host's passwd file
+// into container's /etc/passwd.
+func addUserToContainer(rootfs string) error {
+	newSysFile := func(r io.Reader) (user.SysFile, error) {
+		return user.NewPasswd(r)
+	}
+	hostPath := "/etc/passwd"
+	containerPath := filepath.Join(rootfs, "etc", "passwd")
+	rewrite := func(host, container user.SysFile) error {
+		hostFile, _ := host.(user.PasswdFile)
+		containerFile, _ := container.(user.PasswdFile)
+
+		user, exists := hostFile.Get(check.PlanetUser)
+		if !exists {
+			return trace.Errorf("planet user not in host's passwd file")
+		}
+		log.Infof("adding user %v to container", user.Name)
+		containerFile.Upsert(user)
+
+		return nil
+	}
+
+	return upsertFromHost(hostPath, containerPath, newSysFile, rewrite)
 }
 
-// copyFile copies src to dst.
-func copyFile(src, dst string) error {
-	const permissions = 0644
-	contents, err := ioutil.ReadFile(src)
+// addGroupToContainer adds a record for planet group from host's group file
+// into container's /etc/group.
+func addGroupToContainer(rootfs string) error {
+	newSysFile := func(r io.Reader) (user.SysFile, error) {
+		return user.NewGroup(r)
+	}
+	hostPath := "/etc/group"
+	containerPath := filepath.Join(rootfs, "etc", "group")
+	rewrite := func(host, container user.SysFile) error {
+		hostFile, _ := host.(user.GroupFile)
+		containerFile, _ := container.(user.GroupFile)
+
+		group, exists := hostFile.Get(check.PlanetGroup)
+		if !exists {
+			return trace.Errorf("planet group not in host's group file")
+		}
+		log.Infof("adding group %v to container", group.Name)
+		containerFile.Upsert(group)
+
+		return nil
+	}
+
+	return upsertFromHost(hostPath, containerPath, newSysFile, rewrite)
+}
+
+func upsertFromHost(hostPath, containerPath string, sysFile func(io.Reader) (user.SysFile, error),
+	rewrite func(host, container user.SysFile) error) error {
+	hostFile, err := os.Open(hostPath)
 	if err != nil {
 		return trace.Wrap(err)
 	}
-	if err = ioutil.WriteFile(dst, contents, permissions); err != nil {
+	hostSysFile, err := sysFile(hostFile)
+	hostFile.Close()
+	if err != nil {
+		return trace.Wrap(err)
+	}
+
+	containerFile, err := os.OpenFile(containerPath, os.O_RDWR, 0644)
+	if err != nil {
+		return trace.Wrap(err)
+	}
+	defer containerFile.Close()
+
+	containerSysFile, err := sysFile(containerFile)
+	if err != nil {
+		return trace.Wrap(err)
+	}
+
+	err = rewrite(hostSysFile, containerSysFile)
+	if err != nil {
+		return trace.Wrap(err)
+	}
+
+	err = containerSysFile.Save(nil)
+	if err != nil {
 		return trace.Wrap(err)
 	}
 	return nil
