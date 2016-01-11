@@ -55,13 +55,7 @@ func New(dataDir string) (*backend, error) {
 	if err != nil {
 		return nil, trace.Wrap(err)
 	}
-	_, err = db.Exec(schema)
-	if err != nil {
-		return nil, trace.Wrap(err, "failed to create schema")
-	}
-	backend := &backend{DB: db}
-	go backend.scavengeLoop()
-	return backend, nil
+	return newBackend(db)
 }
 
 func (r *backend) AddStats(node string, stats *health.NodeStats) (err error) {
@@ -183,4 +177,22 @@ func (r *backend) inTx(f func(tx *sqlx.Tx) error) error {
 		return trace.Wrap(err)
 	}
 	return nil
+}
+
+func newInMemory() (*backend, error) {
+	db, err := sqlx.Open("sqlite3", ":memory:")
+	if err != nil {
+		return nil, trace.Wrap(err)
+	}
+	return newBackend(db)
+}
+
+func newBackend(db *sqlx.DB) (*backend, error) {
+	_, err = db.Exec(schema)
+	if err != nil {
+		return nil, trace.Wrap(err, "failed to create schema")
+	}
+	backend := &backend{DB: db}
+	go backend.scavengeLoop()
+	return backend, nil
 }
