@@ -1,10 +1,10 @@
 package backend
 
-import "github.com/gravitational/planet/lib/agent/health"
+import pb "github.com/gravitational/planet/lib/agent/proto/agentpb"
 
 type Backend interface {
-	// Add status for the specified node.
-	AddStats(node string, stats *health.NodeStats)
+	// Update status for the specified node.
+	UpdateNode(status *pb.NodeStatus)
 
 	// Clear the state of the backend
 	Close() error

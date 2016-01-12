@@ -18,6 +18,8 @@ import (
 	"github.com/gravitational/planet/Godeps/_workspace/src/github.com/opencontainers/runc/libcontainer"
 	"github.com/gravitational/planet/Godeps/_workspace/src/gopkg.in/alecthomas/kingpin.v2"
 	"github.com/gravitational/planet/lib/agent"
+	"github.com/gravitational/planet/lib/agent/backend/sqlite"
+	"github.com/gravitational/planet/lib/agent/cache"
 	"github.com/gravitational/planet/lib/box"
 	"github.com/gravitational/planet/lib/monitoring"
 	"github.com/gravitational/planet/test/e2e"
@@ -80,12 +82,13 @@ func run() error {
 		// planet agent mode
 		cagent = app.Command("agent", "Run planet agent")
 		// FIXME: wrap as HostPort
-		cagentBindAddr = cagent.Flag("bind-addr", "address to bind network listeners to.  To use an IPv6 address, specify [::1] or [::1]:7946.").Default("0.0.0.0:7946").String()
-		cagentRPCAddr  = cagent.Flag("rpc-addr", "Address to bind the RPC listener").Default("127.0.0.1:7575").String()
+		cagentBindAddr = cagent.Flag("bind-addr", "Address to bind network listeners to.  To use an IPv6 address, specify [::1] or [::1]:7946.").Default("0.0.0.0:7946").String()
+		cagentRPCAddr  = cagent.Flag("rpc-addr", "Address to bind the RPC listener to.").Default("127.0.0.1:7575").String()
 		cagentKubeAddr = cagent.Flag("kube-addr", "Address of the kubernetes api server").Default("127.0.0.1:8080").String()
 		cagentJoin     = cagent.Flag("join", "Address of the agent to join").String()
 		cagentRole     = cagent.Flag("role", "Agent operating role (master/node)").Default("master").String()
 		cagentName     = cagent.Flag("name", "Agent name").String()
+		cagentStateDir = cagent.Flag("state-dir", "Directory where agent-specific state like health stats is stored").Default("/var/planet/agent").String()
 
 		// report status of the cluster
 		cstatus        = app.Command("status", "Query the planet cluster status")
@@ -129,17 +132,25 @@ func run() error {
 				break
 			}
 		}
+		var cache cache.Cache
+		cache, err = sqlite.New(*cagentStateDir)
+		if err != nil {
+			err = trace.Wrap(err, fmt.Sprintf("failed to create sqlite cache in %s", *cagentStateDir))
+			break
+		}
 		conf := &agent.Config{
-			Name:     *cagentName,
-			BindAddr: *cagentBindAddr,
-			RPCAddr:  *cagentRPCAddr,
+			Name:      *cagentName,
+			BindAddr:  *cagentBindAddr,
+			RPCAddr:   *cagentRPCAddr,
+			LogOutput: os.Stderr,
+			Cache:     cache,
 		}
 		monitoringConf := &monitoring.Config{
 			Role:     monitoring.Role(*cagentRole),
 			KubeAddr: *cagentKubeAddr,
-			// MasterIP: *cstartMasterIP,
-			// ClusterIP: clusterIP(*cstartServiceSubnet),
 		}
+		// MasterIP: *cstartMasterIP,
+		// ClusterIP: clusterIP(*cstartServiceSubnet),
 		err = runAgent(conf, monitoringConf, *cagentJoin)
 
 	// "start" command
@@ -220,6 +231,7 @@ func run() error {
 			AssetDir:       *ctestAssetPath,
 		}
 		err = e2e.RunTests(config, extraArgs)
+
 	default:
 		err = trace.Errorf("unsupported command: %v", cmd)
 	}

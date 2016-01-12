@@ -7,7 +7,7 @@ import (
 	pb "github.com/gravitational/planet/lib/agent/proto/agentpb"
 )
 
-// Client is an interface to communicate with the serf cluster.
+// Client is an interface to communicate with the serf cluster via agent RPC.
 type Client interface {
 	Status() (*pb.SystemStatus, error)
 }
@@ -27,6 +27,7 @@ func NewClient(addr string) (*client, error) {
 
 // Status reports the status of the serf cluster.
 func (r *client) Status() (*pb.SystemStatus, error) {
+	// FIXME: implement proper timeouts and cancellation
 	resp, err := r.AgentServiceClient.Status(context.Background(), &pb.StatusRequest{})
 	if err != nil {
 		return nil, trace.Wrap(err)

@@ -15,12 +15,11 @@ import (
 type agentRole monitoring.Role
 
 func runAgent(conf *agent.Config, monitoringConf *monitoring.Config, join string) error {
-	logOutput := os.Stderr
 	if conf.Tags == nil {
 		conf.Tags = make(map[string]string)
 	}
 	conf.Tags["role"] = string(monitoringConf.Role)
-	agent, err := agent.New(conf, logOutput)
+	agent, err := agent.New(conf)
 	if err != nil {
 		return err
 	}
@@ -49,7 +48,7 @@ func clusterStatus(rpcAddr string) (ok bool, err error) {
 		return false, trace.Wrap(err)
 	}
 	ok = status.Status == pb.SystemStatusType_SystemRunning
-	statusJson, err := json.Marshal(status)
+	statusJson, err := json.MarshalIndent(status, "", "   ")
 	if err != nil {
 		return ok, trace.Wrap(err, "failed to marshal status data")
 	}

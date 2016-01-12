@@ -9,7 +9,8 @@ import (
 	"github.com/gravitational/planet/Godeps/_workspace/src/github.com/gravitational/trace"
 	"github.com/gravitational/planet/Godeps/_workspace/src/github.com/jmoiron/sqlx"
 	_ "github.com/gravitational/planet/Godeps/_workspace/src/github.com/mattn/go-sqlite3"
-	"github.com/gravitational/planet/lib/agent/health"
+	"github.com/gravitational/planet/lib/agent/proto"
+	pb "github.com/gravitational/planet/lib/agent/proto/agentpb"
 )
 
 const fileDb = "sqlite.db"
@@ -41,7 +42,7 @@ CREATE TABLE IF NOT EXISTS node_health (
 CREATE TABLE IF NOT EXISTS probe (
 	node	    INTEGER NOT NULL,
 	checker	    TEXT NOT NULL,
-	service     TEXT,
+	extra 	    TEXT,
 	-- running/failed
 	status	    CHAR(1) CHECK(status IN ('H', 'F')) NOT NULL DEFAULT 'F',
 	error	    TEXT NOT NULL,
@@ -58,14 +59,14 @@ func New(dataDir string) (*backend, error) {
 	return newBackend(db)
 }
 
-func (r *backend) AddStats(node string, stats *health.NodeStats) (err error) {
+func (r *backend) UpdateNode(status *pb.NodeStatus) (err error) {
 	err = r.inTx(func(tx *sqlx.Tx) error {
 		var id int64
-		id, err = r.addNode(node)
+		id, err = r.upsertNode(status.Name)
 		if err != nil {
 			return trace.Wrap(err)
 		}
-		err = r.addStats(id, stats)
+		err = r.addStatus(id, status)
 		if err != nil {
 			return trace.Wrap(err)
 		}
@@ -77,11 +78,45 @@ func (r *backend) AddStats(node string, stats *health.NodeStats) (err error) {
 	return nil
 }
 
+func (r *backend) RecentStatus(node string) ([]*pb.Probe, error) {
+	const selectStmt = `
+	SELECT p.checker, p.extra, p.status, p.error, p.captured_at
+	FROM probe p JOIN node n WHERE p.node = n.id AND n.name = ?
+	ORDER BY p.captured_at DESC
+	LIMIT 5
+	`
+	rows, err := r.Query(selectStmt, node)
+	if err != nil {
+		return nil, trace.Wrap(err)
+	}
+	defer rows.Close()
+
+	var probes []*pb.Probe
+	for rows.Next() {
+		probe := pb.Probe{}
+		var timestamp time.Time
+		var status string
+		err = rows.Scan(&probe.Checker, &probe.Extra, &status, &probe.Error, &timestamp)
+		if err != nil {
+			return nil, trace.Wrap(err)
+		}
+		probe.Timestamp = proto.TimeToProto(timestamp)
+		probe.Status = statusFromString(status)
+		probes = append(probes, &probe)
+	}
+	err = rows.Err()
+	if err != nil {
+		return nil, trace.Wrap(err)
+	}
+
+	return probes, nil
+}
+
 func (r *backend) Close() error {
 	return r.DB.Close()
 }
 
-func (r *backend) addNode(node string) (id int64, err error) {
+func (r *backend) upsertNode(node string) (id int64, err error) {
 	const insertStmt = `INSERT OR IGNORE INTO node(name) VALUES(?)`
 	var res sql.Result
 	res, err = r.Exec(insertStmt, node)
@@ -98,14 +133,14 @@ func (r *backend) addNode(node string) (id int64, err error) {
 	return id, nil
 }
 
-func (r *backend) addStats(node int64, stats *health.NodeStats) (err error) {
+func (r *backend) addStatus(node int64, status *pb.NodeStatus) (err error) {
 	const insertStmt = `
-		INSERT INTO probe(node, checker, service, status, error, captured_at)
+		INSERT INTO probe(node, checker, extra, status, error, captured_at)
 		VALUES(?, ?, ?, ?, ?, ?)
 	`
-	for _, probe := range stats.Probes {
-		_, err = r.Exec(insertStmt, node, probe.Checker, probe.Service, statusType(probe.Status).String(),
-			probe.Message, stats.Timestamp)
+	for _, probe := range status.Probes {
+		_, err = r.Exec(insertStmt, node, probe.Checker, probe.Extra, serviceStatus(probe.Status).String(),
+			probe.Error, proto.ProtoToTime(probe.Timestamp))
 		if err != nil {
 			return trace.Wrap(err)
 		}
@@ -113,16 +148,27 @@ func (r *backend) addStats(node int64, stats *health.NodeStats) (err error) {
 	return nil
 }
 
-type statusType health.StatusType
+type serviceStatus pb.ServiceStatusType
 
-func (r statusType) String() string {
-	switch health.StatusType(r) {
-	case health.StatusRunning:
+func (r serviceStatus) String() string {
+	switch pb.ServiceStatusType(r) {
+	case pb.ServiceStatusType_ServiceRunning:
 		return "H"
-	case health.StatusFailed:
+	case pb.ServiceStatusType_ServiceFailed:
 		fallthrough
 	default:
 		return "F"
+	}
+}
+
+func statusFromString(s string) pb.ServiceStatusType {
+	switch s {
+	case "H":
+		return pb.ServiceStatusType_ServiceRunning
+	case "F":
+		fallthrough
+	default:
+		return pb.ServiceStatusType_ServiceFailed
 	}
 }
 
@@ -188,7 +234,7 @@ func newInMemory() (*backend, error) {
 }
 
 func newBackend(db *sqlx.DB) (*backend, error) {
-	_, err = db.Exec(schema)
+	_, err := db.Exec(schema)
 	if err != nil {
 		return nil, trace.Wrap(err, "failed to create schema")
 	}

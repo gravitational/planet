@@ -1,14 +1,14 @@
 package cache
 
-import "github.com/gravitational/planet/lib/agent/health"
+import pb "github.com/gravitational/planet/lib/agent/proto/agentpb"
 
 type Cache interface {
-	// Add status for the specified node.
-	AddStats(node string, stats *health.NodeStats) error
+	// Update status for the specified node.
+	UpdateNode(status *pb.NodeStatus) error
 
 	// Read status history for the specified node.
 	// Stats are returned sorted by time with the latest at the end.
-	RecentStats(node string) ([]*health.NodeStats, error)
+	RecentStatus(node string) ([]*pb.Probe, error)
 
 	// Close will clear the state of the backend.
 	Close() error

@@ -2,6 +2,9 @@
 package health
 
 import (
+	"time"
+
+	"github.com/gravitational/planet/lib/agent/proto"
 	pb "github.com/gravitational/planet/lib/agent/proto/agentpb"
 )
 
@@ -41,14 +44,18 @@ func NewDefaultReporter(name string) Reporter {
 
 func (r *defaultReporter) Add(checker string, err error) {
 	r.status.Probes = append(r.status.Probes, &pb.Probe{
-		Checker: checker,
-		Error:   err.Error(),
-		Status:  pb.ServiceStatusType_ServiceFailed,
+		Checker:   checker,
+		Error:     err.Error(),
+		Status:    pb.ServiceStatusType_ServiceFailed,
+		Timestamp: proto.TimeToProto(time.Now()),
 	})
 }
 
 func (r *defaultReporter) AddProbe(probe *pb.Probe) {
 	r.status.Probes = append(r.status.Probes, probe)
+	if probe.Timestamp == nil {
+		probe.Timestamp = proto.TimeToProto(time.Now())
+	}
 }
 
 func (r *defaultReporter) Status() *pb.NodeStatus {

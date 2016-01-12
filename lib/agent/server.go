@@ -11,13 +11,13 @@ import (
 	pb "github.com/gravitational/planet/lib/agent/proto/agentpb"
 )
 
-// This file implements agent RPC server
-type rpcServer struct {
+// server implements RPC for an agent.
+type server struct {
 	*agent
 }
 
 // pb.AgentServiceServer
-func (r *rpcServer) Status(ctx context.Context, req *pb.StatusRequest) (*pb.StatusResponse, error) {
+func (r *server) Status(ctx context.Context, req *pb.StatusRequest) (*pb.StatusResponse, error) {
 	q := &agentQuery{
 		Serf: r.Serf(),
 		cmd:  string(cmdStatus),
@@ -42,16 +42,18 @@ func (r *rpcServer) Status(ctx context.Context, req *pb.StatusRequest) (*pb.Stat
 		if err := json.Unmarshal(response, &ns); err != nil {
 			return nil, trace.Wrap(err, "failed to unmarshal query result")
 		}
+		// Update agent cache
+		r.agent.cache.UpdateNode(ns)
 		resp.Status.NodeStatuses = append(resp.Status.NodeStatuses, ns)
 	}
 
 	return resp, nil
 }
 
-func newRPCServer(agent *agent, listener net.Listener) *rpcServer {
-	server := grpc.NewServer()
-	rpc := &rpcServer{agent: agent}
-	pb.RegisterAgentServiceServer(server, rpc)
-	go server.Serve(listener)
-	return rpc
+func newRPCServer(agent *agent, listener net.Listener) *server {
+	backend := grpc.NewServer()
+	server := &server{agent: agent}
+	pb.RegisterAgentServiceServer(backend, server)
+	go backend.Serve(listener)
+	return server
 }

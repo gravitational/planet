@@ -12,6 +12,7 @@ import (
 	"github.com/gravitational/planet/Godeps/_workspace/src/github.com/gravitational/trace"
 	serfAgent "github.com/gravitational/planet/Godeps/_workspace/src/github.com/hashicorp/serf/command/agent"
 	"github.com/gravitational/planet/Godeps/_workspace/src/github.com/hashicorp/serf/serf"
+	"github.com/gravitational/planet/lib/agent/cache"
 	"github.com/gravitational/planet/lib/agent/health"
 	pb "github.com/gravitational/planet/lib/agent/proto/agentpb"
 )
@@ -28,27 +29,39 @@ type Agent interface {
 type Config struct {
 	// Name of the agent - hostname if not provided
 	Name string
+
 	// Address for serf layer traffic
 	BindAddr string
+
 	// RPC address for local agent communication
 	RPCAddr string
-	Tags    map[string]string
+
+	// Set of tags for the agent.
+	// Tags is a trivial means for adding extra semantic information.
+	Tags map[string]string
+
+	// Cache used by the agent to persist health stats.
+	Cache cache.Cache
+
+	LogOutput io.Writer
 }
 
-func New(config *Config, logOutput io.Writer) (Agent, error) {
+func New(config *Config) (Agent, error) {
 	agentConfig := setupAgent(config)
 	serfConfig, err := setupSerf(config)
 	if err != nil {
 		return nil, trace.Wrap(err)
 	}
-	serfAgent, err := serfAgent.Create(agentConfig, serfConfig, logOutput)
+	serfAgent, err := serfAgent.Create(agentConfig, serfConfig, config.LogOutput)
 	if err != nil {
 		return nil, trace.Wrap(err)
 	}
 	agent := &agent{
 		Agent:     serfAgent,
-		config:    config,
-		logOutput: logOutput,
+		name:      config.Name,
+		rpcAddr:   config.RPCAddr,
+		logOutput: config.LogOutput,
+		cache:     config.Cache,
 	}
 	serfAgent.RegisterEventHandler(agent)
 	return agent, nil
@@ -58,10 +71,12 @@ type agent struct {
 	*serfAgent.Agent
 	health.Checkers
 
-	// ipc *serfAgent.AgentIPC
-	rpc *rpcServer
+	rpcAddr string
+	rpc     *server
 
-	config    *Config
+	cache cache.Cache
+
+	name      string
 	logOutput io.Writer
 }
 
@@ -70,17 +85,12 @@ func (r *agent) Start() error {
 	if err != nil {
 		return trace.Wrap(err)
 	}
-	// ipcListener, err := net.Listen("tcp", r.config.SerfRPCAddr)
-	// if err != nil {
-	// 	return trace.Wrap(err)
-	// }
-	// authKey := ""
-	// r.ipc = serfAgent.NewAgentIPC(r.Agent, authKey, ipcListener, r.logOutput, nil)
-	listener, err := net.Listen("tcp", r.config.RPCAddr)
+	listener, err := net.Listen("tcp", r.rpcAddr)
 	if err != nil {
 		return trace.Wrap(err)
 	}
 	r.rpc = newRPCServer(r, listener)
+	go r.serviceLoop()
 	return nil
 }
 
@@ -101,10 +111,7 @@ func (r *agent) HandleEvent(event serf.Event) {
 }
 
 func (r *agent) Close() error {
-	// if r.ipc != nil {
-	// 	r.ipc.Shutdown()
-	// 	r.ipc = nil
-	// }
+	// FIXME: shutdown RPC server
 	errLeave := r.Leave()
 	errShutdown := r.Shutdown()
 	if errShutdown != nil {
@@ -126,12 +133,27 @@ func (r *agent) handleStatus(q *serf.Query) error {
 }
 
 func (r *agent) runChecks() *pb.NodeStatus {
-	reporter := health.NewDefaultReporter(r.config.Name)
+	reporter := health.NewDefaultReporter(r.name)
 	for _, c := range r.Checkers {
 		log.Infof("running checker %s", c.Name())
 		c.Check(reporter)
 	}
 	return reporter.Status()
+}
+
+func (r *agent) serviceLoop() {
+	const serviceTimeout = 1 * time.Minute
+	for {
+		tick := time.After(serviceTimeout)
+		select {
+		case <-tick:
+			status := r.runChecks()
+			err := r.cache.UpdateNode(status)
+			if err != nil {
+				log.Errorf("error updating node status: %v", err)
+			}
+		}
+	}
 }
 
 type queryCommand string
@@ -145,7 +167,6 @@ var errUnknownQuery = errors.New("unknown query")
 func setupAgent(config *Config) *serfAgent.Config {
 	c := serfAgent.DefaultConfig()
 	c.BindAddr = config.BindAddr
-	c.RPCAddr = config.RPCAddr
 	return c
 }
 
