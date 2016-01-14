@@ -10,11 +10,14 @@ import (
 // Client is an interface to communicate with the serf cluster via agent RPC.
 type Client interface {
 	Status() (*pb.SystemStatus, error)
+	LocalStatus() (*pb.NodeStatus, error)
 }
 
 type client struct {
 	pb.AgentServiceClient
 }
+
+var _ Client = (*client)(nil)
 
 func NewClient(addr string) (*client, error) {
 	conn, err := grpc.Dial(addr, grpc.WithInsecure())
@@ -29,6 +32,16 @@ func NewClient(addr string) (*client, error) {
 func (r *client) Status() (*pb.SystemStatus, error) {
 	// FIXME: implement proper timeouts and cancellation
 	resp, err := r.AgentServiceClient.Status(context.Background(), &pb.StatusRequest{})
+	if err != nil {
+		return nil, trace.Wrap(err)
+	}
+	return resp.Status, nil
+}
+
+// Status reports the status of the specific serf node.
+func (r *client) LocalStatus() (*pb.NodeStatus, error) {
+	// FIXME: implement proper timeouts and cancellation
+	resp, err := r.AgentServiceClient.LocalStatus(context.Background(), &pb.LocalStatusRequest{})
 	if err != nil {
 		return nil, trace.Wrap(err)
 	}

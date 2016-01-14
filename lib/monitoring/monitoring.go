@@ -39,10 +39,14 @@ type delegatingReporter struct {
 }
 
 func (r *delegatingReporter) add(err error) {
-	r.Reporter.Add(r.checker.Name(), err)
+	r.Reporter.Add(&pb.Probe{
+		Checker: r.checker.Name(),
+		Error:   err.Error(),
+		Status:  pb.ServiceStatusType_ServiceFailed,
+	})
 }
 
 func (r *delegatingReporter) addProbe(probe *pb.Probe) {
 	probe.Checker = r.checker.Name()
-	r.Reporter.AddProbe(probe)
+	r.Reporter.Add(probe)
 }

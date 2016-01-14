@@ -82,13 +82,14 @@ func run() error {
 		// planet agent mode
 		cagent = app.Command("agent", "Run planet agent")
 		// FIXME: wrap as HostPort
-		cagentBindAddr = cagent.Flag("bind-addr", "Address to bind network listeners to.  To use an IPv6 address, specify [::1] or [::1]:7946.").Default("0.0.0.0:7946").String()
-		cagentRPCAddr  = cagent.Flag("rpc-addr", "Address to bind the RPC listener to.").Default("127.0.0.1:7575").String()
-		cagentKubeAddr = cagent.Flag("kube-addr", "Address of the kubernetes api server").Default("127.0.0.1:8080").String()
-		cagentJoin     = cagent.Flag("join", "Address of the agent to join").String()
-		cagentRole     = cagent.Flag("role", "Agent operating role (master/node)").Default("master").String()
-		cagentName     = cagent.Flag("name", "Agent name").String()
-		cagentStateDir = cagent.Flag("state-dir", "Directory where agent-specific state like health stats is stored").Default("/var/planet/agent").String()
+		cagentBindAddr    = cagent.Flag("bind-addr", "Address to bind network listeners to.  To use an IPv6 address, specify [::1] or [::1]:7946.").Default("0.0.0.0:7946").String()
+		cagentRPCAddr     = cagent.Flag("rpc-addr", "Address to bind the RPC listener to").Default("127.0.0.1:7575").String()
+		cagentKubeAddr    = cagent.Flag("kube-addr", "Address of the kubernetes api server").Default("127.0.0.1:8080").String()
+		cagentSerfPeers   = List(cagent.Flag("peer", "Address of the serf node to join with.  Can be specified multiple times"))
+		cagentSerfRPCAddr = cagent.Flag("serf-rpc-addr", "RPC address of the local serf node").Default("127.0.0.1:7373").String()
+		cagentRole        = cagent.Flag("role", "Agent operating role (master/node)").Default("master").String()
+		cagentName        = cagent.Flag("name", "Agent name.  Must be the same as the name of the local serf node").String()
+		cagentStateDir    = cagent.Flag("state-dir", "Directory where agent-specific state like health stats is stored").Default("/var/planet/agent").String()
 
 		// report status of the cluster
 		cstatus        = app.Command("status", "Query the planet cluster status")
@@ -139,11 +140,12 @@ func run() error {
 			break
 		}
 		conf := &agent.Config{
-			Name:      *cagentName,
-			BindAddr:  *cagentBindAddr,
-			RPCAddr:   *cagentRPCAddr,
-			LogOutput: os.Stderr,
-			Cache:     cache,
+			Name:        *cagentName,
+			BindAddr:    *cagentBindAddr,
+			RPCAddr:     *cagentRPCAddr,
+			SerfRPCAddr: *cagentSerfRPCAddr,
+			LogOutput:   os.Stderr,
+			Cache:       cache,
 		}
 		monitoringConf := &monitoring.Config{
 			Role:     monitoring.Role(*cagentRole),
@@ -151,7 +153,7 @@ func run() error {
 		}
 		// MasterIP: *cstartMasterIP,
 		// ClusterIP: clusterIP(*cstartServiceSubnet),
-		err = runAgent(conf, monitoringConf, *cagentJoin)
+		err = runAgent(conf, monitoringConf, []string(*cagentSerfPeers))
 
 	// "start" command
 	case cstart.FullCommand():

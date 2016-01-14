@@ -14,7 +14,7 @@ import (
 
 type agentRole monitoring.Role
 
-func runAgent(conf *agent.Config, monitoringConf *monitoring.Config, join string) error {
+func runAgent(conf *agent.Config, monitoringConf *monitoring.Config, peers []string) error {
 	if conf.Tags == nil {
 		conf.Tags = make(map[string]string)
 	}
@@ -32,8 +32,10 @@ func runAgent(conf *agent.Config, monitoringConf *monitoring.Config, join string
 		return err
 	}
 	if monitoringConf.Role == monitoring.RoleNode {
-		noReplay := false
-		agent.Join([]string{join}, noReplay)
+		err = agent.Join(peers)
+		if err != nil {
+			return trace.Wrap(err, "failed to join serf cluster")
+		}
 	}
 	return handleAgentSignals(agent)
 }
@@ -65,7 +67,5 @@ func handleAgentSignals(agent agent.Agent) error {
 	select {
 	case <-signalc:
 		return agent.Close()
-	case <-agent.ShutdownCh():
-		return nil
 	}
 }

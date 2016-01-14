@@ -1,10 +1,10 @@
 package agent
 
 import (
-	"encoding/json"
 	"fmt"
 	"net"
 
+	"github.com/gravitational/planet/Godeps/_workspace/src/github.com/gravitational/log"
 	"github.com/gravitational/planet/Godeps/_workspace/src/github.com/gravitational/trace"
 	"github.com/gravitational/planet/Godeps/_workspace/src/golang.org/x/net/context"
 	"github.com/gravitational/planet/Godeps/_workspace/src/google.golang.org/grpc"
@@ -18,38 +18,61 @@ type server struct {
 
 // pb.AgentServiceServer
 func (r *server) Status(ctx context.Context, req *pb.StatusRequest) (*pb.StatusResponse, error) {
-	q := &agentQuery{
-		Serf: r.Serf(),
-		cmd:  string(cmdStatus),
-	}
-	if err := q.run(); err != nil {
-		return nil, trace.Wrap(err, "failed to run serf query")
-	}
-
 	resp := &pb.StatusResponse{Status: &pb.SystemStatus{}}
 
-	members := r.Serf().Members()
+	members, err := r.serfClient.Members()
+	if err != nil {
+		return nil, trace.Wrap(err, "failed to query serf members")
+	}
+
 	for _, member := range members {
 		resp.Status.Nodes = append(resp.Status.Nodes, &pb.Node{
 			Name:   member.Name,
-			Status: pb.MemberStatusType(member.Status),
+			Status: toMemberStatus(member.Status),
 			Tags:   member.Tags,
 			Addr:   fmt.Sprintf("%s:%d", member.Addr.String(), member.Port),
 		})
-	}
-	for _, response := range q.responses {
-		status := &pb.NodeStatus{}
-		if err := json.Unmarshal(response, &status); err != nil {
-			// FIXME: do not fail on not well-formed response?
-			return nil, trace.Wrap(err, "failed to unmarshal query result")
+		var status *pb.NodeStatus
+		if r.name == member.Name {
+			status, err = r.getStatus()
+		} else {
+			status, err = r.getStatusFrom(member.Addr)
 		}
-		// Update agent cache
-		r.agent.cache.UpdateNode(status)
-		resp.Status.NodeStatuses = append(resp.Status.NodeStatuses, status)
+		if err != nil {
+			log.Errorf("failed to query status of serf node %s (%v)", member.Name, member.Addr)
+		} else {
+			// Update agent cache
+			r.agent.cache.UpdateNode(status)
+			resp.Status.NodeStatuses = append(resp.Status.NodeStatuses, status)
+		}
 	}
 	setSystemStatus(resp)
 
 	return resp, nil
+}
+
+func (r *server) LocalStatus(ctx context.Context, req *pb.LocalStatusRequest) (*pb.LocalStatusResponse, error) {
+	resp := &pb.LocalStatusResponse{Status: &pb.NodeStatus{}}
+
+	status, err := r.agent.getStatus()
+	if err != nil {
+		return nil, trace.Wrap(err)
+	}
+	// Update agent cache
+	r.agent.cache.UpdateNode(status)
+
+	return resp, nil
+}
+
+func (r *server) getStatusFrom(addr net.IP) (result *pb.NodeStatus, err error) {
+	const RPCPort = 7575 // FIXME: serf for agent address discovery?
+	client, err := NewClient(fmt.Sprintf("%s:%d", addr.String(), RPCPort))
+	if err != nil {
+		return nil, trace.Wrap(err)
+	}
+	var status *pb.NodeStatus
+	status, err = client.LocalStatus()
+	return status, nil
 }
 
 func newRPCServer(agent *agent, listener net.Listener) *server {
@@ -68,7 +91,7 @@ func setSystemStatus(resp *pb.StatusResponse) {
 		if member.Status == pb.MemberStatusType_MemberFailed {
 			resp.Status.Status = pb.StatusType_SystemDegraded
 		}
-		if value, ok := member.Tags["role"]; !foundMaster && ok && value == "master" {
+		if !foundMaster && isMaster(member) {
 			foundMaster = true
 		}
 	}
@@ -82,4 +105,23 @@ func setSystemStatus(resp *pb.StatusResponse) {
 		resp.Status.Status = pb.StatusType_SystemDegraded
 		resp.Summary = "master node unavailable"
 	}
+}
+
+func isMaster(member *pb.Node) bool {
+	value, ok := member.Tags["role"]
+	return ok && value == "master"
+}
+
+func toMemberStatus(status string) pb.MemberStatusType {
+	switch status {
+	case "alive":
+		return pb.MemberStatusType_MemberAlive
+	case "leaving":
+		return pb.MemberStatusType_MemberLeaving
+	case "left":
+		return pb.MemberStatusType_MemberLeft
+	case "failed":
+		return pb.MemberStatusType_MemberFailed
+	}
+	return pb.MemberStatusType_MemberNone
 }

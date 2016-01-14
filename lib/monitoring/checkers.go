@@ -29,7 +29,7 @@ func AddCheckers(agent agent.Agent, conf *Config) {
 	case RoleNode:
 		agent.AddChecker(kubeletHealth())
 		agent.AddChecker(dockerHealth())
-		agent.AddChecker(etcdServiceHealth(conf.KubeAddr))
+		agent.AddChecker(etcdHealth())
 		agent.AddChecker(systemdHealth())
 	}
 }
@@ -48,10 +48,6 @@ func componentStatusHealth(kubeAddr string) health.Checker {
 
 func etcdHealth() health.Checker {
 	return newChecker(newHTTPHealthzChecker("http://127.0.0.1:2379/health", etcdChecker), "etcd-healthz")
-}
-
-func etcdServiceHealth(kubeAddr string) health.Checker {
-	return newChecker(&kubeChecker{hostPort: kubeAddr, checkerFunc: etcdKubeServiceChecker}, "etcd-service")
 }
 
 func dockerHealth() health.Checker {

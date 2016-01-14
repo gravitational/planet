@@ -11,6 +11,13 @@ message StatusResponse {
   string summary = 2;
 }
 
+message LocalStatusRequest {
+}
+
+message LocalStatusResponse {
+  NodeStatus status = 1;
+}
+
 // SystemStatus describes the health status of the cluster.
 message SystemStatus {
   StatusType status = 1;
@@ -78,4 +85,5 @@ message Timestamp {
 
 service AgentService {
   rpc Status(StatusRequest) returns (StatusResponse) {}
+  rpc LocalStatus(LocalStatusRequest) returns (LocalStatusResponse) {}
 }

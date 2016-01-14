@@ -27,8 +27,7 @@ type CheckerRepository interface {
 // Reporter defines an obligation to report structured errors.
 type Reporter interface {
 	// Add adds an error report for the checker named name
-	Add(checker string, err error)
-	AddProbe(probe *pb.Probe)
+	Add(probe *pb.Probe)
 	Status() *pb.NodeStatus
 }
 
@@ -44,17 +43,7 @@ func NewDefaultReporter(name string) Reporter {
 	}}
 }
 
-func (r *defaultReporter) Add(checker string, err error) {
-	r.status.Probes = append(r.status.Probes, &pb.Probe{
-		Checker:   checker,
-		Error:     err.Error(),
-		Status:    pb.ServiceStatusType_ServiceFailed,
-		Timestamp: pb.TimeToProto(time.Now()),
-	})
-	r.status.Status = pb.StatusType_SystemDegraded
-}
-
-func (r *defaultReporter) AddProbe(probe *pb.Probe) {
+func (r *defaultReporter) Add(probe *pb.Probe) {
 	r.status.Probes = append(r.status.Probes, probe)
 	if probe.Timestamp == nil {
 		probe.Timestamp = pb.TimeToProto(time.Now())
