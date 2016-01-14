@@ -13,25 +13,28 @@ import (
 )
 
 type Config struct {
-	Roles              list
-	InsecureRegistries list
-	Rootfs             string
-	SocketPath         string
-	PublicIP           string
-	MasterIP           string
-	CloudProvider      string
-	ClusterID          string
-	Env                box.EnvVars
-	Mounts             box.Mounts
-	Files              []box.File
-	IgnoreChecks       bool
-	StateDir           string
-	DockerBackend      string
-	ServiceSubnet      CIDR
-	PODSubnet          CIDR
-	ServiceUser        *user.User
-	ServiceUID         string
-	ServiceGID         string
+	Roles                   list
+	InsecureRegistries      list
+	Rootfs                  string
+	SocketPath              string
+	PublicIP                string
+	MasterIP                string
+	CloudProvider           string
+	ClusterID               string
+	Env                     box.EnvVars
+	Mounts                  box.Mounts
+	Files                   []box.File
+	IgnoreChecks            bool
+	StateDir                string
+	DockerBackend           string
+	ServiceSubnet           CIDR
+	PODSubnet               CIDR
+	ServiceUser             *user.User
+	ServiceUID              string
+	ServiceGID              string
+	EtcdMemberName          string
+	EtcdInitialCluster      string
+	EtcdInitialClusterState string
 }
 
 func (cfg *Config) hasRole(r string) bool {

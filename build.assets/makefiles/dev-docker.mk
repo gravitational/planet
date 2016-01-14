@@ -7,7 +7,7 @@ ASSETDIR := /assetdir
 
 all:
 	make -C $(ASSETS)/makefiles -f common-docker.mk
-	make -C $(ASSETS)/makefiles/master/etcd -f etcd.mk
+	make -C $(ASSETS)/makefiles/etcd -f etcd.mk
 	make -C $(ASSETS)/makefiles/master/dns -f dns.mk
 	make -C $(ASSETS)/makefiles/node/k8s-node -f k8s-node.mk
 	make -C $(ASSETS)/makefiles/master/k8s-master -f k8s-master.mk

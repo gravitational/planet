@@ -68,6 +68,24 @@
                 }
             },
             {
+                "type": "String",
+                "name": "etcdmembername",
+                "env": "PLANET_ETCD_MEMBER_NAME",
+                "cli": {"name": "etcd-member-name"}
+            },
+            {
+                "type": "String",
+                "name": "etcdinitialcluster",
+                "env": "PLANET_ETCD_INITIAL_CLUSTER",
+                "cli": {"name": "etcd-initial-cluster"}
+            },
+            {
+                "type": "String",
+                "name": "etcdinitialclusterstate",
+                "env": "PLANET_ETCD_INITIAL_CLUSTER_STATE",
+                "cli": {"name": "etcd-initial-cluster-state"}
+            },
+            {
                 "type": "List",
                 "name": "roles",
                 "spec": {

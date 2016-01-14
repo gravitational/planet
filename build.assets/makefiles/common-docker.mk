@@ -11,10 +11,11 @@ all: $(ASSETDIR)/planet
 	make -C $(ASSETS)/makefiles/base/docker -f registry.mk
 	make -C $(ASSETS)/makefiles/kubernetes -f kubernetes.mk
 	make -C $(ASSETS)/makefiles/monit -f monitoring.mk
+	make -C $(ASSETS)/makefiles/etcd -f etcd.mk
 
 $(ASSETDIR)/planet: .FORCE
-	# Add to ldflags to compile a completely static version of the planet binary (w/o the glibc dependency)
-	# -ldflags '-extldflags "-static"'
+# Add to ldflags to compile a completely static version of the planet binary (w/o the glibc dependency)
+# -ldflags '-extldflags "-static"'
 	GOOS=linux GOARCH=amd64 go build -ldflags "$(PLANET_GO_LDFLAGS)" -o $@ github.com/gravitational/planet/tool/planet
 
 # force recompilation
