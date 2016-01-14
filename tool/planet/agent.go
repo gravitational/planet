@@ -47,7 +47,7 @@ func clusterStatus(rpcAddr string) (ok bool, err error) {
 	if err != nil {
 		return false, trace.Wrap(err)
 	}
-	ok = status.Status == pb.SystemStatusType_SystemRunning
+	ok = status.Status == pb.StatusType_SystemRunning
 	statusJson, err := json.MarshalIndent(status, "", "   ")
 	if err != nil {
 		return ok, trace.Wrap(err, "failed to marshal status data")

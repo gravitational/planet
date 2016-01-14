@@ -7,13 +7,13 @@ message StatusRequest {
 
 message StatusResponse {
   SystemStatus status = 1;
-  // FIXME: extra field for missing master?
-  bool master_node_missing = 2;
+  // Human-readable status summary.
+  string summary = 2;
 }
 
 // SystemStatus describes the health status of the cluster.
 message SystemStatus {
-  SystemStatusType status = 1;
+  StatusType status = 1;
   // Current list of members of the serf cluster.
   repeated Node nodes = 2;
   // Health status of individual nodes.
@@ -23,7 +23,7 @@ message SystemStatus {
 message Node {
   string name = 1;
   string addr = 2;
-  string status = 3;
+  MemberStatusType status = 3;
   map<string, string> tags = 4;
 }
 
@@ -31,10 +31,11 @@ message Node {
 message NodeStatus {
   string name = 1;
 
+  StatusType status = 2;
   // Probes lists all the health probes collected during the health check.
   // For simplicity, only probes for alerts are collected.  Thus, for a healthy
   // system, the Probes will be empty.
-  repeated Probe probes = 2;
+  repeated Probe probes = 3;
 }
 
 message Probe {
@@ -49,14 +50,25 @@ message Probe {
   string error = 5;
 }
 
-enum SystemStatusType {
-  SystemRunning = 0;
-  SystemDegraded = 1;
+enum MemberStatusType {
+  MemberNone = 0;
+  MemberAlive = 1;
+  MemberLeaving = 2;
+  MemberLeft = 3;
+  MemberFailed = 4;
+}
+
+enum StatusType {
+  SystemUnknown = 0;
+  SystemRunning = 1;
+  SystemDegraded = 2;
 }
 
 enum ServiceStatusType {
-  ServiceRunning = 0;
-  ServiceFailed = 1;
+  ServiceUnknown = 0;
+  ServiceRunning = 1;
+  ServiceFailed = 2;
+  ServiceTerminated = 3;
 }
 
 message Timestamp {

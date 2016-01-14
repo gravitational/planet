@@ -32,20 +32,22 @@ func (r *server) Status(ctx context.Context, req *pb.StatusRequest) (*pb.StatusR
 	for _, member := range members {
 		resp.Status.Nodes = append(resp.Status.Nodes, &pb.Node{
 			Name:   member.Name,
-			Status: member.Status.String(),
+			Status: pb.MemberStatusType(member.Status),
 			Tags:   member.Tags,
 			Addr:   fmt.Sprintf("%s:%d", member.Addr.String(), member.Port),
 		})
 	}
 	for _, response := range q.responses {
-		ns := &pb.NodeStatus{}
-		if err := json.Unmarshal(response, &ns); err != nil {
+		status := &pb.NodeStatus{}
+		if err := json.Unmarshal(response, &status); err != nil {
+			// FIXME: do not fail on not well-formed response?
 			return nil, trace.Wrap(err, "failed to unmarshal query result")
 		}
 		// Update agent cache
-		r.agent.cache.UpdateNode(ns)
-		resp.Status.NodeStatuses = append(resp.Status.NodeStatuses, ns)
+		r.agent.cache.UpdateNode(status)
+		resp.Status.NodeStatuses = append(resp.Status.NodeStatuses, status)
 	}
+	setSystemStatus(resp)
 
 	return resp, nil
 }
@@ -56,4 +58,28 @@ func newRPCServer(agent *agent, listener net.Listener) *server {
 	pb.RegisterAgentServiceServer(backend, server)
 	go backend.Serve(listener)
 	return server
+}
+
+func setSystemStatus(resp *pb.StatusResponse) {
+	var foundMaster bool
+
+	resp.Status.Status = pb.StatusType_SystemRunning
+	for _, member := range resp.Status.Nodes {
+		if member.Status == pb.MemberStatusType_MemberFailed {
+			resp.Status.Status = pb.StatusType_SystemDegraded
+		}
+		if value, ok := member.Tags["role"]; !foundMaster && ok && value == "master" {
+			foundMaster = true
+		}
+	}
+	for _, node := range resp.Status.NodeStatuses {
+		resp.Status.Status = node.Status
+		if node.Status != pb.StatusType_SystemRunning {
+			break
+		}
+	}
+	if !foundMaster {
+		resp.Status.Status = pb.StatusType_SystemDegraded
+		resp.Summary = "master node unavailable"
+	}
 }

@@ -7,6 +7,8 @@ import (
 	"net"
 	"net/http"
 	"time"
+
+	pb "github.com/gravitational/planet/lib/agent/proto/agentpb"
 )
 
 const healthzCheckTimeout = 1 * time.Second
@@ -31,10 +33,16 @@ func (r *httpHealthzChecker) check(reporter reporter) {
 	defer resp.Body.Close()
 	if resp.StatusCode != http.StatusOK {
 		reporter.add(fmt.Errorf("unexpected HTTP status: %s", http.StatusText(resp.StatusCode)))
+		return
 	}
 	err = r.checkerFunc(resp.Body)
 	if err != nil {
 		reporter.add(err)
+	} else {
+		reporter.addProbe(&pb.Probe{
+			Status: pb.ServiceStatusType_ServiceRunning,
+			Error:  "ok",
+		})
 	}
 }
 

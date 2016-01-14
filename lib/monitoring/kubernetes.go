@@ -9,6 +9,7 @@ import (
 	"net/url"
 
 	kube "github.com/gravitational/planet/Godeps/_workspace/src/k8s.io/kubernetes/pkg/client/unversioned"
+	pb "github.com/gravitational/planet/lib/agent/proto/agentpb"
 )
 
 // generic kubernetes healthz checker
@@ -65,6 +66,11 @@ func (r *kubeChecker) check(reporter reporter) {
 	err = r.checkerFunc(client)
 	if err != nil {
 		reporter.add(err)
+	} else {
+		reporter.addProbe(&pb.Probe{
+			Status: pb.ServiceStatusType_ServiceRunning,
+			Error:  "ok",
+		})
 	}
 }
 

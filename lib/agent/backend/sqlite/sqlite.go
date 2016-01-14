@@ -2,6 +2,7 @@ package sqlite
 
 import (
 	"database/sql"
+	"database/sql/driver"
 	"path/filepath"
 	"time"
 
@@ -9,7 +10,6 @@ import (
 	"github.com/gravitational/planet/Godeps/_workspace/src/github.com/gravitational/trace"
 	"github.com/gravitational/planet/Godeps/_workspace/src/github.com/jmoiron/sqlx"
 	_ "github.com/gravitational/planet/Godeps/_workspace/src/github.com/mattn/go-sqlite3"
-	"github.com/gravitational/planet/lib/agent/proto"
 	pb "github.com/gravitational/planet/lib/agent/proto/agentpb"
 )
 
@@ -22,20 +22,21 @@ type backend struct {
 /*
 // Turn on foreign key enforcement (off by default since 3.6.19)
 PRAGMA foreign_keys = ON
+// TODO: store checkers in a separate table
 */
 
 const schema = `
 CREATE TABLE IF NOT EXISTS node (
 	id	INTEGER PRIMARY KEY NOT NULL,
 	name	TEXT UNIQUE,
-	-- active/left/unknown
-	status	CHAR(1)	CHECK(status IN ('A', 'L', 'N')) NOT NULL DEFAULT 'A'
+	-- active/left/failed
+	status	CHAR(1)	CHECK(status IN ('A', 'L', 'F')) NOT NULL DEFAULT 'A'
 );
 
--- Keep the history of nodes becoming healthy.
-CREATE TABLE IF NOT EXISTS node_health (
-	node 	   PRIMARY KEY NOT NULL,
-	healthy_at TIMESTAMP NOT NULL
+CREATE TABLE IF NOT EXISTS checker (
+	id   INTEGER PRIMARY KEY NOT NULL,
+	name TEXT UNIQUE,
+	desc TEXT
 );
 
 -- composite ID: (node, checker, captured_at)
@@ -43,8 +44,8 @@ CREATE TABLE IF NOT EXISTS probe (
 	node	    INTEGER NOT NULL,
 	checker	    TEXT NOT NULL,
 	extra 	    TEXT,
-	-- running/failed
-	status	    CHAR(1) CHECK(status IN ('H', 'F')) NOT NULL DEFAULT 'F',
+	-- running/failed/terminated
+	status	    CHAR(1) CHECK(status IN ('H', 'F', 'T')) NOT NULL DEFAULT 'F',
 	error	    TEXT NOT NULL,
 	captured_at TIMESTAMP NOT NULL
 );
@@ -94,14 +95,14 @@ func (r *backend) RecentStatus(node string) ([]*pb.Probe, error) {
 	var probes []*pb.Probe
 	for rows.Next() {
 		probe := pb.Probe{}
-		var timestamp time.Time
+		var when timestamp
 		var status string
-		err = rows.Scan(&probe.Checker, &probe.Extra, &status, &probe.Error, &timestamp)
+		err = rows.Scan(&probe.Checker, &probe.Extra, &status, &probe.Error, &when)
 		if err != nil {
 			return nil, trace.Wrap(err)
 		}
-		probe.Timestamp = proto.TimeToProto(timestamp)
-		probe.Status = statusFromString(status)
+		probe.Timestamp = (*pb.Timestamp)(&when)
+		probe.Status = serviceStatus(status).toProto()
 		probes = append(probes, &probe)
 	}
 	err = rows.Err()
@@ -139,8 +140,8 @@ func (r *backend) addStatus(node int64, status *pb.NodeStatus) (err error) {
 		VALUES(?, ?, ?, ?, ?, ?)
 	`
 	for _, probe := range status.Probes {
-		_, err = r.Exec(insertStmt, node, probe.Checker, probe.Extra, serviceStatus(probe.Status).String(),
-			probe.Error, proto.ProtoToTime(probe.Timestamp))
+		_, err = r.Exec(insertStmt, node, probe.Checker, probe.Extra, protoToStatus(probe.Status),
+			probe.Error, timestamp(*probe.Timestamp))
 		if err != nil {
 			return trace.Wrap(err)
 		}
@@ -148,28 +149,48 @@ func (r *backend) addStatus(node int64, status *pb.NodeStatus) (err error) {
 	return nil
 }
 
-type serviceStatus pb.ServiceStatusType
+type serviceStatus string
 
-func (r serviceStatus) String() string {
-	switch pb.ServiceStatusType(r) {
+func protoToStatus(status pb.ServiceStatusType) serviceStatus {
+	switch status {
 	case pb.ServiceStatusType_ServiceRunning:
-		return "H"
+		return serviceStatus("H")
+	case pb.ServiceStatusType_ServiceTerminated:
+		return serviceStatus("T")
 	case pb.ServiceStatusType_ServiceFailed:
 		fallthrough
 	default:
-		return "F"
+		return serviceStatus("F")
 	}
 }
 
-func statusFromString(s string) pb.ServiceStatusType {
+func (s serviceStatus) toProto() pb.ServiceStatusType {
 	switch s {
 	case "H":
 		return pb.ServiceStatusType_ServiceRunning
+	case "T":
+		return pb.ServiceStatusType_ServiceTerminated
 	case "F":
 		fallthrough
 	default:
 		return pb.ServiceStatusType_ServiceFailed
 	}
+}
+
+func (s serviceStatus) Value() (value driver.Value, err error) {
+	return string(s), nil
+}
+
+type timestamp pb.Timestamp
+
+// sql.Scanner
+func (ts *timestamp) Scan(src interface{}) error {
+	return (*pb.Timestamp)(ts).UnmarshalText(src.([]byte))
+}
+
+// driver.Valuer
+func (ts timestamp) Value() (value driver.Value, err error) {
+	return pb.Timestamp(ts).MarshalText()
 }
 
 const scavengeTimeout = 24 * time.Hour

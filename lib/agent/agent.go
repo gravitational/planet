@@ -2,7 +2,6 @@ package agent
 
 import (
 	"encoding/json"
-	"errors"
 	"io"
 	"net"
 	"strconv"
@@ -56,13 +55,18 @@ func New(config *Config) (Agent, error) {
 	if err != nil {
 		return nil, trace.Wrap(err)
 	}
+	listener, err := net.Listen("tcp", config.RPCAddr)
+	if err != nil {
+		return nil, trace.Wrap(err)
+	}
 	agent := &agent{
 		Agent:     serfAgent,
 		name:      config.Name,
-		rpcAddr:   config.RPCAddr,
 		logOutput: config.LogOutput,
 		cache:     config.Cache,
 	}
+	agent.rpc = newRPCServer(agent, listener)
+
 	serfAgent.RegisterEventHandler(agent)
 	return agent, nil
 }
@@ -71,9 +75,10 @@ type agent struct {
 	*serfAgent.Agent
 	health.Checkers
 
-	rpcAddr string
-	rpc     *server
-
+	// RPC server agent uses for client communication as well as
+	// status sync with other agents.
+	rpc *server
+	// cache persists node status history.
 	cache cache.Cache
 
 	name      string
@@ -85,12 +90,7 @@ func (r *agent) Start() error {
 	if err != nil {
 		return trace.Wrap(err)
 	}
-	listener, err := net.Listen("tcp", r.rpcAddr)
-	if err != nil {
-		return trace.Wrap(err)
-	}
-	r.rpc = newRPCServer(r, listener)
-	go r.serviceLoop()
+	go r.statusUpdateLoop()
 	return nil
 }
 
@@ -141,10 +141,10 @@ func (r *agent) runChecks() *pb.NodeStatus {
 	return reporter.Status()
 }
 
-func (r *agent) serviceLoop() {
-	const serviceTimeout = 1 * time.Minute
+func (r *agent) statusUpdateLoop() {
+	const updateTimeout = 1 * time.Minute
 	for {
-		tick := time.After(serviceTimeout)
+		tick := time.After(updateTimeout)
 		select {
 		case <-tick:
 			status := r.runChecks()
@@ -156,13 +156,8 @@ func (r *agent) serviceLoop() {
 	}
 }
 
-type queryCommand string
-
-const (
-	cmdStatus queryCommand = "status"
-)
-
-var errUnknownQuery = errors.New("unknown query")
+// TODO: add handling of serf events.
+// Update node status on member leave/fail events.
 
 func setupAgent(config *Config) *serfAgent.Config {
 	c := serfAgent.DefaultConfig()
@@ -191,36 +186,4 @@ func mustAtoi(value string) int {
 		panic(err)
 	}
 	return result
-}
-
-type agentQuery struct {
-	*serf.Serf
-	resp      *serf.QueryResponse
-	cmd       string
-	timeout   time.Duration
-	responses map[string][]byte
-}
-
-func (r *agentQuery) start() (err error) {
-	conf := &serf.QueryParam{
-		Timeout: r.timeout,
-	}
-	var noPayload []byte
-	r.resp, err = r.Serf.Query(r.cmd, noPayload, conf)
-	if err != nil {
-		return trace.Wrap(err)
-	}
-	return nil
-}
-
-func (r *agentQuery) run() error {
-	if err := r.start(); err != nil {
-		return trace.Wrap(err, "failed to start serf query")
-	}
-	r.responses = make(map[string][]byte)
-	for response := range r.resp.ResponseCh() {
-		log.Infof("response from %s: %s", response.From, response)
-		r.responses[response.From] = response.Payload
-	}
-	return nil
 }
