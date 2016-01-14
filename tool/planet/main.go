@@ -68,7 +68,7 @@ func run() error {
 		cstartTestSpec                = cstart.Flag("test-spec", "Regexp of the test specs to run (self-test mode only)").Default("Networking|Pods").String()
 		cstartTestKubeRepoPath        = cstart.Flag("repo-path", "Path to either a k8s repository or a directory with test configuration files (self-test mode only)").String()
 		cstartEtcdMemberName          = cstart.Flag("etcd-member-name", "Etcd member name").OverrideDefaultFromEnvar("PLANET_ETCD_MEMBER_NAME").String()
-		cstartEtcdInitialCluster      = cstart.Flag("etcd-initial-cluster", "Etcd initial cluster state, list of http peers").OverrideDefaultFromEnvar("PLANET_ETCD_INITIAL_CLUSTER").String()
+		cstartEtcdInitialCluster      = cstart.Flag("etcd-initial-cluster", "initial etcd cluster configuration (list of peers)").OverrideDefaultFromEnvar("PLANET_ETCD_INITIAL_CLUSTER").String()
 		cstartEtcdInitialClusterState = cstart.Flag("etcd-initial-cluster-state", "Etcd initial cluster state: 'new' or 'existing'").OverrideDefaultFromEnvar("PLANET_ETCD_INITIAL_CLUSTER_STATE").String()
 
 		// stop a running container
