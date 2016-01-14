@@ -8,6 +8,5 @@ ASSETDIR := /assetdir
 all:
 	make -C $(ASSETS)/makefiles -f common-docker.mk
 	make -C $(ASSETS)/makefiles/node/k8s-node -f k8s-node.mk
-	make -C $(ASSETS)/makefiles/node/etcdctl -f etcdctl.mk
 # shrink rootfs:
 	make -e ROOTFS=$(ROOTFS) -C $(ASSETS)/makefiles -f shrink-rootfs.mk

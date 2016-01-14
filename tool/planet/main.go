@@ -50,23 +50,26 @@ func run() error {
 		// start the container with planet
 		cstart = app.Command("start", "Start Planet container")
 
-		cstartPublicIP           = cstart.Flag("public-ip", "IP accessible by other nodes for inter-host communication").OverrideDefaultFromEnvar("PLANET_PUBLIC_IP").IP()
-		cstartMasterIP           = cstart.Flag("master-ip", "IP of the master POD (defaults to public-ip)").OverrideDefaultFromEnvar("PLANET_MASTER_IP").IP()
-		cstartCloudProvider      = cstart.Flag("cloud-provider", "cloud provider name, e.g. 'aws' or 'gce'").OverrideDefaultFromEnvar("PLANET_CLOUD_PROVIDER").String()
-		cstartClusterID          = cstart.Flag("cluster-id", "id of the cluster").OverrideDefaultFromEnvar("PLANET_CLUSTER_ID").String()
-		cstartIgnoreChecks       = cstart.Flag("ignore-checks", "Force start ignoring some failed host checks (e.g. kernel version)").OverrideDefaultFromEnvar("PLANET_FORCE").Bool()
-		cstartEnv                = EnvVars(cstart.Flag("env", "Set environment variable").OverrideDefaultFromEnvar("PLANET_ENV"))
-		cstartMounts             = Mounts(cstart.Flag("volume", "External volume to mount").OverrideDefaultFromEnvar("PLANET_VOLUME"))
-		cstartRoles              = List(cstart.Flag("role", "Roles such as 'master' or 'node'").OverrideDefaultFromEnvar("PLANET_ROLE"))
-		cstartInsecureRegistries = List(cstart.Flag("insecure-registry", "Optional insecure registries").OverrideDefaultFromEnvar("PLANET_INSECURE_REGISTRY"))
-		cstartStateDir           = cstart.Flag("state-dir", "directory where planet-specific state like keys and certificates is stored").Default("/var/planet/state").OverrideDefaultFromEnvar("PLANET_STATE_DIR").String()
-		cstartServiceSubnet      = CIDRFlag(cstart.Flag("service-subnet", "subnet dedicated to the services in cluster").Default("10.100.0.0/16").OverrideDefaultFromEnvar("PLANET_SERVICE_SUBNET"))
-		cstartPODSubnet          = CIDRFlag(cstart.Flag("pod-subnet", "subnet dedicated to the pods in the cluster").Default("10.244.0.0/16").OverrideDefaultFromEnvar("PLANET_POD_SUBNET"))
-		cstartServiceUID         = cstart.Flag("service-uid", "uid to use for services").Default("1000").String()
-		cstartServiceGID         = cstart.Flag("service-gid", "gid to use for services (defaults to service-uid)").String()
-		cstartSelfTest           = cstart.Flag("self-test", "Run end-to-end tests on the started cluster").Bool()
-		cstartTestSpec           = cstart.Flag("test-spec", "Regexp of the test specs to run (self-test mode only)").Default("Networking|Pods").String()
-		cstartTestKubeRepoPath   = cstart.Flag("repo-path", "Path to either a k8s repository or a directory with test configuration files (self-test mode only)").String()
+		cstartPublicIP                = cstart.Flag("public-ip", "IP accessible by other nodes for inter-host communication").OverrideDefaultFromEnvar("PLANET_PUBLIC_IP").IP()
+		cstartMasterIP                = cstart.Flag("master-ip", "IP of the master POD (defaults to public-ip)").OverrideDefaultFromEnvar("PLANET_MASTER_IP").IP()
+		cstartCloudProvider           = cstart.Flag("cloud-provider", "cloud provider name, e.g. 'aws' or 'gce'").OverrideDefaultFromEnvar("PLANET_CLOUD_PROVIDER").String()
+		cstartClusterID               = cstart.Flag("cluster-id", "id of the cluster").OverrideDefaultFromEnvar("PLANET_CLUSTER_ID").String()
+		cstartIgnoreChecks            = cstart.Flag("ignore-checks", "Force start ignoring some failed host checks (e.g. kernel version)").OverrideDefaultFromEnvar("PLANET_FORCE").Bool()
+		cstartEnv                     = EnvVars(cstart.Flag("env", "Set environment variable").OverrideDefaultFromEnvar("PLANET_ENV"))
+		cstartMounts                  = Mounts(cstart.Flag("volume", "External volume to mount").OverrideDefaultFromEnvar("PLANET_VOLUME"))
+		cstartRoles                   = List(cstart.Flag("role", "Roles such as 'master' or 'node'").OverrideDefaultFromEnvar("PLANET_ROLE"))
+		cstartInsecureRegistries      = List(cstart.Flag("insecure-registry", "Optional insecure registries").OverrideDefaultFromEnvar("PLANET_INSECURE_REGISTRY"))
+		cstartStateDir                = cstart.Flag("state-dir", "directory where planet-specific state like keys and certificates is stored").Default("/var/planet/state").OverrideDefaultFromEnvar("PLANET_STATE_DIR").String()
+		cstartServiceSubnet           = CIDRFlag(cstart.Flag("service-subnet", "subnet dedicated to the services in cluster").Default("10.100.0.0/16").OverrideDefaultFromEnvar("PLANET_SERVICE_SUBNET"))
+		cstartPODSubnet               = CIDRFlag(cstart.Flag("pod-subnet", "subnet dedicated to the pods in the cluster").Default("10.244.0.0/16").OverrideDefaultFromEnvar("PLANET_POD_SUBNET"))
+		cstartServiceUID              = cstart.Flag("service-uid", "uid to use for services").Default("1000").String()
+		cstartServiceGID              = cstart.Flag("service-gid", "gid to use for services (defaults to service-uid)").String()
+		cstartSelfTest                = cstart.Flag("self-test", "Run end-to-end tests on the started cluster").Bool()
+		cstartTestSpec                = cstart.Flag("test-spec", "Regexp of the test specs to run (self-test mode only)").Default("Networking|Pods").String()
+		cstartTestKubeRepoPath        = cstart.Flag("repo-path", "Path to either a k8s repository or a directory with test configuration files (self-test mode only)").String()
+		cstartEtcdMemberName          = cstart.Flag("etcd-member-name", "Etcd member name").OverrideDefaultFromEnvar("PLANET_ETCD_MEMBER_NAME").String()
+		cstartEtcdInitialCluster      = cstart.Flag("etcd-initial-cluster", "initial etcd cluster configuration (list of peers)").OverrideDefaultFromEnvar("PLANET_ETCD_INITIAL_CLUSTER").String()
+		cstartEtcdInitialClusterState = cstart.Flag("etcd-initial-cluster-state", "Etcd initial cluster state: 'new' or 'existing'").OverrideDefaultFromEnvar("PLANET_ETCD_INITIAL_CLUSTER_STATE").String()
 
 		// stop a running container
 		cstop = app.Command("stop", "Stop planet container")
@@ -122,22 +125,25 @@ func run() error {
 		}
 		setupSignalHanlders(rootfs, *socketPath)
 		config := &Config{
-			Rootfs:             rootfs,
-			SocketPath:         *socketPath,
-			Env:                *cstartEnv,
-			Mounts:             *cstartMounts,
-			IgnoreChecks:       *cstartIgnoreChecks,
-			Roles:              *cstartRoles,
-			InsecureRegistries: *cstartInsecureRegistries,
-			MasterIP:           cstartMasterIP.String(),
-			PublicIP:           cstartPublicIP.String(),
-			CloudProvider:      *cstartCloudProvider,
-			ClusterID:          *cstartClusterID,
-			StateDir:           *cstartStateDir,
-			ServiceSubnet:      *cstartServiceSubnet,
-			PODSubnet:          *cstartPODSubnet,
-			ServiceUID:         *cstartServiceUID,
-			ServiceGID:         *cstartServiceGID,
+			Rootfs:                  rootfs,
+			SocketPath:              *socketPath,
+			Env:                     *cstartEnv,
+			Mounts:                  *cstartMounts,
+			IgnoreChecks:            *cstartIgnoreChecks,
+			Roles:                   *cstartRoles,
+			InsecureRegistries:      *cstartInsecureRegistries,
+			MasterIP:                cstartMasterIP.String(),
+			PublicIP:                cstartPublicIP.String(),
+			CloudProvider:           *cstartCloudProvider,
+			ClusterID:               *cstartClusterID,
+			StateDir:                *cstartStateDir,
+			ServiceSubnet:           *cstartServiceSubnet,
+			PODSubnet:               *cstartPODSubnet,
+			ServiceUID:              *cstartServiceUID,
+			ServiceGID:              *cstartServiceGID,
+			EtcdMemberName:          *cstartEtcdMemberName,
+			EtcdInitialCluster:      *cstartEtcdInitialCluster,
+			EtcdInitialClusterState: *cstartEtcdInitialClusterState,
 		}
 		if *cstartSelfTest {
 			err = selfTest(config, *cstartTestKubeRepoPath, *cstartTestSpec, extraArgs)

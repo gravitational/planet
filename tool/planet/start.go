@@ -95,18 +95,13 @@ func start(config *Config, monitorc chan<- bool) (*box.Box, error) {
 	}
 
 	// validate the mounts:
-	if config.hasRole("master") {
-		if err = checkMasterMounts(config); err != nil {
-			return nil, trace.Wrap(err)
-		}
-	} else if config.hasRole("node") {
-		if err = checkNodeMounts(config); err != nil {
-			return nil, trace.Wrap(err)
-		}
-	} else {
+	if err = checkRequiredMounts(config); err != nil {
+		return nil, trace.Wrap(err)
+	}
+	// make sure the role is set
+	if !config.hasRole("master") && !config.hasRole("node") {
 		return nil, trace.Errorf("--role parameter must be set")
 	}
-
 	if err = configureMonitrcPermissions(config.Rootfs); err != nil {
 		return nil, trace.Wrap(err)
 	}
@@ -118,6 +113,9 @@ func start(config *Config, monitorc chan<- bool) (*box.Box, error) {
 		box.EnvPair{Name: "KUBE_POD_SUBNET", Val: config.PODSubnet.String()},
 		box.EnvPair{Name: "PLANET_PUBLIC_IP", Val: config.PublicIP},
 		box.EnvPair{Name: "KUBE_CLUSTER_DNS_IP", Val: config.ServiceSubnet.RelativeIP(3).String()},
+		box.EnvPair{Name: "ETCD_MEMBER_NAME", Val: config.EtcdMemberName},
+		box.EnvPair{Name: "ETCD_INITIAL_CLUSTER", Val: config.EtcdInitialCluster},
+		box.EnvPair{Name: "ETCD_INITIAL_CLUSTER_STATE", Val: config.EtcdInitialClusterState},
 	)
 
 	// Always trust local registry (for now)
@@ -420,7 +418,7 @@ const (
 	ContainerEnvironmentFile = "/etc/container-environment"
 )
 
-func checkMasterMounts(cfg *Config) error {
+func checkRequiredMounts(cfg *Config) error {
 	expected := map[string]bool{
 		EtcdWorkDir:   false,
 		DockerWorkDir: false,
@@ -433,38 +431,11 @@ func checkMasterMounts(cfg *Config) error {
 		if _, ok := expected[dst]; ok {
 			expected[dst] = true
 		}
-		if dst == EtcdWorkDir && cfg.hasRole("master") {
+		if dst == EtcdWorkDir {
 			// chown <service user>:<service group> /ext/etcd -r
 			if err := chownDir(m.Src, uid, gid); err != nil {
 				return err
 			}
-		}
-		if dst == DockerWorkDir {
-			if ok, _ := check.IsBtrfsVolume(m.Src); ok == true {
-				cfg.DockerBackend = "btrfs"
-				log.Warningf("Docker work dir is on btrfs volume: %v", m.Src)
-			}
-		}
-	}
-	for k, v := range expected {
-		if !v {
-			return trace.Errorf(
-				"please supply mount source for data directory '%v'", k)
-		}
-	}
-	return nil
-}
-
-// TODO: reduce code duplication with checkMasterMounts
-func checkNodeMounts(cfg *Config) error {
-	expected := map[string]bool{
-		DockerWorkDir: false,
-		RegstrWorkDir: false,
-	}
-	for _, m := range cfg.Mounts {
-		dst := filepath.Clean(m.Dst)
-		if _, ok := expected[dst]; ok {
-			expected[dst] = true
 		}
 		if dst == DockerWorkDir {
 			if ok, _ := check.IsBtrfsVolume(m.Src); ok == true {
