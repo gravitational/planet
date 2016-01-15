@@ -1,0 +1,11 @@
+[Unit]
+Description=Planet agent
+Requires=serf.service
+After=serf.service
+
+[Service]
+ExecStart=/usr/bin/planet agent \
+	  --debug \
+          --peers ${PLANET_AGENT_PEERS}
+User=planet
+Group=planet

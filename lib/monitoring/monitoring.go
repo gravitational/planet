@@ -1,70 +1,52 @@
 package monitoring
 
 import (
-	"errors"
-
-	"github.com/gravitational/planet/Godeps/_workspace/src/github.com/gravitational/trace"
+	"github.com/gravitational/planet/lib/agent/health"
+	pb "github.com/gravitational/planet/lib/agent/proto/agentpb"
 )
 
-type (
-	Interface interface {
-		Status() ([]ServiceStatus, error)
-	}
+// defaultChecker is a health.Checker with a simplified interface.
+type defaultChecker struct {
+	name    string
+	checker checker
+}
 
-	ServiceStatus struct {
-		Name string `json:"name"`
-		// Timestamp time.Time
-		Status string `json:"status"`
-		// Human-friendly description of the current service status
-		Message string `json:"info"`
-	}
+type checker interface {
+	check(reporter)
+}
 
-	SystemStatus struct {
-		Status   string          `json:"status"`
-		Services []ServiceStatus `json:"services"`
-	}
-)
+type reporter interface {
+	add(error)
+	addProbe(*pb.Probe)
+}
 
-const (
-	StatusRunning = "running"
-	StatusFailed  = "failed"
-)
+func (r *defaultChecker) Name() string { return r.name }
 
-const (
-	SystemStatusRunning  = "running"
-	SystemStatusDegraded = "degraded"
-	SystemStatusLoading  = "loading"
-	SystemStatusStopped  = "stopped"
-	SystemStatusUnknown  = ""
-)
+// health.Checker
+func (r *defaultChecker) Check(reporter health.Reporter) {
+	rep := &delegatingReporter{Reporter: reporter, checker: r}
+	r.checker.check(rep)
+}
 
-var ErrMonitorNotReady = errors.New("monitor service not ready")
+func newChecker(checker checker, name string) health.Checker {
+	return &defaultChecker{name: name, checker: checker}
+}
 
-func Status() (*SystemStatus, error) {
-	systemStatus, err := isSystemRunning()
-	if err != nil {
-		return nil, trace.Wrap(err)
-	}
+// delegatingReporter binds a checker to an external Reporter.
+type delegatingReporter struct {
+	health.Reporter
+	checker health.Checker
+}
 
-	systemdConditions, err := newSystemdService().Status()
-	if err != nil {
-		return nil, trace.Wrap(err)
-	}
+func (r *delegatingReporter) add(err error) {
+	r.Reporter.Add(&pb.Probe{
+		Checker: r.checker.Name(),
+		Error:   err.Error(),
+		Status:  pb.ServiceStatusType_ServiceFailed,
+	})
+}
 
-	monitConditions, err := newMonitService().Status()
-	if err != nil && err != ErrMonitorNotReady {
-		return nil, trace.Wrap(err)
-	}
-
-	conditions := append([]ServiceStatus{}, systemdConditions...)
-	conditions = append(conditions, monitConditions...)
-
-	if len(conditions) > 0 && systemStatus == SystemStatusRunning {
-		systemStatus = SystemStatusDegraded
-	}
-
-	return &SystemStatus{
-		Status:   systemStatus,
-		Services: conditions,
-	}, nil
+func (r *delegatingReporter) addProbe(probe *pb.Probe) {
+	probe.Checker = r.checker.Name()
+	r.Reporter.Add(probe)
 }

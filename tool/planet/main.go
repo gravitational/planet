@@ -17,7 +17,11 @@ import (
 	"github.com/gravitational/planet/Godeps/_workspace/src/github.com/gravitational/version"
 	"github.com/gravitational/planet/Godeps/_workspace/src/github.com/opencontainers/runc/libcontainer"
 	"github.com/gravitational/planet/Godeps/_workspace/src/gopkg.in/alecthomas/kingpin.v2"
+	"github.com/gravitational/planet/lib/agent"
+	"github.com/gravitational/planet/lib/agent/backend/sqlite"
+	"github.com/gravitational/planet/lib/agent/cache"
 	"github.com/gravitational/planet/lib/box"
+	"github.com/gravitational/planet/lib/monitoring"
 	"github.com/gravitational/planet/test/e2e"
 )
 
@@ -75,12 +79,25 @@ func run() error {
 		centerNoTTY = center.Flag("notty", "do not attach TTY to this process").Bool()
 		centerUser  = center.Flag("user", "user to execute the command").Default("root").String()
 
-		// report status of a running container
-		cstatus = app.Command("status", "Get status of a running container")
+		// planet agent mode
+		cagent = app.Command("agent", "Run planet agent")
+		// FIXME: wrap as HostPort
+		cagentRPCAddr  = cagent.Flag("rpc-addr", "Address to bind the RPC listener to").Default("127.0.0.1:7575").String()
+		cagentKubeAddr = cagent.Flag("kube-addr", "Address of the kubernetes api server").Default("127.0.0.1:8080").String()
+		// FIXME: read as a comma-separated list to be able to input from an environment var
+		cagentSerfPeers   = List(cagent.Flag("peer", "Address of the serf node to join with.  Can be specified multiple times"))
+		cagentSerfRPCAddr = cagent.Flag("serf-rpc-addr", "RPC address of the local serf node").Default("127.0.0.1:7373").String()
+		cagentRole        = cagent.Flag("role", "Agent operating role (master/node)").Default("master").String()
+		cagentName        = cagent.Flag("name", "Agent name.  Must be the same as the name of the local serf node").String()
+		cagentStateDir    = cagent.Flag("state-dir", "Directory where agent-specific state like health stats is stored").Default("/var/planet/agent").String()
+
+		// report status of the cluster
+		cstatus        = app.Command("status", "Query the planet cluster status")
+		cstatusRPCAddr = cstatus.Flag("rpc-addr", "agent RPC address").Default("127.0.0.1:7575").String()
 
 		// test command
 		ctest             = app.Command("test", "Run end-to-end tests on a running cluster")
-		ctestKubeAddr     = HostPort(ctest.Flag("kube-master", "Address of kubernetes master").Required())
+		ctestKubeAddr     = HostPort(ctest.Flag("kube-addr", "Address of the kubernetes api server").Required())
 		ctestKubeRepoPath = ctest.Flag("kube-repo", "Path to a kubernetes repository").String()
 		ctestAssetPath    = ctest.Flag("asset-dir", "Path to test executables and data files").String()
 	)
@@ -108,6 +125,34 @@ func run() error {
 	// "version" command
 	case cversion.FullCommand():
 		version.Print()
+
+	case cagent.FullCommand():
+		if *cagentName == "" {
+			*cagentName, err = os.Hostname()
+			if err != nil {
+				break
+			}
+		}
+		var cache cache.Cache
+		cache, err = sqlite.New(*cagentStateDir)
+		if err != nil {
+			err = trace.Wrap(err, fmt.Sprintf("failed to create sqlite cache in %s", *cagentStateDir))
+			break
+		}
+		conf := &agent.Config{
+			Name:        *cagentName,
+			RPCAddr:     *cagentRPCAddr,
+			SerfRPCAddr: *cagentSerfRPCAddr,
+			Cache:       cache,
+		}
+		monitoringConf := &monitoring.Config{
+			Role:     monitoring.Role(*cagentRole),
+			KubeAddr: *cagentKubeAddr,
+		}
+		// MasterIP: *cstartMasterIP,
+		// ClusterIP: clusterIP(*cstartServiceSubnet),
+		err = runAgent(conf, monitoringConf, []string(*cagentSerfPeers))
+
 	// "start" command
 	case cstart.FullCommand():
 		if emptyIP(cstartPublicIP) && os.Getpid() > 5 {
@@ -166,7 +211,7 @@ func run() error {
 	case cstatus.FullCommand():
 		if *fromContainer {
 			var ok bool
-			ok, err = containerStatus()
+			ok, err = clusterStatus(*cstatusRPCAddr)
 			if err == nil && !ok {
 				err = &box.ExitError{Code: 1}
 			}
@@ -175,7 +220,7 @@ func run() error {
 			if err != nil {
 				break
 			}
-			err = status(rootfs, *socketPath)
+			err = status(rootfs, *socketPath, *cstatusRPCAddr)
 		}
 
 	// "test" command
@@ -186,6 +231,7 @@ func run() error {
 			AssetDir:       *ctestAssetPath,
 		}
 		err = e2e.RunTests(config, extraArgs)
+
 	default:
 		err = trace.Errorf("unsupported command: %v", cmd)
 	}
