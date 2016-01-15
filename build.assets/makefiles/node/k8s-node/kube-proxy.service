@@ -4,6 +4,6 @@ Documentation=https://github.com/GoogleCloudPlatform/kubernetes
 
 [Service]
 EnvironmentFile=/etc/container-environment
-ExecStart=/usr/bin/kube-proxy --master=${KUBE_MASTER_IP}:8080 --logtostderr=true
+ExecStart=/usr/bin/kube-proxy --master=http://${KUBE_APISERVER}:8080 --logtostderr=true
 Restart=always
 RestartSec=10

@@ -70,6 +70,17 @@ production: buildbox
 test: buildbox testbox prepare-to-run
 	$(MAKE) -C $(ASSETS)/makefiles -e TARGET=dev TEST_FOCUS=$(SPEC) -f test.mk
 
+# test-package tests package in planet
+test-package: remove-temp-files
+	go test -v -test.parallel=0 ./$(p)
+
+# test-package-with etcd enabled
+test-package-with-etcd: remove-temp-files
+	PLANET_TEST_ETCD_NODES=http://127.0.0.1:4001 go test -v -test.parallel=0 ./$(p)
+
+remove-temp-files:
+	find . -name flymake_* -delete
+
 # Starts "planet-dev" build and executes a self-test
 # make test SPEC="Networking\|Pods"
 dev-test: dev prepare-to-run

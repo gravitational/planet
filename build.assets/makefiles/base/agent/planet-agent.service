@@ -1,0 +1,13 @@
+[Unit]
+Description=Planet Agent service
+Documentation=https://github.com/gravitational/planet
+After=etcd.service
+Requires=etcd.service
+
+[Service]
+Restart=always
+RestartSec=5
+EnvironmentFile=/etc/container-environment
+LimitNOFILE=40000
+LimitNPROC=1048576
+ExecStart=/usr/bin/planet --debug agent --leader-key=/planet/cluster/${KUBE_CLUSTER_ID}/master
