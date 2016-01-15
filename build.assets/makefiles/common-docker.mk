@@ -10,7 +10,7 @@ all: $(ASSETDIR)/planet
 	make -C $(ASSETS)/makefiles/base/docker -f docker.mk 
 	make -C $(ASSETS)/makefiles/base/docker -f registry.mk
 	make -C $(ASSETS)/makefiles/kubernetes -f kubernetes.mk
-	make -C $(ASSETS)/makefiles/monit -f monitoring.mk
+	make -C $(ASSETS)/makefiles/agent -f agent.mk
 
 $(ASSETDIR)/planet: .FORCE
 	# Add to ldflags to compile a completely static version of the planet binary (w/o the glibc dependency)

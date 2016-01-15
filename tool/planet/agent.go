@@ -31,7 +31,7 @@ func runAgent(conf *agent.Config, monitoringConf *monitoring.Config, peers []str
 	if err != nil {
 		return err
 	}
-	if monitoringConf.Role == monitoring.RoleNode {
+	if len(peers) > 0 {
 		err = agent.Join(peers)
 		if err != nil {
 			return trace.Wrap(err, "failed to join serf cluster")

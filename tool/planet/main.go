@@ -82,9 +82,9 @@ func run() error {
 		// planet agent mode
 		cagent = app.Command("agent", "Run planet agent")
 		// FIXME: wrap as HostPort
-		cagentBindAddr    = cagent.Flag("bind-addr", "Address to bind network listeners to.  To use an IPv6 address, specify [::1] or [::1]:7946.").Default("0.0.0.0:7946").String()
-		cagentRPCAddr     = cagent.Flag("rpc-addr", "Address to bind the RPC listener to").Default("127.0.0.1:7575").String()
-		cagentKubeAddr    = cagent.Flag("kube-addr", "Address of the kubernetes api server").Default("127.0.0.1:8080").String()
+		cagentRPCAddr  = cagent.Flag("rpc-addr", "Address to bind the RPC listener to").Default("127.0.0.1:7575").String()
+		cagentKubeAddr = cagent.Flag("kube-addr", "Address of the kubernetes api server").Default("127.0.0.1:8080").String()
+		// FIXME: read as a comma-separated list to be able to input from an environment var
 		cagentSerfPeers   = List(cagent.Flag("peer", "Address of the serf node to join with.  Can be specified multiple times"))
 		cagentSerfRPCAddr = cagent.Flag("serf-rpc-addr", "RPC address of the local serf node").Default("127.0.0.1:7373").String()
 		cagentRole        = cagent.Flag("role", "Agent operating role (master/node)").Default("master").String()
@@ -141,10 +141,8 @@ func run() error {
 		}
 		conf := &agent.Config{
 			Name:        *cagentName,
-			BindAddr:    *cagentBindAddr,
 			RPCAddr:     *cagentRPCAddr,
 			SerfRPCAddr: *cagentSerfRPCAddr,
-			LogOutput:   os.Stderr,
 			Cache:       cache,
 		}
 		monitoringConf := &monitoring.Config{

@@ -1,7 +1,6 @@
 package agent
 
 import (
-	"io"
 	"net"
 	"time"
 
@@ -25,9 +24,6 @@ type Config struct {
 	// Name of the agent - hostname if not provided
 	Name string
 
-	// Address for serf layer traffic
-	BindAddr string
-
 	// RPC address for local agent communication
 	RPCAddr string
 
@@ -43,8 +39,6 @@ type Config struct {
 
 	// Cache used by the agent to persist health stats.
 	Cache cache.Cache
-
-	LogOutput io.Writer
 }
 
 func New(config *Config) (Agent, error) {
@@ -55,6 +49,10 @@ func New(config *Config) (Agent, error) {
 	if err != nil {
 		return nil, trace.Wrap(err, "failed to connect to serf")
 	}
+	err = client.UpdateTags(config.Tags, nil)
+	if err != nil {
+		return nil, trace.Wrap(err, "failed to update serf agent tags")
+	}
 	listener, err := net.Listen("tcp", config.RPCAddr)
 	if err != nil {
 		return nil, trace.Wrap(err)
@@ -62,7 +60,6 @@ func New(config *Config) (Agent, error) {
 	agent := &agent{
 		serfClient: client,
 		name:       config.Name,
-		logOutput:  config.LogOutput,
 		cache:      config.Cache,
 	}
 	agent.rpc = newRPCServer(agent, listener)
@@ -74,6 +71,9 @@ type agent struct {
 
 	serfClient *serfClient.RPCClient
 
+	// Name of this agent.  Must be the same as the serf agent's name
+	// running on the same node.
+	name string
 	// RPC server used by agent for client communication as well as
 	// status sync with other agents.
 	rpc *server
@@ -82,9 +82,6 @@ type agent struct {
 
 	// Chan used to stream serf events.
 	eventc chan map[string]interface{}
-
-	name      string
-	logOutput io.Writer
 }
 
 var _ Agent = (*agent)(nil)
