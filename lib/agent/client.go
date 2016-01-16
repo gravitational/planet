@@ -17,8 +17,6 @@ type client struct {
 	pb.AgentClient
 }
 
-var _ Client = (*client)(nil)
-
 func NewClient(addr string) (*client, error) {
 	conn, err := grpc.Dial(addr, grpc.WithInsecure())
 	if err != nil {

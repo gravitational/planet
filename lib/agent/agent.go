@@ -88,8 +88,6 @@ type agent struct {
 	eventc chan map[string]interface{}
 }
 
-var _ Agent = (*agent)(nil)
-
 func (r *agent) Start() error {
 	var allEvents string
 	eventc := make(chan map[string]interface{})
