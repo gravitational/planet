@@ -8,9 +8,12 @@ import (
 	"net/http"
 	"net/url"
 
+	"github.com/gravitational/planet/Godeps/_workspace/src/github.com/gravitational/trace"
 	kube "github.com/gravitational/planet/Godeps/_workspace/src/k8s.io/kubernetes/pkg/client/unversioned"
 	pb "github.com/gravitational/planet/lib/agent/proto/agentpb"
 )
+
+const systemNamespace = "kube-system"
 
 // generic kubernetes healthz checker
 func kubeHealthz(response io.Reader) error {
@@ -19,7 +22,7 @@ func kubeHealthz(response io.Reader) error {
 		return err
 	}
 	if !bytes.Equal(payload, []byte("ok")) {
-		return errHealthzCheck
+		return fmt.Errorf("unexpected healthz response: %s", payload)
 	}
 	return nil
 }
@@ -36,16 +39,11 @@ func ConnectToKube(hostPort string) (*kube.Client, error) {
 	var baseURL *url.URL
 	var err error
 	if hostPort == "" {
-		hostPort = "127.0.0.1:8080"
-		baseURL = &url.URL{
-			Host:   hostPort,
-			Scheme: "http",
-		}
-	} else {
-		baseURL, err = url.Parse(hostPort)
-		if err != nil {
-			return nil, err
-		}
+		return nil, trace.Errorf("hostPort cannot be empty")
+	}
+	baseURL, err = url.Parse(hostPort)
+	if err != nil {
+		return nil, err
 	}
 	config := &kube.Config{
 		Host: baseURL.String(),
@@ -79,8 +77,7 @@ func (r *kubeChecker) connect() (*kube.Client, error) {
 }
 
 func etcdKubeServiceChecker(client *kube.Client) error {
-	const namespace = "kube-system"
-	service, err := client.Services(namespace).Get("etcd")
+	service, err := client.Services(systemNamespace).Get("etcd")
 	if err != nil {
 		return err
 	}
@@ -107,7 +104,7 @@ func etcdKubeServiceChecker(client *kube.Client) error {
 	}
 
 	if !healthy {
-		return fmt.Errorf("etcd at %s unhealthy", baseURL)
+		return fmt.Errorf("unexpected etcd (%s) response: %s", baseURL, payload)
 	}
 	return nil
 }

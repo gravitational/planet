@@ -3,7 +3,6 @@ package sqlite
 import (
 	"database/sql"
 	"database/sql/driver"
-	"path/filepath"
 	"time"
 
 	"github.com/gravitational/planet/Godeps/_workspace/src/github.com/gravitational/log"
@@ -13,17 +12,11 @@ import (
 	pb "github.com/gravitational/planet/lib/agent/proto/agentpb"
 )
 
-const fileDb = "sqlite.db"
-
 type backend struct {
 	*sqlx.DB
 }
 
-/*
-// Turn on foreign key enforcement (off by default since 3.6.19)
-PRAGMA foreign_keys = ON
 // TODO: store checkers in a separate table
-*/
 
 const schema = `
 CREATE TABLE IF NOT EXISTS node (
@@ -51,15 +44,16 @@ CREATE TABLE IF NOT EXISTS probe (
 );
 `
 
-func New(dataDir string) (*backend, error) {
-	file := filepath.Join(dataDir, fileDb)
-	db, err := sqlx.Open("sqlite3", file)
+// New creates a new sqlite backend using the specified file.
+func New(path string) (*backend, error) {
+	db, err := sqlx.Open("sqlite3", path)
 	if err != nil {
 		return nil, trace.Wrap(err)
 	}
 	return newBackend(db)
 }
 
+// UpdateNode will update the status of the node specified by status.
 func (r *backend) UpdateNode(status *pb.NodeStatus) (err error) {
 	err = r.inTx(func(tx *sqlx.Tx) error {
 		var id int64
@@ -79,6 +73,7 @@ func (r *backend) UpdateNode(status *pb.NodeStatus) (err error) {
 	return nil
 }
 
+// RecentStatus retrieves the last few status records for the specified node.
 func (r *backend) RecentStatus(node string) ([]*pb.Probe, error) {
 	const selectStmt = `
 	SELECT p.checker, p.extra, p.status, p.error, p.captured_at
@@ -113,6 +108,7 @@ func (r *backend) RecentStatus(node string) ([]*pb.Probe, error) {
 	return probes, nil
 }
 
+// Close closes the database.
 func (r *backend) Close() error {
 	return r.DB.Close()
 }
@@ -177,6 +173,7 @@ func (s serviceStatus) toProto() pb.ServiceStatusType {
 	}
 }
 
+// driver.Valuer
 func (s serviceStatus) Value() (value driver.Value, err error) {
 	return string(s), nil
 }

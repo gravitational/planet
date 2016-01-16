@@ -21,15 +21,13 @@ func runAgent(conf *agent.Config, monitoringConf *monitoring.Config, peers []str
 	conf.Tags["role"] = string(monitoringConf.Role)
 	agent, err := agent.New(conf)
 	if err != nil {
-		return err
+		return trace.Wrap(err)
 	}
-	defer func() {
-		agent.Close()
-	}()
+	defer agent.Close()
 	monitoring.AddCheckers(agent, monitoringConf)
 	err = agent.Start()
 	if err != nil {
-		return err
+		return trace.Wrap(err)
 	}
 	if len(peers) > 0 {
 		err = agent.Join(peers)

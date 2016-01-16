@@ -7,5 +7,3 @@ After=serf.service
 ExecStart=/usr/bin/planet agent \
 	  --debug \
           --peers ${PLANET_AGENT_PEERS}
-User=planet
-Group=planet

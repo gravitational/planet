@@ -5,6 +5,7 @@ import (
 	"net"
 	"os/user"
 	"strconv"
+	"strings"
 
 	"github.com/gravitational/planet/lib/box"
 
@@ -110,6 +111,8 @@ func IncIP(ip net.IP) net.IP {
 	return ip
 }
 
+// hostPort is a command line flag that understands input
+// as a host:port pair.
 type hostPort struct {
 	host string
 	port int64
@@ -128,6 +131,19 @@ func (r *hostPort) Set(value string) error {
 	return err
 }
 
-func (r *hostPort) String() string {
+func (r hostPort) String() string {
 	return net.JoinHostPort(r.host, fmt.Sprintf("%v", r.port))
+}
+
+// stringList is a command line flag that can extract
+// multiple text items separated by a comma from the input.
+type stringList []string
+
+func (r *stringList) Set(value string) error {
+	*r = strings.Split(value, ",")
+	return nil
+}
+
+func (r stringList) String() string {
+	return strings.Join(r, ",")
 }

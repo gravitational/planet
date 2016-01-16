@@ -12,25 +12,29 @@ import (
 	pb "github.com/gravitational/planet/lib/agent/proto/agentpb"
 )
 
+// Agent is the interface to interact with the planet agent.
 type Agent interface {
+	// Start starts agent's background jobs.
 	Start() error
+	// Close stops background activity and releases resources.
 	Close() error
+	// Join makes an attempt to join a cluster specified by the list of peers.
 	Join(peers []string) error
 
 	health.CheckerRepository
 }
 
 type Config struct {
-	// Name of the agent - hostname if not provided
+	// Name of the agent - hostname if not provided.
 	Name string
 
-	// RPC address for local agent communication
+	// RPC address for local agent communication.
 	RPCAddr string
 
-	// RPC address of local serf node
+	// RPC address of local serf node.
 	SerfRPCAddr string
 
-	// Peers lists the nodes that are part of the initial serf cluster configuration
+	// Peers lists the nodes that are part of the initial serf cluster configuration.
 	Peers []string
 
 	// Set of tags for the agent.

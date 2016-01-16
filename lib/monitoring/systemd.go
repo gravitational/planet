@@ -41,14 +41,14 @@ type serviceStatus struct {
 	err    error
 }
 
-type systemStatusType string
+type SystemStatusType string
 
 const (
-	systemStatusRunning  systemStatusType = "running"
-	systemStatusDegraded                  = "degraded"
-	systemStatusLoading                   = "loading"
-	systemStatusStopped                   = "stopped"
-	systemStatusUnknown                   = ""
+	SystemStatusRunning  SystemStatusType = "running"
+	SystemStatusDegraded                  = "degraded"
+	SystemStatusLoading                   = "loading"
+	SystemStatusStopped                   = "stopped"
+	SystemStatusUnknown                   = ""
 )
 
 func (r systemdChecker) check(reporter reporter) {
@@ -62,14 +62,9 @@ func (r systemdChecker) check(reporter reporter) {
 		reporter.add(fmt.Errorf("failed to check systemd status: %v", err))
 	}
 
-	if len(conditions) > 0 && systemStatusType(systemStatus) == systemStatusRunning {
-		systemStatus = systemStatusDegraded
+	if len(conditions) > 0 && SystemStatusType(systemStatus) == SystemStatusRunning {
+		systemStatus = SystemStatusDegraded
 	}
-
-	// FIXME: do away with system state
-	// if systemStatus != systemStatusRunning {
-	// 	reporter.add(fmt.Errorf("system status: %v", systemStatus))
-	// }
 
 	for _, condition := range conditions {
 		reporter.addProbe(&pb.Probe{
@@ -106,24 +101,24 @@ func systemdStatus() ([]serviceStatus, error) {
 	return conditions, nil
 }
 
-func isSystemRunning() (systemStatusType, error) {
+func isSystemRunning() (SystemStatusType, error) {
 	output, err := exec.Command(systemStatusCmd[0], systemStatusCmd[1:]...).CombinedOutput()
 	if err != nil && !isExitError(err) {
-		return systemStatusUnknown, trace.Wrap(err)
+		return SystemStatusUnknown, trace.Wrap(err)
 	}
 
-	var status systemStatusType
+	var status SystemStatusType
 	switch string(bytes.TrimSpace(output)) {
 	case "initializing", "starting":
-		status = systemStatusLoading
+		status = SystemStatusLoading
 	case "stopping", "offline":
-		status = systemStatusStopped
+		status = SystemStatusStopped
 	case "degraded":
-		status = systemStatusDegraded
+		status = SystemStatusDegraded
 	case "running":
-		status = systemStatusRunning
+		status = SystemStatusRunning
 	default:
-		status = systemStatusUnknown
+		status = SystemStatusUnknown
 	}
 	return status, nil
 }

@@ -14,7 +14,7 @@ type Client interface {
 }
 
 type client struct {
-	pb.AgentServiceClient
+	pb.AgentClient
 }
 
 var _ Client = (*client)(nil)
@@ -24,14 +24,14 @@ func NewClient(addr string) (*client, error) {
 	if err != nil {
 		return nil, err
 	}
-	c := pb.NewAgentServiceClient(conn)
+	c := pb.NewAgentClient(conn)
 	return &client{c}, nil
 }
 
 // Status reports the status of the serf cluster.
 func (r *client) Status() (*pb.SystemStatus, error) {
 	// FIXME: implement proper timeouts and cancellation
-	resp, err := r.AgentServiceClient.Status(context.Background(), &pb.StatusRequest{})
+	resp, err := r.AgentClient.Status(context.Background(), &pb.StatusRequest{})
 	if err != nil {
 		return nil, trace.Wrap(err)
 	}
@@ -41,7 +41,7 @@ func (r *client) Status() (*pb.SystemStatus, error) {
 // Status reports the status of the specific serf node.
 func (r *client) LocalStatus() (*pb.NodeStatus, error) {
 	// FIXME: implement proper timeouts and cancellation
-	resp, err := r.AgentServiceClient.LocalStatus(context.Background(), &pb.LocalStatusRequest{})
+	resp, err := r.AgentClient.LocalStatus(context.Background(), &pb.LocalStatusRequest{})
 	if err != nil {
 		return nil, trace.Wrap(err)
 	}

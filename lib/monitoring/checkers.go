@@ -17,21 +17,30 @@ const (
 	RoleNode        = "node"
 )
 
+// AddCheckers adds checkers to the agent.
 func AddCheckers(agent agent.Agent, conf *Config) {
 	switch conf.Role {
 	case RoleMaster:
-		agent.AddChecker(kubeApiServerHealth())
-		agent.AddChecker(componentStatusHealth(conf.KubeAddr))
-		agent.AddChecker(dockerHealth())
-		agent.AddChecker(dockerRegistryHealth())
-		agent.AddChecker(etcdHealth())
-		agent.AddChecker(systemdHealth())
+		addToMaster(agent, conf)
 	case RoleNode:
-		agent.AddChecker(kubeletHealth())
-		agent.AddChecker(dockerHealth())
-		agent.AddChecker(etcdHealth())
-		agent.AddChecker(systemdHealth())
+		addToNode(agent, conf)
 	}
+}
+
+func addToMaster(agent agent.Agent, conf *Config) {
+	agent.AddChecker(kubeApiServerHealth())
+	agent.AddChecker(componentStatusHealth(conf.KubeAddr))
+	agent.AddChecker(dockerHealth())
+	agent.AddChecker(dockerRegistryHealth())
+	agent.AddChecker(etcdHealth())
+	agent.AddChecker(systemdHealth())
+}
+
+func addToNode(agent agent.Agent, conf *Config) {
+	agent.AddChecker(kubeletHealth())
+	agent.AddChecker(dockerHealth())
+	agent.AddChecker(etcdHealth())
+	agent.AddChecker(systemdHealth())
 }
 
 func kubeApiServerHealth() health.Checker {

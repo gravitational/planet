@@ -78,7 +78,7 @@ func (r *server) getStatusFrom(addr net.IP) (result *pb.NodeStatus, err error) {
 func newRPCServer(agent *agent, listener net.Listener) *server {
 	backend := grpc.NewServer()
 	server := &server{agent: agent}
-	pb.RegisterAgentServiceServer(backend, server)
+	pb.RegisterAgentServer(backend, server)
 	go backend.Serve(listener)
 	return server
 }
