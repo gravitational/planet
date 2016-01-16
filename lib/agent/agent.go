@@ -93,7 +93,7 @@ type agent struct {
 func (r *agent) Start() error {
 	var allEvents string
 	eventc := make(chan map[string]interface{})
-	_, err := r.serfClient.Stream(allEvents, eventc)
+	handle, err := r.serfClient.Stream(allEvents, eventc)
 	if err != nil {
 		return trace.Wrap(err, "failed to stream events from serf")
 	}
@@ -101,7 +101,7 @@ func (r *agent) Start() error {
 	r.done = make(chan struct{})
 
 	go r.statusUpdateLoop()
-	go r.serfEventLoop(allEvents)
+	go r.serfEventLoop(allEvents, handle)
 	return nil
 }
 
@@ -154,16 +154,14 @@ func (r *agent) statusUpdateLoop() {
 	}
 }
 
-func (r *agent) serfEventLoop(filter string) {
+func (r *agent) serfEventLoop(filter string, handle serfClient.StreamHandle) {
 
 	for {
 		select {
 		case resp := <-r.eventc:
 			log.Infof("serf event: %v (%T)", resp, resp)
-			// case <-ctx.Done():
-			// 	r.serfClient.Stop(handle)
-			// 	return
 		case <-r.done:
+			r.serfClient.Stop(handle)
 			return
 		}
 	}
