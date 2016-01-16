@@ -84,7 +84,9 @@ type agent struct {
 	// cache persists node status history.
 	cache cache.Cache
 
-	// Chan used to stream serf events.
+	// done is a channel used for cleanup.
+	done chan struct{}
+	// eventc is a channel used to stream serf events.
 	eventc chan map[string]interface{}
 }
 
@@ -96,6 +98,7 @@ func (r *agent) Start() error {
 		return trace.Wrap(err, "failed to stream events from serf")
 	}
 	r.eventc = eventc
+	r.done = make(chan struct{})
 
 	go r.statusUpdateLoop()
 	go r.serfEventLoop(allEvents)
@@ -114,6 +117,7 @@ func (r *agent) Join(peers []string) error {
 
 func (r *agent) Close() (err error) {
 	// FIXME: shutdown RPC server
+	close(r.done)
 	err = r.serfClient.Close()
 	if err != nil {
 		return trace.Wrap(err)
@@ -135,16 +139,17 @@ func (r *agent) runChecks() *pb.NodeStatus {
 }
 
 func (r *agent) statusUpdateLoop() {
-	const updateTimeout = 1 * time.Minute
+	const updateTimeout = 30 * time.Second
 	for {
-		tick := time.After(updateTimeout)
 		select {
-		case <-tick:
+		case <-time.After(updateTimeout):
 			status := r.runChecks()
 			err := r.cache.UpdateNode(status)
 			if err != nil {
 				log.Errorf("error updating node status: %v", err)
 			}
+		case <-r.done:
+			return
 		}
 	}
 }
@@ -158,6 +163,8 @@ func (r *agent) serfEventLoop(filter string) {
 			// case <-ctx.Done():
 			// 	r.serfClient.Stop(handle)
 			// 	return
+		case <-r.done:
+			return
 		}
 	}
 }

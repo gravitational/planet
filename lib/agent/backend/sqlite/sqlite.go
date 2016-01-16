@@ -14,6 +14,7 @@ import (
 
 type backend struct {
 	*sqlx.DB
+	done chan struct{}
 }
 
 // TODO: store checkers in a separate table
@@ -110,6 +111,7 @@ func (r *backend) RecentStatus(node string) ([]*pb.Probe, error) {
 
 // Close closes the database.
 func (r *backend) Close() error {
+	close(r.done)
 	return r.DB.Close()
 }
 
@@ -193,14 +195,14 @@ func (ts timestamp) Value() (value driver.Value, err error) {
 const scavengeTimeout = 24 * time.Hour
 
 func (r *backend) scavengeLoop() {
-	var timeout <-chan time.Time
 	for {
-		timeout = time.After(scavengeTimeout)
 		select {
-		case <-timeout:
+		case <-time.After(scavengeTimeout):
 			if err := r.deleteOlderThan(time.Now().Add(-scavengeTimeout)); err != nil {
 				log.Errorf("failed to scavenge stats: %v", err)
 			}
+		case <-r.done:
+			return
 		}
 	}
 }
@@ -256,7 +258,10 @@ func newBackend(db *sqlx.DB) (*backend, error) {
 	if err != nil {
 		return nil, trace.Wrap(err, "failed to create schema")
 	}
-	backend := &backend{DB: db}
+	backend := &backend{
+		DB:   db,
+		done: make(chan struct{}),
+	}
 	go backend.scavengeLoop()
 	return backend, nil
 }
