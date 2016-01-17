@@ -12,25 +12,29 @@ import (
 	pb "github.com/gravitational/planet/lib/agent/proto/agentpb"
 )
 
+// Agent is the interface to interact with the planet agent.
 type Agent interface {
+	// Start starts agent's background jobs.
 	Start() error
+	// Close stops background activity and releases resources.
 	Close() error
+	// Join makes an attempt to join a cluster specified by the list of peers.
 	Join(peers []string) error
 
 	health.CheckerRepository
 }
 
 type Config struct {
-	// Name of the agent - hostname if not provided
+	// Name of the agent - hostname if not provided.
 	Name string
 
-	// RPC address for local agent communication
+	// RPC address for local agent communication.
 	RPCAddr string
 
-	// RPC address of local serf node
+	// RPC address of local serf node.
 	SerfRPCAddr string
 
-	// Peers lists the nodes that are part of the initial serf cluster configuration
+	// Peers lists the nodes that are part of the initial serf cluster configuration.
 	Peers []string
 
 	// Set of tags for the agent.
@@ -76,27 +80,28 @@ type agent struct {
 	name string
 	// RPC server used by agent for client communication as well as
 	// status sync with other agents.
-	rpc *server
+	rpc RPCServer
 	// cache persists node status history.
 	cache cache.Cache
 
-	// Chan used to stream serf events.
+	// done is a channel used for cleanup.
+	done chan struct{}
+	// eventc is a channel used to stream serf events.
 	eventc chan map[string]interface{}
 }
-
-var _ Agent = (*agent)(nil)
 
 func (r *agent) Start() error {
 	var allEvents string
 	eventc := make(chan map[string]interface{})
-	_, err := r.serfClient.Stream(allEvents, eventc)
+	handle, err := r.serfClient.Stream(allEvents, eventc)
 	if err != nil {
 		return trace.Wrap(err, "failed to stream events from serf")
 	}
 	r.eventc = eventc
+	r.done = make(chan struct{})
 
 	go r.statusUpdateLoop()
-	go r.serfEventLoop(allEvents)
+	go r.serfEventLoop(allEvents, handle)
 	return nil
 }
 
@@ -111,7 +116,8 @@ func (r *agent) Join(peers []string) error {
 }
 
 func (r *agent) Close() (err error) {
-	// FIXME: shutdown RPC server
+	r.rpc.Stop()
+	close(r.done)
 	err = r.serfClient.Close()
 	if err != nil {
 		return trace.Wrap(err)
@@ -133,29 +139,30 @@ func (r *agent) runChecks() *pb.NodeStatus {
 }
 
 func (r *agent) statusUpdateLoop() {
-	const updateTimeout = 1 * time.Minute
+	const updateTimeout = 30 * time.Second
 	for {
-		tick := time.After(updateTimeout)
 		select {
-		case <-tick:
+		case <-time.After(updateTimeout):
 			status := r.runChecks()
 			err := r.cache.UpdateNode(status)
 			if err != nil {
 				log.Errorf("error updating node status: %v", err)
 			}
+		case <-r.done:
+			return
 		}
 	}
 }
 
-func (r *agent) serfEventLoop(filter string) {
+func (r *agent) serfEventLoop(filter string, handle serfClient.StreamHandle) {
 
 	for {
 		select {
 		case resp := <-r.eventc:
 			log.Infof("serf event: %v (%T)", resp, resp)
-			// case <-ctx.Done():
-			// 	r.serfClient.Stop(handle)
-			// 	return
+		case <-r.done:
+			r.serfClient.Stop(handle)
+			return
 		}
 	}
 }

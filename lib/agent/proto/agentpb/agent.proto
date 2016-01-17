@@ -83,7 +83,7 @@ message Timestamp {
   int32 nanoseconds = 2;
 }
 
-service AgentService {
+service Agent {
   rpc Status(StatusRequest) returns (StatusResponse) {}
   rpc LocalStatus(LocalStatusRequest) returns (LocalStatusResponse) {}
 }

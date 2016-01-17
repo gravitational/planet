@@ -18,10 +18,8 @@ func (s *StatusType) UnmarshalText(text []byte) error {
 	switch string(text) {
 	case "running":
 		*s = StatusType_SystemRunning
-		return nil
 	case "degraded":
 		*s = StatusType_SystemDegraded
-		return nil
 	}
 	return nil
 }

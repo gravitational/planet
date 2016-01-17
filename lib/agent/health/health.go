@@ -7,7 +7,7 @@ import (
 	pb "github.com/gravitational/planet/lib/agent/proto/agentpb"
 )
 
-// Checker defines an obligation to run a health check.
+// Checker is an interface for executing a health check.
 type Checker interface {
 	Name() string
 	// Check runs a health check and records any errors into the specified reporter.
@@ -26,8 +26,9 @@ type CheckerRepository interface {
 
 // Reporter defines an obligation to report structured errors.
 type Reporter interface {
-	// Add adds an error report for the checker named name
+	// Add adds an health probe for a specific node.
 	Add(probe *pb.Probe)
+	// Status retrieves the collected status after executing all checks.
 	Status() *pb.NodeStatus
 }
 

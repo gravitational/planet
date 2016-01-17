@@ -85,10 +85,10 @@ func run() error {
 		cagentRPCAddr  = cagent.Flag("rpc-addr", "Address to bind the RPC listener to").Default("127.0.0.1:7575").String()
 		cagentKubeAddr = cagent.Flag("kube-addr", "Address of the kubernetes api server").Default("127.0.0.1:8080").String()
 		// FIXME: read as a comma-separated list to be able to input from an environment var
-		cagentSerfPeers   = List(cagent.Flag("peer", "Address of the serf node to join with.  Can be specified multiple times"))
+		cagentSerfPeers   = InlineList(cagent.Flag("peer", "Address of the serf node to join with.  Multiple addresses can be specified, separated by comma."))
 		cagentSerfRPCAddr = cagent.Flag("serf-rpc-addr", "RPC address of the local serf node").Default("127.0.0.1:7373").String()
 		cagentRole        = cagent.Flag("role", "Agent operating role (master/node)").Default("master").String()
-		cagentName        = cagent.Flag("name", "Agent name.  Must be the same as the name of the local serf node").String()
+		cagentName        = cagent.Flag("name", "Agent name.  Must be the same as the name of the local serf node").Required().String()
 		cagentStateDir    = cagent.Flag("state-dir", "Directory where agent-specific state like health stats is stored").Default("/var/planet/agent").String()
 
 		// report status of the cluster
@@ -127,16 +127,11 @@ func run() error {
 		version.Print()
 
 	case cagent.FullCommand():
-		if *cagentName == "" {
-			*cagentName, err = os.Hostname()
-			if err != nil {
-				break
-			}
-		}
 		var cache cache.Cache
-		cache, err = sqlite.New(*cagentStateDir)
+		path := filepath.Join(*cagentStateDir, backendDbFile)
+		cache, err = sqlite.New(path)
 		if err != nil {
-			err = trace.Wrap(err, fmt.Sprintf("failed to create sqlite cache in %s", *cagentStateDir))
+			err = trace.Wrap(err, "failed to create cache")
 			break
 		}
 		conf := &agent.Config{
@@ -239,6 +234,8 @@ func run() error {
 	return err
 }
 
+const backendDbFile = "sqlite.db"
+
 func selfTest(config Config, repoDir, spec string, extraArgs []string) error {
 	var process *box.Box
 	var err error
@@ -287,6 +284,12 @@ func Mounts(s kingpin.Settings) *box.Mounts {
 
 func List(s kingpin.Settings) *list {
 	l := new(list)
+	s.SetValue(l)
+	return l
+}
+
+func InlineList(s kingpin.Settings) *stringList {
+	l := new(stringList)
 	s.SetValue(l)
 	return l
 }

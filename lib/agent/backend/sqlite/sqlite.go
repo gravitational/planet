@@ -3,34 +3,28 @@ package sqlite
 import (
 	"database/sql"
 	"database/sql/driver"
-	"path/filepath"
 	"time"
 
 	"github.com/gravitational/planet/Godeps/_workspace/src/github.com/gravitational/log"
 	"github.com/gravitational/planet/Godeps/_workspace/src/github.com/gravitational/trace"
-	"github.com/gravitational/planet/Godeps/_workspace/src/github.com/jmoiron/sqlx"
 	_ "github.com/gravitational/planet/Godeps/_workspace/src/github.com/mattn/go-sqlite3"
 	pb "github.com/gravitational/planet/lib/agent/proto/agentpb"
 )
 
-const fileDb = "sqlite.db"
-
 type backend struct {
-	*sqlx.DB
+	*sql.DB
+	done chan struct{}
 }
 
-/*
-// Turn on foreign key enforcement (off by default since 3.6.19)
-PRAGMA foreign_keys = ON
 // TODO: store checkers in a separate table
-*/
 
 const schema = `
+PRAGMA foreign_keys = TRUE;
 CREATE TABLE IF NOT EXISTS node (
-	id	INTEGER PRIMARY KEY NOT NULL,
-	name	TEXT UNIQUE,
+	id INTEGER PRIMARY KEY NOT NULL,
+	name TEXT UNIQUE,
 	-- active/left/failed
-	status	CHAR(1)	CHECK(status IN ('A', 'L', 'F')) NOT NULL DEFAULT 'A'
+	status CHAR(1)	CHECK(status IN ('A', 'L', 'F')) NOT NULL DEFAULT 'A'
 );
 
 CREATE TABLE IF NOT EXISTS checker (
@@ -47,38 +41,35 @@ CREATE TABLE IF NOT EXISTS probe (
 	-- running/failed/terminated
 	status	    CHAR(1) CHECK(status IN ('H', 'F', 'T')) NOT NULL DEFAULT 'F',
 	error	    TEXT NOT NULL,
-	captured_at TIMESTAMP NOT NULL
+	captured_at TIMESTAMP NOT NULL,
+	FOREIGN KEY(node) REFERENCES node(id)
 );
 `
 
-func New(dataDir string) (*backend, error) {
-	file := filepath.Join(dataDir, fileDb)
-	db, err := sqlx.Open("sqlite3", file)
+// New creates a new sqlite backend using the specified file.
+func New(path string) (*backend, error) {
+	db, err := sql.Open("sqlite3", path)
 	if err != nil {
 		return nil, trace.Wrap(err)
 	}
 	return newBackend(db)
 }
 
+// UpdateNode will update the status of the node specified by status.
 func (r *backend) UpdateNode(status *pb.NodeStatus) (err error) {
-	err = r.inTx(func(tx *sqlx.Tx) error {
-		var id int64
-		id, err = r.upsertNode(status.Name)
-		if err != nil {
-			return trace.Wrap(err)
-		}
-		err = r.addStatus(id, status)
+	if err = inTx(r.DB, func(tx *sql.Tx) error {
+		err = r.addStatus(tx, status)
 		if err != nil {
 			return trace.Wrap(err)
 		}
 		return nil
-	})
-	if err != nil {
+	}); err != nil {
 		return err
 	}
 	return nil
 }
 
+// RecentStatus retrieves the last few status records for the specified node.
 func (r *backend) RecentStatus(node string) ([]*pb.Probe, error) {
 	const selectStmt = `
 	SELECT p.checker, p.extra, p.status, p.error, p.captured_at
@@ -113,35 +104,21 @@ func (r *backend) RecentStatus(node string) ([]*pb.Probe, error) {
 	return probes, nil
 }
 
+// Close closes the database.
 func (r *backend) Close() error {
+	close(r.done)
 	return r.DB.Close()
 }
 
-func (r *backend) upsertNode(node string) (id int64, err error) {
-	const insertStmt = `INSERT OR IGNORE INTO node(name) VALUES(?)`
-	var res sql.Result
-	res, err = r.Exec(insertStmt, node)
-	if err != nil {
-		return 0, trace.Wrap(err)
-	}
-	id, _ = res.LastInsertId()
-	if id == 0 {
-		err = r.Get(&id, `SELECT id FROM node WHERE name=?`, node)
-		if err != nil {
-			return 0, trace.Wrap(err)
-		}
-	}
-	return id, nil
-}
-
-func (r *backend) addStatus(node int64, status *pb.NodeStatus) (err error) {
+func (r *backend) addStatus(tx *sql.Tx, status *pb.NodeStatus) (err error) {
 	const insertStmt = `
+		INSERT OR IGNORE INTO node(name) VALUES(?);
 		INSERT INTO probe(node, checker, extra, status, error, captured_at)
-		VALUES(?, ?, ?, ?, ?, ?)
+		SELECT n."rowid", ?, ?, ?, ?, ? FROM node n WHERE n.name=?
 	`
 	for _, probe := range status.Probes {
-		_, err = r.Exec(insertStmt, node, probe.Checker, probe.Extra, protoToStatus(probe.Status),
-			probe.Error, timestamp(*probe.Timestamp))
+		_, err = tx.Exec(insertStmt, status.Name, probe.Checker, probe.Extra, protoToStatus(probe.Status),
+			probe.Error, timestamp(*probe.Timestamp), status.Name)
 		if err != nil {
 			return trace.Wrap(err)
 		}
@@ -177,6 +154,7 @@ func (s serviceStatus) toProto() pb.ServiceStatusType {
 	}
 }
 
+// driver.Valuer
 func (s serviceStatus) Value() (value driver.Value, err error) {
 	return string(s), nil
 }
@@ -196,14 +174,14 @@ func (ts timestamp) Value() (value driver.Value, err error) {
 const scavengeTimeout = 24 * time.Hour
 
 func (r *backend) scavengeLoop() {
-	var timeout <-chan time.Time
 	for {
-		timeout = time.After(scavengeTimeout)
 		select {
-		case <-timeout:
+		case <-time.After(scavengeTimeout):
 			if err := r.deleteOlderThan(time.Now().Add(-scavengeTimeout)); err != nil {
 				log.Errorf("failed to scavenge stats: %v", err)
 			}
+		case <-r.done:
+			return
 		}
 	}
 }
@@ -211,8 +189,8 @@ func (r *backend) scavengeLoop() {
 func (r *backend) deleteOlderThan(limit time.Time) error {
 	const deleteStmt = `DELETE FROM probe WHERE captured_at < ?`
 
-	err := r.inTx(func(tx *sqlx.Tx) error {
-		_, err := r.Exec(deleteStmt, limit)
+	err := inTx(r.DB, func(tx *sql.Tx) error {
+		_, err := tx.Exec(deleteStmt, (*timestamp)(pb.TimeToProto(limit)))
 		if err != nil {
 			return trace.Wrap(err)
 		}
@@ -227,8 +205,8 @@ func (r *backend) deleteOlderThan(limit time.Time) error {
 
 type cleanup func()
 
-func (r *backend) inTx(f func(tx *sqlx.Tx) error) error {
-	tx, err := r.Beginx()
+func inTx(db *sql.DB, f func(tx *sql.Tx) error) error {
+	tx, err := db.Begin()
 	if err != nil {
 		return trace.Wrap(err)
 	}
@@ -247,19 +225,23 @@ func (r *backend) inTx(f func(tx *sqlx.Tx) error) error {
 }
 
 func newInMemory() (*backend, error) {
-	db, err := sqlx.Open("sqlite3", ":memory:")
+	db, err := sql.Open("sqlite3", ":memory:")
 	if err != nil {
 		return nil, trace.Wrap(err)
 	}
 	return newBackend(db)
 }
 
-func newBackend(db *sqlx.DB) (*backend, error) {
+func newBackend(db *sql.DB) (*backend, error) {
 	_, err := db.Exec(schema)
 	if err != nil {
 		return nil, trace.Wrap(err, "failed to create schema")
 	}
-	backend := &backend{DB: db}
+
+	backend := &backend{
+		DB:   db,
+		done: make(chan struct{}),
+	}
 	go backend.scavengeLoop()
 	return backend, nil
 }

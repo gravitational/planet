@@ -11,6 +11,13 @@ import (
 	pb "github.com/gravitational/planet/lib/agent/proto/agentpb"
 )
 
+// RPCServer is the interface implemented by the agent RPC server.
+type RPCServer interface {
+	Stop()
+}
+
+const RPCPort = 7575 // FIXME: use serf to discover agent
+
 // server implements RPC for an agent.
 type server struct {
 	*agent
@@ -65,7 +72,6 @@ func (r *server) LocalStatus(ctx context.Context, req *pb.LocalStatusRequest) (*
 }
 
 func (r *server) getStatusFrom(addr net.IP) (result *pb.NodeStatus, err error) {
-	const RPCPort = 7575 // FIXME: serf for agent address discovery?
 	client, err := NewClient(fmt.Sprintf("%s:%d", addr.String(), RPCPort))
 	if err != nil {
 		return nil, trace.Wrap(err)
@@ -75,12 +81,12 @@ func (r *server) getStatusFrom(addr net.IP) (result *pb.NodeStatus, err error) {
 	return status, nil
 }
 
-func newRPCServer(agent *agent, listener net.Listener) *server {
+func newRPCServer(agent *agent, listener net.Listener) *grpc.Server {
 	backend := grpc.NewServer()
 	server := &server{agent: agent}
-	pb.RegisterAgentServiceServer(backend, server)
+	pb.RegisterAgentServer(backend, server)
 	go backend.Serve(listener)
-	return server
+	return backend
 }
 
 func setSystemStatus(resp *pb.StatusResponse) {

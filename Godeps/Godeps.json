@@ -24,10 +24,6 @@
 			"Rev": "6b4e7dc5e3143b85ea77909c72caf89416fc2915"
 		},
 		{
-			"ImportPath": "github.com/armon/circbuf",
-			"Rev": "bbbad097214e2918d8543d5201d12bfd7bca254d"
-		},
-		{
 			"ImportPath": "github.com/armon/go-metrics",
 			"Rev": "06b60999766278efd6d2b5d8418a58c3d5b99e87"
 		},
@@ -114,28 +110,8 @@
 			"Rev": "fa3f63826f7c23912c15263591e65d54d080b458"
 		},
 		{
-			"ImportPath": "github.com/hashicorp/go-syslog",
-			"Rev": "42a2b573b664dbf281bd48c3cc12c086b17a39ba"
-		},
-		{
-			"ImportPath": "github.com/hashicorp/go.net/internal/iana",
-			"Rev": "104dcad90073cd8d1e6828b2af19185b60cf3e29"
-		},
-		{
-			"ImportPath": "github.com/hashicorp/go.net/ipv4",
-			"Rev": "104dcad90073cd8d1e6828b2af19185b60cf3e29"
-		},
-		{
-			"ImportPath": "github.com/hashicorp/go.net/ipv6",
-			"Rev": "104dcad90073cd8d1e6828b2af19185b60cf3e29"
-		},
-		{
 			"ImportPath": "github.com/hashicorp/logutils",
 			"Rev": "0dc08b1671f34c4250ce212759ebd880f743d883"
-		},
-		{
-			"ImportPath": "github.com/hashicorp/mdns",
-			"Rev": "9d85cf22f9f8d53cb5c81c1b2749f438b2ee333f"
 		},
 		{
 			"ImportPath": "github.com/hashicorp/memberlist",
@@ -143,11 +119,6 @@
 		},
 		{
 			"ImportPath": "github.com/hashicorp/serf/client",
-			"Comment": "v0.6.4-176-g11bb88a",
-			"Rev": "11bb88abf7b17f0b794b51416a9107d781e95f35"
-		},
-		{
-			"ImportPath": "github.com/hashicorp/serf/command/agent",
 			"Comment": "v0.6.4-176-g11bb88a",
 			"Rev": "11bb88abf7b17f0b794b51416a9107d781e95f35"
 		},
@@ -160,11 +131,6 @@
 			"ImportPath": "github.com/hashicorp/serf/serf",
 			"Comment": "v0.6.4-176-g11bb88a",
 			"Rev": "11bb88abf7b17f0b794b51416a9107d781e95f35"
-		},
-		{
-			"ImportPath": "github.com/jmoiron/sqlx",
-			"Comment": "sqlx-v1.1-53-g54aec3f",
-			"Rev": "54aec3fd91a2b2129ffaca0d652b8a9223ee2d9e"
 		},
 		{
 			"ImportPath": "github.com/juju/ratelimit",
@@ -182,18 +148,6 @@
 		{
 			"ImportPath": "github.com/matttproud/golang_protobuf_extensions/pbutil",
 			"Rev": "d0c3fe89de86839aecf2e0579c40ba3bb336a453"
-		},
-		{
-			"ImportPath": "github.com/miekg/dns",
-			"Rev": "d27455715200c7d3e321a1e5cadb27c9ee0b0f02"
-		},
-		{
-			"ImportPath": "github.com/mitchellh/cli",
-			"Rev": "8102d0ed5ea2709ade1243798785888175f6e415"
-		},
-		{
-			"ImportPath": "github.com/mitchellh/mapstructure",
-			"Rev": "2caf8efc93669b6c43e0441cdc6aed17546c96f3"
 		},
 		{
 			"ImportPath": "github.com/opencontainers/runc/libcontainer",
