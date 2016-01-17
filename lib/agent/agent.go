@@ -80,7 +80,7 @@ type agent struct {
 	name string
 	// RPC server used by agent for client communication as well as
 	// status sync with other agents.
-	rpc *server
+	rpc RPCServer
 	// cache persists node status history.
 	cache cache.Cache
 
@@ -116,7 +116,7 @@ func (r *agent) Join(peers []string) error {
 }
 
 func (r *agent) Close() (err error) {
-	// FIXME: shutdown RPC server
+	r.rpc.Stop()
 	close(r.done)
 	err = r.serfClient.Close()
 	if err != nil {

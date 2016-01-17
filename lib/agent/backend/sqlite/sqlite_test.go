@@ -8,38 +8,26 @@ import (
 	pb "github.com/gravitational/planet/lib/agent/proto/agentpb"
 )
 
-func TestUpdatesOrGetsNode(t *testing.T) {
-	backend, cleanup, err := newBackendAndTx()
-	if err != nil {
-		t.Fatal(err)
-	}
-	defer cleanup()
-
-	var id int64
-	if id, err = backend.upsertNode("node-1"); err != nil {
-		t.Fatal(err)
-	}
-	if id == 0 {
-		t.Error("failed to create a node")
-	}
-}
+const node = "node-1"
+const anotherNode = "node-2"
 
 func TestAddsStats(t *testing.T) {
-	backend, cleanup, err := newBackendAndTx()
+	backend, err := newTestBackend()
 	if err != nil {
 		t.Fatal(err)
 	}
-	defer cleanup()
+	defer backend.Close()
 
-	when := (*timestamp)(pb.TimeToProto(time.Now()))
-	status := newStatus("node-1", when)
+	ts := time.Now()
+	status := newStatus(node, ts)
 	err = backend.UpdateNode(status)
 	if err != nil {
 		t.Fatal(err)
 	}
 
 	var count int64
-	if err = backend.Get(&count, `SELECT COUNT(*) FROM probe WHERE captured_at = ?`, when); err != nil {
+	when := (*timestamp)(pb.TimeToProto(ts))
+	if err = backend.QueryRow(`SELECT COUNT(*) FROM probe WHERE captured_at = ?`, when).Scan(&count); err != nil {
 		t.Error(err)
 	}
 	if count != 2 {
@@ -48,15 +36,14 @@ func TestAddsStats(t *testing.T) {
 }
 
 func TestDeletesOlderStats(t *testing.T) {
-	backend, cleanup, err := newBackendAndTx()
+	backend, err := newTestBackend()
 	if err != nil {
 		t.Fatal(err)
 	}
-	defer cleanup()
+	defer backend.Close()
 
 	ts := time.Now().Add(-scavengeTimeout)
-	when := (*timestamp)(pb.TimeToProto(ts))
-	status := newStatus("node-2", when)
+	status := newStatus(anotherNode, ts)
 	err = backend.UpdateNode(status)
 	if err != nil {
 		t.Fatal(err)
@@ -67,51 +54,60 @@ func TestDeletesOlderStats(t *testing.T) {
 	}
 
 	var count int64
-	if err = backend.Get(&count, `SELECT COUNT(*) FROM probe WHERE captured_at = ?`, when); err != nil {
+	when := (*timestamp)(pb.TimeToProto(ts))
+	if err = backend.QueryRow(`SELECT COUNT(*) FROM probe WHERE captured_at = ?`, when).Scan(&count); err != nil {
 		t.Error(err)
 	}
 	if count != 0 {
-		t.Errorf("expected no probes for given timestamp but got %d", count)
+		t.Errorf("expected no probes for %s but got %d", when, count)
 	}
 }
 
 func TestGetsRecentStats(t *testing.T) {
-	backend, cleanup, err := newBackendAndTx()
+	backend, err := newTestBackend()
 	if err != nil {
 		t.Fatal(err)
 	}
-	defer cleanup()
+	defer backend.Close()
 
-	probes, err := backend.RecentStatus("node-1")
-	if err != nil {
+	if err = addStatsForNode(t, backend, node); err != nil {
+		t.Fatal(err)
+	}
+	if err = addStatsForNode(t, backend, anotherNode); err != nil {
 		t.Fatal(err)
 	}
 
-	t.Logf("probes: %v", probes)
+	probes, err := backend.RecentStatus(node)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(probes) != 5 {
+		t.Errorf("expected 5 probes but got %d", len(probes))
+	}
 }
 
-func newBackendAndTx() (*backend, cleanup, error) {
-	// FIXME: use in-memory constructor
-	backend, err := New("tmp")
-	if err != nil {
-		return nil, nil, err
-	}
-	tx, err := backend.Beginx()
-	if err != nil {
-		return nil, nil, err
-	}
-	cleanup := func() {
-		backend.Close()
-		if err != nil {
-			tx.Rollback()
-			return
+func addStatsForNode(t *testing.T, b *backend, node string) error {
+	baseTime := baseTime(t)
+	for i := 0; i < 3; i++ {
+		status := newStatus(node, baseTime)
+		if err := b.UpdateNode(status); err != nil {
+			return err
 		}
-		err = tx.Commit()
+		baseTime = baseTime.Add(10 * time.Second)
 	}
-	return backend, cleanup, nil
+	return nil
 }
 
-func newStatus(name string, when *timestamp) *pb.NodeStatus {
+func newTestBackend() (*backend, error) {
+	backend, err := newInMemory()
+	if err != nil {
+		return nil, err
+	}
+	return backend, nil
+}
+
+func newStatus(name string, time time.Time) *pb.NodeStatus {
+	when := pb.TimeToProto(time)
 	status := &pb.NodeStatus{
 		Name: name,
 		Probes: []*pb.Probe{
@@ -119,15 +115,28 @@ func newStatus(name string, when *timestamp) *pb.NodeStatus {
 				Checker:   "foo",
 				Status:    pb.ServiceStatusType_ServiceFailed,
 				Error:     "cannot lift weights",
-				Timestamp: (*pb.Timestamp)(when),
+				Timestamp: when,
 			},
 			&pb.Probe{
 				Checker:   "bar",
 				Status:    pb.ServiceStatusType_ServiceFailed,
 				Error:     "cannot get up",
-				Timestamp: (*pb.Timestamp)(when),
+				Timestamp: when,
 			},
 		},
 	}
 	return status
+}
+
+func (ts timestamp) String() string {
+	result, _ := pb.Timestamp(ts).MarshalText()
+	return string(result)
+}
+
+func baseTime(t *testing.T) time.Time {
+	time, err := time.Parse(time.RFC3339, "2001-01-01T11:00:00Z")
+	if err != nil {
+		t.Fatal(err)
+	}
+	return time
 }
