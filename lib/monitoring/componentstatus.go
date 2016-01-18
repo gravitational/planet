@@ -29,13 +29,13 @@ func (r *componentStatusChecker) check(reporter reporter) {
 			if condition.Type != api.ComponentHealthy || condition.Status != api.ConditionTrue {
 				reporter.addProbe(&pb.Probe{
 					Extra:  item.Name,
-					Status: pb.ServiceStatusType_ServiceFailed,
+					Status: pb.Probe_Failed,
 					Error:  fmt.Sprintf("%s (%s)", condition.Message, condition.Error),
 				})
 			} else {
 				reporter.addProbe(&pb.Probe{
 					Extra:  item.Name,
-					Status: pb.ServiceStatusType_ServiceRunning,
+					Status: pb.Probe_Running,
 					Error:  condition.Message,
 				})
 			}

@@ -3,64 +3,96 @@ package agentpb
 // This file implements JSON encoding/decoding for status types.
 
 // encoding.TextMarshaler
-func (s StatusType) MarshalText() (text []byte, err error) {
+func (s SystemStatus_Type) MarshalText() (text []byte, err error) {
 	switch s {
-	case StatusType_SystemRunning:
+	case SystemStatus_Running:
 		return []byte("running"), nil
-	case StatusType_SystemDegraded:
+	case SystemStatus_Degraded:
 		return []byte("degraded"), nil
+	default:
+		return nil, nil
 	}
-	return nil, nil
 }
 
 // encoding.TextUnmarshaler
-func (s *StatusType) UnmarshalText(text []byte) error {
+func (s *SystemStatus_Type) UnmarshalText(text []byte) error {
 	switch string(text) {
 	case "running":
-		*s = StatusType_SystemRunning
+		*s = SystemStatus_Running
 	case "degraded":
-		*s = StatusType_SystemDegraded
+		*s = SystemStatus_Degraded
+	default:
+		*s = SystemStatus_Unknown
 	}
 	return nil
 }
 
 // encoding.TextMarshaler
-func (s ServiceStatusType) MarshalText() (text []byte, err error) {
+func (s NodeStatus_Type) MarshalText() (text []byte, err error) {
 	switch s {
-	case ServiceStatusType_ServiceRunning:
+	case NodeStatus_Running:
 		return []byte("running"), nil
-	case ServiceStatusType_ServiceFailed:
-		return []byte("failed"), nil
-	case ServiceStatusType_ServiceTerminated:
-		return []byte("terminated"), nil
+	case NodeStatus_Degraded:
+		return []byte("degraded"), nil
+	default:
+		return nil, nil
 	}
-	return nil, nil
 }
 
 // encoding.TextUnmarshaler
-func (s *ServiceStatusType) UnmarshalText(text []byte) error {
+func (s *NodeStatus_Type) UnmarshalText(text []byte) error {
 	switch string(text) {
 	case "running":
-		*s = ServiceStatusType_ServiceRunning
-	case "failed":
-		*s = ServiceStatusType_ServiceFailed
-	case "terminated":
-		*s = ServiceStatusType_ServiceTerminated
+		*s = NodeStatus_Running
+	case "degraded":
+		*s = NodeStatus_Degraded
+	default:
+		*s = NodeStatus_Unknown
 	}
 	return nil
 }
 
 // encoding.TextMarshaler
-func (s MemberStatusType) MarshalText() (text []byte, err error) {
+func (s Probe_Type) MarshalText() (text []byte, err error) {
 	switch s {
-	case MemberStatusType_MemberAlive:
-		return []byte("alive"), nil
-	case MemberStatusType_MemberLeaving:
-		return []byte("leaving"), nil
-	case MemberStatusType_MemberLeft:
-		return []byte("left"), nil
-	case MemberStatusType_MemberFailed:
+	case Probe_Running:
+		return []byte("running"), nil
+	case Probe_Failed:
 		return []byte("failed"), nil
+	case Probe_Terminated:
+		return []byte("terminated"), nil
+	default:
+		return nil, nil
+	}
+}
+
+// encoding.TextUnmarshaler
+func (s *Probe_Type) UnmarshalText(text []byte) error {
+	switch string(text) {
+	case "running":
+		*s = Probe_Running
+	case "failed":
+		*s = Probe_Failed
+	case "terminated":
+		*s = Probe_Terminated
+	default:
+		*s = Probe_Unknown
+	}
+	return nil
+}
+
+// encoding.TextMarshaler
+func (s MemberStatus_Type) MarshalText() (text []byte, err error) {
+	switch s {
+	case MemberStatus_Alive:
+		return []byte("alive"), nil
+	case MemberStatus_Leaving:
+		return []byte("leaving"), nil
+	case MemberStatus_Left:
+		return []byte("left"), nil
+	case MemberStatus_Failed:
+		return []byte("failed"), nil
+	case MemberStatus_None:
 	default:
 		return []byte("none"), nil
 	}
@@ -68,18 +100,18 @@ func (s MemberStatusType) MarshalText() (text []byte, err error) {
 }
 
 // encoding.TextUnmarshaler
-func (s *MemberStatusType) UnmarshalText(text []byte) error {
+func (s *MemberStatus_Type) UnmarshalText(text []byte) error {
 	switch string(text) {
 	case "alive":
-		*s = MemberStatusType_MemberAlive
+		*s = MemberStatus_Alive
 	case "leaving":
-		*s = MemberStatusType_MemberLeaving
+		*s = MemberStatus_Leaving
 	case "left":
-		*s = MemberStatusType_MemberLeft
+		*s = MemberStatus_Left
 	case "failed":
-		*s = MemberStatusType_MemberFailed
+		*s = MemberStatus_Failed
 	default:
-		*s = MemberStatusType_MemberNone
+		*s = MemberStatus_None
 	}
 	return nil
 }

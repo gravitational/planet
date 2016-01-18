@@ -42,7 +42,7 @@ func (r *delegatingReporter) add(err error) {
 	r.Reporter.Add(&pb.Probe{
 		Checker: r.checker.Name(),
 		Error:   err.Error(),
-		Status:  pb.ServiceStatusType_ServiceFailed,
+		Status:  pb.Probe_Failed,
 	})
 }
 

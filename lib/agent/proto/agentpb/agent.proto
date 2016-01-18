@@ -18,19 +18,32 @@ message LocalStatusResponse {
   NodeStatus status = 1;
 }
 
-// SystemStatus describes the health status of the cluster.
+// System describes the health status of the cluster.
 message SystemStatus {
-  StatusType status = 1;
+  enum Type {
+    Unknown = 0;
+    Running = 1;
+    Degraded = 2;
+  }
+  Type status = 1;
   // Current list of members of the serf cluster.
-  repeated Node nodes = 2;
+  repeated MemberStatus members = 2;
   // Health status of individual nodes.
-  repeated NodeStatus node_statuses = 3;
+  repeated NodeStatus nodes = 3;
 }
 
-message Node {
+// MembereStatus represents the status of a member of the serf cluster.
+message MemberStatus {
+  enum Type {
+    None = 0;
+    Alive = 1;
+    Leaving = 2;
+    Left = 3;
+    Failed = 4;
+  }
   string name = 1;
   string addr = 2;
-  MemberStatusType status = 3;
+  Type status = 3;
   map<string, string> tags = 4;
 }
 
@@ -38,7 +51,12 @@ message Node {
 message NodeStatus {
   string name = 1;
 
-  StatusType status = 2;
+  enum Type {
+    Unknown = 0;
+    Running = 1;
+    Degraded = 2;
+  }
+  Type status = 2;
   // Probes lists all the health probes collected during the health check.
   // For simplicity, only probes for alerts are collected.  Thus, for a healthy
   // system, the Probes will be empty.
@@ -53,29 +71,14 @@ message Probe {
   // Auxiliary field that can be used to provide additional details of the
   // checker activity.
   string extra = 3;
-  ServiceStatusType status = 4;
+  enum Type {
+    Unknown = 0;
+    Running = 1;
+    Failed = 2;
+    Terminated = 3;
+  }
+  Type status = 4;
   string error = 5;
-}
-
-enum MemberStatusType {
-  MemberNone = 0;
-  MemberAlive = 1;
-  MemberLeaving = 2;
-  MemberLeft = 3;
-  MemberFailed = 4;
-}
-
-enum StatusType {
-  SystemUnknown = 0;
-  SystemRunning = 1;
-  SystemDegraded = 2;
-}
-
-enum ServiceStatusType {
-  ServiceUnknown = 0;
-  ServiceRunning = 1;
-  ServiceFailed = 2;
-  ServiceTerminated = 3;
 }
 
 message Timestamp {

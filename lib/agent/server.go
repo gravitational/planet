@@ -33,7 +33,7 @@ func (r *server) Status(ctx context.Context, req *pb.StatusRequest) (*pb.StatusR
 	}
 
 	for _, member := range members {
-		resp.Status.Nodes = append(resp.Status.Nodes, &pb.Node{
+		resp.Status.Members = append(resp.Status.Members, &pb.MemberStatus{
 			Name:   member.Name,
 			Status: toMemberStatus(member.Status),
 			Tags:   member.Tags,
@@ -50,7 +50,7 @@ func (r *server) Status(ctx context.Context, req *pb.StatusRequest) (*pb.StatusR
 		} else {
 			// Update agent cache
 			r.agent.cache.UpdateNode(status)
-			resp.Status.NodeStatuses = append(resp.Status.NodeStatuses, status)
+			resp.Status.Nodes = append(resp.Status.Nodes, status)
 		}
 	}
 	setSystemStatus(resp)
@@ -92,42 +92,42 @@ func newRPCServer(agent *agent, listener net.Listener) *grpc.Server {
 func setSystemStatus(resp *pb.StatusResponse) {
 	var foundMaster bool
 
-	resp.Status.Status = pb.StatusType_SystemRunning
-	for _, member := range resp.Status.Nodes {
-		if member.Status == pb.MemberStatusType_MemberFailed {
-			resp.Status.Status = pb.StatusType_SystemDegraded
+	resp.Status.Status = pb.SystemStatus_Running
+	for _, member := range resp.Status.Members {
+		if member.Status == pb.MemberStatus_Failed {
+			resp.Status.Status = pb.SystemStatus_Degraded
 		}
 		if !foundMaster && isMaster(member) {
 			foundMaster = true
 		}
 	}
-	for _, node := range resp.Status.NodeStatuses {
-		resp.Status.Status = node.Status
-		if node.Status != pb.StatusType_SystemRunning {
+	for _, node := range resp.Status.Nodes {
+		resp.Status.Status = pb.SystemStatus_Type(node.Status)
+		if node.Status != pb.NodeStatus_Running {
 			break
 		}
 	}
 	if !foundMaster {
-		resp.Status.Status = pb.StatusType_SystemDegraded
+		resp.Status.Status = pb.SystemStatus_Degraded
 		resp.Summary = "master node unavailable"
 	}
 }
 
-func isMaster(member *pb.Node) bool {
+func isMaster(member *pb.MemberStatus) bool {
 	value, ok := member.Tags["role"]
 	return ok && value == "master"
 }
 
-func toMemberStatus(status string) pb.MemberStatusType {
+func toMemberStatus(status string) pb.MemberStatus_Type {
 	switch status {
 	case "alive":
-		return pb.MemberStatusType_MemberAlive
+		return pb.MemberStatus_Alive
 	case "leaving":
-		return pb.MemberStatusType_MemberLeaving
+		return pb.MemberStatus_Leaving
 	case "left":
-		return pb.MemberStatusType_MemberLeft
+		return pb.MemberStatus_Left
 	case "failed":
-		return pb.MemberStatusType_MemberFailed
+		return pb.MemberStatus_Failed
 	}
-	return pb.MemberStatusType_MemberNone
+	return pb.MemberStatus_None
 }

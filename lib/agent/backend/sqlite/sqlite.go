@@ -7,13 +7,15 @@ import (
 
 	"github.com/gravitational/planet/Godeps/_workspace/src/github.com/gravitational/log"
 	"github.com/gravitational/planet/Godeps/_workspace/src/github.com/gravitational/trace"
+	"github.com/gravitational/planet/Godeps/_workspace/src/github.com/jonboulle/clockwork"
 	_ "github.com/gravitational/planet/Godeps/_workspace/src/github.com/mattn/go-sqlite3"
 	pb "github.com/gravitational/planet/lib/agent/proto/agentpb"
 )
 
 type backend struct {
 	*sql.DB
-	done chan struct{}
+	clock clockwork.Clock
+	done  chan struct{}
 }
 
 // TODO: store checkers in a separate table
@@ -52,13 +54,14 @@ func New(path string) (*backend, error) {
 	if err != nil {
 		return nil, trace.Wrap(err)
 	}
-	return newBackend(db)
+	clock := clockwork.NewRealClock()
+	return newBackend(db, clock)
 }
 
 // UpdateNode will update the status of the node specified by status.
 func (r *backend) UpdateNode(status *pb.NodeStatus) (err error) {
 	if err = inTx(r.DB, func(tx *sql.Tx) error {
-		err = r.addStatus(tx, status)
+		err = addStatus(tx, status)
 		if err != nil {
 			return trace.Wrap(err)
 		}
@@ -93,7 +96,7 @@ func (r *backend) RecentStatus(node string) ([]*pb.Probe, error) {
 			return nil, trace.Wrap(err)
 		}
 		probe.Timestamp = (*pb.Timestamp)(&when)
-		probe.Status = serviceStatus(status).toProto()
+		probe.Status = probeType(status).toProto()
 		probes = append(probes, &probe)
 	}
 	err = rows.Err()
@@ -110,7 +113,7 @@ func (r *backend) Close() error {
 	return r.DB.Close()
 }
 
-func (r *backend) addStatus(tx *sql.Tx, status *pb.NodeStatus) (err error) {
+func addStatus(tx *sql.Tx, status *pb.NodeStatus) (err error) {
 	const insertStmt = `
 		INSERT OR IGNORE INTO node(name) VALUES(?);
 		INSERT INTO probe(node, checker, extra, status, error, captured_at)
@@ -126,37 +129,33 @@ func (r *backend) addStatus(tx *sql.Tx, status *pb.NodeStatus) (err error) {
 	return nil
 }
 
-type serviceStatus string
+type probeType string
 
-func protoToStatus(status pb.ServiceStatusType) serviceStatus {
+func protoToStatus(status pb.Probe_Type) probeType {
 	switch status {
-	case pb.ServiceStatusType_ServiceRunning:
-		return serviceStatus("H")
-	case pb.ServiceStatusType_ServiceTerminated:
-		return serviceStatus("T")
-	case pb.ServiceStatusType_ServiceFailed:
-		fallthrough
+	case pb.Probe_Running:
+		return probeType("H")
+	case pb.Probe_Terminated:
+		return probeType("T")
 	default:
-		return serviceStatus("F")
+		return probeType("F")
 	}
 }
 
-func (s serviceStatus) toProto() pb.ServiceStatusType {
-	switch s {
+func (r probeType) toProto() pb.Probe_Type {
+	switch r {
 	case "H":
-		return pb.ServiceStatusType_ServiceRunning
+		return pb.Probe_Running
 	case "T":
-		return pb.ServiceStatusType_ServiceTerminated
-	case "F":
-		fallthrough
+		return pb.Probe_Terminated
 	default:
-		return pb.ServiceStatusType_ServiceFailed
+		return pb.Probe_Failed
 	}
 }
 
 // driver.Valuer
-func (s serviceStatus) Value() (value driver.Value, err error) {
-	return string(s), nil
+func (r probeType) Value() (value driver.Value, err error) {
+	return string(r), nil
 }
 
 type timestamp pb.Timestamp
@@ -176,8 +175,8 @@ const scavengeTimeout = 24 * time.Hour
 func (r *backend) scavengeLoop() {
 	for {
 		select {
-		case <-time.After(scavengeTimeout):
-			if err := r.deleteOlderThan(time.Now().Add(-scavengeTimeout)); err != nil {
+		case <-r.clock.After(scavengeTimeout):
+			if err := r.deleteOlderThan(r.clock.Now().Add(-scavengeTimeout)); err != nil {
 				log.Errorf("failed to scavenge stats: %v", err)
 			}
 		case <-r.done:
@@ -190,7 +189,7 @@ func (r *backend) deleteOlderThan(limit time.Time) error {
 	const deleteStmt = `DELETE FROM probe WHERE captured_at < ?`
 
 	err := inTx(r.DB, func(tx *sql.Tx) error {
-		_, err := tx.Exec(deleteStmt, (*timestamp)(pb.TimeToProto(limit)))
+		_, err := tx.Exec(deleteStmt, timestamp(pb.TimeToProto(limit)))
 		if err != nil {
 			return trace.Wrap(err)
 		}
@@ -224,23 +223,24 @@ func inTx(db *sql.DB, f func(tx *sql.Tx) error) error {
 	return nil
 }
 
-func newInMemory() (*backend, error) {
+func newInMemory(clock clockwork.Clock) (*backend, error) {
 	db, err := sql.Open("sqlite3", ":memory:")
 	if err != nil {
 		return nil, trace.Wrap(err)
 	}
-	return newBackend(db)
+	return newBackend(db, clock)
 }
 
-func newBackend(db *sql.DB) (*backend, error) {
+func newBackend(db *sql.DB, clock clockwork.Clock) (*backend, error) {
 	_, err := db.Exec(schema)
 	if err != nil {
 		return nil, trace.Wrap(err, "failed to create schema")
 	}
 
 	backend := &backend{
-		DB:   db,
-		done: make(chan struct{}),
+		DB:    db,
+		clock: clock,
+		done:  make(chan struct{}),
 	}
 	go backend.scavengeLoop()
 	return backend, nil
