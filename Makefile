@@ -1,5 +1,9 @@
 # Quick Start
 # -----------
+# make production: 
+#     CD/CD build of Planet. This is what's used by Jenkins builds and this
+#     is what gets released to customers.
+#
 # make dev: 
 #     builds 'development' image of Planet, stores output in build/dev and 
 #     points build/current symlink to it. 
