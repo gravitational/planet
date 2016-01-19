@@ -69,6 +69,7 @@ func run() error {
 		cstartSelfTest           = cstart.Flag("self-test", "Run end-to-end tests on the started cluster").Bool()
 		cstartTestSpec           = cstart.Flag("test-spec", "Regexp of the test specs to run (self-test mode only)").Default("Networking|Pods").String()
 		cstartTestKubeRepoPath   = cstart.Flag("repo-path", "Path to either a k8s repository or a directory with test configuration files (self-test mode only)").String()
+		cstartAgentPeers         = InlineList(cstart.Flag("peers", "Initial planet agent cluster configuration"))
 
 		// stop a running container
 		cstop = app.Command("stop", "Stop planet container")
@@ -85,7 +86,7 @@ func run() error {
 		cagentRPCAddr  = cagent.Flag("rpc-addr", "Address to bind the RPC listener to").Default("127.0.0.1:7575").String()
 		cagentKubeAddr = cagent.Flag("kube-addr", "Address of the kubernetes api server").Default("127.0.0.1:8080").String()
 		// FIXME: read as a comma-separated list to be able to input from an environment var
-		cagentSerfPeers   = InlineList(cagent.Flag("peer", "Address of the serf node to join with.  Multiple addresses can be specified, separated by comma."))
+		cagentSerfPeers   = InlineList(cagent.Flag("peers", "Address of the serf node to join with.  Multiple addresses can be specified, separated by comma."))
 		cagentSerfRPCAddr = cagent.Flag("serf-rpc-addr", "RPC address of the local serf node").Default("127.0.0.1:7373").String()
 		cagentRole        = cagent.Flag("role", "Agent operating role (master/node)").Default("master").String()
 		cagentName        = cagent.Flag("name", "Agent name.  Must be the same as the name of the local serf node").Required().String()
@@ -174,6 +175,7 @@ func run() error {
 			StateDir:           *cstartStateDir,
 			ServiceSubnet:      *cstartServiceSubnet,
 			PODSubnet:          *cstartPODSubnet,
+			AgentPeers:         *cstartAgentPeers,
 		}
 		if *cstartSelfTest {
 			err = selfTest(config, *cstartTestKubeRepoPath, *cstartTestSpec, extraArgs)

@@ -108,7 +108,8 @@ func start(conf Config, monitorc chan<- bool) (*box.Box, error) {
 		box.EnvPair{Name: "KUBE_SERVICE_SUBNET", Val: conf.ServiceSubnet.String()},
 		box.EnvPair{Name: "KUBE_POD_SUBNET", Val: conf.PODSubnet.String()},
 		box.EnvPair{Name: "PLANET_PUBLIC_IP", Val: conf.PublicIP},
-		box.EnvPair{Name: "KUBE_CLUSTER_DNS_IP", Val: conf.ServiceSubnet.RelativeIP(3).String()},
+		box.EnvPair{Name: "PLANET_AGENT_PEERS", Val: strings.Join(conf.AgentPeers, ",")},
+		box.EnvPair{Name: "KUBE_CLUSTER_DNS_IP", Val: clusterIP(&conf)},
 	)
 
 	// Always trust local registry (for now)
@@ -164,6 +165,11 @@ func start(conf Config, monitorc chan<- bool) (*box.Box, error) {
 	go monitorUnits(b.Container, units, monitorc)
 
 	return b, nil
+}
+
+// clusterIP returns an IP used for cluster DNS service
+func clusterIP(conf *Config) string {
+	return conf.ServiceSubnet.RelativeIP(3).String()
 }
 
 // setupCloudOptions sets up cloud flags and files passed to kubernetes

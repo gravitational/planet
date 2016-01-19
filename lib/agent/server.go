@@ -1,6 +1,7 @@
 package agent
 
 import (
+	"errors"
 	"fmt"
 	"net"
 
@@ -17,6 +18,8 @@ type RPCServer interface {
 }
 
 const RPCPort = 7575 // FIXME: use serf to discover agent
+
+var errNoMaster = errors.New("master node unavailable")
 
 // server implements RPC for an agent.
 type server struct {
@@ -109,7 +112,7 @@ func setSystemStatus(resp *pb.StatusResponse) {
 	}
 	if !foundMaster {
 		resp.Status.Status = pb.SystemStatus_Degraded
-		resp.Summary = "master node unavailable"
+		resp.Summary = errNoMaster.Error()
 	}
 }
 
