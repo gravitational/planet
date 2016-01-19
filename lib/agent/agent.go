@@ -6,7 +6,7 @@ import (
 
 	"github.com/gravitational/planet/Godeps/_workspace/src/github.com/gravitational/log"
 	"github.com/gravitational/planet/Godeps/_workspace/src/github.com/gravitational/trace"
-	serfClient "github.com/gravitational/planet/Godeps/_workspace/src/github.com/hashicorp/serf/client"
+	serf "github.com/gravitational/planet/Godeps/_workspace/src/github.com/hashicorp/serf/client"
 	"github.com/gravitational/planet/lib/agent/cache"
 	"github.com/gravitational/planet/lib/agent/health"
 	pb "github.com/gravitational/planet/lib/agent/proto/agentpb"
@@ -46,10 +46,10 @@ type Config struct {
 }
 
 func New(config *Config) (Agent, error) {
-	clientConfig := &serfClient.Config{
+	clientConfig := &serf.Config{
 		Addr: config.SerfRPCAddr,
 	}
-	client, err := serfClient.ClientFromConfig(clientConfig)
+	client, err := serf.ClientFromConfig(clientConfig)
 	if err != nil {
 		return nil, trace.Wrap(err, "failed to connect to serf")
 	}
@@ -73,7 +73,7 @@ func New(config *Config) (Agent, error) {
 type agent struct {
 	health.Checkers
 
-	serfClient *serfClient.RPCClient
+	serfClient *serf.RPCClient
 
 	// Name of this agent.  Must be the same as the serf agent's name
 	// running on the same node.
@@ -154,8 +154,7 @@ func (r *agent) statusUpdateLoop() {
 	}
 }
 
-func (r *agent) serfEventLoop(filter string, handle serfClient.StreamHandle) {
-
+func (r *agent) serfEventLoop(filter string, handle serf.StreamHandle) {
 	for {
 		select {
 		case resp := <-r.eventc:

@@ -103,7 +103,7 @@ type dnsBootstrapper struct {
 // started before setting up health wait.
 
 func (r *dnsBootstrapper) OnHealthCheck(status *pb.SystemStatus) {
-	if status.Status == pb.StatusType_SystemRunning {
+	if status.Status == pb.SystemStatus_Running {
 		r.Do(func() {
 			// TODO: retry on failure
 			client, err := monitoring.ConnectToKube(r.kubeAddr)

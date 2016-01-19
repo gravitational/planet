@@ -66,7 +66,7 @@ func (r *kubeChecker) check(reporter reporter) {
 		reporter.add(err)
 	} else {
 		reporter.addProbe(&pb.Probe{
-			Status: pb.ServiceStatusType_ServiceRunning,
+			Status: pb.Probe_Running,
 		})
 	}
 }

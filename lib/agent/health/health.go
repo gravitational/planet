@@ -40,17 +40,17 @@ type defaultReporter struct {
 func NewDefaultReporter(name string) Reporter {
 	return &defaultReporter{status: &pb.NodeStatus{
 		Name:   name,
-		Status: pb.StatusType_SystemRunning,
+		Status: pb.NodeStatus_Running,
 	}}
 }
 
 func (r *defaultReporter) Add(probe *pb.Probe) {
 	r.status.Probes = append(r.status.Probes, probe)
 	if probe.Timestamp == nil {
-		probe.Timestamp = pb.TimeToProto(time.Now())
+		probe.Timestamp = pb.NewTimeToProto(time.Now())
 	}
-	if probe.Status == pb.ServiceStatusType_ServiceFailed {
-		r.status.Status = pb.StatusType_SystemDegraded
+	if probe.Status == pb.Probe_Failed {
+		r.status.Status = pb.NodeStatus_Degraded
 	}
 }
 

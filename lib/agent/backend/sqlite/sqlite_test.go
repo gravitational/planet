@@ -4,6 +4,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/gravitational/planet/Godeps/_workspace/src/github.com/jonboulle/clockwork"
 	_ "github.com/gravitational/planet/Godeps/_workspace/src/github.com/mattn/go-sqlite3"
 	pb "github.com/gravitational/planet/lib/agent/proto/agentpb"
 )
@@ -26,7 +27,7 @@ func TestAddsStats(t *testing.T) {
 	}
 
 	var count int64
-	when := (*timestamp)(pb.TimeToProto(ts))
+	when := timestamp(pb.TimeToProto(ts))
 	if err = backend.QueryRow(`SELECT COUNT(*) FROM probe WHERE captured_at = ?`, when).Scan(&count); err != nil {
 		t.Error(err)
 	}
@@ -54,7 +55,7 @@ func TestDeletesOlderStats(t *testing.T) {
 	}
 
 	var count int64
-	when := (*timestamp)(pb.TimeToProto(ts))
+	when := timestamp(pb.TimeToProto(ts))
 	if err = backend.QueryRow(`SELECT COUNT(*) FROM probe WHERE captured_at = ?`, when).Scan(&count); err != nil {
 		t.Error(err)
 	}
@@ -64,42 +65,72 @@ func TestDeletesOlderStats(t *testing.T) {
 }
 
 func TestGetsRecentStats(t *testing.T) {
+	clock := clockwork.NewFakeClock()
 	backend, err := newTestBackend()
 	if err != nil {
 		t.Fatal(err)
 	}
 	defer backend.Close()
 
-	if err = addStatsForNode(t, backend, node); err != nil {
+	if err = addStatsForNode(t, backend, node, clock); err != nil {
 		t.Fatal(err)
 	}
-	if err = addStatsForNode(t, backend, anotherNode); err != nil {
+	if err = addStatsForNode(t, backend, anotherNode, clock); err != nil {
 		t.Fatal(err)
 	}
 
+	expected := 5
 	probes, err := backend.RecentStatus(node)
 	if err != nil {
 		t.Fatal(err)
 	}
-	if len(probes) != 5 {
-		t.Errorf("expected 5 probes but got %d", len(probes))
+	if len(probes) != expected {
+		t.Errorf("expected %d probes but got %d", expected, len(probes))
 	}
 }
 
-func addStatsForNode(t *testing.T, b *backend, node string) error {
-	baseTime := baseTime(t)
+func TestScavengesOlderStats(t *testing.T) {
+	clock := clockwork.NewFakeClock()
+	backend, err := newTestBackendWithClock(clock)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer backend.Close()
+
+	if err := addStatsForNode(t, backend, node, clock); err != nil {
+		t.Fatal(err)
+	}
+	clock.BlockUntil(1)
+	clock.Advance(scavengeTimeout + 1*time.Second)
+	// block until the scavenge loop goes on another wait round
+	clock.BlockUntil(1)
+	probes, err := backend.RecentStatus(node)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(probes) > 0 {
+		t.Errorf("expected no stats but got %d", len(probes))
+	}
+}
+
+func addStatsForNode(t *testing.T, b *backend, node string, clock clockwork.Clock) error {
+	baseTime := clock.Now()
 	for i := 0; i < 3; i++ {
 		status := newStatus(node, baseTime)
 		if err := b.UpdateNode(status); err != nil {
 			return err
 		}
-		baseTime = baseTime.Add(10 * time.Second)
+		baseTime = baseTime.Add(-10 * time.Second)
 	}
 	return nil
 }
 
 func newTestBackend() (*backend, error) {
-	backend, err := newInMemory()
+	return newTestBackendWithClock(clockwork.NewRealClock())
+}
+
+func newTestBackendWithClock(clock clockwork.Clock) (*backend, error) {
+	backend, err := newInMemory(clock)
 	if err != nil {
 		return nil, err
 	}
@@ -107,36 +138,23 @@ func newTestBackend() (*backend, error) {
 }
 
 func newStatus(name string, time time.Time) *pb.NodeStatus {
-	when := pb.TimeToProto(time)
+	when := pb.NewTimeToProto(time)
 	status := &pb.NodeStatus{
 		Name: name,
 		Probes: []*pb.Probe{
 			&pb.Probe{
 				Checker:   "foo",
-				Status:    pb.ServiceStatusType_ServiceFailed,
+				Status:    pb.Probe_Failed,
 				Error:     "cannot lift weights",
 				Timestamp: when,
 			},
 			&pb.Probe{
 				Checker:   "bar",
-				Status:    pb.ServiceStatusType_ServiceFailed,
+				Status:    pb.Probe_Failed,
 				Error:     "cannot get up",
 				Timestamp: when,
 			},
 		},
 	}
 	return status
-}
-
-func (ts timestamp) String() string {
-	result, _ := pb.Timestamp(ts).MarshalText()
-	return string(result)
-}
-
-func baseTime(t *testing.T) time.Time {
-	time, err := time.Parse(time.RFC3339, "2001-01-01T11:00:00Z")
-	if err != nil {
-		t.Fatal(err)
-	}
-	return time
 }

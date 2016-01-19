@@ -31,6 +31,7 @@ type Config struct {
 	ServiceSubnet      CIDR
 	PODSubnet          CIDR
 	PlanetUser         *user.User
+	AgentPeers         []string
 }
 
 func (cfg *Config) hasRole(r string) bool {

@@ -37,7 +37,7 @@ type systemdChecker struct{}
 
 type serviceStatus struct {
 	name   string
-	status pb.ServiceStatusType
+	status pb.Probe_Type
 	err    error
 }
 
@@ -92,7 +92,7 @@ func systemdStatus() ([]serviceStatus, error) {
 		if unit.ActiveState == activeStateFailed || unit.LoadState == loadStateError {
 			conditions = append(conditions, serviceStatus{
 				name:   unit.Name,
-				status: pb.ServiceStatusType_ServiceFailed,
+				status: pb.Probe_Failed,
 				err:    fmt.Errorf("%s", unit.SubState),
 			})
 		}
