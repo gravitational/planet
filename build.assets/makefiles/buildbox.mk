@@ -23,7 +23,7 @@ all: $(ROOTFS)/bin/bash
 		--env="TARGETDIR=/targetdir" \
 		--env="ASSETDIR=/assetdir" \
 		planet/buildbox:latest \
-		make -e KUBE_VER=$(KUBE_VER) PLANET_GO_LDFLAGS="$(PLANET_GO_LDFLAGS)" -C /assets/makefiles -f $(TARGET)-docker.mk
+		make -e KUBE_VER=$(KUBE_VER) -C /assets/makefiles -f $(TARGET)-docker.mk
 	cp $(ASSETS)/orbit.manifest.json $(TARGETDIR)
 	cp $(ASSETDIR)/planet $(ROOTFS)/usr/bin/
 	@echo -e "\n---> Moving current symlink to $(TARGETDIR)\n"

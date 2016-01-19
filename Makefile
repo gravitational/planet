@@ -47,7 +47,6 @@ export
 PLANET_PACKAGE_PATH=$(PWD)
 PLANET_PACKAGE=github.com/gravitational/planet
 PLANET_VERSION_PACKAGE_PATH=$(PLANET_PACKAGE)/Godeps/_workspace/src/github.com/gravitational/version
-PLANET_GO_LDFLAGS="$(shell linkflags -pkg=$(PLANET_PACKAGE_PATH) -verpkg=$(PLANET_VERSION_PACKAGE_PATH) -compat)"
 
 all: production dev
 
@@ -62,12 +61,14 @@ build: $(BUILDDIR)/current
 
 # Makes a "developer" image, with _all_ parts of Kubernetes installed
 dev: buildbox
-	$(MAKE) -C $(ASSETS)/makefiles -e TARGET=dev PLANET_GO_LDFLAGS=$(PLANET_GO_LDFLAGS) -f buildbox.mk
+	$(MAKE) -C $(ASSETS)/makefiles -e TARGET=dev -f buildbox.mk
 
-# Composite image target that creates master/node images
+#
+# WARNING: careful here. This is production build!!!!
+#
 production: buildbox
-	$(MAKE) -C $(ASSETS)/makefiles -e TARGET=master PLANET_GO_LDFLAGS=$(PLANET_GO_LDFLAGS) -f buildbox.mk
-	$(MAKE) -C $(ASSETS)/makefiles -e TARGET=node PLANET_GO_LDFLAGS=$(PLANET_GO_LDFLAGS) -f buildbox.mk
+	$(MAKE) -C $(ASSETS)/makefiles -e TARGET=master -f buildbox.mk
+	$(MAKE) -C $(ASSETS)/makefiles -e TARGET=node -f buildbox.mk
 
 enter_buildbox:
 	$(MAKE) -C $(ASSETS)/makefiles -e -f buildbox.mk enter_buildbox
