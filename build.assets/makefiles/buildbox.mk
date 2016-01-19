@@ -72,4 +72,4 @@ clean-rootfs:
 	fi
 
 clean: clean-rootfs
-	sudo rm -rf $(TARGETDIR)
+	rm -rf $(TARGETDIR)
