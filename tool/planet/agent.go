@@ -27,7 +27,7 @@ type AgentConfig struct {
 	// EtcdEndpoints is a list of Etcd servers to connect to
 	EtcdEndpoints []string
 	// APIServerDNS is a name of the API server entry to lookup
-	// for the currnent active API server
+	// for the currently active API server
 	APIServerDNS string
 }
 
@@ -40,10 +40,11 @@ func (a AgentConfig) String() string {
 // agent starts a special module that watches the changes
 func agent(a AgentConfig) error {
 	log.Infof("%v start", a)
-	client, err := leader.NewClient(leader.Config{Endpoints: a.EtcdEndpoints})
+	client, err := leader.NewClient(leader.Config{EtcdEndpoints: a.EtcdEndpoints})
 	if err != nil {
 		return trace.Wrap(err)
 	}
+	defer client.Close()
 	if a.Role == RoleMaster {
 		if err := client.AddVoter(a.LeaderKey, a.PublicIP, a.Term); err != nil {
 			return trace.Wrap(err)

@@ -12,13 +12,16 @@ import (
 	"github.com/gravitational/planet/Godeps/_workspace/src/golang.org/x/net/context"
 )
 
+const defaultResponseTimeout = 1 * time.Second
+
 // Config sets leader election configuration options
 type Config struct {
-	// Endpoints is a list of etcd endpoints to use
-	Endpoints []string
-	// Timeout is header response operatin timeout, set to 1 second by default
+	// EtcdEndpoints is a list of etcd endpoints to use
+	EtcdEndpoints []string
+	// Timeout is header response operation timeout,
+	// set to defaultResponseTimeout by default
 	Timeout time.Duration
-	// Clock is a time providre
+	// Clock is a time provider
 	Clock timetools.TimeProvider
 }
 
@@ -34,17 +37,17 @@ type Client struct {
 
 // NewClient returns a new instance of leader election client
 func NewClient(cfg Config) (*Client, error) {
-	if len(cfg.Endpoints) == 0 {
+	if len(cfg.EtcdEndpoints) == 0 {
 		return nil, trace.Errorf("need at least one endpoint")
 	}
 	if cfg.Clock == nil {
 		cfg.Clock = &timetools.RealTime{}
 	}
 	if cfg.Timeout == 0 {
-		cfg.Timeout = 1 * time.Second
+		cfg.Timeout = defaultResponseTimeout
 	}
 	client, err := client.New(client.Config{
-		Endpoints:               cfg.Endpoints,
+		Endpoints:               cfg.EtcdEndpoints,
 		Transport:               client.DefaultTransport,
 		HeaderTimeoutPerRequest: cfg.Timeout,
 	})
@@ -63,9 +66,10 @@ func NewClient(cfg Config) (*Client, error) {
 // whenever leader changes
 type CallbackFn func(key, prevValue, newValue string)
 
-// AddWatchCallback executes callback fn every time the value of the key
-// changes, it passes the key name, previous and new values
-// it always called with the current value for the first time
+// AddWatchCallback adds the given callback to be invoked when changes are
+// made to the specified key's value. The callback is called with new and
+// previous values for the key. In the first call, both values are the same
+// and reflect the value of the key at that moment
 func (l *Client) AddWatchCallback(key string, retry time.Duration, fn CallbackFn) {
 	go func() {
 		valuesC := make(chan string)
@@ -133,13 +137,16 @@ func (l *Client) AddWatch(key string, retry time.Duration, valuesC chan string) 
 			re, err := watcher.Next(ctx)
 			if err == nil {
 				if re.Node.Value == "" {
-					log.Infof("watcher.Next for %v skiping empty value", key)
+					log.Infof("watcher.Next for %v skipping empty value", key)
 					continue
 				}
 				log.Infof("watcher.Next for %v got %v", key, re.Node.Value)
 			}
 			if err != nil {
-				if cerr, ok := err.(*client.ClusterError); ok {
+				if err == context.Canceled {
+					log.Infof("client is closing, return")
+					return
+				} else if cerr, ok := err.(*client.ClusterError); ok {
 					if len(cerr.Errors) != 0 && cerr.Errors[0] == context.Canceled {
 						log.Infof("client is closing, return")
 						return

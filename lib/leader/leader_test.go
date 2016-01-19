@@ -34,7 +34,7 @@ func (s *LeaderSuite) SetUpSuite(c *C) {
 }
 
 func (s *LeaderSuite) newClient(c *C) *Client {
-	clt, err := NewClient(Config{Endpoints: s.nodes, Timeout: 100 * time.Millisecond})
+	clt, err := NewClient(Config{EtcdEndpoints: s.nodes, Timeout: 100 * time.Millisecond})
 	c.Assert(err, IsNil)
 	return clt
 }
