@@ -11,7 +11,8 @@ TARBALL:=$(TARGETDIR)/planet-$(TARGET).tar.gz
 
 all: $(ROOTFS)/bin/bash 
 	@echo -e "\n---> Launching 'buildbox' Docker container to build $(TARGET):\n"
-	docker run -i --rm=true \
+	@mkdir -p $(ASSETDIR)
+	docker run -i -u $$(id -u) --rm=true \
 		--volume=$(ASSETS):/assets \
 		--volume=$(ROOTFS):/rootfs \
 		--volume=$(TARGETDIR):/targetdir \
@@ -21,7 +22,7 @@ all: $(ROOTFS)/bin/bash
 		--env="ROOTFS=/rootfs" \
 		--env="TARGETDIR=/targetdir" \
 		--env="ASSETDIR=/assetdir" \
-		planet/buildbox \
+		planet/buildbox:latest \
 		make -e KUBE_VER=$(KUBE_VER) PLANET_GO_LDFLAGS="$(PLANET_GO_LDFLAGS)" -C /assets/makefiles -f $(TARGET)-docker.mk
 	cp $(ASSETS)/orbit.manifest.json $(TARGETDIR)
 	cp $(ASSETDIR)/planet $(ROOTFS)/usr/bin/
@@ -31,6 +32,20 @@ all: $(ROOTFS)/bin/bash
 	@echo -e "\n---> Creating Planet image...\n"
 	cd $(TARGETDIR) && tar -czf $(TARBALL) orbit.manifest.json rootfs
 	@echo -e "\nDone --> $(TARBALL)"
+
+enter_buildbox:
+	docker run -ti -u $$(id -u) --rm=true \
+		--volume=$(ASSETS):/assets \
+		--volume=$(ROOTFS):/rootfs \
+		--volume=$(TARGETDIR):/targetdir \
+		--volume=$(ASSETDIR):/assetdir \
+		--volume=$(PWD):/gopath/src/github.com/gravitational/planet \
+		--env="ASSETS=/assets" \
+		--env="ROOTFS=/rootfs" \
+		--env="TARGETDIR=/targetdir" \
+		--env="ASSETDIR=/assetdir" \
+		planet/buildbox:latest \
+		/bin/bash
 
 
 $(ROOTFS)/bin/bash: clean-rootfs

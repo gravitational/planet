@@ -69,6 +69,9 @@ production: buildbox
 	$(MAKE) -C $(ASSETS)/makefiles -e TARGET=master PLANET_GO_LDFLAGS=$(PLANET_GO_LDFLAGS) -f buildbox.mk
 	$(MAKE) -C $(ASSETS)/makefiles -e TARGET=node PLANET_GO_LDFLAGS=$(PLANET_GO_LDFLAGS) -f buildbox.mk
 
+enter_buildbox:
+	$(MAKE) -C $(ASSETS)/makefiles -e -f buildbox.mk enter_buildbox
+
 # Runs end-to-end tests in the specific environment
 test: buildbox testbox prepare-to-run
 	$(MAKE) -C $(ASSETS)/makefiles -e TARGET=dev TEST_FOCUS=$(SPEC) -f test.mk
@@ -159,11 +162,7 @@ test-clean:
 
 # internal use:
 make-docker-image:
-	@if [[ ! $$(docker images | grep $(BUILDIMAGE)) ]]; then \
-		cd $(ASSETS)/docker; docker build --no-cache -t $(BUILDIMAGE) -f $(DOCKERFILE) . ;\
-	else \
-		echo "$(BUILDIMAGE) already exists. Run 'docker rmi $(BUILDIMAGE)' to rebuild" ;\
-	fi
+	cd $(ASSETS)/docker; docker build -t $(BUILDIMAGE) -f $(DOCKERFILE) . ;\
 
 remove-godeps:
 	rm -rf Godeps/
