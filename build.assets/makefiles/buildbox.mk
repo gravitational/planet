@@ -5,7 +5,7 @@ TARGETDIR:=$(BUILDDIR)/$(TARGET)
 ASSETDIR:=$(BUILDDIR)/assets
 ROOTFS:=$(TARGETDIR)/rootfs
 CONTAINERNAME:=planet-base-$(TARGET)
-TARBALL:=$(TARGETDIR)/planet-$(TARGET).$(PLANETVER).tar.gz
+TARBALL:=$(TARGETDIR)/planet-$(TARGET).tar.gz
 
 .PHONY: all clean
 
@@ -36,8 +36,8 @@ all: $(ROOTFS)/bin/bash
 $(ROOTFS)/bin/bash: clean-rootfs
 	@echo -e "\n---> Creating RootFS for Planet image:\n"
 	@mkdir -p $(ROOTFS)
-# create rootfs based in RAM. you can uncomment the next line to use disk
-	if [ $$USER != jenkins ]; then \
+# if MEMROOTFS environment variable is set, create rootfs in RAM (to speed up interative development)
+	if [ ! -z $$MEMROOTFS ]; then \
 	  sudo mount -t tmpfs -o size=600m tmpfs $(ROOTFS) ;\
 	fi
 # populate Rootfs using docker image 'planet/base'

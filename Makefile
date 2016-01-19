@@ -37,7 +37,6 @@ PWD := $(shell pwd)
 ASSETS := $(PWD)/build.assets
 BUILDDIR ?= $(PWD)/build
 BUILDDIR := $(shell realpath $(BUILDDIR))
-PLANETVER:=0.02
 KUBE_VER:=v1.1.4
 PUBLIC_IP:=127.0.0.1
 export
