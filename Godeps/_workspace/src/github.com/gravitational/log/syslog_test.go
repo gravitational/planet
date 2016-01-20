@@ -4,7 +4,7 @@ import (
 	"errors"
 	"log/syslog"
 
-	. "gopkg.in/check.v1"
+	. "github.com/gravitational/planet/Godeps/_workspace/src/gopkg.in/check.v1"
 )
 
 type SysLogSuite struct {

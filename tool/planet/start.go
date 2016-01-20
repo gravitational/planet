@@ -21,8 +21,10 @@ import (
 
 const MinKernelVersion = 310
 const (
-	CheckKernel       = true
-	CheckCgroupMounts = true
+	CheckKernel          = true
+	CheckCgroupMounts    = true
+	DefaultServiceSubnet = "10.100.0.0/16"
+	DefaultPODSubnet     = "10.244.0.0/16"
 )
 
 func startAndWait(config *Config) error {
@@ -99,7 +101,7 @@ func start(config *Config, monitorc chan<- bool) (*box.Box, error) {
 		return nil, trace.Wrap(err)
 	}
 	// make sure the role is set
-	if !config.hasRole("master") && !config.hasRole("node") {
+	if !config.hasRole(RoleMaster) && !config.hasRole(RoleNode) {
 		return nil, trace.Errorf("--role parameter must be set")
 	}
 	if err = configureMonitrcPermissions(config.Rootfs); err != nil {
@@ -107,15 +109,18 @@ func start(config *Config, monitorc chan<- bool) (*box.Box, error) {
 	}
 
 	config.Env = append(config.Env,
-		box.EnvPair{Name: "KUBE_MASTER_IP", Val: config.MasterIP},
-		box.EnvPair{Name: "KUBE_CLOUD_PROVIDER", Val: config.CloudProvider},
-		box.EnvPair{Name: "KUBE_SERVICE_SUBNET", Val: config.ServiceSubnet.String()},
-		box.EnvPair{Name: "KUBE_POD_SUBNET", Val: config.PODSubnet.String()},
-		box.EnvPair{Name: "PLANET_PUBLIC_IP", Val: config.PublicIP},
-		box.EnvPair{Name: "KUBE_CLUSTER_DNS_IP", Val: config.ServiceSubnet.RelativeIP(3).String()},
-		box.EnvPair{Name: "ETCD_MEMBER_NAME", Val: config.EtcdMemberName},
-		box.EnvPair{Name: "ETCD_INITIAL_CLUSTER", Val: config.EtcdInitialCluster},
-		box.EnvPair{Name: "ETCD_INITIAL_CLUSTER_STATE", Val: config.EtcdInitialClusterState},
+		box.EnvPair{Name: EnvMasterIP, Val: config.MasterIP},
+		box.EnvPair{Name: EnvCloudProvider, Val: config.CloudProvider},
+		box.EnvPair{Name: EnvServiceSubnet, Val: config.ServiceSubnet.String()},
+		box.EnvPair{Name: EnvPODSubnet, Val: config.PODSubnet.String()},
+		box.EnvPair{Name: EnvPublicIP, Val: config.PublicIP},
+		box.EnvPair{Name: EnvClusterDNSIP, Val: config.ServiceSubnet.RelativeIP(3).String()},
+		box.EnvPair{Name: EnvAPIServerName, Val: fmt.Sprintf("apiserver.%v", config.ClusterID)},
+		box.EnvPair{Name: EnvEtcdMemberName, Val: config.EtcdMemberName},
+		box.EnvPair{Name: EnvEtcdInitialCluster, Val: config.EtcdInitialCluster},
+		box.EnvPair{Name: EnvEtcdInitialClusterState, Val: config.EtcdInitialClusterState},
+		box.EnvPair{Name: EnvRole, Val: config.Roles[0]},
+		box.EnvPair{Name: EnvClusterID, Val: config.ClusterID},
 	)
 
 	// Always trust local registry (for now)
@@ -131,8 +136,17 @@ func start(config *Config, monitorc chan<- bool) (*box.Box, error) {
 	if err = addResolv(config); err != nil {
 		return nil, err
 	}
-	if err = initState(config); err != nil {
-		return nil, err
+	if config.hasRole(RoleMaster) {
+		if err = mountSecrets(config); err != nil {
+			return nil, err
+		}
+	}
+	if err = setHosts(config, []HostEntry{
+		HostEntry{IP: "127.0.0.1", Hostnames: "localhost localhost.localdomain localhost4 localhost4.localdomain4"},
+		HostEntry{IP: "::1", Hostnames: "localhost localhost.localdomain localhost6 localhost6.localdomain6"},
+		HostEntry{IP: config.MasterIP, Hostnames: fmt.Sprintf("apiserver.%v", config.ClusterID)},
+	}); err != nil {
+		return nil, trace.Wrap(err)
 	}
 
 	cfg := box.Config{
@@ -161,10 +175,10 @@ func start(config *Config, monitorc chan<- bool) (*box.Box, error) {
 	}
 
 	units := []string{}
-	if config.hasRole("master") {
+	if config.hasRole(RoleMaster) {
 		units = append(units, masterUnits...)
 	}
-	if config.hasRole("node") {
+	if config.hasRole(RoleNode) {
 		units = appendUnique(units, nodeUnits)
 	}
 
@@ -369,32 +383,68 @@ func addResolv(config *Config) error {
 	return nil
 }
 
-// initState makes sure that k8s specific state like x509 keys and certs
-// is initialized, it makes sure it's set up after it returns
-// TODO(klizhentas) Make sure that worker nodes can use the same CA
-// and APIserver actually checks the client certs.
-// TODO(klizhentas) CA private key should not really be present on the
-// master/nodes should be stored somewhere else
-func initState(c *Config) error {
-	if err := os.MkdirAll(c.StateDir, 0777); err != nil {
+func setHosts(config *Config, entries []HostEntry) error {
+	out := &bytes.Buffer{}
+	for _, e := range entries {
+		io.WriteString(out, fmt.Sprintf("%v %v\n", e.IP, e.Hostnames))
+	}
+	config.Files = append(config.Files, box.File{
+		Path:     "/etc/hosts",
+		Contents: out,
+		Mode:     0666,
+	})
+	return nil
+}
+
+type HostEntry struct {
+	Hostnames string
+	IP        string
+}
+
+const (
+	// CertificateAuthorityKeyPair is the name of the TLS cert authority
+	// file (with .cert extension) that is used to sign APIserver
+	// certificates and secret keys
+	CertificateAuthorityKeyPair = "root"
+	// APIServerKeyPair is the name
+	APIServerKeyPair = "apiserver"
+	// RoleMaster sets up node as a K8s master server
+	RoleMaster = "master"
+	// RoleNode sets up planet as K8s node server
+	RoleNode = "node"
+)
+
+// mountSecrets mounts k8s secrets directory
+func mountSecrets(c *Config) error {
+	p := &keyPairPaths{
+		name:      CertificateAuthorityKeyPair,
+		sourceDir: c.SecretsDir,
+	}
+	// key pair have been already initialized
+	exists, err := p.exists()
+	if err != nil {
 		return trace.Wrap(err)
 	}
-
-	// init key pair for certificate authority
-	ca, err := initKeyPair(c, "root", nil, true)
-	if err != nil {
-		return err
+	if !exists {
+		return trace.Errorf("expected %v.cert file", CertificateAuthorityKeyPair)
 	}
 
-	// init key pair for apiserver signed by our authority
-	_, err = initKeyPair(c, "apiserver", ca.keyPair, false)
+	p = &keyPairPaths{
+		name:      APIServerKeyPair,
+		sourceDir: c.SecretsDir,
+	}
+	// key pair have been already initialized
+	exists, err = p.exists()
 	if err != nil {
-		return err
+		return trace.Wrap(err)
+	}
+	if !exists {
+		return trace.Errorf("expected %v.cert file", APIServerKeyPair)
 	}
 
 	c.Mounts = append(c.Mounts, []box.Mount{
 		{
-			Src:      c.StateDir,
+			Src:      c.SecretsDir,
 			Dst:      "/var/state",
 			Readonly: true,
 		},

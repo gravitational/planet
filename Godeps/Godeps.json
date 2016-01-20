@@ -6,11 +6,6 @@
 	],
 	"Deps": [
 		{
-			"ImportPath": "code.google.com/p/go-uuid/uuid",
-			"Comment": "null-15",
-			"Rev": "35bc42037350f0078e3c974c6ea690f1926603ab"
-		},
-		{
 			"ImportPath": "github.com/Sirupsen/logrus",
 			"Comment": "v0.8.3-3-g07d998d",
 			"Rev": "07d998d174c4e2dc90e2f1989a20724220bca1ff"
@@ -22,6 +17,21 @@
 		{
 			"ImportPath": "github.com/alecthomas/units",
 			"Rev": "6b4e7dc5e3143b85ea77909c72caf89416fc2915"
+		},
+		{
+			"ImportPath": "github.com/coreos/etcd/client",
+			"Comment": "v2.3.0-alpha.0-493-g98dfdeb",
+			"Rev": "98dfdebf13de7b476e7456b4c3c4b4a49fbda2c3"
+		},
+		{
+			"ImportPath": "github.com/coreos/etcd/pkg/pathutil",
+			"Comment": "v2.3.0-alpha.0-493-g98dfdeb",
+			"Rev": "98dfdebf13de7b476e7456b4c3c4b4a49fbda2c3"
+		},
+		{
+			"ImportPath": "github.com/coreos/etcd/pkg/types",
+			"Comment": "v2.3.0-alpha.0-493-g98dfdeb",
+			"Rev": "98dfdebf13de7b476e7456b4c3c4b4a49fbda2c3"
 		},
 		{
 			"ImportPath": "github.com/coreos/go-systemd/dbus",
@@ -58,12 +68,12 @@
 			"Rev": "aece6fb931241ad332956db4f62798dfbea944b3"
 		},
 		{
-			"ImportPath": "github.com/gravitational/log",
-			"Rev": "8e1bbf1bba0515719dbb17adf1da20b5390ac8da"
+			"ImportPath": "github.com/gravitational/configure/cstrings",
+			"Rev": "39e84362ca5d6d3152f7e13b889cc36e1f1b80cb"
 		},
 		{
-			"ImportPath": "github.com/gravitational/orbit/lib/utils",
-			"Rev": "39fabb3a51f4dffd8bfe32a9eb7cc2dbbdd8f633"
+			"ImportPath": "github.com/gravitational/log",
+			"Rev": "8e1bbf1bba0515719dbb17adf1da20b5390ac8da"
 		},
 		{
 			"ImportPath": "github.com/gravitational/roundtrip",
@@ -82,13 +92,29 @@
 			"Rev": "8c199fb6259ffc1af525cc3ad52ee60ba8359669"
 		},
 		{
+			"ImportPath": "github.com/mailgun/timetools",
+			"Rev": "fd192d755b00c968d312d23f521eb0cdc6f66bd0"
+		},
+		{
 			"ImportPath": "github.com/opencontainers/runc/libcontainer",
 			"Comment": "v0.0.2",
 			"Rev": "1eeb86fbf2ec75661b9d843fd46679c868bc242d"
 		},
 		{
+			"ImportPath": "github.com/pborman/uuid",
+			"Rev": "dee7705ef7b324f27ceb85a121c61f2c2e8ce988"
+		},
+		{
 			"ImportPath": "github.com/syndtr/gocapability/capability",
 			"Rev": "2c00daeb6c3b45114c80ac44119e7b8801fdd852"
+		},
+		{
+			"ImportPath": "github.com/ugorji/go/codec",
+			"Rev": "646ae4a518c1c3be0739df898118d9bccf993858"
+		},
+		{
+			"ImportPath": "golang.org/x/net/context",
+			"Rev": "e0403b4e005737430c05a57aac078479844f919c"
 		},
 		{
 			"ImportPath": "golang.org/x/net/websocket",
@@ -102,6 +128,11 @@
 		{
 			"ImportPath": "gopkg.in/check.v1",
 			"Rev": "64131543e7896d5bcc6bd5a76287eb75ea96c673"
+		},
+		{
+			"ImportPath": "gopkg.in/mgo.v2/bson",
+			"Comment": "r2015.12.06",
+			"Rev": "e30de8ac9ae3b30df7065f766c71f88bba7d4e49"
 		}
 	]
 }

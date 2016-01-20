@@ -3,7 +3,7 @@ package utils
 import (
 	"testing"
 
-	. "gopkg.in/check.v1"
+	. "github.com/gravitational/planet/Godeps/_workspace/src/gopkg.in/check.v1"
 )
 
 func TestUtils(t *testing.T) { TestingT(t) }

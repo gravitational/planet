@@ -8,7 +8,7 @@ import (
 
 	"github.com/gravitational/planet/lib/box"
 
-	"github.com/gravitational/planet/Godeps/_workspace/src/github.com/gravitational/orbit/lib/utils"
+	"github.com/gravitational/planet/Godeps/_workspace/src/github.com/gravitational/configure/cstrings"
 	"github.com/gravitational/planet/Godeps/_workspace/src/gopkg.in/alecthomas/kingpin.v2"
 )
 
@@ -25,7 +25,7 @@ type Config struct {
 	Mounts                  box.Mounts
 	Files                   []box.File
 	IgnoreChecks            bool
-	StateDir                string
+	SecretsDir              string
 	DockerBackend           string
 	ServiceSubnet           CIDR
 	PODSubnet               CIDR
@@ -49,7 +49,7 @@ func (cfg *Config) hasRole(r string) bool {
 type list []string
 
 func (l *list) Set(val string) error {
-	for _, r := range utils.SplitComma(val) {
+	for _, r := range cstrings.SplitComma(val) {
 		*l = append(*l, r)
 	}
 	return nil
