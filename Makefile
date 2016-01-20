@@ -152,6 +152,8 @@ testbox:
 
 # removes all build aftifacts 
 clean: dev-clean master-clean node-clean test-clean
+	rm -rf $(BUILDDIR)
+
 dev-clean:
 	$(MAKE) -C $(ASSETS)/makefiles -e TARGET=dev -f buildbox.mk clean
 node-clean:

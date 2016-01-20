@@ -13,3 +13,4 @@ RUN mkdir -p /opt && cd /opt && curl https://storage.googleapis.com/golang/go1.4
 RUN mkdir -p $GOPATH/src $GOPATH/bin;go get github.com/tools/godep
 RUN go get github.com/gravitational/version/cmd/linkflags
 RUN chmod a+w $GOPATH -R
+RUN chmod a+w $GOROOT -R
