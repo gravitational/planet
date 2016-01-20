@@ -90,39 +90,20 @@ func (l *Client) AddWatchCallback(key string, retry time.Duration, fn CallbackFn
 // AddWatch starts watching the key for changes and sending them
 // to the valuesC, the watch is stopped
 func (l *Client) AddWatch(key string, retry time.Duration, valuesC chan string) {
+	prefix := fmt.Sprintf("AddWatch(key=%v)", key)
 	api := client.NewKeysAPI(l.client)
 	go func() {
 		// make sure we've sent the existing value first,
 		// so we can reliably detect the transitions
-		var re *client.Response
-		var err error
-	firstValue:
-		for {
-			re, err = api.Get(context.TODO(), key, nil)
-			if err == nil {
-				break firstValue
-			}
-			tick := time.NewTicker(retry)
-			defer tick.Stop()
-			select {
-			case <-tick.C:
-				re, err = api.Get(context.TODO(), key, nil)
-				if err == nil {
-					break firstValue
-				} else if !IsNotFound(err) {
-					log.Infof("watcher unexpected error: %v", err)
-				}
-			case <-l.closeC:
-				log.Infof("watcher got client close signal")
-				return
-			}
-		}
-		log.Infof("watcher got current value '%v' for key '%v'", re.Node.Value, key)
-		select {
-		case valuesC <- re.Node.Value:
-		case <-l.closeC:
+		re, err := l.getFirstValue(key, retry)
+		if err != nil {
+			log.Errorf("%v unexpected error: %v, returning", prefix, err)
+			return
+		} else if re == nil {
+			log.Infof("%v client is closing, return", prefix)
 			return
 		}
+		log.Infof("%v got current value '%v' for key '%v'", prefix, re.Node.Value, key)
 		// we've got the value, now we can set up a watcher
 		// that will detect changes
 		watcher := api.Watcher(key, &client.WatcherOptions{
@@ -198,6 +179,28 @@ func (l *Client) AddVoter(key, value string, term time.Duration) error {
 		}
 	}()
 	return nil
+}
+
+// getFirstValue returns the current value for key if it exists, or waits
+// for the value to appear and loops until client.Close is called
+func (l *Client) getFirstValue(key string, retryPeriod time.Duration) (*client.Response, error) {
+	api := client.NewKeysAPI(l.client)
+	tick := time.NewTicker(retryPeriod)
+	defer tick.Stop()
+	for {
+		re, err := api.Get(context.TODO(), key, nil)
+		if err == nil {
+			return re, nil
+		} else if !IsNotFound(err) {
+			log.Infof("unexpected watcher error: %v", err)
+		}
+		select {
+		case <-tick.C:
+		case <-l.closeC:
+			log.Infof("watcher got client close signal")
+			return nil, nil
+		}
+	}
 }
 
 // elect is taken from: https://github.com/kubernetes/contrib/blob/master/pod-master/podmaster.go
