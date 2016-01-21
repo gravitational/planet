@@ -13,6 +13,7 @@ import (
 	pb "github.com/gravitational/planet/lib/agent/proto/agentpb"
 )
 
+// Default RPC port.
 const RPCPort = 7575 // FIXME: use serf to discover agents
 
 var errNoMaster = errors.New("master node unavailable")
@@ -23,7 +24,8 @@ type server struct {
 	agent *agent
 }
 
-// pb.AgentServiceServer
+// Status reports the health status of a serf cluster by iterating over the list
+// of currently active cluster members and collecting their respective health statuses.
 func (r *server) Status(ctx context.Context, req *pb.StatusRequest) (*pb.StatusResponse, error) {
 	resp := &pb.StatusResponse{Status: &pb.SystemStatus{}}
 
@@ -58,6 +60,7 @@ func (r *server) Status(ctx context.Context, req *pb.StatusRequest) (*pb.StatusR
 	return resp, nil
 }
 
+// LocalStatus reports the health status of the local serf node.
 func (r *server) LocalStatus(ctx context.Context, req *pb.LocalStatusRequest) (resp *pb.LocalStatusResponse, err error) {
 	resp = &pb.LocalStatusResponse{}
 
@@ -124,14 +127,14 @@ func isMaster(member *pb.MemberStatus) bool {
 }
 
 func toMemberStatus(status string) pb.MemberStatus_Type {
-	switch status {
-	case "alive":
+	switch MemberStatus(status) {
+	case MemberAlive:
 		return pb.MemberStatus_Alive
-	case "leaving":
+	case MemberLeaving:
 		return pb.MemberStatus_Leaving
-	case "left":
+	case MemberLeft:
 		return pb.MemberStatus_Left
-	case "failed":
+	case MemberFailed:
 		return pb.MemberStatus_Failed
 	}
 	return pb.MemberStatus_None

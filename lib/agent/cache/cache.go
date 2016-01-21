@@ -2,6 +2,8 @@ package cache
 
 import pb "github.com/gravitational/planet/lib/agent/proto/agentpb"
 
+// Cache is an interface that allows access to recent health status information
+// collected on a per-node basis.
 type Cache interface {
 	// Update status for the specified node.
 	UpdateNode(status *pb.NodeStatus) error

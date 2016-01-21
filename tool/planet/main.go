@@ -260,10 +260,10 @@ func selfTest(config Config, repoDir, spec string, extraArgs []string) error {
 				}
 				err = e2e.RunTests(testConfig, extraArgs)
 			} else {
-				err = trace.Wrap(fmt.Errorf("cannot start testing: cluster not running"))
+				err = trace.Errorf("cannot start testing: cluster not running")
 			}
 		case <-time.After(idleTimeout):
-			err = trace.Wrap(fmt.Errorf("timed out waiting for units to come up"))
+			err = trace.Errorf("timed out waiting for units to come up")
 		}
 		stop(config.Rootfs, config.SocketPath)
 		process.Close()

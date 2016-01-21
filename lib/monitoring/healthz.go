@@ -1,23 +1,22 @@
 package monitoring
 
 import (
-	"errors"
-	"fmt"
 	"io"
 	"net"
 	"net/http"
 	"time"
 
+	"github.com/gravitational/planet/Godeps/_workspace/src/github.com/gravitational/trace"
 	pb "github.com/gravitational/planet/lib/agent/proto/agentpb"
 )
 
 const healthzCheckTimeout = 1 * time.Second
 
-var errHealthzCheck = errors.New("failed healthz check")
-
+// checkerFunc is a function that can read service health status and report if it has failed.
 type checkerFunc func(response io.Reader) error
 
-// monitoring.checker
+// httpHealthzChecker is a health checker that probes service status using
+// an HTTP healthz end-point.
 type httpHealthzChecker struct {
 	URL         string
 	client      *http.Client
@@ -27,12 +26,12 @@ type httpHealthzChecker struct {
 func (r *httpHealthzChecker) check(reporter reporter) {
 	resp, err := r.client.Get(r.URL)
 	if err != nil {
-		reporter.add(err)
+		reporter.add(trace.Errorf("failed to http.Get", err))
 		return
 	}
 	defer resp.Body.Close()
 	if resp.StatusCode != http.StatusOK {
-		reporter.add(fmt.Errorf("unexpected HTTP status: %s", http.StatusText(resp.StatusCode)))
+		reporter.add(trace.Errorf("unexpected HTTP status: %s", http.StatusText(resp.StatusCode)))
 		return
 	}
 	err = r.checkerFunc(resp.Body)

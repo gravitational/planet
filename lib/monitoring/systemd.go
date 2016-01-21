@@ -2,7 +2,6 @@ package monitoring
 
 import (
 	"bytes"
-	"fmt"
 	"os/exec"
 
 	"github.com/gravitational/planet/Godeps/_workspace/src/github.com/coreos/go-systemd/dbus"
@@ -54,12 +53,12 @@ const (
 func (r systemdChecker) check(reporter reporter) {
 	systemStatus, err := isSystemRunning()
 	if err != nil {
-		reporter.add(fmt.Errorf("failed to check system health: %v", err))
+		reporter.add(trace.Errorf("failed to check system health: %v", err))
 	}
 
 	conditions, err := systemdStatus()
 	if err != nil {
-		reporter.add(fmt.Errorf("failed to check systemd status: %v", err))
+		reporter.add(trace.Errorf("failed to check systemd status: %v", err))
 	}
 
 	if len(conditions) > 0 && SystemStatusType(systemStatus) == SystemStatusRunning {
@@ -93,7 +92,7 @@ func systemdStatus() ([]serviceStatus, error) {
 			conditions = append(conditions, serviceStatus{
 				name:   unit.Name,
 				status: pb.Probe_Failed,
-				err:    fmt.Errorf("%s", unit.SubState),
+				err:    trace.Errorf("%s", unit.SubState),
 			})
 		}
 	}

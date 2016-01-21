@@ -3,12 +3,15 @@ package monitoring
 import (
 	"fmt"
 
+	"github.com/gravitational/planet/Godeps/_workspace/src/github.com/gravitational/trace"
 	"github.com/gravitational/planet/Godeps/_workspace/src/k8s.io/kubernetes/pkg/api"
 	"github.com/gravitational/planet/Godeps/_workspace/src/k8s.io/kubernetes/pkg/fields"
 	"github.com/gravitational/planet/Godeps/_workspace/src/k8s.io/kubernetes/pkg/labels"
 	pb "github.com/gravitational/planet/lib/agent/proto/agentpb"
 )
 
+// componentStatusChecker tests and reports health failures in kubernetes
+// components (controller-manager, scheduler, etc.)
 type componentStatusChecker struct {
 	hostPort string
 }
@@ -16,12 +19,12 @@ type componentStatusChecker struct {
 func (r *componentStatusChecker) check(reporter reporter) {
 	client, err := ConnectToKube(r.hostPort)
 	if err != nil {
-		reporter.add(fmt.Errorf("failed to connect to kube: %v", err))
+		reporter.add(trace.Errorf("failed to connect to kube: %v", err))
 		return
 	}
 	statuses, err := client.ComponentStatuses().List(labels.Everything(), fields.Everything())
 	if err != nil {
-		reporter.add(fmt.Errorf("failed to query component statuses: %v", err))
+		reporter.add(trace.Errorf("failed to query component statuses: %v", err))
 		return
 	}
 	for _, item := range statuses.Items {
