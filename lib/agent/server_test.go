@@ -25,12 +25,12 @@ func TestSetsSystemStatusFromMemberStatuses(t *testing.T) {
 		{
 			Name:   "foo",
 			Status: pb.MemberStatus_Alive,
-			Tags:   map[string]string{"role": "node"},
+			Tags:   map[string]string{"role": RoleNode},
 		},
 		{
 			Name:   "bar",
 			Status: pb.MemberStatus_Failed,
-			Tags:   map[string]string{"role": "master"},
+			Tags:   map[string]string{"role": RoleMaster},
 		},
 	}
 
@@ -96,12 +96,12 @@ func TestSetsOkSystemStatus(t *testing.T) {
 		{
 			Name:   "foo",
 			Status: pb.MemberStatus_Alive,
-			Tags:   map[string]string{"role": "node"},
+			Tags:   map[string]string{"role": RoleNode},
 		},
 		{
 			Name:   "bar",
 			Status: pb.MemberStatus_Alive,
-			Tags:   map[string]string{"role": "master"},
+			Tags:   map[string]string{"role": RoleMaster},
 		},
 	}
 	resp.Status.Nodes = []*pb.NodeStatus{
@@ -217,10 +217,10 @@ func newMember(name string, status string) serf.Member {
 	result := serf.Member{
 		Name:   name,
 		Status: status,
-		Tags:   map[string]string{"role": "node"},
+		Tags:   map[string]string{"role": RoleNode},
 	}
 	if name == "master" {
-		result.Tags["role"] = "master"
+		result.Tags["role"] = RoleMaster
 	}
 	return result
 }

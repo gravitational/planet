@@ -45,6 +45,7 @@ type Config struct {
 	Cache cache.Cache
 }
 
+// New creates an instance of an agent based on configuration options given in config.
 func New(config *Config) (Agent, error) {
 	clientConfig := &serf.Config{
 		Addr: config.SerfRPCAddr,
@@ -95,6 +96,7 @@ type agent struct {
 	eventc chan map[string]interface{}
 }
 
+// Start starts the agent's background tasks.
 func (r *agent) Start() error {
 	var allEvents string
 	eventc := make(chan map[string]interface{})
@@ -110,6 +112,7 @@ func (r *agent) Start() error {
 	return nil
 }
 
+// Join attempts to join a serf cluster identified by peers.
 func (r *agent) Join(peers []string) error {
 	noReplay := false
 	numJoined, err := r.serfClient.Join(peers, noReplay)
@@ -120,6 +123,7 @@ func (r *agent) Join(peers []string) error {
 	return nil
 }
 
+// Close stops all background activity and releases the agent's resources.
 func (r *agent) Close() (err error) {
 	r.rpc.Stop()
 	close(r.done)
