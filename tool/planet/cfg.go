@@ -9,29 +9,34 @@ import (
 
 	"github.com/gravitational/planet/lib/box"
 
-	"github.com/gravitational/planet/Godeps/_workspace/src/github.com/gravitational/orbit/lib/utils"
+	"github.com/gravitational/planet/Godeps/_workspace/src/github.com/gravitational/configure/cstrings"
 	"github.com/gravitational/planet/Godeps/_workspace/src/gopkg.in/alecthomas/kingpin.v2"
 )
 
 type Config struct {
-	Roles              list
-	InsecureRegistries list
-	Rootfs             string
-	SocketPath         string
-	PublicIP           string
-	MasterIP           string
-	CloudProvider      string
-	ClusterID          string
-	Env                box.EnvVars
-	Mounts             box.Mounts
-	Files              []box.File
-	IgnoreChecks       bool
-	StateDir           string
-	DockerBackend      string
-	ServiceSubnet      CIDR
-	PODSubnet          CIDR
-	PlanetUser         *user.User
-	AgentPeers         []string
+	Roles                   list
+	InsecureRegistries      list
+	Rootfs                  string
+	SocketPath              string
+	PublicIP                string
+	MasterIP                string
+	CloudProvider           string
+	ClusterID               string
+	Env                     box.EnvVars
+	Mounts                  box.Mounts
+	Files                   []box.File
+	IgnoreChecks            bool
+	SecretsDir              string
+	DockerBackend           string
+	ServiceSubnet           CIDR
+	PODSubnet               CIDR
+	AgentPeers         	[]string
+	ServiceUser             *user.User
+	ServiceUID              string
+	ServiceGID              string
+	EtcdMemberName          string
+	EtcdInitialCluster      string
+	EtcdInitialClusterState string
 }
 
 func (cfg *Config) hasRole(r string) bool {
@@ -46,7 +51,7 @@ func (cfg *Config) hasRole(r string) bool {
 type list []string
 
 func (l *list) Set(val string) error {
-	for _, r := range utils.SplitComma(val) {
+	for _, r := range cstrings.SplitComma(val) {
 		*l = append(*l, r)
 	}
 	return nil

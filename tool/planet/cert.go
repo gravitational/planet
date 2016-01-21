@@ -9,7 +9,6 @@ import (
 	"fmt"
 	"io"
 	"math/big"
-	"net"
 	"os"
 	"path/filepath"
 	"time"
@@ -24,7 +23,7 @@ type keyPair struct {
 	template x509.Certificate
 }
 
-func newKeyPair(c *Config, ca bool) (*keyPair, error) {
+func newKeyPair(domain string, serviceSubnet CIDR, ca bool) (*keyPair, error) {
 	priv, err := rsa.GenerateKey(rand.Reader, 2048)
 	if err != nil {
 		return nil, trace.Wrap(err)
@@ -56,16 +55,12 @@ func newKeyPair(c *Config, ca bool) (*keyPair, error) {
 		template.KeyUsage |= x509.KeyUsageCertSign
 	}
 
-	if ip := net.ParseIP(c.MasterIP); ip != nil {
-		template.IPAddresses = append(template.IPAddresses, ip)
-	} else {
-		template.DNSNames = append(template.DNSNames, c.MasterIP)
-	}
+	template.DNSNames = append(template.DNSNames, domain)
 	// ServiceSubnet is the subnet of the services run by k8s
 	// the first IP is usually given to the first service that starts up
 	// in this subnet - k8s API service
 	template.IPAddresses = append(
-		template.IPAddresses, c.ServiceSubnet.FirstIP())
+		template.IPAddresses, serviceSubnet.FirstIP())
 
 	return &keyPair{
 		priv:     priv,
@@ -200,10 +195,10 @@ func (k *keyPairPaths) write(parent *keyPair) error {
 	return nil
 }
 
-func initKeyPair(c *Config, name string, parent *keyPair, ca bool) (*keyPairPaths, error) {
+func initKeyPair(secretsDir, domain, name string, serviceSubnet CIDR, parent *keyPair, ca bool) (*keyPairPaths, error) {
 	p := &keyPairPaths{
 		name:      name,
-		sourceDir: c.StateDir,
+		sourceDir: secretsDir,
 	}
 	// key pair have been already initialized
 	exists, err := p.exists()
@@ -216,7 +211,7 @@ func initKeyPair(c *Config, name string, parent *keyPair, ca bool) (*keyPairPath
 	}
 
 	// generate and write key pairs
-	kp, err := newKeyPair(c, ca)
+	kp, err := newKeyPair(domain, serviceSubnet, ca)
 	if err != nil {
 		return nil, err
 	}

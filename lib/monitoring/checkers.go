@@ -6,41 +6,34 @@ import (
 )
 
 type Config struct {
-	Role     Role
+	Role     agent.Role
 	KubeAddr string
 }
 
-type Role string
-
-const (
-	RoleMaster Role = "master"
-	RoleNode        = "node"
-)
-
 // AddCheckers adds checkers to the agent.
-func AddCheckers(agent agent.Agent, conf *Config) {
+func AddCheckers(node agent.Agent, conf *Config) {
 	switch conf.Role {
-	case RoleMaster:
-		addToMaster(agent, conf)
-	case RoleNode:
-		addToNode(agent, conf)
+	case agent.RoleMaster:
+		addToMaster(node, conf)
+	case agent.RoleNode:
+		addToNode(node, conf)
 	}
 }
 
-func addToMaster(agent agent.Agent, conf *Config) {
-	agent.AddChecker(kubeApiServerHealth())
-	agent.AddChecker(componentStatusHealth(conf.KubeAddr))
-	agent.AddChecker(dockerHealth())
-	agent.AddChecker(dockerRegistryHealth())
-	agent.AddChecker(etcdHealth())
-	agent.AddChecker(systemdHealth())
+func addToMaster(node agent.Agent, conf *Config) {
+	node.AddChecker(kubeApiServerHealth())
+	node.AddChecker(componentStatusHealth(conf.KubeAddr))
+	node.AddChecker(dockerHealth())
+	node.AddChecker(dockerRegistryHealth())
+	node.AddChecker(etcdHealth())
+	node.AddChecker(systemdHealth())
 }
 
-func addToNode(agent agent.Agent, conf *Config) {
-	agent.AddChecker(kubeletHealth())
-	agent.AddChecker(dockerHealth())
-	agent.AddChecker(etcdHealth())
-	agent.AddChecker(systemdHealth())
+func addToNode(node agent.Agent, conf *Config) {
+	node.AddChecker(kubeletHealth())
+	node.AddChecker(dockerHealth())
+	node.AddChecker(etcdHealth())
+	node.AddChecker(systemdHealth())
 }
 
 func kubeApiServerHealth() health.Checker {
