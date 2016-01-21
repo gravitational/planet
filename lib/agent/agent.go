@@ -65,6 +65,7 @@ func New(config *Config) (Agent, error) {
 		serfClient: client,
 		name:       config.Name,
 		cache:      config.Cache,
+		dialRPC:    defaultDialRPC,
 	}
 	agent.rpc = newRPCServer(agent, listener)
 	return agent, nil
@@ -73,16 +74,20 @@ func New(config *Config) (Agent, error) {
 type agent struct {
 	health.Checkers
 
-	serfClient *serf.RPCClient
+	serfClient serfClient
 
 	// Name of this agent.  Must be the same as the serf agent's name
 	// running on the same node.
 	name string
 	// RPC server used by agent for client communication as well as
 	// status sync with other agents.
-	rpc RPCServer
+	rpc *server
 	// cache persists node status history.
 	cache cache.Cache
+
+	// dialRPC is a factory function to create clients to other agents.
+	// If future, agent address discovery will happen through serf.
+	dialRPC dialRPC
 
 	// done is a channel used for cleanup.
 	done chan struct{}
@@ -124,6 +129,8 @@ func (r *agent) Close() (err error) {
 	}
 	return nil
 }
+
+type dialRPC func(*serf.Member) (*client, error)
 
 func (r *agent) getStatus() (status *pb.NodeStatus, err error) {
 	return r.runChecks(), nil

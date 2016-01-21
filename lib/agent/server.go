@@ -7,30 +7,27 @@ import (
 
 	"github.com/gravitational/planet/Godeps/_workspace/src/github.com/gravitational/log"
 	"github.com/gravitational/planet/Godeps/_workspace/src/github.com/gravitational/trace"
+	serf "github.com/gravitational/planet/Godeps/_workspace/src/github.com/hashicorp/serf/client"
 	"github.com/gravitational/planet/Godeps/_workspace/src/golang.org/x/net/context"
 	"github.com/gravitational/planet/Godeps/_workspace/src/google.golang.org/grpc"
 	pb "github.com/gravitational/planet/lib/agent/proto/agentpb"
 )
 
-// RPCServer is the interface implemented by the agent RPC server.
-type RPCServer interface {
-	Stop()
-}
-
-const RPCPort = 7575 // FIXME: use serf to discover agent
+const RPCPort = 7575 // FIXME: use serf to discover agents
 
 var errNoMaster = errors.New("master node unavailable")
 
 // server implements RPC for an agent.
 type server struct {
-	*agent
+	*grpc.Server
+	agent *agent
 }
 
 // pb.AgentServiceServer
 func (r *server) Status(ctx context.Context, req *pb.StatusRequest) (*pb.StatusResponse, error) {
 	resp := &pb.StatusResponse{Status: &pb.SystemStatus{}}
 
-	members, err := r.serfClient.Members()
+	members, err := r.agent.serfClient.Members()
 	if err != nil {
 		return nil, trace.Wrap(err, "failed to query serf members")
 	}
@@ -43,10 +40,10 @@ func (r *server) Status(ctx context.Context, req *pb.StatusRequest) (*pb.StatusR
 			Addr:   fmt.Sprintf("%s:%d", member.Addr.String(), member.Port),
 		})
 		var status *pb.NodeStatus
-		if r.name == member.Name {
-			status, err = r.getStatus()
+		if r.agent.name == member.Name {
+			status, err = r.agent.getStatus()
 		} else {
-			status, err = r.getStatusFrom(member.Addr)
+			status, err = r.getStatusFrom(&member)
 		}
 		if err != nil {
 			log.Errorf("failed to query status of serf node %s (%v)", member.Name, member.Addr)
@@ -61,35 +58,40 @@ func (r *server) Status(ctx context.Context, req *pb.StatusRequest) (*pb.StatusR
 	return resp, nil
 }
 
-func (r *server) LocalStatus(ctx context.Context, req *pb.LocalStatusRequest) (*pb.LocalStatusResponse, error) {
-	resp := &pb.LocalStatusResponse{Status: &pb.NodeStatus{}}
+func (r *server) LocalStatus(ctx context.Context, req *pb.LocalStatusRequest) (resp *pb.LocalStatusResponse, err error) {
+	resp = &pb.LocalStatusResponse{}
 
-	status, err := r.agent.getStatus()
+	resp.Status, err = r.agent.getStatus()
 	if err != nil {
 		return nil, trace.Wrap(err)
 	}
 	// Update agent cache
-	r.agent.cache.UpdateNode(status)
+	r.agent.cache.UpdateNode(resp.Status)
 
 	return resp, nil
 }
 
-func (r *server) getStatusFrom(addr net.IP) (result *pb.NodeStatus, err error) {
-	client, err := NewClient(fmt.Sprintf("%s:%d", addr.String(), RPCPort))
+func (r *server) getStatusFrom(member *serf.Member) (result *pb.NodeStatus, err error) {
+	client, err := r.agent.dialRPC(member)
 	if err != nil {
 		return nil, trace.Wrap(err)
 	}
+	defer client.Close()
 	var status *pb.NodeStatus
 	status, err = client.LocalStatus()
 	return status, nil
 }
 
-func newRPCServer(agent *agent, listener net.Listener) *grpc.Server {
+func newRPCServer(agent *agent, listener net.Listener) *server {
 	backend := grpc.NewServer()
-	server := &server{agent: agent}
+	server := &server{agent: agent, Server: backend}
 	pb.RegisterAgentServer(backend, server)
 	go backend.Serve(listener)
-	return backend
+	return server
+}
+
+func defaultDialRPC(member *serf.Member) (*client, error) {
+	return NewClient(fmt.Sprintf("%s:%d", member.Addr.String(), RPCPort))
 }
 
 func setSystemStatus(resp *pb.StatusResponse) {

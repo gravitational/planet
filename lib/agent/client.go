@@ -15,6 +15,7 @@ type Client interface {
 
 type client struct {
 	pb.AgentClient
+	conn *grpc.ClientConn
 }
 
 func NewClient(addr string) (*client, error) {
@@ -23,13 +24,12 @@ func NewClient(addr string) (*client, error) {
 		return nil, err
 	}
 	c := pb.NewAgentClient(conn)
-	return &client{c}, nil
+	return &client{AgentClient: c, conn: conn}, nil
 }
 
 // Status reports the status of the serf cluster.
 func (r *client) Status() (*pb.SystemStatus, error) {
-	// FIXME: implement proper timeouts and cancellation
-	resp, err := r.AgentClient.Status(context.Background(), &pb.StatusRequest{})
+	resp, err := r.AgentClient.Status(context.TODO(), &pb.StatusRequest{})
 	if err != nil {
 		return nil, trace.Wrap(err)
 	}
@@ -38,10 +38,13 @@ func (r *client) Status() (*pb.SystemStatus, error) {
 
 // Status reports the status of the specific serf node.
 func (r *client) LocalStatus() (*pb.NodeStatus, error) {
-	// FIXME: implement proper timeouts and cancellation
-	resp, err := r.AgentClient.LocalStatus(context.Background(), &pb.LocalStatusRequest{})
+	resp, err := r.AgentClient.LocalStatus(context.TODO(), &pb.LocalStatusRequest{})
 	if err != nil {
 		return nil, trace.Wrap(err)
 	}
 	return resp.Status, nil
+}
+
+func (r *client) Close() error {
+	return r.conn.Close()
 }
