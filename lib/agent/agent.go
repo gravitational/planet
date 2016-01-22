@@ -1,6 +1,7 @@
 package agent
 
 import (
+	"fmt"
 	"net"
 	"time"
 
@@ -136,17 +137,45 @@ func (r *agent) Close() (err error) {
 
 type dialRPC func(*serf.Member) (*client, error)
 
-func (r *agent) getStatus() (status *pb.NodeStatus, err error) {
-	return r.runChecks(), nil
+func (r *agent) getStatus(local *serf.Member) (status *pb.NodeStatus, err error) {
+	status = r.runChecks()
+	if local == nil {
+		// FIXME: factor this out into a separate method (share the code with the server?)
+		members, err := r.serfClient.Members()
+		if err != nil {
+			return nil, trace.Wrap(err, "failed to query status of local serf node")
+		}
+		for _, member := range members {
+			if member.Name == r.name {
+				local = &member
+				break
+			}
+		}
+		if local == nil {
+			return nil, trace.Errorf("node is not part of serf cluster")
+		}
+	}
+	status.MemberStatus = &pb.MemberStatus{
+		Name:   local.Name,
+		Status: toMemberStatus(local.Status),
+		Tags:   local.Tags,
+		Addr:   fmt.Sprintf("%s:%d", local.Addr.String(), local.Port),
+	}
+	return status, nil
 }
 
 func (r *agent) runChecks() *pb.NodeStatus {
-	reporter := health.NewDefaultReporter(r.name)
+	var reporter health.Probes
 	for _, c := range r.Checkers {
 		log.Infof("running checker %s", c.Name())
-		c.Check(reporter)
+		c.Check(&reporter)
 	}
-	return reporter.Status()
+	status := &pb.NodeStatus{
+		Name:   r.name,
+		Status: reporter.Status(),
+		Probes: reporter.GetProbes(),
+	}
+	return status
 }
 
 func (r *agent) statusUpdateLoop() {
@@ -175,4 +204,18 @@ func (r *agent) serfEventLoop(filter string, handle serf.StreamHandle) {
 			return
 		}
 	}
+}
+
+func toMemberStatus(status string) pb.MemberStatus_Type {
+	switch MemberStatus(status) {
+	case MemberAlive:
+		return pb.MemberStatus_Alive
+	case MemberLeaving:
+		return pb.MemberStatus_Leaving
+	case MemberLeft:
+		return pb.MemberStatus_Left
+	case MemberFailed:
+		return pb.MemberStatus_Failed
+	}
+	return pb.MemberStatus_None
 }

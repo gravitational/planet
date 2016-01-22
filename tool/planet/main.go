@@ -103,6 +103,7 @@ func run() error {
 
 		// report status of the cluster
 		cstatus        = app.Command("status", "Query the planet cluster status")
+		cstatusLocal   = cstatus.Flag("local", "Query the status of the local node").Bool()
 		cstatusRPCAddr = cstatus.Flag("rpc-addr", "agent RPC address").Default("127.0.0.1:7575").String()
 
 		// test command
@@ -239,7 +240,7 @@ func run() error {
 	case cstatus.FullCommand():
 		if *fromContainer {
 			var ok bool
-			ok, err = clusterStatus(*cstatusRPCAddr)
+			ok, err = clusterStatus(*cstatusRPCAddr, *cstatusLocal)
 			if err == nil && !ok {
 				err = &box.ExitError{Code: 1}
 			}

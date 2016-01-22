@@ -143,17 +143,27 @@ func runAgent(conf *agent.Config, monitoringConf *monitoring.Config, leaderConf 
 
 // clusterStatus queries the status of the planet cluster by communicating
 // with the local planet agent.
-func clusterStatus(rpcAddr string) (ok bool, err error) {
+func clusterStatus(rpcAddr string, local bool) (ok bool, err error) {
 	client, err := agent.NewClient(rpcAddr)
 	if err != nil {
 		return false, trace.Wrap(err)
 	}
-	status, err := client.Status()
-	if err != nil {
-		return false, trace.Wrap(err)
+	var statusJson []byte
+	if local {
+		status, err := client.LocalStatus()
+		if err != nil {
+			return false, trace.Wrap(err)
+		}
+		ok = status.Status == pb.NodeStatus_Running
+		statusJson, err = json.MarshalIndent(status, "", "   ")
+	} else {
+		status, err := client.Status()
+		if err != nil {
+			return false, trace.Wrap(err)
+		}
+		ok = status.Status == pb.SystemStatus_Running
+		statusJson, err = json.MarshalIndent(status, "", "   ")
 	}
-	ok = status.Status == pb.SystemStatus_Running
-	statusJson, err := json.MarshalIndent(status, "", "   ")
 	if err != nil {
 		return ok, trace.Wrap(err, "failed to marshal status data")
 	}

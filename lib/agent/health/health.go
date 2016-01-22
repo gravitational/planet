@@ -14,12 +14,15 @@ type Checker interface {
 	Check(Reporter)
 }
 
+// Checkers is a collection of checkers.
+// It implements CheckerRepository interface.
 type Checkers []Checker
 
 func (r *Checkers) AddChecker(checker Checker) {
 	*r = append(*r, checker)
 }
 
+// CheckerRepository represents a collection of checkers.
 type CheckerRepository interface {
 	AddChecker(checker Checker)
 }
@@ -29,31 +32,32 @@ type Reporter interface {
 	// Add adds an health probe for a specific node.
 	Add(probe *pb.Probe)
 	// Status retrieves the collected status after executing all checks.
-	Status() *pb.NodeStatus
+	GetProbes() []*pb.Probe
 }
 
-// defaultReporter provides a default Reporter implementation.
-type defaultReporter struct {
-	status *pb.NodeStatus
-}
+// Probes is a list of probes.
+// It implements the Reporter interface.
+type Probes []*pb.Probe
 
-func NewDefaultReporter(name string) Reporter {
-	return &defaultReporter{status: &pb.NodeStatus{
-		Name:   name,
-		Status: pb.NodeStatus_Running,
-	}}
-}
-
-func (r *defaultReporter) Add(probe *pb.Probe) {
-	r.status.Probes = append(r.status.Probes, probe)
+func (r *Probes) Add(probe *pb.Probe) {
+	*r = append(*r, probe)
 	if probe.Timestamp == nil {
 		probe.Timestamp = pb.NewTimeToProto(time.Now())
 	}
-	if probe.Status == pb.Probe_Failed {
-		r.status.Status = pb.NodeStatus_Degraded
-	}
 }
 
-func (r *defaultReporter) Status() *pb.NodeStatus {
-	return r.status
+func (r Probes) GetProbes() []*pb.Probe {
+	return []*pb.Probe(r)
+}
+
+// Status computes the node status based on collected probes.
+func (r Probes) Status() pb.NodeStatus_Type {
+	result := pb.NodeStatus_Running
+	for _, probe := range r {
+		if probe.Status == pb.Probe_Failed {
+			result = pb.NodeStatus_Degraded
+			break
+		}
+	}
+	return result
 }

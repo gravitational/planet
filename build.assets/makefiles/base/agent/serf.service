@@ -10,6 +10,6 @@ ExecStart=/usr/bin/serf agent \
         -bind=${PLANET_PUBLIC_IP}:7496 \
 	-node=${PLANET_ETCD_MEMBER_NAME} \
 	-tag role=${PLANET_ROLE} \
-	-tag publicip=${PLANET_PUBLIC_IP} \
+	-tag publicip=${PLANET_PUBLIC_IP}
 User=planet
 Group=planet

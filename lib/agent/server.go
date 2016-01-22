@@ -35,15 +35,9 @@ func (r *server) Status(ctx context.Context, req *pb.StatusRequest) (*pb.StatusR
 	}
 
 	for _, member := range members {
-		resp.Status.Members = append(resp.Status.Members, &pb.MemberStatus{
-			Name:   member.Name,
-			Status: toMemberStatus(member.Status),
-			Tags:   member.Tags,
-			Addr:   fmt.Sprintf("%s:%d", member.Addr.String(), member.Port),
-		})
 		var status *pb.NodeStatus
 		if r.agent.name == member.Name {
-			status, err = r.agent.getStatus()
+			status, err = r.agent.getStatus(&member)
 		} else {
 			status, err = r.getStatusFrom(&member)
 		}
@@ -64,7 +58,7 @@ func (r *server) Status(ctx context.Context, req *pb.StatusRequest) (*pb.StatusR
 func (r *server) LocalStatus(ctx context.Context, req *pb.LocalStatusRequest) (resp *pb.LocalStatusResponse, err error) {
 	resp = &pb.LocalStatusResponse{}
 
-	resp.Status, err = r.agent.getStatus()
+	resp.Status, err = r.agent.getStatus(nil)
 	if err != nil {
 		return nil, trace.Wrap(err)
 	}
@@ -101,18 +95,13 @@ func setSystemStatus(resp *pb.StatusResponse) {
 	var foundMaster bool
 
 	resp.Status.Status = pb.SystemStatus_Running
-	for _, member := range resp.Status.Members {
-		if member.Status == pb.MemberStatus_Failed {
-			resp.Status.Status = pb.SystemStatus_Degraded
-		}
-		if !foundMaster && isMaster(member) {
+	for _, node := range resp.Status.Nodes {
+		if !foundMaster && isMaster(node.MemberStatus) {
 			foundMaster = true
 		}
-	}
-	for _, node := range resp.Status.Nodes {
 		resp.Status.Status = pb.SystemStatus_Type(node.Status)
-		if node.Status != pb.NodeStatus_Running {
-			break
+		if node.MemberStatus.Status == pb.MemberStatus_Failed {
+			resp.Status.Status = pb.SystemStatus_Degraded
 		}
 	}
 	if !foundMaster {
@@ -124,18 +113,4 @@ func setSystemStatus(resp *pb.StatusResponse) {
 func isMaster(member *pb.MemberStatus) bool {
 	value, ok := member.Tags["role"]
 	return ok && value == "master"
-}
-
-func toMemberStatus(status string) pb.MemberStatus_Type {
-	switch MemberStatus(status) {
-	case MemberAlive:
-		return pb.MemberStatus_Alive
-	case MemberLeaving:
-		return pb.MemberStatus_Leaving
-	case MemberLeft:
-		return pb.MemberStatus_Left
-	case MemberFailed:
-		return pb.MemberStatus_Failed
-	}
-	return pb.MemberStatus_None
 }

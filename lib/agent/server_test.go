@@ -21,16 +21,20 @@ func init() {
 
 func TestSetsSystemStatusFromMemberStatuses(t *testing.T) {
 	resp := &pb.StatusResponse{Status: &pb.SystemStatus{}}
-	resp.Status.Members = []*pb.MemberStatus{
+	resp.Status.Nodes = []*pb.NodeStatus{
 		{
-			Name:   "foo",
-			Status: pb.MemberStatus_Alive,
-			Tags:   map[string]string{"role": string(RoleNode)},
+			MemberStatus: &pb.MemberStatus{
+				Name:   "foo",
+				Status: pb.MemberStatus_Alive,
+				Tags:   map[string]string{"role": string(RoleNode)},
+			},
 		},
 		{
-			Name:   "bar",
-			Status: pb.MemberStatus_Failed,
-			Tags:   map[string]string{"role": string(RoleMaster)},
+			MemberStatus: &pb.MemberStatus{
+				Name:   "bar",
+				Status: pb.MemberStatus_Failed,
+				Tags:   map[string]string{"role": string(RoleMaster)},
+			},
 		},
 	}
 
@@ -46,10 +50,20 @@ func TestSetsSystemStatusFromNodeStatuses(t *testing.T) {
 		{
 			Name:   "foo",
 			Status: pb.NodeStatus_Running,
+			MemberStatus: &pb.MemberStatus{
+				Name:   "foo",
+				Status: pb.MemberStatus_Alive,
+				Tags:   map[string]string{"role": string(RoleNode)},
+			},
 		},
 		{
 			Name:   "bar",
 			Status: pb.NodeStatus_Degraded,
+			MemberStatus: &pb.MemberStatus{
+				Name:   "bar",
+				Status: pb.MemberStatus_Alive,
+				Tags:   map[string]string{"role": string(RoleMaster)},
+			},
 			Probes: []*pb.Probe{
 				{
 					Checker: "qux",
@@ -68,16 +82,20 @@ func TestSetsSystemStatusFromNodeStatuses(t *testing.T) {
 
 func TestDetectsNoMaster(t *testing.T) {
 	resp := &pb.StatusResponse{Status: &pb.SystemStatus{}}
-	resp.Status.Members = []*pb.MemberStatus{
+	resp.Status.Nodes = []*pb.NodeStatus{
 		{
-			Name:   "foo",
-			Status: pb.MemberStatus_Alive,
-			Tags:   map[string]string{"role": string(RoleNode)},
+			MemberStatus: &pb.MemberStatus{
+				Name:   "foo",
+				Status: pb.MemberStatus_Alive,
+				Tags:   map[string]string{"role": string(RoleNode)},
+			},
 		},
 		{
-			Name:   "bar",
-			Status: pb.MemberStatus_Alive,
-			Tags:   map[string]string{"role": string(RoleNode)},
+			MemberStatus: &pb.MemberStatus{
+				Name:   "bar",
+				Status: pb.MemberStatus_Alive,
+				Tags:   map[string]string{"role": string(RoleNode)},
+			},
 		},
 	}
 
@@ -92,26 +110,24 @@ func TestDetectsNoMaster(t *testing.T) {
 
 func TestSetsOkSystemStatus(t *testing.T) {
 	resp := &pb.StatusResponse{Status: &pb.SystemStatus{}}
-	resp.Status.Members = []*pb.MemberStatus{
-		{
-			Name:   "foo",
-			Status: pb.MemberStatus_Alive,
-			Tags:   map[string]string{"role": string(RoleNode)},
-		},
-		{
-			Name:   "bar",
-			Status: pb.MemberStatus_Alive,
-			Tags:   map[string]string{"role": string(RoleMaster)},
-		},
-	}
 	resp.Status.Nodes = []*pb.NodeStatus{
 		{
 			Name:   "foo",
 			Status: pb.NodeStatus_Running,
+			MemberStatus: &pb.MemberStatus{
+				Name:   "foo",
+				Status: pb.MemberStatus_Alive,
+				Tags:   map[string]string{"role": string(RoleNode)},
+			},
 		},
 		{
 			Name:   "bar",
 			Status: pb.NodeStatus_Running,
+			MemberStatus: &pb.MemberStatus{
+				Name:   "bar",
+				Status: pb.MemberStatus_Alive,
+				Tags:   map[string]string{"role": string(RoleMaster)},
+			},
 		},
 	}
 
@@ -139,7 +155,7 @@ func TestAgentProvidesStatus(t *testing.T) {
 		}
 
 		if resp.Status.Status != testCase.status {
-			t.Errorf("expected status %s but got %s", testCase.status, resp.Status)
+			t.Errorf("expected status %s but got %s", testCase.status, resp.Status.Status)
 		}
 		remoteServer.Stop()
 	}
