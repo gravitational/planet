@@ -69,14 +69,17 @@ func stop(rootfs, socketPath string) error {
 }
 
 // status checks status of the running planet cluster and outputs results to stdout.
-func status(rootfs, socketPath, rpcAddr string) (err error) {
+func status(rootfs, socketPath, rpcAddr string, local bool) (err error) {
 	log.Infof("checking status in %s", rootfs)
 
 	var statusCmd = []string{"/usr/bin/planet", "--from-container", "status"}
 	var data []byte
 
 	if rpcAddr != "" {
-		statusCmd = append(statusCmd, []string{"--rpc-addr", rpcAddr}...)
+		statusCmd = append(statusCmd, "--rpc-addr", rpcAddr)
+	}
+	if local {
+		statusCmd = append(statusCmd, "--local")
 	}
 
 	data, err = enterCommand(rootfs, socketPath, statusCmd)

@@ -249,7 +249,7 @@ func run() error {
 			if err != nil {
 				break
 			}
-			err = status(rootfs, *socketPath, *cstatusRPCAddr)
+			err = status(rootfs, *socketPath, *cstatusRPCAddr, *cstatusLocal)
 		}
 
 	// "test" command

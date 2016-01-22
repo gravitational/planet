@@ -8,6 +8,7 @@
       {"name": "stop", "args": ["rootfs/usr/bin/planet", "stop"]},
       {"name": "enter", "args": ["rootfs/usr/bin/planet", "enter"]},
       {"name": "status", "args": ["rootfs/usr/bin/planet", "status"]},
+      {"name": "local-status", "args": ["rootfs/usr/bin/planet", "status", "--local"]},
       {"name": "secrets-init", "args": ["rootfs/usr/bin/planet", "secrets", "init"]}
     ],
     "config": {
@@ -127,6 +128,18 @@
                         ]
                     }
                 }
+            },
+            {
+                "type": "String",
+                "name": "statedir",
+                "env": "PLANET_STATE_DIR",
+                "cli": {"name": "state-dir"}
+            },
+            {
+                "type": "String",
+                "name": "agentpeers",
+                "env": "PLANET_AGENT_PEERS",
+                "cli": {"name": "peers"}
             }
         ]
     }
