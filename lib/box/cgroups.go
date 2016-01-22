@@ -21,7 +21,7 @@ var requiredSet = map[string]bool{
 	"cpuacct": true,
 	"cpuset":  true,
 	"devices": true,
-	//	"memory":  true, TODO(klizhentas) bring this back
+	"memory":  true,
 }
 
 // by default try to mount these cgroups if they aren't mounted
