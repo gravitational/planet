@@ -39,7 +39,6 @@ func (r *componentStatusChecker) check(reporter reporter) {
 				reporter.addProbe(&pb.Probe{
 					Extra:  item.Name,
 					Status: pb.Probe_Running,
-					Error:  condition.Message,
 				})
 			}
 		}

@@ -14,3 +14,5 @@ ExecStart=/usr/bin/kube-controller-manager \
         --allocate-node-cidrs=false $KUBE_CLOUD_FLAGS
 Restart=always
 RestartSec=10
+User=planet
+Group=planet

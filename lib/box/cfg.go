@@ -7,7 +7,7 @@ import (
 	"os"
 	"strings"
 
-	"github.com/gravitational/planet/Godeps/_workspace/src/github.com/gravitational/orbit/lib/utils"
+	"github.com/gravitational/planet/Godeps/_workspace/src/github.com/gravitational/configure/cstrings"
 	"github.com/gravitational/planet/Godeps/_workspace/src/github.com/gravitational/trace"
 )
 
@@ -130,7 +130,7 @@ func (vars *EnvVars) Upsert(k, v string) {
 }
 
 func (vars *EnvVars) Set(v string) error {
-	for _, i := range utils.SplitComma(v) {
+	for _, i := range cstrings.SplitComma(v) {
 		if err := vars.setItem(i); err != nil {
 			return err
 		}
@@ -171,7 +171,7 @@ type Mount struct {
 type Mounts []Mount
 
 func (m *Mounts) Set(v string) error {
-	for _, i := range utils.SplitComma(v) {
+	for _, i := range cstrings.SplitComma(v) {
 		if err := m.setItem(i); err != nil {
 			return err
 		}

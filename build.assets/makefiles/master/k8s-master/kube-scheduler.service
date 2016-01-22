@@ -8,3 +8,5 @@ After=kube-apiserver.service
 ExecStart=/usr/bin/kube-scheduler --master=127.0.0.1:8080
 Restart=always
 RestartSec=10
+User=planet
+Group=planet

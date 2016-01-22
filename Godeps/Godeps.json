@@ -6,11 +6,6 @@
 	],
 	"Deps": [
 		{
-			"ImportPath": "code.google.com/p/go-uuid/uuid",
-			"Comment": "null-15",
-			"Rev": "35bc42037350f0078e3c974c6ea690f1926603ab"
-		},
-		{
 			"ImportPath": "github.com/Sirupsen/logrus",
 			"Comment": "v0.8.3-3-g07d998d",
 			"Rev": "07d998d174c4e2dc90e2f1989a20724220bca1ff"
@@ -30,6 +25,21 @@
 		{
 			"ImportPath": "github.com/beorn7/perks/quantile",
 			"Rev": "b965b613227fddccbfffe13eae360ed3fa822f8d"
+		},
+		{
+			"ImportPath": "github.com/coreos/etcd/client",
+			"Comment": "v2.3.0-alpha.0-493-g98dfdeb",
+			"Rev": "98dfdebf13de7b476e7456b4c3c4b4a49fbda2c3"
+		},
+		{
+			"ImportPath": "github.com/coreos/etcd/pkg/pathutil",
+			"Comment": "v2.3.0-alpha.0-493-g98dfdeb",
+			"Rev": "98dfdebf13de7b476e7456b4c3c4b4a49fbda2c3"
+		},
+		{
+			"ImportPath": "github.com/coreos/etcd/pkg/types",
+			"Comment": "v2.3.0-alpha.0-493-g98dfdeb",
+			"Rev": "98dfdebf13de7b476e7456b4c3c4b4a49fbda2c3"
 		},
 		{
 			"ImportPath": "github.com/coreos/go-systemd/dbus",
@@ -86,12 +96,12 @@
 			"Rev": "bbcb9da2d746f8bdbd6a936686a0a6067ada0ec5"
 		},
 		{
-			"ImportPath": "github.com/gravitational/log",
-			"Rev": "8e1bbf1bba0515719dbb17adf1da20b5390ac8da"
+			"ImportPath": "github.com/gravitational/configure/cstrings",
+			"Rev": "39e84362ca5d6d3152f7e13b889cc36e1f1b80cb"
 		},
 		{
-			"ImportPath": "github.com/gravitational/orbit/lib/utils",
-			"Rev": "39fabb3a51f4dffd8bfe32a9eb7cc2dbbdd8f633"
+			"ImportPath": "github.com/gravitational/log",
+			"Rev": "8e1bbf1bba0515719dbb17adf1da20b5390ac8da"
 		},
 		{
 			"ImportPath": "github.com/gravitational/roundtrip",
@@ -154,13 +164,17 @@
 			"Rev": "d0c3fe89de86839aecf2e0579c40ba3bb336a453"
 		},
 		{
+			"ImportPath": "github.com/mailgun/timetools",
+			"Rev": "fd192d755b00c968d312d23f521eb0cdc6f66bd0"
+		},
+		{
 			"ImportPath": "github.com/opencontainers/runc/libcontainer",
 			"Comment": "v0.0.2",
 			"Rev": "1eeb86fbf2ec75661b9d843fd46679c868bc242d"
 		},
 		{
 			"ImportPath": "github.com/pborman/uuid",
-			"Rev": "cccd189d45f7ac3368a0d127efb7f4d08ae0b655"
+			"Rev": "dee7705ef7b324f27ceb85a121c61f2c2e8ce988"
 		},
 		{
 			"ImportPath": "github.com/prometheus/client_golang/prometheus",
@@ -225,6 +239,10 @@
 		{
 			"ImportPath": "google.golang.org/grpc",
 			"Rev": "3e7b7e58f491074e9577050058fb95d2351a60b0"
+		},
+		{
+			"ImportPath": "github.com/ugorji/go/codec",
+			"Rev": "646ae4a518c1c3be0739df898118d9bccf993858"
 		},
 		{
 			"ImportPath": "gopkg.in/alecthomas/kingpin.v2",
@@ -312,6 +330,11 @@
 		{
 			"ImportPath": "speter.net/go/exp/math/dec/inf",
 			"Rev": "42ca6cd68aa922bc3f32f1e056e61b65945d9ad7"
+		},
+		{
+			"ImportPath": "gopkg.in/mgo.v2/bson",
+			"Comment": "r2015.12.06",
+			"Rev": "e30de8ac9ae3b30df7065f766c71f88bba7d4e49"
 		}
 	]
 }

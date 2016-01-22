@@ -1,0 +1,15 @@
+[Unit]
+Description=Serf agent
+Documentation=https://github.com/hashicorp/serf
+
+[Service]
+Restart=always
+RestartSec=5
+EnvironmentFile=/etc/container-environment
+ExecStart=/usr/bin/serf agent \
+        -bind=${PLANET_PUBLIC_IP}:7496 \
+	-node=${PLANET_ETCD_MEMBER_NAME} \
+	-tag role=${PLANET_ROLE} \
+	-tag publicip=${PLANET_PUBLIC_IP} \
+User=planet
+Group=planet

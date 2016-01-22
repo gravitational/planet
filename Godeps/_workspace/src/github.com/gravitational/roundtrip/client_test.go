@@ -10,7 +10,7 @@ import (
 	"testing"
 	"time"
 
-	. "gopkg.in/check.v1" // note that we don't vendor libraries dependencies, only end daemons deps are vendored
+	. "github.com/gravitational/planet/Godeps/_workspace/src/gopkg.in/check.v1" // note that we don't vendor libraries dependencies, only end daemons deps are vendored
 )
 
 func TestClient(t *testing.T) { TestingT(t) }

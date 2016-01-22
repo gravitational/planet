@@ -1,13 +1,14 @@
 {
     "version": "0.0.1",
     "labels": [
-        {"name": "os", "value": "linux"}
+      {"name": "os", "value": "linux"}
     ],
     "commands": [
-        {"name": "start", "args": ["rootfs/usr/bin/planet", "start"]},
-        {"name": "stop", "args": ["rootfs/usr/bin/planet", "stop"]},
-        {"name": "enter", "args": ["rootfs/usr/bin/planet", "enter"]},
-        {"name": "status", "args": ["rootfs/usr/bin/planet", "status"]}
+      {"name": "start", "args": ["rootfs/usr/bin/planet", "start"]},
+      {"name": "stop", "args": ["rootfs/usr/bin/planet", "stop"]},
+      {"name": "enter", "args": ["rootfs/usr/bin/planet", "enter"]},
+      {"name": "status", "args": ["rootfs/usr/bin/planet", "status"]},
+      {"name": "secrets-init", "args": ["rootfs/usr/bin/planet", "secrets", "init"]}
     ],
     "config": {
         "params": [
@@ -37,9 +38,9 @@
             },
             {
                 "type": "String",
-                "name": "statedir",
-                "env": "PLANET_STATE_DIR",
-                "cli": {"name": "state-dir"}
+                "name": "secretsdir",
+                "env": "PLANET_SECRETS_DIR",
+                "cli": {"name": "secrets-dir"}
             },
             {
                 "type": "String",
@@ -66,6 +67,24 @@
                     "env": "PLANET_INSECURE_REGISTRY",
                     "type": "String"
                 }
+            },
+            {
+                "type": "String",
+                "name": "etcdmembername",
+                "env": "PLANET_ETCD_MEMBER_NAME",
+                "cli": {"name": "etcd-member-name"}
+            },
+            {
+                "type": "String",
+                "name": "etcdinitialcluster",
+                "env": "PLANET_ETCD_INITIAL_CLUSTER",
+                "cli": {"name": "etcd-initial-cluster"}
+            },
+            {
+                "type": "String",
+                "name": "etcdinitialclusterstate",
+                "env": "PLANET_ETCD_INITIAL_CLUSTER_STATE",
+                "cli": {"name": "etcd-initial-cluster-state"}
             },
             {
                 "type": "List",

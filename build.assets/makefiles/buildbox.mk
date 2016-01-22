@@ -5,13 +5,14 @@ TARGETDIR:=$(BUILDDIR)/$(TARGET)
 ASSETDIR:=$(BUILDDIR)/assets
 ROOTFS:=$(TARGETDIR)/rootfs
 CONTAINERNAME:=planet-base-$(TARGET)
-TARBALL:=$(TARGETDIR)/planet-$(TARGET).$(PLANETVER).tar.gz
+TARBALL:=$(TARGETDIR)/planet-$(TARGET).tar.gz
 
 .PHONY: all clean
 
 all: $(ROOTFS)/bin/bash 
 	@echo -e "\n---> Launching 'buildbox' Docker container to build $(TARGET):\n"
-	docker run -ti --rm=true \
+	@mkdir -p $(ASSETDIR)
+	docker run -i -u $$(id -u) --rm=true \
 		--volume=$(ASSETS):/assets \
 		--volume=$(ROOTFS):/rootfs \
 		--volume=$(TARGETDIR):/targetdir \
@@ -21,8 +22,8 @@ all: $(ROOTFS)/bin/bash
 		--env="ROOTFS=/rootfs" \
 		--env="TARGETDIR=/targetdir" \
 		--env="ASSETDIR=/assetdir" \
-		planet/buildbox \
-		make -e KUBE_VER=$(KUBE_VER) PLANET_GO_LDFLAGS="$(PLANET_GO_LDFLAGS)" -C /assets/makefiles -f $(TARGET)-docker.mk
+		planet/buildbox:latest \
+		make -e KUBE_VER=$(KUBE_VER) -C /assets/makefiles -f $(TARGET)-docker.mk
 	cp $(ASSETS)/orbit.manifest.json $(TARGETDIR)
 	cp $(ASSETDIR)/planet $(ROOTFS)/usr/bin/
 	@echo -e "\n---> Moving current symlink to $(TARGETDIR)\n"
@@ -32,12 +33,28 @@ all: $(ROOTFS)/bin/bash
 	cd $(TARGETDIR) && tar -czf $(TARBALL) orbit.manifest.json rootfs
 	@echo -e "\nDone --> $(TARBALL)"
 
+enter_buildbox:
+	docker run -ti -u $$(id -u) --rm=true \
+		--volume=$(ASSETS):/assets \
+		--volume=$(ROOTFS):/rootfs \
+		--volume=$(TARGETDIR):/targetdir \
+		--volume=$(ASSETDIR):/assetdir \
+		--volume=$(PWD):/gopath/src/github.com/gravitational/planet \
+		--env="ASSETS=/assets" \
+		--env="ROOTFS=/rootfs" \
+		--env="TARGETDIR=/targetdir" \
+		--env="ASSETDIR=/assetdir" \
+		planet/buildbox:latest \
+		/bin/bash
+
 
 $(ROOTFS)/bin/bash: clean-rootfs
 	@echo -e "\n---> Creating RootFS for Planet image:\n"
 	@mkdir -p $(ROOTFS)
-# create rootfs based in RAM. you can uncomment the next line to use disk
-	sudo mount -t tmpfs -o size=600m tmpfs $(ROOTFS)
+# if MEMROOTFS environment variable is set, create rootfs in RAM (to speed up interative development)
+	if [ ! -z $$MEMROOTFS ]; then \
+	  sudo mount -t tmpfs -o size=600m tmpfs $(ROOTFS) ;\
+	fi
 # populate Rootfs using docker image 'planet/base'
 	docker create --name=$(CONTAINERNAME) planet/base
 	@echo "Exporting base Docker image into a fresh RootFS into $(ROOTFS)...."
@@ -55,4 +72,4 @@ clean-rootfs:
 	fi
 
 clean: clean-rootfs
-	sudo rm -rf $(TARGETDIR)
+	rm -rf $(TARGETDIR)

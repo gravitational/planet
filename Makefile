@@ -1,5 +1,9 @@
 # Quick Start
 # -----------
+# make production: 
+#     CD/CD build of Planet. This is what's used by Jenkins builds and this
+#     is what gets released to customers.
+#
 # make dev: 
 #     builds 'development' image of Planet, stores output in build/dev and 
 #     points build/current symlink to it. 
@@ -37,14 +41,12 @@ PWD := $(shell pwd)
 ASSETS := $(PWD)/build.assets
 BUILDDIR ?= $(PWD)/build
 BUILDDIR := $(shell realpath $(BUILDDIR))
-PLANETVER:=0.02
-KUBE_VER:=v1.1.1
+KUBE_VER:=v1.1.4
 PUBLIC_IP:=127.0.0.1
 export
 PLANET_PACKAGE_PATH=$(PWD)
 PLANET_PACKAGE=github.com/gravitational/planet
 PLANET_VERSION_PACKAGE_PATH=$(PLANET_PACKAGE)/Godeps/_workspace/src/github.com/gravitational/version
-PLANET_GO_LDFLAGS="$(shell linkflags -pkg=$(PLANET_PACKAGE_PATH) -verpkg=$(PLANET_VERSION_PACKAGE_PATH))"
 
 all: production dev
 
@@ -59,16 +61,32 @@ build: $(BUILDDIR)/current
 
 # Makes a "developer" image, with _all_ parts of Kubernetes installed
 dev: buildbox
-	$(MAKE) -C $(ASSETS)/makefiles -e TARGET=dev PLANET_GO_LDFLAGS=$(PLANET_GO_LDFLAGS) -f buildbox.mk
+	$(MAKE) -C $(ASSETS)/makefiles -e TARGET=dev -f buildbox.mk
 
-# Composite image target that creates master/node images
+#
+# WARNING: careful here. This is production build!!!!
+#
 production: buildbox
-	$(MAKE) -C $(ASSETS)/makefiles -e TARGET=master PLANET_GO_LDFLAGS=$(PLANET_GO_LDFLAGS) -f buildbox.mk
-	$(MAKE) -C $(ASSETS)/makefiles -e TARGET=node PLANET_GO_LDFLAGS=$(PLANET_GO_LDFLAGS) -f buildbox.mk
+	$(MAKE) -C $(ASSETS)/makefiles -e TARGET=master -f buildbox.mk
+	$(MAKE) -C $(ASSETS)/makefiles -e TARGET=node -f buildbox.mk
+
+enter_buildbox:
+	$(MAKE) -C $(ASSETS)/makefiles -e -f buildbox.mk enter_buildbox
 
 # Runs end-to-end tests in the specific environment
 test: buildbox testbox prepare-to-run
 	$(MAKE) -C $(ASSETS)/makefiles -e TARGET=dev TEST_FOCUS=$(SPEC) -f test.mk
+
+# test-package tests package in planet
+test-package: remove-temp-files
+	go test -v -test.parallel=0 ./$(p)
+
+# test-package-with etcd enabled
+test-package-with-etcd: remove-temp-files
+	PLANET_TEST_ETCD_NODES=http://127.0.0.1:4001 go test -v -test.parallel=0 ./$(p)
+
+remove-temp-files:
+	find . -name flymake_* -delete
 
 # Starts "planet-dev" build and executes a self-test
 # make test SPEC="Networking\|Pods"
@@ -145,6 +163,8 @@ testbox:
 
 # removes all build aftifacts 
 clean: dev-clean master-clean node-clean test-clean
+	rm -rf $(BUILDDIR)
+
 dev-clean:
 	$(MAKE) -C $(ASSETS)/makefiles -e TARGET=dev -f buildbox.mk clean
 node-clean:
@@ -156,11 +176,7 @@ test-clean:
 
 # internal use:
 make-docker-image:
-	@if [[ ! $$(docker images | grep $(BUILDIMAGE)) ]]; then \
-		cd $(ASSETS)/docker; docker build --no-cache -t $(BUILDIMAGE) -f $(DOCKERFILE) . ;\
-	else \
-		echo "$(BUILDIMAGE) already exists. Run 'docker rmi $(BUILDIMAGE)' to rebuild" ;\
-	fi
+	cd $(ASSETS)/docker; docker build -t $(BUILDIMAGE) -f $(DOCKERFILE) . ;\
 
 remove-godeps:
 	rm -rf Godeps/

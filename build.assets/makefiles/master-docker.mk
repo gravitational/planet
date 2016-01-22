@@ -7,7 +7,6 @@ ASSETDIR := /assetdir
 
 all:
 	make -C $(ASSETS)/makefiles -f common-docker.mk
-	make -C $(ASSETS)/makefiles/master/etcd -f etcd.mk
 	make -C $(ASSETS)/makefiles/master/dns -f dns.mk
 	make -C $(ASSETS)/makefiles/master/k8s-master -f k8s-master.mk
 # shrink rootfs:
