@@ -2,21 +2,31 @@
 
 #### Intro
 
-Planet is a small Golang executable. It is distributed as a part of an Orbit image, i.e. it 
-expects to reside in `rootfs/usr/bin/planet`
-
 When Planet starts, it:
 
-* Uses [libcontainer](https://github.com/docker/libcontainer) to self-containerize 
-* Launches [systemd](http://0pointer.de/blog/projects/systemd-docs.html)
-* `systemd` instantiates Kubernetes services
-* `systemd` also instantiates any other services we decide to run alongside Kubernetes
+* Uses [libcontainer] to self-containerize 
+* Launches [systemd] as the main process which manages the lifetime of all the other services - [Kubernetes]
+and any other services we package together with it
 
 #### Planet Daemon
 
-Once all of the above happen, Planet starts waiting for `systemd` to exit (see `Box` module).
-Meanwhile, Planet also startsa web server which listens on a `/var/run/planet.sock` socket 
-and is capable of serving requests like `stop`.
+Once started, planet will continue running and waiting for the main systemd process to end.
+The container environment is encapsulated by the `[box]` package.
+As part of its operation, planet will also start a web server to enable remote process control.
+The server listens on the unix socket (in a `/var/run/planet.sock` by default) and is capable of
+running commands inside the container on behalf of the client - this is how the commands `planet stop`
+and `planet enter` are implemented.
 
-When another instance of Planet executes with `stop` command line argument, it connects to 
-the socket to tell the running copy to stop.
+#### Planet Agent
+
+One additional recent planet service is the agent. Agent is responsible for maintaining the health status
+of the cluster (obtainable with `planet status`) and implementing the master fail-over by dynamically promoting
+nodes to master should the active master fail.
+
+
+[//]: # (Footnots and references)
+
+[systemd]: <http://www.freedesktop.org/wiki/Software/systemd/>
+[libcontainer]: <https://github.com/opencontainers/runc/tree/master/libcontainer>
+[Kubernetes]: <https://github.com/kubernetes/kubernetes>
+[box]: <https://github.com/gravitational/planet/tree/master/lib/box>
