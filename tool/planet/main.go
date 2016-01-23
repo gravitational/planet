@@ -42,11 +42,10 @@ func run() error {
 	args, extraArgs := cstrings.SplitAt(os.Args, "--")
 
 	var (
-		app           = kingpin.New("planet", "Planet is a Kubernetes delivered as an orbit container")
-		debug         = app.Flag("debug", "Enable debug mode").Bool()
-		fromContainer = app.Flag("from-container", "Specifies if a command is run in container context").Bool()
-		socketPath    = app.Flag("socket-path", "Path to the socket file").Default("/var/run/planet.socket").String()
-		cversion      = app.Command("version", "Print version information")
+		app        = kingpin.New("planet", "Planet is a Kubernetes delivered as an orbit container")
+		debug      = app.Flag("debug", "Enable debug mode").Bool()
+		socketPath = app.Flag("socket-path", "Path to the socket file").Default("/var/run/planet.socket").String()
+		cversion   = app.Command("version", "Print version information")
 
 		// internal init command used by libcontainer
 		cinit = app.Command("init", "Internal init command").Hidden()
@@ -85,9 +84,9 @@ func run() error {
 		cagentAPI           = cagent.Flag("apiserver-dns", "API server DNS entry").OverrideDefaultFromEnvar(EnvAPIServerName).String()
 		cagentTerm          = cagent.Flag("term", "Leader lease duration").Default(DefaultLeaderTerm.String()).Duration()
 		cagentEtcdEndpoints = List(cagent.Flag("etcd-endpoints", "Etcd endpoints").Default(DefaultEtcdEndpoints))
-		cagentRPCAddr       = cagent.Flag("rpc-addr", "Address to bind the RPC listener to").Default("127.0.0.1:7575").String()
+		cagentRPCAddrs      = List(cagent.Flag("rpc-addr", "Address to bind the RPC listener to.  Can be specified multiple times").Default("127.0.0.1:7575"))
 		cagentKubeAddr      = cagent.Flag("kube-addr", "Address of the kubernetes api server").Default("127.0.0.1:8080").String()
-		cagentName          = cagent.Flag("name", "Agent name.  Must be the same as the name of the local serf node").OverrideDefaultFromEnvar("PLANET_ETCD_MEMBER_NAME").String()
+		cagentName          = cagent.Flag("name", "Agent name.  Must be the same as the name of the local serf node").OverrideDefaultFromEnvar(EnvAgentName).String()
 		cagentSerfRPCAddr   = cagent.Flag("serf-rpc-addr", "RPC address of the local serf node").Default("127.0.0.1:7373").String()
 		cagentSerfPeers     = InlineList(cagent.Flag("peers", "Address of the serf node to join with.  Multiple addresses can be specified, separated by comma."))
 		cagentStateDir      = cagent.Flag("state-dir", "Directory where agent-specific state like health stats is stored").Default("/var/planet/agent").String()
@@ -104,7 +103,7 @@ func run() error {
 		// report status of the cluster
 		cstatus        = app.Command("status", "Query the planet cluster status")
 		cstatusLocal   = cstatus.Flag("local", "Query the status of the local node").Bool()
-		cstatusRPCAddr = cstatus.Flag("rpc-addr", "agent RPC address").Default("127.0.0.1:7575").String()
+		cstatusRPCPort = cstatus.Flag("rpc-port", "Local agent RPC port.").Default("7575").Int()
 
 		// test command
 		ctest             = app.Command("test", "Run end-to-end tests on a running cluster")
@@ -157,7 +156,7 @@ func run() error {
 		}
 		conf := &agent.Config{
 			Name:        *cagentName,
-			RPCAddr:     *cagentRPCAddr,
+			RPCAddrs:    *cagentRPCAddrs,
 			SerfRPCAddr: *cagentSerfRPCAddr,
 			Cache:       cache,
 		}
@@ -238,18 +237,10 @@ func run() error {
 
 	// "status" command
 	case cstatus.FullCommand():
-		if *fromContainer {
-			var ok bool
-			ok, err = clusterStatus(*cstatusRPCAddr, *cstatusLocal)
-			if err == nil && !ok {
-				err = &box.ExitError{Code: 1}
-			}
-		} else {
-			rootfs, err = findRootfs()
-			if err != nil {
-				break
-			}
-			err = status(rootfs, *socketPath, *cstatusRPCAddr, *cstatusLocal)
+		var ok bool
+		ok, err = clusterStatus(*cstatusRPCPort, *cstatusLocal)
+		if err == nil && !ok {
+			err = trace.Errorf("cluster status degraded")
 		}
 
 	// "test" command

@@ -26,23 +26,34 @@ type Agent interface {
 }
 
 type Config struct {
-	// Name of the agent - hostname if not provided.
+	// Name of the agent unique within the cluster.
+	// Names are used as a unique id within a serf cluster, so
+	// it is important to avoid clashes.
+	//
+	// Name must match the name of the local serf agent so that the agent
+	// can match itself to a serf member.
 	Name string
 
-	// RPC address for local agent communication.
-	RPCAddr string
+	// RPCAddrs is a list of addresses agent binds to for RPC traffic.
+	//
+	// Usually, at least two address are used for operation.
+	// Localhost is a convenience for local communication.  Cluster-visible
+	// IP is required for proper inter-communication between agents.
+	RPCAddrs []string
 
 	// RPC address of local serf node.
 	SerfRPCAddr string
 
 	// Peers lists the nodes that are part of the initial serf cluster configuration.
+	// This is not a final cluster configuration and new nodes or node updates
+	// are still possible.
 	Peers []string
 
 	// Set of tags for the agent.
-	// Tags is a trivial means for adding extra semantic information.
+	// Tags is a trivial means for adding extra semantic information to an agent / node.
 	Tags map[string]string
 
-	// Cache used by the agent to persist health stats.
+	// Cache is a short-lived storage used by the agent to persist latest health stats.
 	Cache cache.Cache
 }
 
@@ -59,9 +70,20 @@ func New(config *Config) (Agent, error) {
 	if err != nil {
 		return nil, trace.Wrap(err, "failed to update serf agent tags")
 	}
-	listener, err := net.Listen("tcp", config.RPCAddr)
-	if err != nil {
-		return nil, trace.Wrap(err)
+	var listeners []net.Listener
+	defer func() {
+		if err != nil {
+			for _, listener := range listeners {
+				listener.Close()
+			}
+		}
+	}()
+	for _, addr := range config.RPCAddrs {
+		listener, err := net.Listen("tcp", addr)
+		if err != nil {
+			return nil, trace.Wrap(err)
+		}
+		listeners = append(listeners, listener)
 	}
 	agent := &agent{
 		serfClient: client,
@@ -69,7 +91,7 @@ func New(config *Config) (Agent, error) {
 		cache:      config.Cache,
 		dialRPC:    defaultDialRPC,
 	}
-	agent.rpc = newRPCServer(agent, listener)
+	agent.rpc = newRPCServer(agent, listeners)
 	return agent, nil
 }
 

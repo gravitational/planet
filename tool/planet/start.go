@@ -115,6 +115,8 @@ func start(config *Config, monitorc chan<- bool) (*box.Box, error) {
 		box.EnvPair{Name: EnvPODSubnet, Val: config.PODSubnet.String()},
 		box.EnvPair{Name: EnvPublicIP, Val: config.PublicIP},
 		box.EnvPair{Name: EnvStateDir, Val: config.StateDir},
+		// Default agent name to the name of the etcd member
+		box.EnvPair{Name: EnvAgentName, Val: config.EtcdMemberName},
 		box.EnvPair{Name: EnvAgentPeers, Val: strings.Join(config.AgentPeers, ",")},
 		box.EnvPair{Name: EnvClusterDNSIP, Val: config.ServiceSubnet.RelativeIP(3).String()},
 		box.EnvPair{Name: EnvAPIServerName, Val: fmt.Sprintf("apiserver.%v", config.ClusterID)},

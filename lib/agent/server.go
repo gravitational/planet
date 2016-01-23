@@ -68,6 +68,7 @@ func (r *server) LocalStatus(ctx context.Context, req *pb.LocalStatusRequest) (r
 	return resp, nil
 }
 
+// getStatusFrom obtains the node status from the node identified by member.
 func (r *server) getStatusFrom(member *serf.Member) (result *pb.NodeStatus, err error) {
 	client, err := r.agent.dialRPC(member)
 	if err != nil {
@@ -76,17 +77,25 @@ func (r *server) getStatusFrom(member *serf.Member) (result *pb.NodeStatus, err 
 	defer client.Close()
 	var status *pb.NodeStatus
 	status, err = client.LocalStatus()
+	if err != nil {
+		return nil, trace.Wrap(err)
+	}
 	return status, nil
 }
 
-func newRPCServer(agent *agent, listener net.Listener) *server {
+// newRPCServer creates an agent RPC endpoint for each provided listener.
+func newRPCServer(agent *agent, listeners []net.Listener) *server {
 	backend := grpc.NewServer()
 	server := &server{agent: agent, Server: backend}
 	pb.RegisterAgentServer(backend, server)
-	go backend.Serve(listener)
+	for _, listener := range listeners {
+		go backend.Serve(listener)
+	}
 	return server
 }
 
+// defaultDialRPC is a default RPC client factory function.
+// It creates a new client based on address details from the specific serf member.
 func defaultDialRPC(member *serf.Member) (*client, error) {
 	return NewClient(fmt.Sprintf("%s:%d", member.Addr.String(), RPCPort))
 }

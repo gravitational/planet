@@ -141,10 +141,10 @@ func runAgent(conf *agent.Config, monitoringConf *monitoring.Config, leaderConf 
 	return nil
 }
 
-// clusterStatus queries the status of the planet cluster by communicating
-// with the local planet agent.
-func clusterStatus(rpcAddr string, local bool) (ok bool, err error) {
-	client, err := agent.NewClient(rpcAddr)
+// clusterStatus obtains the status of the planet cluster from the local planet agent.
+func clusterStatus(RPCPort int, local bool) (ok bool, err error) {
+	RPCAddr := fmt.Sprintf("127.0.0.1:%d", RPCPort)
+	client, err := agent.NewClient(RPCAddr)
 	if err != nil {
 		return false, trace.Wrap(err)
 	}
