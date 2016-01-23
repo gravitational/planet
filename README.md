@@ -69,6 +69,8 @@ The building process has been tested on `Debian 8` and `Ubuntu 15.04`.
 
 The output of Planet build is a tarball that goes into `build/$TARGET`:
 
+Following are the most common targets:
+
  - `make production` - builds separate master/node planet images. These are the images used by [gravity].
  - `make dev` - builds a combined (master+node) image.
 
@@ -80,14 +82,45 @@ quite a few dependencies:
  - [etcd]
  - [serf]
 
-but subsequent builds are much faster because intermediate results are cached (build/assets).
+Subsequent builds are much faster because intermediate results are cached (in `build/assets` directory).
 To clear and rebuild from scratch, run one of the following (depending on the target):
- - `make dev-clean`
  - `make node-clean`
  - `make master-clean`
- - or `make clean` to clean wipe everything
+ - `make dev-clean`
+ - or `make clean` to wipe everything out
 
-### Starting "dev" image
+### Upgrading dependencies
+
+Sometimes we need to upgrade to a newer version of the specific dependency. This is relatively simple given
+the modular approach to build assets. Most dependencies are encapsulated into their own build packages rooted
+at `build.assets`.
+
+For instance, to upgrade etcd, edit build.assets/makefiles/etcd/etcd.mk:
+
+```Makefile
+...
+VER := v2.2.3
+...
+```
+
+The version of [kubernetes] is defined in the root makefile:
+
+```Makefile
+...
+KUBE_VER := v1.1.4
+...
+```
+
+### Making changes
+
+Although it is still possible to develop with `make dev`, the recommended way is to use [gravity] coupled with
+[virsh provisioner] for improved development experience.
+
+### Production Mode
+
+[gravity] is the recommended way to deploy planet containers.
+
+### Working with "dev" image
 
 Run: 
 
@@ -113,15 +146,6 @@ execute `make enter`. You can then inspect running components with `ps -e`:
 ```
 
 To stop, hit `Ctrl+C` or run `make stop` in another terminal.
-
-### Making changes
-
-Although it is still possible to develop with `make dev`, it is recommended to use [gravity] coupled with
-[virsh provisioner] for improved development experience.
-
-### Production Mode
-
-[gravity] is the recommended way to deploy [Kubernetes] in planet containers.
 
 
 [//]: # (Footnots and references)
