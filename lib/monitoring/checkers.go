@@ -5,9 +5,14 @@ import (
 	"github.com/gravitational/planet/lib/agent/health"
 )
 
+// Config represents configuration for setting up monitoring checkers.
 type Config struct {
-	Role     agent.Role
+	// Role is the current agent's role
+	Role agent.Role
+	// KubeAddr is the address of the kubernetes API server
 	KubeAddr string
+	// ClusterDNS is the IP of the kubernetes DNS service
+	ClusterDNS string
 }
 
 // AddCheckers adds checkers to the agent.

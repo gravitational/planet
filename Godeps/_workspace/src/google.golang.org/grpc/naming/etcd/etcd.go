@@ -34,7 +34,7 @@
 package etcd
 
 import (
-	etcdcl "github.com/coreos/etcd/client"
+	etcdcl "github.com/gravitational/planet/Godeps/_workspace/src/github.com/coreos/etcd/client"
 	"github.com/gravitational/planet/Godeps/_workspace/src/golang.org/x/net/context"
 	"github.com/gravitational/planet/Godeps/_workspace/src/google.golang.org/grpc/naming"
 )

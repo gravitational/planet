@@ -131,6 +131,13 @@ func runAgent(conf *agent.Config, monitoringConf *monitoring.Config, leaderConf 
 	}
 	defer client.Close()
 
+	dns := &DNSBootstrapper{
+		clusterIP: monitoringConf.ClusterDNS,
+		kubeAddr:  monitoringConf.KubeAddr,
+		agent:     agent,
+	}
+	go dns.create()
+
 	signalc := make(chan os.Signal, 2)
 	signal.Notify(signalc, os.Interrupt, syscall.SIGTERM)
 
@@ -142,7 +149,7 @@ func runAgent(conf *agent.Config, monitoringConf *monitoring.Config, leaderConf 
 }
 
 // clusterStatus obtains the status of the planet cluster from the local planet agent.
-func clusterStatus(RPCPort int, local bool) (ok bool, err error) {
+func clusterStatus(RPCPort int, local, prettyPrint bool) (ok bool, err error) {
 	RPCAddr := fmt.Sprintf("127.0.0.1:%d", RPCPort)
 	client, err := agent.NewClient(RPCAddr)
 	if err != nil {
@@ -155,14 +162,22 @@ func clusterStatus(RPCPort int, local bool) (ok bool, err error) {
 			return false, trace.Wrap(err)
 		}
 		ok = status.Status == pb.NodeStatus_Running
-		statusJson, err = json.MarshalIndent(status, "", "   ")
+		if prettyPrint {
+			statusJson, err = json.MarshalIndent(status, "", "   ")
+		} else {
+			statusJson, err = json.Marshal(status)
+		}
 	} else {
 		status, err := client.Status()
 		if err != nil {
 			return false, trace.Wrap(err)
 		}
 		ok = status.Status == pb.SystemStatus_Running
-		statusJson, err = json.MarshalIndent(status, "", "   ")
+		if prettyPrint {
+			statusJson, err = json.MarshalIndent(status, "", "   ")
+		} else {
+			statusJson, err = json.Marshal(status)
+		}
 	}
 	if err != nil {
 		return ok, trace.Wrap(err, "failed to marshal status data")

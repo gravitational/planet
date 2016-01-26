@@ -18,4 +18,5 @@ ExecStart=/usr/bin/planet --debug agent \
 	--leader-key=/planet/cluster/${KUBE_CLUSTER_ID}/master \
         --peers=${PLANET_AGENT_PEERS} \
 	--kube-addr=http://${KUBE_APISERVER}:8080 \
-	--state-dir=${PLANET_STATE_DIR}
+	--state-dir=${PLANET_STATE_DIR} \
+	--cluster-dns=${KUBE_CLUSTER_DNS_IP}

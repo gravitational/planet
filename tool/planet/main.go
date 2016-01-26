@@ -56,7 +56,7 @@ func run() error {
 		cstartPublicIP                = cstart.Flag("public-ip", "IP accessible by other nodes for inter-host communication").OverrideDefaultFromEnvar("PLANET_PUBLIC_IP").IP()
 		cstartMasterIP                = cstart.Flag("master-ip", "IP of the master POD (defaults to public-ip)").OverrideDefaultFromEnvar("PLANET_MASTER_IP").IP()
 		cstartCloudProvider           = cstart.Flag("cloud-provider", "cloud provider name, e.g. 'aws' or 'gce'").OverrideDefaultFromEnvar("PLANET_CLOUD_PROVIDER").String()
-		cstartClusterID               = cstart.Flag("cluster-id", "id of the cluster").OverrideDefaultFromEnvar("PLANET_CLUSTER_ID").String()
+		cstartClusterID               = cstart.Flag("cluster-id", "ID of the cluster").OverrideDefaultFromEnvar("PLANET_CLUSTER_ID").String()
 		cstartIgnoreChecks            = cstart.Flag("ignore-checks", "Force start ignoring some failed host checks (e.g. kernel version)").OverrideDefaultFromEnvar("PLANET_FORCE").Bool()
 		cstartEnv                     = EnvVars(cstart.Flag("env", "Set environment variable").OverrideDefaultFromEnvar("PLANET_ENV"))
 		cstartMounts                  = Mounts(cstart.Flag("volume", "External volume to mount").OverrideDefaultFromEnvar("PLANET_VOLUME"))
@@ -90,6 +90,7 @@ func run() error {
 		cagentSerfRPCAddr   = cagent.Flag("serf-rpc-addr", "RPC address of the local serf node").Default("127.0.0.1:7373").String()
 		cagentSerfPeers     = InlineList(cagent.Flag("peers", "Address of the serf node to join with.  Multiple addresses can be specified, separated by comma."))
 		cagentStateDir      = cagent.Flag("state-dir", "Directory where agent-specific state like health stats is stored").Default("/var/planet/agent").String()
+		cagentClusterDNS    = cagent.Flag("cluster-dns", "IP for a cluster DNS server.").OverrideDefaultFromEnvar("KUBE_CLUSTER_DNS_IP").IP()
 
 		// stop a running container
 		cstop = app.Command("stop", "Stop planet container")
@@ -101,9 +102,10 @@ func run() error {
 		centerUser  = center.Flag("user", "user to execute the command").Default("root").String()
 
 		// report status of the cluster
-		cstatus        = app.Command("status", "Query the planet cluster status")
-		cstatusLocal   = cstatus.Flag("local", "Query the status of the local node").Bool()
-		cstatusRPCPort = cstatus.Flag("rpc-port", "Local agent RPC port.").Default("7575").Int()
+		cstatus            = app.Command("status", "Query the planet cluster status")
+		cstatusLocal       = cstatus.Flag("local", "Query the status of the local node").Bool()
+		cstatusRPCPort     = cstatus.Flag("rpc-port", "Local agent RPC port.").Default("7575").Int()
+		cstatusPrettyPrint = cstatus.Flag("pretty", "Pretty-print the output").Default("false").Bool()
 
 		// test command
 		ctest             = app.Command("test", "Run end-to-end tests on a running cluster")
@@ -161,8 +163,9 @@ func run() error {
 			Cache:       cache,
 		}
 		monitoringConf := &monitoring.Config{
-			Role:     agent.Role(*cagentRole),
-			KubeAddr: *cagentKubeAddr,
+			Role:       agent.Role(*cagentRole),
+			KubeAddr:   *cagentKubeAddr,
+			ClusterDNS: cagentClusterDNS.String(),
 		}
 		leaderConf := &LeaderConfig{
 			PublicIP:      cagentPublicIP.String(),
@@ -238,7 +241,7 @@ func run() error {
 	// "status" command
 	case cstatus.FullCommand():
 		var ok bool
-		ok, err = clusterStatus(*cstatusRPCPort, *cstatusLocal)
+		ok, err = clusterStatus(*cstatusRPCPort, *cstatusLocal, *cstatusPrettyPrint)
 		if err == nil && !ok {
 			err = trace.Errorf("cluster status degraded")
 		}

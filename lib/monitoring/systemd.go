@@ -79,6 +79,7 @@ func systemdStatus() ([]serviceStatus, error) {
 	if err != nil {
 		return nil, trace.Wrap(err, "failed to connect to dbus")
 	}
+	defer conn.Close()
 
 	var units []dbus.UnitStatus
 	units, err = conn.ListUnits()

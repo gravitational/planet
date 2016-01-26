@@ -26,7 +26,7 @@ type httpHealthzChecker struct {
 func (r *httpHealthzChecker) check(reporter reporter) {
 	resp, err := r.client.Get(r.URL)
 	if err != nil {
-		reporter.add(trace.Errorf("failed to http.Get", err))
+		reporter.add(trace.Errorf("healthz check failed: %v", err))
 		return
 	}
 	defer resp.Body.Close()

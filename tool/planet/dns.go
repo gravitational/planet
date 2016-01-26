@@ -1,72 +1,51 @@
 package main
 
 import (
-	"sync"
+	"time"
 
 	"github.com/gravitational/planet/Godeps/_workspace/src/github.com/gravitational/log"
 	"github.com/gravitational/planet/Godeps/_workspace/src/github.com/gravitational/trace"
+	"github.com/gravitational/planet/Godeps/_workspace/src/golang.org/x/net/context"
 	"github.com/gravitational/planet/Godeps/_workspace/src/k8s.io/kubernetes/pkg/api"
 	kube "github.com/gravitational/planet/Godeps/_workspace/src/k8s.io/kubernetes/pkg/client/unversioned"
-	"github.com/gravitational/planet/Godeps/_workspace/src/k8s.io/kubernetes/pkg/util"
+	"github.com/gravitational/planet/Godeps/_workspace/src/k8s.io/kubernetes/pkg/util/wait"
+	"github.com/gravitational/planet/lib/agent"
 	pb "github.com/gravitational/planet/lib/agent/proto/agentpb"
 	"github.com/gravitational/planet/lib/monitoring"
 )
 
-// This file implements process of bootstrapping kubernetes services required for DNS.
-
 const serviceNamespace = "kube-system"
 
-func bootstrapDNS(masterIP, clusterIP string, client *kube.Client) error {
-	_, err := client.Namespaces().Create(&api.Namespace{ObjectMeta: api.ObjectMeta{Name: serviceNamespace}})
+// DNSBootstrapper represents the process of creating a kubernetes service for DNS.
+type DNSBootstrapper struct {
+	clusterIP string
+	kubeAddr  string
+	agent     agent.Agent
+}
+
+// createKubeDNSService creates or updates the `kube-dns` kubernetes service.
+// It will set the service's cluster IP to the value specified by clusterIP.
+func (r *DNSBootstrapper) createService(client *kube.Client) (err error) {
+	const service = "kube-dns"
+	err = createServiceNamespaceIfNeeded(client)
 	if err != nil {
-		// TODO: ensure this is not a `service exists` error (which should be ignored)
 		return trace.Wrap(err)
-	}
-	etcdService := &api.Service{
-		ObjectMeta: api.ObjectMeta{Name: "etcd"},
-		Spec: api.ServiceSpec{
-			// No selector - external service
-			Ports: []api.ServicePort{{
-				Port:       4001,
-				TargetPort: util.NewIntOrStringFromInt(4001),
-				Protocol:   "TCP",
-				Name:       "client",
-			}},
-			SessionAffinity: "None",
-		},
-	}
-	etcdService, err = client.Services(serviceNamespace).Create(etcdService)
-	if err != nil {
-		return trace.Wrap(err, "failed to create etcd service")
-	}
-	etcdEndpoints := &api.Endpoints{
-		ObjectMeta: api.ObjectMeta{Name: etcdService.Name, Namespace: etcdService.Namespace},
-		Subsets: []api.EndpointSubset{{
-			Addresses: []api.EndpointAddress{{IP: masterIP}},
-			Ports: []api.EndpointPort{{
-				Name: etcdService.Spec.Ports[0].Name,
-				Port: etcdService.Spec.Ports[0].Port,
-			}},
-		}},
-	}
-	etcdEndpoints, err = client.Endpoints(serviceNamespace).Create(etcdEndpoints)
-	if err != nil {
-		return trace.Wrap(err, "failed to create etcd service endpoints")
 	}
 	dnsService := &api.Service{
 		ObjectMeta: api.ObjectMeta{
-			Name: "kube-dns",
+			Name: service,
 			Labels: map[string]string{
 				"k8s-app":                       "kube-dns",
 				"kubernetes.io/cluster-service": "true",
 				"kubernetes.io/name":            "KubeDNS",
 			},
+			ResourceVersion: "1",
 		},
 		Spec: api.ServiceSpec{
 			Selector: map[string]string{
 				"k8s-app": "kube-dns",
 			},
-			ClusterIP: clusterIP,
+			ClusterIP: r.clusterIP,
 			Ports: []api.ServicePort{
 				{
 					Port:     53,
@@ -80,38 +59,87 @@ func bootstrapDNS(masterIP, clusterIP string, client *kube.Client) error {
 			SessionAffinity: "None",
 		},
 	}
-	dnsService, err = client.Services(serviceNamespace).Create(dnsService)
+	err = upsertService(client, dnsService)
 	if err != nil {
-		return trace.Wrap(err, "failed to create dns service")
+		return trace.Wrap(err, "failed to create DNS service")
 	}
 	return nil
 }
 
-// dnsBootstrapper bootstraps a set of Kubernetes services for DNS.
-// It subscribes to receive health check alerts and will configure the services
-// once it has received the first positive result.
-type dnsBootstrapper struct {
-	sync.Once
-	masterIP  string
-	clusterIP string
-	kubeAddr  string
+// create runs a loop to creates/update the `kube-dns` kubernetes service.
+// The loop continues until the master node has become healthy and the service
+// gets created or a specified number of attempts have been made.
+func (r *DNSBootstrapper) create() {
+	const retryPeriod = 1 * time.Second
+	const retryTimeout = 60 * time.Second
+	var client *kube.Client
+
+	if err := wait.Poll(retryPeriod, retryTimeout, func() (done bool, err error) {
+		var status *pb.NodeStatus
+		status, err = r.agent.LocalStatus(context.TODO())
+		if err != nil {
+			log.Infof("failed to query cluster status: %v", err)
+			return false, nil
+		}
+		if status.Status != pb.NodeStatus_Running {
+			log.Infof("node unhealthy, retrying")
+			return false, nil
+		}
+
+		// kube client is also a part of the retry loop as the kubernetes
+		// API server might not be available at first connect
+		if client == nil {
+			client, err = monitoring.ConnectToKube(r.kubeAddr)
+			if err != nil {
+				log.Infof("failed to connect to kubernetes: %v", err)
+				return false, nil
+			}
+		}
+		err = r.createService(client)
+		if err != nil {
+			log.Infof("failed to create kube-dns service: %v", err)
+			return false, nil
+		}
+		log.Infof("created kube-dns service")
+		return true, nil
+	}); err != nil {
+		log.Infof("giving up on creating kube-dns: %v", err)
+	}
 }
 
-// TODO: connect to planet agent and subscribe to health alerts.
-// Might need to do multiple retries since it will start in parallel
-// with the agent process and will have to make sure the agent has
-// started before setting up health wait.
-
-func (r *dnsBootstrapper) OnHealthCheck(status *pb.SystemStatus) {
-	if status.Status == pb.SystemStatus_Running {
-		r.Do(func() {
-			// TODO: retry on failure
-			client, err := monitoring.ConnectToKube(r.kubeAddr)
-			if err != nil {
-				log.Errorf("dns: failed to connect to kubernetes: %v", err)
-			} else {
-				bootstrapDNS(r.masterIP, r.clusterIP, client)
-			}
-		})
+// createServiceNamespaceIfNeeded creates a service namespace if one does not exist yet.
+func createServiceNamespaceIfNeeded(client *kube.Client) error {
+	log.Infof("creating %s namespace", serviceNamespace)
+	if _, err := client.Namespaces().Get(serviceNamespace); err != nil {
+		log.Infof("%s namespace not found: %v", serviceNamespace, err)
+		_, err = client.Namespaces().Create(&api.Namespace{ObjectMeta: api.ObjectMeta{Name: serviceNamespace}})
+		if err != nil {
+			return trace.Wrap(err)
+		}
 	}
+	return nil
+}
+
+// upsertService either creates a new service if the specified service does not exist,
+// or updates an existing one.
+func upsertService(client *kube.Client, service *api.Service) (err error) {
+	log.Infof("creating %s service", service.ObjectMeta.Name)
+	serviceName := service.ObjectMeta.Name
+	services := client.Services(serviceNamespace)
+	var existing *api.Service
+	if existing, err = services.Get(serviceName); err != nil {
+		log.Infof("%s service not found: %v", service.ObjectMeta.Name, err)
+		_, err = services.Create(service)
+		if err != nil {
+			return trace.Wrap(err)
+		}
+		return nil
+	}
+	log.Infof("updating existing service %s: %v", existing.ObjectMeta.Name, existing)
+	// FIXME: w/o the resource version reset, the etcd update fails with an error
+	service.ObjectMeta.ResourceVersion = existing.ObjectMeta.ResourceVersion
+	if _, err = services.Update(service); err != nil {
+		return trace.Wrap(err)
+	}
+	return nil
 }

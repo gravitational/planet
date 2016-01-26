@@ -8,6 +8,7 @@ import (
 	"github.com/gravitational/planet/Godeps/_workspace/src/github.com/gravitational/log"
 	"github.com/gravitational/planet/Godeps/_workspace/src/github.com/gravitational/trace"
 	serf "github.com/gravitational/planet/Godeps/_workspace/src/github.com/hashicorp/serf/client"
+	"github.com/gravitational/planet/Godeps/_workspace/src/golang.org/x/net/context"
 	"github.com/gravitational/planet/lib/agent/cache"
 	"github.com/gravitational/planet/lib/agent/health"
 	pb "github.com/gravitational/planet/lib/agent/proto/agentpb"
@@ -21,6 +22,8 @@ type Agent interface {
 	Close() error
 	// Join makes an attempt to join a cluster specified by the list of peers.
 	Join(peers []string) error
+	// Status reports the health status of the cluster.
+	LocalStatus(context.Context) (*pb.NodeStatus, error)
 
 	health.CheckerRepository
 }
@@ -155,6 +158,16 @@ func (r *agent) Close() (err error) {
 		return trace.Wrap(err)
 	}
 	return nil
+}
+
+// LocalStatus reports the status of the local agent node.
+func (r *agent) LocalStatus(ctx context.Context) (*pb.NodeStatus, error) {
+	req := &pb.LocalStatusRequest{}
+	resp, err := r.rpc.LocalStatus(ctx, req)
+	if err != nil {
+		return nil, trace.Wrap(err)
+	}
+	return resp.Status, nil
 }
 
 type dialRPC func(*serf.Member) (*client, error)
