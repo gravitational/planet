@@ -241,9 +241,9 @@ func run() error {
 	// "status" command
 	case cstatus.FullCommand():
 		var ok bool
-		ok, err = clusterStatus(*cstatusRPCPort, *cstatusLocal, *cstatusPrettyPrint)
+		ok, err = status(*cstatusRPCPort, *cstatusLocal, *cstatusPrettyPrint)
 		if err == nil && !ok {
-			err = trace.Errorf("cluster status degraded")
+			err = trace.Errorf("status degraded")
 		}
 
 	// "test" command

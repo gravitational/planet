@@ -27,7 +27,7 @@ type server struct {
 // Status reports the health status of a serf cluster by iterating over the list
 // of currently active cluster members and collecting their respective health statuses.
 func (r *server) Status(ctx context.Context, req *pb.StatusRequest) (*pb.StatusResponse, error) {
-	resp := &pb.StatusResponse{Status: &pb.SystemStatus{}}
+	resp := &pb.StatusResponse{Status: &pb.SystemStatus{Status: pb.SystemStatus_Unknown}}
 
 	members, err := r.agent.serfClient.Members()
 	if err != nil {
@@ -108,7 +108,9 @@ func setSystemStatus(resp *pb.StatusResponse) {
 		if !foundMaster && isMaster(node.MemberStatus) {
 			foundMaster = true
 		}
-		resp.Status.Status = pb.SystemStatus_Type(node.Status)
+		if resp.Status.Status == pb.SystemStatus_Running {
+			resp.Status.Status = nodeToSystemStatus(node.Status)
+		}
 		if node.MemberStatus.Status == pb.MemberStatus_Failed {
 			resp.Status.Status = pb.SystemStatus_Degraded
 		}
@@ -122,4 +124,15 @@ func setSystemStatus(resp *pb.StatusResponse) {
 func isMaster(member *pb.MemberStatus) bool {
 	value, ok := member.Tags["role"]
 	return ok && value == "master"
+}
+
+func nodeToSystemStatus(status pb.NodeStatus_Type) pb.SystemStatus_Type {
+	switch status {
+	case pb.NodeStatus_Running:
+		return pb.SystemStatus_Running
+	case pb.NodeStatus_Degraded:
+		return pb.SystemStatus_Degraded
+	default:
+		return pb.SystemStatus_Unknown
+	}
 }

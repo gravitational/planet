@@ -22,7 +22,7 @@ type Agent interface {
 	Close() error
 	// Join makes an attempt to join a cluster specified by the list of peers.
 	Join(peers []string) error
-	// Status reports the health status of the cluster.
+	// LocalStatus reports the health status of the local agent node.
 	LocalStatus(context.Context) (*pb.NodeStatus, error)
 
 	health.CheckerRepository

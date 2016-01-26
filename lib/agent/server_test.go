@@ -143,8 +143,8 @@ func TestAgentProvidesStatus(t *testing.T) {
 		t.Logf("running test %s", testCase.comment)
 		localNode := testCase.members[0].Name
 		remoteNode := testCase.members[1].Name
-		localServer := newLocalNode(localNode, remoteNode, testCase.rpcPort, testCase.members[:], testCase.checkers)
-		remoteServer, err := newRemoteNode(remoteNode, localNode, testCase.rpcPort, testCase.members[:], testCase.checkers)
+		localServer := newLocalNode(localNode, remoteNode, testCase.rpcPort, testCase.members[:], testCase.checkers[0])
+		remoteServer, err := newRemoteNode(remoteNode, localNode, testCase.rpcPort, testCase.members[:], testCase.checkers[1])
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -174,7 +174,7 @@ var agentTestCases = []struct {
 	comment  string
 	status   pb.SystemStatus_Type
 	members  [2]serf.Member
-	checkers []health.Checker
+	checkers [][]health.Checker
 	rpcPort  int
 }{
 	{
@@ -184,7 +184,7 @@ var agentTestCases = []struct {
 			newMember("master", "alive"),
 			newMember("node", "alive"),
 		},
-		checkers: []health.Checker{healthyTest, failedTest},
+		checkers: [][]health.Checker{{healthyTest, failedTest}, {healthyTest, healthyTest}},
 		rpcPort:  7676,
 	},
 	{
@@ -194,7 +194,7 @@ var agentTestCases = []struct {
 			newMember("node-1", "alive"),
 			newMember("node-2", "alive"),
 		},
-		checkers: []health.Checker{healthyTest, healthyTest},
+		checkers: [][]health.Checker{{healthyTest, healthyTest}, {healthyTest, healthyTest}},
 		rpcPort:  7677,
 	},
 	{
@@ -204,7 +204,7 @@ var agentTestCases = []struct {
 			newMember("master", "alive"),
 			newMember("node", "alive"),
 		},
-		checkers: []health.Checker{healthyTest, healthyTest},
+		checkers: [][]health.Checker{{healthyTest, healthyTest}, {healthyTest, healthyTest}},
 		rpcPort:  7678,
 	},
 }
@@ -224,7 +224,7 @@ func newRemoteNode(node, peerNode string, rpcPort int, members []serf.Member, ch
 	}
 
 	agent := newAgent(node, peerNode, rpcPort, members, checkers)
-	server := newRPCServer(agent, listener)
+	server := newRPCServer(agent, []net.Listener{listener})
 
 	return server, nil
 }

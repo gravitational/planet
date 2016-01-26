@@ -68,29 +68,6 @@ func stop(rootfs, socketPath string) error {
 	return enter(rootfs, socketPath, cfg)
 }
 
-// status checks status of the running planet cluster and outputs results to stdout.
-func status(rootfs, socketPath, rpcAddr string, local bool) (err error) {
-	log.Infof("checking status in %s", rootfs)
-
-	var statusCmd = []string{"/usr/bin/planet", "--from-container", "status"}
-	var data []byte
-
-	if rpcAddr != "" {
-		statusCmd = append(statusCmd, "--rpc-addr", rpcAddr)
-	}
-	if local {
-		statusCmd = append(statusCmd, "--local")
-	}
-
-	data, err = enterCommand(rootfs, socketPath, statusCmd)
-	if data != nil {
-		if _, errWrite := os.Stdout.Write(data); errWrite != nil {
-			return trace.Wrap(errWrite, "failed to output status")
-		}
-	}
-	return err
-}
-
 // enterCommand is a helper function that runs a command as a root
 // in the namespace of planet's container. It returns error
 // if command failed, or command standard output otherwise

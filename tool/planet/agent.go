@@ -150,36 +150,35 @@ func runAgent(conf *agent.Config, monitoringConf *monitoring.Config, leaderConf 
 	return nil
 }
 
-// clusterStatus obtains the status of the planet cluster from the local planet agent.
-func clusterStatus(RPCPort int, local, prettyPrint bool) (ok bool, err error) {
+// status obtains either the status of the planet cluster or that of
+// the local node from the local planet agent.
+func status(RPCPort int, local, prettyPrint bool) (ok bool, err error) {
 	RPCAddr := fmt.Sprintf("127.0.0.1:%d", RPCPort)
 	client, err := agent.NewClient(RPCAddr)
 	if err != nil {
 		return false, trace.Wrap(err)
 	}
 	var statusJson []byte
+	var statusBlob interface{}
 	if local {
 		status, err := client.LocalStatus()
 		if err != nil {
 			return false, trace.Wrap(err)
 		}
 		ok = status.Status == pb.NodeStatus_Running
-		if prettyPrint {
-			statusJson, err = json.MarshalIndent(status, "", "   ")
-		} else {
-			statusJson, err = json.Marshal(status)
-		}
+		statusBlob = status
 	} else {
 		status, err := client.Status()
 		if err != nil {
 			return false, trace.Wrap(err)
 		}
 		ok = status.Status == pb.SystemStatus_Running
-		if prettyPrint {
-			statusJson, err = json.MarshalIndent(status, "", "   ")
-		} else {
-			statusJson, err = json.Marshal(status)
-		}
+		statusBlob = status
+	}
+	if prettyPrint {
+		statusJson, err = json.MarshalIndent(statusBlob, "", "   ")
+	} else {
+		statusJson, err = json.Marshal(statusBlob)
 	}
 	if err != nil {
 		return ok, trace.Wrap(err, "failed to marshal status data")
