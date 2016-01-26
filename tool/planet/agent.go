@@ -108,18 +108,18 @@ func runAgent(conf *agent.Config, monitoringConf *monitoring.Config, leaderConf 
 		conf.Tags = make(map[string]string)
 	}
 	conf.Tags["role"] = string(monitoringConf.Role)
-	agent, err := agent.New(conf)
+	monitoringAgent, err := agent.New(conf)
 	if err != nil {
 		return trace.Wrap(err)
 	}
-	defer agent.Close()
-	monitoring.AddCheckers(agent, monitoringConf)
-	err = agent.Start()
+	defer monitoringAgent.Close()
+	monitoring.AddCheckers(monitoringAgent, monitoringConf)
+	err = monitoringAgent.Start()
 	if err != nil {
 		return trace.Wrap(err)
 	}
 	if len(peers) > 0 {
-		err = agent.Join(peers)
+		err = monitoringAgent.Join(peers)
 		if err != nil {
 			return trace.Wrap(err, "failed to join serf cluster")
 		}
@@ -131,12 +131,14 @@ func runAgent(conf *agent.Config, monitoringConf *monitoring.Config, leaderConf 
 	}
 	defer client.Close()
 
-	dns := &DNSBootstrapper{
-		clusterIP: monitoringConf.ClusterDNS,
-		kubeAddr:  monitoringConf.KubeAddr,
-		agent:     agent,
+	if monitoringConf.Role == agent.RoleMaster {
+		dns := &DNSBootstrapper{
+			clusterIP: monitoringConf.ClusterDNS,
+			kubeAddr:  monitoringConf.KubeAddr,
+			agent:     monitoringAgent,
+		}
+		go dns.create()
 	}
-	go dns.create()
 
 	signalc := make(chan os.Signal, 2)
 	signal.Notify(signalc, os.Interrupt, syscall.SIGTERM)

@@ -74,7 +74,7 @@ func run() error {
 		cstartEtcdMemberName          = cstart.Flag("etcd-member-name", "Etcd member name").OverrideDefaultFromEnvar("PLANET_ETCD_MEMBER_NAME").String()
 		cstartEtcdInitialCluster      = cstart.Flag("etcd-initial-cluster", "initial etcd cluster configuration (list of peers)").OverrideDefaultFromEnvar("PLANET_ETCD_INITIAL_CLUSTER").String()
 		cstartEtcdInitialClusterState = cstart.Flag("etcd-initial-cluster-state", "Etcd initial cluster state: 'new' or 'existing'").OverrideDefaultFromEnvar("PLANET_ETCD_INITIAL_CLUSTER_STATE").String()
-		cstartAgentPeers              = InlineList(cstart.Flag("peers", "Initial planet agent cluster configuration"))
+		cstartAgentPeers              = InlineList(cstart.Flag("peers", "Initial planet agent cluster configuration").OverrideDefaultFromEnvar(EnvAgentPeers))
 
 		// start the planet agent
 		cagent              = app.Command("agent", "Start Planet Agent")
@@ -88,7 +88,7 @@ func run() error {
 		cagentKubeAddr      = cagent.Flag("kube-addr", "Address of the kubernetes api server").Default("127.0.0.1:8080").String()
 		cagentName          = cagent.Flag("name", "Agent name.  Must be the same as the name of the local serf node").OverrideDefaultFromEnvar(EnvAgentName).String()
 		cagentSerfRPCAddr   = cagent.Flag("serf-rpc-addr", "RPC address of the local serf node").Default("127.0.0.1:7373").String()
-		cagentSerfPeers     = InlineList(cagent.Flag("peers", "Address of the serf node to join with.  Multiple addresses can be specified, separated by comma."))
+		cagentSerfPeers     = InlineList(cagent.Flag("peers", "Address of the serf node to join with.  Multiple addresses can be specified, separated by comma.").OverrideDefaultFromEnvar(EnvAgentPeers))
 		cagentStateDir      = cagent.Flag("state-dir", "Directory where agent-specific state like health stats is stored").Default("/var/planet/agent").String()
 		cagentClusterDNS    = cagent.Flag("cluster-dns", "IP for a cluster DNS server.").OverrideDefaultFromEnvar("KUBE_CLUSTER_DNS_IP").IP()
 
@@ -150,7 +150,7 @@ func run() error {
 	// "agent" command
 	case cagent.FullCommand():
 		var cache cache.Cache
-		path := filepath.Join(*cagentStateDir, backendDbFile)
+		path := filepath.Join(*cagentStateDir, monitoringDbFile)
 		cache, err = sqlite.New(path)
 		if err != nil {
 			err = trace.Wrap(err, "failed to create cache")
@@ -266,7 +266,7 @@ func run() error {
 	return err
 }
 
-const backendDbFile = "sqlite.db"
+const monitoringDbFile = "monitoring.db"
 
 func selfTest(config *Config, repoDir, spec string, extraArgs []string) error {
 	var process *box.Box
