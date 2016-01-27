@@ -27,14 +27,12 @@ func TestAddsUser(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if passwd.w == nil {
-		t.Fatal("expected w to be non-null")
-	}
 	passwd.Upsert(newUser(1005, 1005))
 	if len(passwd.users) != 4 {
 		t.Error("expected to add a user")
 	}
-	err = passwd.Save(nil)
+	rw.Reset()
+	err = passwd.Save(rw)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -62,7 +60,8 @@ func TestReplacesUser(t *testing.T) {
 	if len(r.users) != 4 {
 		t.Error("expected to replace a user")
 	}
-	err = r.Save(nil)
+	rw.Reset()
+	err = r.Save(rw)
 	if err != nil {
 		t.Fatal(err)
 	}

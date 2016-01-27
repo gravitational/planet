@@ -7,32 +7,31 @@ import (
 )
 
 func TestReporterSetsTimestamp(t *testing.T) {
-	r := NewDefaultReporter("node")
+	var r Probes
 	r.Add(&pb.Probe{
 		Checker: "foo",
 		Status:  pb.Probe_Failed,
 		Error:   "not found",
 	})
 	numProbes := 1
-	status := r.Status()
-	if len(status.Probes) != numProbes {
-		t.Fatalf("expected %d probe but got %d", numProbes, len(status.Probes))
+	if len(r) != numProbes {
+		t.Fatalf("expected %d probe but got %d", numProbes, len(r))
 	}
-	probe := status.Probes[0]
+	probe := r[0]
 	if probe.Timestamp == nil {
 		t.Fatalf("expected probe timestamp to be non-null")
 	}
 }
 
 func TestSetsNodeStatusFromProbes(t *testing.T) {
-	r := NewDefaultReporter("node")
+	var r Probes
 	for _, probe := range probes() {
 		r.Add(probe)
 	}
 	expectedStatus := pb.NodeStatus_Degraded
 	status := r.Status()
-	if status.Status != expectedStatus {
-		t.Fatalf("expected node status to be %s but got %s", expectedStatus, status.Status)
+	if status != expectedStatus {
+		t.Fatalf("expected node status to be %s but got %s", expectedStatus, status)
 	}
 }
 
