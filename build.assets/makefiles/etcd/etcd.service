@@ -2,6 +2,7 @@
 Description=Etcd Service
 
 [Service]
+Type=notify
 TimeoutStartSec=0
 EnvironmentFile=/etc/container-environment
 ExecStart=/usr/bin/etcd \

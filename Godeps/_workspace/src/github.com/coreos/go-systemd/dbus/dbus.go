@@ -68,6 +68,11 @@ func New() (*Conn, error) {
 	return c, nil
 }
 
+// Close closes an established connection
+func (c *Conn) Close() {
+	c.sysconn.Close()
+}
+
 func (c *Conn) initConnection() error {
 	var err error
 	c.sysconn, err = dbus.SystemBusPrivate()

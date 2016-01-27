@@ -1,20 +1,26 @@
 package main
 
 import (
+	"encoding/json"
 	"fmt"
+	"io"
 	"os"
 	"os/exec"
 	"os/signal"
+	"syscall"
 	"time"
 
 	"github.com/gravitational/planet/Godeps/_workspace/src/github.com/gravitational/log"
 	"github.com/gravitational/planet/Godeps/_workspace/src/github.com/gravitational/trace"
+	"github.com/gravitational/planet/lib/agent"
+	pb "github.com/gravitational/planet/lib/agent/proto/agentpb"
 	"github.com/gravitational/planet/lib/leader"
+	"github.com/gravitational/planet/lib/monitoring"
 	"github.com/gravitational/planet/lib/utils"
 )
 
-// AgentConfig represents agent configuration
-type AgentConfig struct {
+// LeaderConfig represents configuration for the master election task
+type LeaderConfig struct {
 	// PublicIP is the ip as seen by other peers
 	PublicIP string
 	// LeaderKey is the EtcdKey of the leader
@@ -31,27 +37,33 @@ type AgentConfig struct {
 	APIServerDNS string
 }
 
-// String returns string representation of the agent config
-func (a AgentConfig) String() string {
-	return fmt.Sprintf("agent(key=%v, ip=%v, role=%v, term=%v, endpoints=%v, apiserverDNS=%v)",
-		a.LeaderKey, a.PublicIP, a.Role, a.Term, a.EtcdEndpoints, a.APIServerDNS)
+// String returns string representation of the agent leader configuration
+func (conf LeaderConfig) String() string {
+	return fmt.Sprintf("LeaderConfig(key=%v, ip=%v, role=%v, term=%v, endpoints=%v, apiserverDNS=%v)",
+		conf.LeaderKey, conf.PublicIP, conf.Role, conf.Term, conf.EtcdEndpoints, conf.APIServerDNS)
 }
 
-// agent starts a special module that watches the changes
-func agent(a AgentConfig) error {
-	log.Infof("%v start", a)
-	client, err := leader.NewClient(leader.Config{EtcdEndpoints: a.EtcdEndpoints})
+// startLeaderClient starts the master election loop and sets up callbacks
+// that handle state (master <-> node) changes.
+//
+// When a node becomes the active master, it starts a set of services specific to a master.
+// Otherwise, the services are stopped to avoid interfering with the active master instance.
+// Also, every time a new master is elected, the node modifies its /etc/hosts file
+// to reflect the change of the kubernetes API server.
+func startLeaderClient(conf *LeaderConfig) (io.Closer, error) {
+	log.Infof("%v start", conf)
+	client, err := leader.NewClient(leader.Config{EtcdEndpoints: conf.EtcdEndpoints})
 	if err != nil {
-		return trace.Wrap(err)
+		return nil, trace.Wrap(err)
 	}
 	defer client.Close()
-	if a.Role == RoleMaster {
-		if err := client.AddVoter(a.LeaderKey, a.PublicIP, a.Term); err != nil {
-			return trace.Wrap(err)
+	if conf.Role == RoleMaster {
+		if err := client.AddVoter(conf.LeaderKey, conf.PublicIP, conf.Term); err != nil {
+			return nil, trace.Wrap(err)
 		}
 		// certain units must work only if the node is a master
-		client.AddWatchCallback(a.LeaderKey, a.Term/3, func(key, prevVal, newVal string) {
-			if newVal == a.PublicIP {
+		client.AddWatchCallback(conf.LeaderKey, conf.Term/3, func(key, prevVal, newVal string) {
+			if newVal == conf.PublicIP {
 				log.Infof("is a leader, start units")
 				if err := unitsCommand("start"); err != nil {
 					log.Infof("failed to execute: %v", err)
@@ -65,20 +77,14 @@ func agent(a AgentConfig) error {
 		})
 	}
 	// modify /etc/hosts with new apiserver
-	client.AddWatchCallback(a.LeaderKey, a.Term/3, func(key, prevVal, newVal string) {
-		log.Infof("about to set %v to %v in /etc/hosts", a.LeaderKey, newVal)
-		if err := utils.UpsertHostsFile(a.APIServerDNS, newVal, ""); err != nil {
+	client.AddWatchCallback(conf.LeaderKey, conf.Term/3, func(key, prevVal, newVal string) {
+		log.Infof("about to set %v to %v in /etc/hosts", conf.LeaderKey, newVal)
+		if err := utils.UpsertHostsFile(conf.APIServerDNS, newVal, ""); err != nil {
 			log.Errorf("failed to set hosts file: %v", err)
 		}
 	})
 
-	sigC := make(chan os.Signal, 1)
-	signal.Notify(sigC, os.Interrupt, os.Kill)
-
-	// Block until a signal is received.
-	s := <-sigC
-	fmt.Println("Got signal:", s)
-	return nil
+	return client, nil
 }
 
 var electedUnits = []string{"kube-controller-manager", "kube-scheduler"}
@@ -93,4 +99,92 @@ func unitsCommand(command string) error {
 		}
 	}
 	return nil
+}
+
+// runAgent starts the master election / health check loops in background and
+// blocks until a signal has been received.
+func runAgent(conf *agent.Config, monitoringConf *monitoring.Config, leaderConf *LeaderConfig, peers []string) error {
+	if conf.Tags == nil {
+		conf.Tags = make(map[string]string)
+	}
+	conf.Tags["role"] = string(monitoringConf.Role)
+	monitoringAgent, err := agent.New(conf)
+	if err != nil {
+		return trace.Wrap(err)
+	}
+	defer monitoringAgent.Close()
+	monitoring.AddCheckers(monitoringAgent, monitoringConf)
+	err = monitoringAgent.Start()
+	if err != nil {
+		return trace.Wrap(err)
+	}
+	if len(peers) > 0 {
+		err = monitoringAgent.Join(peers)
+		if err != nil {
+			return trace.Wrap(err, "failed to join serf cluster")
+		}
+	}
+
+	client, err := startLeaderClient(leaderConf)
+	if err != nil {
+		return trace.Wrap(err)
+	}
+	defer client.Close()
+
+	if monitoringConf.Role == agent.RoleMaster {
+		dns := &DNSBootstrapper{
+			clusterIP: monitoringConf.ClusterDNS,
+			kubeAddr:  monitoringConf.KubeAddr,
+			agent:     monitoringAgent,
+		}
+		go dns.create()
+	}
+
+	signalc := make(chan os.Signal, 2)
+	signal.Notify(signalc, os.Interrupt, syscall.SIGTERM)
+
+	select {
+	case <-signalc:
+	}
+
+	return nil
+}
+
+// status obtains either the status of the planet cluster or that of
+// the local node from the local planet agent.
+func status(RPCPort int, local, prettyPrint bool) (ok bool, err error) {
+	RPCAddr := fmt.Sprintf("127.0.0.1:%d", RPCPort)
+	client, err := agent.NewClient(RPCAddr)
+	if err != nil {
+		return false, trace.Wrap(err)
+	}
+	var statusJson []byte
+	var statusBlob interface{}
+	if local {
+		status, err := client.LocalStatus()
+		if err != nil {
+			return false, trace.Wrap(err)
+		}
+		ok = status.Status == pb.NodeStatus_Running
+		statusBlob = status
+	} else {
+		status, err := client.Status()
+		if err != nil {
+			return false, trace.Wrap(err)
+		}
+		ok = status.Status == pb.SystemStatus_Running
+		statusBlob = status
+	}
+	if prettyPrint {
+		statusJson, err = json.MarshalIndent(statusBlob, "", "   ")
+	} else {
+		statusJson, err = json.Marshal(statusBlob)
+	}
+	if err != nil {
+		return ok, trace.Wrap(err, "failed to marshal status data")
+	}
+	if _, err = os.Stdout.Write(statusJson); err != nil {
+		return ok, trace.Wrap(err, "failed to output status")
+	}
+	return ok, nil
 }

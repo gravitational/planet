@@ -1,0 +1,91 @@
+syntax = "proto3";
+
+package agentpb;
+
+message StatusRequest {
+}
+
+message StatusResponse {
+  SystemStatus status = 1;
+  // Human-readable status summary.
+  string summary = 2;
+}
+
+message LocalStatusRequest {
+}
+
+message LocalStatusResponse {
+  NodeStatus status = 1;
+}
+
+// System describes the health status of the cluster.
+message SystemStatus {
+  enum Type {
+    Unknown = 0;
+    Running = 1;
+    Degraded = 2;
+  }
+  Type status = 1;
+  // Health status of individual nodes.
+  repeated NodeStatus nodes = 3;
+}
+
+// MembereStatus represents the status of a member of the serf cluster.
+message MemberStatus {
+  enum Type {
+    None = 0;
+    Alive = 1;
+    Leaving = 2;
+    Left = 3;
+    Failed = 4;
+  }
+  string name = 1;
+  string addr = 2;
+  Type status = 3;
+  map<string, string> tags = 4;
+}
+
+// NodeStatus represents a result of a health check for a single node.
+message NodeStatus {
+  string name = 1;
+
+  MemberStatus member_status = 2;
+
+  enum Type {
+    Unknown = 0;
+    Running = 1;
+    Degraded = 2;
+  }
+  Type status = 3;
+
+  // Probes lists all the health probes collected during the health check.
+  repeated Probe probes = 4;
+}
+
+message Probe {
+  Timestamp timestamp = 1;
+
+  // Name of the checker that generated the probe.
+  string checker = 2;
+  // Auxiliary field that can be used to provide additional details of the
+  // checker activity.
+  string extra = 3;
+  enum Type {
+    Unknown = 0;
+    Running = 1;
+    Failed = 2;
+    Terminated = 3;
+  }
+  Type status = 4;
+  string error = 5;
+}
+
+message Timestamp {
+  int64 seconds = 1;
+  int32 nanoseconds = 2;
+}
+
+service Agent {
+  rpc Status(StatusRequest) returns (StatusResponse) {}
+  rpc LocalStatus(LocalStatusRequest) returns (LocalStatusResponse) {}
+}

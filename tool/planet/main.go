@@ -17,7 +17,11 @@ import (
 	"github.com/gravitational/planet/Godeps/_workspace/src/github.com/gravitational/version"
 	"github.com/gravitational/planet/Godeps/_workspace/src/github.com/opencontainers/runc/libcontainer"
 	"github.com/gravitational/planet/Godeps/_workspace/src/gopkg.in/alecthomas/kingpin.v2"
+	"github.com/gravitational/planet/lib/agent"
+	"github.com/gravitational/planet/lib/agent/backend/sqlite"
+	"github.com/gravitational/planet/lib/agent/cache"
 	"github.com/gravitational/planet/lib/box"
+	"github.com/gravitational/planet/lib/monitoring"
 	"github.com/gravitational/planet/test/e2e"
 )
 
@@ -38,11 +42,10 @@ func run() error {
 	args, extraArgs := cstrings.SplitAt(os.Args, "--")
 
 	var (
-		app           = kingpin.New("planet", "Planet is a Kubernetes delivered as an orbit container")
-		debug         = app.Flag("debug", "Enable debug mode").Bool()
-		fromContainer = app.Flag("from-container", "Specifies if a command is run in container context").Bool()
-		socketPath    = app.Flag("socket-path", "Path to the socket file").Default("/var/run/planet.socket").String()
-		cversion      = app.Command("version", "Print version information")
+		app        = kingpin.New("planet", "Planet is a Kubernetes delivered as an orbit container")
+		debug      = app.Flag("debug", "Enable debug mode").Bool()
+		socketPath = app.Flag("socket-path", "Path to the socket file").Default("/var/run/planet.socket").String()
+		cversion   = app.Command("version", "Print version information")
 
 		// internal init command used by libcontainer
 		cinit = app.Command("init", "Internal init command").Hidden()
@@ -53,13 +56,14 @@ func run() error {
 		cstartPublicIP                = cstart.Flag("public-ip", "IP accessible by other nodes for inter-host communication").OverrideDefaultFromEnvar("PLANET_PUBLIC_IP").IP()
 		cstartMasterIP                = cstart.Flag("master-ip", "IP of the master POD (defaults to public-ip)").OverrideDefaultFromEnvar("PLANET_MASTER_IP").IP()
 		cstartCloudProvider           = cstart.Flag("cloud-provider", "cloud provider name, e.g. 'aws' or 'gce'").OverrideDefaultFromEnvar("PLANET_CLOUD_PROVIDER").String()
-		cstartClusterID               = cstart.Flag("cluster-id", "id of the cluster").OverrideDefaultFromEnvar("PLANET_CLUSTER_ID").String()
+		cstartClusterID               = cstart.Flag("cluster-id", "ID of the cluster").OverrideDefaultFromEnvar("PLANET_CLUSTER_ID").String()
 		cstartIgnoreChecks            = cstart.Flag("ignore-checks", "Force start ignoring some failed host checks (e.g. kernel version)").OverrideDefaultFromEnvar("PLANET_FORCE").Bool()
 		cstartEnv                     = EnvVars(cstart.Flag("env", "Set environment variable").OverrideDefaultFromEnvar("PLANET_ENV"))
 		cstartMounts                  = Mounts(cstart.Flag("volume", "External volume to mount").OverrideDefaultFromEnvar("PLANET_VOLUME"))
 		cstartRoles                   = List(cstart.Flag("role", "Roles such as 'master' or 'node'").OverrideDefaultFromEnvar("PLANET_ROLE"))
 		cstartInsecureRegistries      = List(cstart.Flag("insecure-registry", "Optional insecure registries").OverrideDefaultFromEnvar("PLANET_INSECURE_REGISTRY"))
 		cstartSecretsDir              = cstart.Flag("secrets-dir", "Directory with master secrets - certificate authority and certificates").OverrideDefaultFromEnvar("PLANET_SECRETS_DIR").ExistingDir()
+		cstartStateDir                = cstart.Flag("state-dir", "Directory where Planet will store state").OverrideDefaultFromEnvar("PLANET_STATE_DIR").String()
 		cstartServiceSubnet           = CIDRFlag(cstart.Flag("service-subnet", "subnet dedicated to the services in cluster").Default(DefaultServiceSubnet).OverrideDefaultFromEnvar("PLANET_SERVICE_SUBNET"))
 		cstartPODSubnet               = CIDRFlag(cstart.Flag("pod-subnet", "subnet dedicated to the pods in the cluster").Default(DefaultPODSubnet).OverrideDefaultFromEnvar("PLANET_POD_SUBNET"))
 		cstartServiceUID              = cstart.Flag("service-uid", "uid to use for services").Default("1000").String()
@@ -70,15 +74,23 @@ func run() error {
 		cstartEtcdMemberName          = cstart.Flag("etcd-member-name", "Etcd member name").OverrideDefaultFromEnvar("PLANET_ETCD_MEMBER_NAME").String()
 		cstartEtcdInitialCluster      = cstart.Flag("etcd-initial-cluster", "initial etcd cluster configuration (list of peers)").OverrideDefaultFromEnvar("PLANET_ETCD_INITIAL_CLUSTER").String()
 		cstartEtcdInitialClusterState = cstart.Flag("etcd-initial-cluster-state", "Etcd initial cluster state: 'new' or 'existing'").OverrideDefaultFromEnvar("PLANET_ETCD_INITIAL_CLUSTER_STATE").String()
+		cstartAgentPeers              = InlineList(cstart.Flag("peers", "Initial planet agent cluster configuration").OverrideDefaultFromEnvar(EnvAgentPeers))
 
 		// start the planet agent
 		cagent              = app.Command("agent", "Start Planet Agent")
 		cagentPublicIP      = cagent.Flag("public-ip", "IP accessible by other nodes for inter-host communication").OverrideDefaultFromEnvar(EnvPublicIP).IP()
 		cagentLeaderKey     = cagent.Flag("leader-key", "Etcd key holding the new leader").Required().String()
-		cagentRole          = cagent.Flag("role", "server role").OverrideDefaultFromEnvar(EnvRole).String()
+		cagentRole          = cagent.Flag("role", "Server role").OverrideDefaultFromEnvar(EnvRole).String()
 		cagentAPI           = cagent.Flag("apiserver-dns", "API server DNS entry").OverrideDefaultFromEnvar(EnvAPIServerName).String()
-		cagentTerm          = cagent.Flag("term", "leader lease duration").Default(DefaultLeaderTerm.String()).Duration()
-		cagentEtcdEndpoints = List(cagent.Flag("etcd-endpoints", "etcd endpoints").Default(DefaultEtcdEndpoints))
+		cagentTerm          = cagent.Flag("term", "Leader lease duration").Default(DefaultLeaderTerm.String()).Duration()
+		cagentEtcdEndpoints = List(cagent.Flag("etcd-endpoints", "Etcd endpoints").Default(DefaultEtcdEndpoints))
+		cagentRPCAddrs      = List(cagent.Flag("rpc-addr", "Address to bind the RPC listener to.  Can be specified multiple times").Default("127.0.0.1:7575"))
+		cagentKubeAddr      = cagent.Flag("kube-addr", "Address of the kubernetes api server").Default("127.0.0.1:8080").String()
+		cagentName          = cagent.Flag("name", "Agent name.  Must be the same as the name of the local serf node").OverrideDefaultFromEnvar(EnvAgentName).String()
+		cagentSerfRPCAddr   = cagent.Flag("serf-rpc-addr", "RPC address of the local serf node").Default("127.0.0.1:7373").String()
+		cagentSerfPeers     = InlineList(cagent.Flag("peers", "Address of the serf node to join with.  Multiple addresses can be specified, separated by comma.").OverrideDefaultFromEnvar(EnvAgentPeers))
+		cagentStateDir      = cagent.Flag("state-dir", "Directory where agent-specific state like health stats is stored").Default("/var/planet/agent").String()
+		cagentClusterDNS    = cagent.Flag("cluster-dns", "IP for a cluster DNS server.").OverrideDefaultFromEnvar("KUBE_CLUSTER_DNS_IP").IP()
 
 		// stop a running container
 		cstop = app.Command("stop", "Stop planet container")
@@ -89,12 +101,15 @@ func run() error {
 		centerNoTTY = center.Flag("notty", "do not attach TTY to this process").Bool()
 		centerUser  = center.Flag("user", "user to execute the command").Default("root").String()
 
-		// report status of a running container
-		cstatus = app.Command("status", "Get status of a running container")
+		// report status of the cluster
+		cstatus            = app.Command("status", "Query the planet cluster status")
+		cstatusLocal       = cstatus.Flag("local", "Query the status of the local node").Bool()
+		cstatusRPCPort     = cstatus.Flag("rpc-port", "Local agent RPC port.").Default("7575").Int()
+		cstatusPrettyPrint = cstatus.Flag("pretty", "Pretty-print the output").Default("false").Bool()
 
 		// test command
 		ctest             = app.Command("test", "Run end-to-end tests on a running cluster")
-		ctestKubeAddr     = HostPort(ctest.Flag("kube-master", "Address of kubernetes master").Required())
+		ctestKubeAddr     = HostPort(ctest.Flag("kube-addr", "Address of the kubernetes api server").Required())
 		ctestKubeRepoPath = ctest.Flag("kube-repo", "Path to a kubernetes repository").String()
 		ctestAssetPath    = ctest.Flag("asset-dir", "Path to test executables and data files").String()
 
@@ -129,17 +144,39 @@ func run() error {
 	switch cmd {
 
 	// "version" command
+	case cversion.FullCommand():
+		version.Print()
+
+	// "agent" command
 	case cagent.FullCommand():
-		return agent(AgentConfig{
+		var cache cache.Cache
+		path := filepath.Join(*cagentStateDir, monitoringDbFile)
+		cache, err = sqlite.New(path)
+		if err != nil {
+			err = trace.Wrap(err, "failed to create cache")
+			break
+		}
+		conf := &agent.Config{
+			Name:        *cagentName,
+			RPCAddrs:    *cagentRPCAddrs,
+			SerfRPCAddr: *cagentSerfRPCAddr,
+			Cache:       cache,
+		}
+		monitoringConf := &monitoring.Config{
+			Role:       agent.Role(*cagentRole),
+			KubeAddr:   *cagentKubeAddr,
+			ClusterDNS: cagentClusterDNS.String(),
+		}
+		leaderConf := &LeaderConfig{
 			PublicIP:      cagentPublicIP.String(),
 			LeaderKey:     *cagentLeaderKey,
 			Role:          *cagentRole,
 			Term:          *cagentTerm,
 			EtcdEndpoints: *cagentEtcdEndpoints,
 			APIServerDNS:  *cagentAPI,
-		})
-	case cversion.FullCommand():
-		version.Print()
+		}
+		err = runAgent(conf, monitoringConf, leaderConf, []string(*cagentSerfPeers))
+
 	// "start" command
 	case cstart.FullCommand():
 		if emptyIP(cstartPublicIP) && os.Getpid() > 5 {
@@ -164,8 +201,10 @@ func run() error {
 			CloudProvider:           *cstartCloudProvider,
 			ClusterID:               *cstartClusterID,
 			SecretsDir:              *cstartSecretsDir,
+			StateDir:                *cstartStateDir,
 			ServiceSubnet:           *cstartServiceSubnet,
 			PODSubnet:               *cstartPODSubnet,
+			AgentPeers:              *cstartAgentPeers,
 			ServiceUID:              *cstartServiceUID,
 			ServiceGID:              *cstartServiceGID,
 			EtcdMemberName:          *cstartEtcdMemberName,
@@ -201,18 +240,10 @@ func run() error {
 
 	// "status" command
 	case cstatus.FullCommand():
-		if *fromContainer {
-			var ok bool
-			ok, err = containerStatus()
-			if err == nil && !ok {
-				err = &box.ExitError{Code: 1}
-			}
-		} else {
-			rootfs, err = findRootfs()
-			if err != nil {
-				break
-			}
-			err = status(rootfs, *socketPath)
+		var ok bool
+		ok, err = status(*cstatusRPCPort, *cstatusLocal, *cstatusPrettyPrint)
+		if err == nil && !ok {
+			err = trace.Errorf("status degraded")
 		}
 
 	// "test" command
@@ -223,15 +254,19 @@ func run() error {
 			AssetDir:       *ctestAssetPath,
 		}
 		err = e2e.RunTests(config, extraArgs)
+
 	case csecretsInit.FullCommand():
 		err = initSecrets(
 			*csecretsInitDir, *csecretsInitDomain, *csecretsInitServiceSubnet)
+
 	default:
 		err = trace.Errorf("unsupported command: %v", cmd)
 	}
 
 	return err
 }
+
+const monitoringDbFile = "monitoring.db"
 
 func selfTest(config *Config, repoDir, spec string, extraArgs []string) error {
 	var process *box.Box
@@ -255,10 +290,10 @@ func selfTest(config *Config, repoDir, spec string, extraArgs []string) error {
 				}
 				err = e2e.RunTests(testConfig, extraArgs)
 			} else {
-				err = trace.Wrap(fmt.Errorf("cannot start testing: cluster not running"))
+				err = trace.Errorf("cannot start testing: cluster not running")
 			}
 		case <-time.After(idleTimeout):
-			err = trace.Wrap(fmt.Errorf("timed out waiting for units to come up"))
+			err = trace.Errorf("timed out waiting for units to come up")
 		}
 		stop(config.Rootfs, config.SocketPath)
 		process.Close()
@@ -281,6 +316,12 @@ func Mounts(s kingpin.Settings) *box.Mounts {
 
 func List(s kingpin.Settings) *list {
 	l := new(list)
+	s.SetValue(l)
+	return l
+}
+
+func InlineList(s kingpin.Settings) *stringList {
+	l := new(stringList)
 	s.SetValue(l)
 	return l
 }

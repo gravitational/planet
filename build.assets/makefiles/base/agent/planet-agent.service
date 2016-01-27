@@ -1,8 +1,8 @@
 [Unit]
 Description=Planet Agent service
 Documentation=https://github.com/gravitational/planet
-After=etcd.service
-Requires=etcd.service
+After=etcd.service,serf.service
+Requires=etcd.service,serf.service
 
 [Service]
 Restart=always
@@ -10,4 +10,13 @@ RestartSec=5
 EnvironmentFile=/etc/container-environment
 LimitNOFILE=40000
 LimitNPROC=1048576
-ExecStart=/usr/bin/planet --debug agent --leader-key=/planet/cluster/${KUBE_CLUSTER_ID}/master
+ExecStart=/usr/bin/planet --debug agent \
+	--name=${PLANET_AGENT_NAME} \
+	--rpc-addr=${PLANET_PUBLIC_IP}:7575 \
+	--rpc-addr=127.0.0.1:7575 \
+	--role=${PLANET_ROLE} \
+	--leader-key=/planet/cluster/${KUBE_CLUSTER_ID}/master \
+        --peers=${PLANET_AGENT_PEERS} \
+	--kube-addr=http://${KUBE_APISERVER}:8080 \
+	--state-dir=${PLANET_STATE_DIR} \
+	--cluster-dns=${KUBE_CLUSTER_DNS_IP}

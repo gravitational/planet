@@ -104,7 +104,7 @@ func start(config *Config, monitorc chan<- bool) (*box.Box, error) {
 	if !config.hasRole(RoleMaster) && !config.hasRole(RoleNode) {
 		return nil, trace.Errorf("--role parameter must be set")
 	}
-	if err = configureMonitrcPermissions(config.Rootfs); err != nil {
+	if err = ensureStateDir(config); err != nil {
 		return nil, trace.Wrap(err)
 	}
 
@@ -114,6 +114,10 @@ func start(config *Config, monitorc chan<- bool) (*box.Box, error) {
 		box.EnvPair{Name: EnvServiceSubnet, Val: config.ServiceSubnet.String()},
 		box.EnvPair{Name: EnvPODSubnet, Val: config.PODSubnet.String()},
 		box.EnvPair{Name: EnvPublicIP, Val: config.PublicIP},
+		box.EnvPair{Name: EnvStateDir, Val: config.StateDir},
+		// Default agent name to the name of the etcd member
+		box.EnvPair{Name: EnvAgentName, Val: config.EtcdMemberName},
+		box.EnvPair{Name: EnvAgentPeers, Val: strings.Join(config.AgentPeers, ",")},
 		box.EnvPair{Name: EnvClusterDNSIP, Val: config.ServiceSubnet.RelativeIP(3).String()},
 		box.EnvPair{Name: EnvAPIServerName, Val: fmt.Sprintf("apiserver.%v", config.ClusterID)},
 		box.EnvPair{Name: EnvEtcdMemberName, Val: config.EtcdMemberName},
@@ -263,13 +267,13 @@ func upsertFromHost(hostPath, containerPath string, sysFile func(io.Reader) (use
 		return trace.Wrap(err)
 	}
 
-	containerFile, err := os.OpenFile(containerPath, os.O_RDWR, 0644)
+	containerFile, err := os.Open(containerPath)
 	if err != nil {
 		return trace.Wrap(err)
 	}
-	defer containerFile.Close()
 
 	containerSysFile, err := sysFile(containerFile)
+	containerFile.Close()
 	if err != nil {
 		return trace.Wrap(err)
 	}
@@ -279,7 +283,11 @@ func upsertFromHost(hostPath, containerPath string, sysFile func(io.Reader) (use
 		return trace.Wrap(err)
 	}
 
-	err = containerSysFile.Save(nil)
+	containerFile, err = os.OpenFile(containerPath, os.O_WRONLY|os.O_TRUNC, 0644)
+	if err != nil {
+		return trace.Wrap(err)
+	}
+	err = containerSysFile.Save(containerFile)
 	if err != nil {
 		return trace.Wrap(err)
 	}
@@ -528,6 +536,20 @@ func configureMonitrcPermissions(rootfs string) error {
 		return trace.Wrap(err)
 	}
 
+	return nil
+}
+
+// ensureStateDir creates the directory for agent state
+func ensureStateDir(config *Config) error {
+	path := filepath.Join(config.Rootfs, config.StateDir)
+	if err := os.MkdirAll(path, 0755); err != nil {
+		return trace.Wrap(err, "failed to create state dir")
+	}
+	uid := atoi(config.ServiceUID)
+	gid := atoi(config.ServiceGID)
+	if err := os.Chown(path, uid, gid); err != nil {
+		return trace.Wrap(err, "failed to chown state dir for service user/group")
+	}
 	return nil
 }
 

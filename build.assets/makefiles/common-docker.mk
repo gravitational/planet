@@ -11,7 +11,6 @@ all: $(ASSETDIR)/planet
 	make -C $(ASSETS)/makefiles/base/docker -f registry.mk
 	make -C $(ASSETS)/makefiles/base/agent -f agent.mk
 	make -C $(ASSETS)/makefiles/kubernetes -f kubernetes.mk
-	make -C $(ASSETS)/makefiles/monit -f monitoring.mk
 	make -C $(ASSETS)/makefiles/etcd -f etcd.mk
 
 $(ASSETDIR)/planet: .FORCE

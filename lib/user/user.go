@@ -43,18 +43,13 @@ func (u User) String() string {
 // passwdFile allows to read/write passwd files.
 type passwdFile struct {
 	users []user.User
-	w     io.Writer
 }
 
 // NewPasswd creates a passwd file reader.
-// If r also implements io.Writer, it can be used by Save (see details on Save).
 func NewPasswd(r io.Reader) (*passwdFile, error) {
 	users, err := user.ParsePasswd(r)
 	if err != nil {
 		return nil, err
-	}
-	if w, ok := r.(io.Writer); ok {
-		return &passwdFile{users: users, w: w}, nil
 	}
 	return &passwdFile{users: users}, nil
 }
@@ -86,12 +81,7 @@ func (r *passwdFile) Get(name string) (u User, exists bool) {
 }
 
 // Save stores the contents of this passwdFile into w.
-// If this passwdFile was created with io.ReadWriter and nil is passed as w,
-// then the contents are stored into the writer passed into NewPasswd.
 func (r *passwdFile) Save(w io.Writer) (err error) {
-	if w == nil {
-		w = r.w
-	}
 	b := newBuffer(w)
 	for _, user := range r.users {
 		b.WriteLine(User(user).String())
@@ -132,18 +122,13 @@ func (g Group) String() string {
 // groupFile allows to read/write group files.
 type groupFile struct {
 	groups []user.Group
-	w      io.Writer
 }
 
 // NewGroup creates a group file reader.
-// If r also implements io.Writer, it can be used by Save (see details on Save).
 func NewGroup(r io.Reader) (*groupFile, error) {
 	groups, err := user.ParseGroup(r)
 	if err != nil {
 		return nil, err
-	}
-	if w, ok := r.(io.Writer); ok {
-		return &groupFile{groups: groups, w: w}, nil
 	}
 	return &groupFile{groups: groups}, nil
 }
@@ -175,12 +160,7 @@ func (r *groupFile) Get(name string) (g Group, exists bool) {
 }
 
 // Save stores the contents of this groupFile into w.
-// If this groupFile was created with io.ReadWriter and nil is passed as w,
-// then the contents are stored into the writer passed into NewGroup.
 func (r *groupFile) Save(w io.Writer) (err error) {
-	if w == nil {
-		w = r.w
-	}
 	b := newBuffer(w)
 	for _, group := range r.groups {
 		b.WriteLine(Group(group).String())
