@@ -31,7 +31,7 @@ type Config struct {
 	DockerBackend           string
 	ServiceSubnet           CIDR
 	PODSubnet               CIDR
-	AgentPeers              []string
+	InitialCluster          string
 	ServiceUser             *user.User
 	ServiceUID              string
 	ServiceGID              string

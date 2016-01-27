@@ -19,7 +19,7 @@ const (
 	EnvRole                    = "PLANET_ROLE"
 	EnvClusterID               = "KUBE_CLUSTER_ID"
 	EnvAgentName               = "PLANET_AGENT_NAME"
-	EnvAgentPeers              = "PLANET_AGENT_PEERS"
+	EnvInitialCluster          = "PLANET_INITIAL_CLUSTER"
 	EnvStateDir                = "PLANET_STATE_DIR"
 	DefaultLeaderTerm          = 10 * time.Second
 	DefaultEtcdEndpoints       = "http://127.0.0.1:2379"

@@ -137,9 +137,9 @@
             },
             {
                 "type": "String",
-                "name": "agentpeers",
-                "env": "PLANET_AGENT_PEERS",
-                "cli": {"name": "peers"}
+                "name": "initialcluster",
+                "env": "PLANET_INITIAL_CLUSTER",
+                "cli": {"name": "initial-cluster"}
             }
         ]
     }
