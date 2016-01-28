@@ -72,9 +72,9 @@ func run() error {
 		cstartTestSpec                = cstart.Flag("test-spec", "Regexp of the test specs to run (self-test mode only)").Default("Networking|Pods").String()
 		cstartTestKubeRepoPath        = cstart.Flag("repo-path", "Path to either a k8s repository or a directory with test configuration files (self-test mode only)").String()
 		cstartEtcdMemberName          = cstart.Flag("etcd-member-name", "Etcd member name").OverrideDefaultFromEnvar("PLANET_ETCD_MEMBER_NAME").String()
-		cstartEtcdInitialCluster      = cstart.Flag("etcd-initial-cluster", "Initial etcd cluster configuration (list of peers)").OverrideDefaultFromEnvar("PLANET_ETCD_INITIAL_CLUSTER").String()
+		cstartEtcdInitialCluster      = KeyValueList(cstart.Flag("etcd-initial-cluster", "Initial etcd cluster configuration (list of peers)").OverrideDefaultFromEnvar("PLANET_ETCD_INITIAL_CLUSTER"))
 		cstartEtcdInitialClusterState = cstart.Flag("etcd-initial-cluster-state", "Etcd initial cluster state: 'new' or 'existing'").OverrideDefaultFromEnvar("PLANET_ETCD_INITIAL_CLUSTER_STATE").String()
-		cstartInitialCluster          = cstart.Flag("initial-cluster", "Initial planet cluster configuration as a comma-separated list of peers").OverrideDefaultFromEnvar(EnvInitialCluster).String()
+		cstartInitialCluster          = KeyValueList(cstart.Flag("initial-cluster", "Initial planet cluster configuration as a comma-separated list of peers").OverrideDefaultFromEnvar(EnvInitialCluster))
 
 		// start the planet agent
 		cagent               = app.Command("agent", "Start Planet Agent")
@@ -88,7 +88,7 @@ func run() error {
 		cagentKubeAddr       = cagent.Flag("kube-addr", "Address of the kubernetes api server").Default("127.0.0.1:8080").String()
 		cagentName           = cagent.Flag("name", "Agent name.  Must be the same as the name of the local serf node").OverrideDefaultFromEnvar(EnvAgentName).String()
 		cagentSerfRPCAddr    = cagent.Flag("serf-rpc-addr", "RPC address of the local serf node").Default("127.0.0.1:7373").String()
-		cagentInitialCluster = InlineList(cagent.Flag("initial-cluster", "Initial planet cluster configuration as a comma-separated list of peers").OverrideDefaultFromEnvar(EnvInitialCluster))
+		cagentInitialCluster = KeyValueList(cagent.Flag("initial-cluster", "Initial planet cluster configuration as a comma-separated list of peers").OverrideDefaultFromEnvar(EnvInitialCluster))
 		cagentStateDir       = cagent.Flag("state-dir", "Directory where agent-specific state like health stats is stored").Default("/var/planet/agent").String()
 		cagentClusterDNS     = cagent.Flag("cluster-dns", "IP for a cluster DNS server.").OverrideDefaultFromEnvar(EnvClusterDNSIP).IP()
 
@@ -175,7 +175,7 @@ func run() error {
 			EtcdEndpoints: *cagentEtcdEndpoints,
 			APIServerDNS:  *cagentAPI,
 		}
-		err = runAgent(conf, monitoringConf, leaderConf, []string(*cagentInitialCluster))
+		err = runAgent(conf, monitoringConf, leaderConf, toAddrList(*cagentInitialCluster))
 
 	// "start" command
 	case cstart.FullCommand():
@@ -188,6 +188,10 @@ func run() error {
 			break
 		}
 		setupSignalHanlders(rootfs, *socketPath)
+		initialCluster := *cstartEtcdInitialCluster
+		if initialCluster == nil {
+			initialCluster = *cstartInitialCluster
+		}
 		config := &Config{
 			Rootfs:                  rootfs,
 			SocketPath:              *socketPath,
@@ -208,7 +212,7 @@ func run() error {
 			ServiceUID:              *cstartServiceUID,
 			ServiceGID:              *cstartServiceGID,
 			EtcdMemberName:          *cstartEtcdMemberName,
-			EtcdInitialCluster:      *cstartEtcdInitialCluster,
+			EtcdInitialCluster:      toEtcdPeerList(initialCluster),
 			EtcdInitialClusterState: *cstartEtcdInitialClusterState,
 		}
 		if *cstartSelfTest {
@@ -320,8 +324,8 @@ func List(s kingpin.Settings) *list {
 	return l
 }
 
-func InlineList(s kingpin.Settings) *stringList {
-	l := new(stringList)
+func KeyValueList(s kingpin.Settings) *keyValueList {
+	l := new(keyValueList)
 	s.SetValue(l)
 	return l
 }
@@ -383,4 +387,25 @@ func setupSignalHanlders(rootfs, socketPath string) {
 
 func emptyIP(addr *net.IP) bool {
 	return len(*addr) == 0
+}
+
+// toAddrList interprets each key/value as domain=addr and extracts
+// just the address part.
+func toAddrList(list keyValueList) (addrs []string) {
+	for _, pair := range list {
+		addr := pair[1]
+		addrs = append(addrs, addr)
+	}
+	return addrs
+}
+
+// toEctdPeerList interprets each key/value pair as domain=addr,
+// decorates each in etcd peer format.
+func toEtcdPeerList(list keyValueList) (peers string) {
+	var addrs []string
+	for _, pair := range list {
+		domain, addr := pair[0], pair[1]
+		addrs = append(addrs, fmt.Sprintf("%v=http://%v:2380", domain, addr))
+	}
+	return strings.Join(addrs, ",")
 }

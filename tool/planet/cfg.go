@@ -10,6 +10,7 @@ import (
 	"github.com/gravitational/planet/lib/box"
 
 	"github.com/gravitational/planet/Godeps/_workspace/src/github.com/gravitational/configure/cstrings"
+	"github.com/gravitational/planet/Godeps/_workspace/src/github.com/gravitational/trace"
 	"github.com/gravitational/planet/Godeps/_workspace/src/gopkg.in/alecthomas/kingpin.v2"
 )
 
@@ -31,7 +32,7 @@ type Config struct {
 	DockerBackend           string
 	ServiceSubnet           CIDR
 	PODSubnet               CIDR
-	InitialCluster          string
+	InitialCluster          keyValueList
 	ServiceUser             *user.User
 	ServiceUID              string
 	ServiceGID              string
@@ -125,11 +126,11 @@ type hostPort struct {
 	port int64
 }
 
-func (r *hostPort) Set(value string) error {
+func (r *hostPort) Set(input string) error {
 	var err error
 	var port string
 
-	r.host, port, err = net.SplitHostPort(value)
+	r.host, port, err = net.SplitHostPort(input)
 	if err != nil {
 		return err
 	}
@@ -142,15 +143,30 @@ func (r hostPort) String() string {
 	return net.JoinHostPort(r.host, fmt.Sprintf("%v", r.port))
 }
 
-// stringList is a command line flag that can extract
-// multiple text items separated by a comma from the input.
-type stringList []string
+// keyValueList is a command line flag that can extract
+// key=value pair lists from the input:
+//
+// key=value,key2=value2,...
+type keyValueList [][2]string
 
-func (r *stringList) Set(value string) error {
-	*r = strings.Split(value, ",")
+func (r *keyValueList) Set(input string) error {
+	keyValues := strings.Split(input, ",")
+	for _, keyValue := range keyValues {
+		values := strings.SplitN(keyValue, "=", 2)
+		if len(values) != 2 {
+			return trace.Errorf("invalid key/value pair `%v` in `%v`", keyValue, input)
+		}
+		key, value := values[0], values[1]
+		*r = append(*r, [2]string{key, value})
+	}
 	return nil
 }
 
-func (r stringList) String() string {
-	return strings.Join(r, ",")
+func (r keyValueList) String() string {
+	var keyValues []string
+	for _, pair := range r {
+		key, value := pair[0], pair[1]
+		keyValues = append(keyValues, fmt.Sprintf("%v=%v", key, value))
+	}
+	return strings.Join(keyValues, ",")
 }

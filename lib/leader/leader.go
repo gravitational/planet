@@ -132,7 +132,7 @@ func (l *Client) AddWatch(key string, retry time.Duration, valuesC chan string) 
 						log.Infof("client is closing, return")
 						return
 					}
-					log.Infof("unexpected cluster error: %v", err, cerr.Detail())
+					log.Infof("unexpected cluster error: %v (%v)", err, cerr.Detail())
 					continue
 				} else {
 					log.Infof("unexpected watch error: %v", err)
@@ -161,7 +161,7 @@ func (l *Client) AddVoter(key, value string, term time.Duration) error {
 	go func() {
 		err := l.elect(key, value, term)
 		if err != nil {
-			log.Infof("voter error: ", err)
+			log.Infof("voter error: %v", err)
 		}
 		ticker := time.NewTicker(term / 5)
 		defer ticker.Stop()
@@ -170,7 +170,7 @@ func (l *Client) AddVoter(key, value string, term time.Duration) error {
 			case <-ticker.C:
 				err := l.elect(key, value, term)
 				if err != nil {
-					log.Infof("voter error: ", err)
+					log.Infof("voter error: %v", err)
 				}
 			case <-l.closeC:
 				log.Infof("client is closing, return")
