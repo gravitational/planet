@@ -50,3 +50,14 @@ func (r *CommandFlagSuite) TestConvertsToEtcdPeer(c *check.C) {
 	expected := "172.168.178.1.example.com=http://172.168.178.1:2380,172.168.178.2.example.com=http://172.168.178.2:2380"
 	c.Assert(addrs, check.DeepEquals, expected)
 }
+
+func (r *CommandFlagSuite) TestDiscardsInvalidInput(c *check.C) {
+	input := `172.168.178.1.example.com,172.168.178.2.example.com=172.168.178.2`
+
+	// exercise
+	var result keyValueList
+	err := result.Set(input)
+
+	// validate
+	c.Assert(err, check.NotNil)
+}
