@@ -96,7 +96,7 @@
 			"Rev": "bbcb9da2d746f8bdbd6a936686a0a6067ada0ec5"
 		},
 		{
-			"ImportPath": "github.com/gravitational/configure/cstrings",
+			"ImportPath": "github.com/gravitational/configure",
 			"Rev": "39e84362ca5d6d3152f7e13b889cc36e1f1b80cb"
 		},
 		{
@@ -155,6 +155,10 @@
 			"Rev": "8c199fb6259ffc1af525cc3ad52ee60ba8359669"
 		},
 		{
+			"ImportPath": "github.com/mailgun/timetools",
+			"Rev": "fd192d755b00c968d312d23f521eb0cdc6f66bd0"
+		},
+		{
 			"ImportPath": "github.com/mattn/go-sqlite3",
 			"Comment": "v1.1.0",
 			"Rev": "3b3f1d01b2696af5501697c35629048c227586ab"
@@ -162,10 +166,6 @@
 		{
 			"ImportPath": "github.com/matttproud/golang_protobuf_extensions/pbutil",
 			"Rev": "d0c3fe89de86839aecf2e0579c40ba3bb336a453"
-		},
-		{
-			"ImportPath": "github.com/mailgun/timetools",
-			"Rev": "fd192d755b00c968d312d23f521eb0cdc6f66bd0"
 		},
 		{
 			"ImportPath": "github.com/opencontainers/runc/libcontainer",
@@ -209,6 +209,10 @@
 			"Rev": "2c00daeb6c3b45114c80ac44119e7b8801fdd852"
 		},
 		{
+			"ImportPath": "github.com/ugorji/go/codec",
+			"Rev": "646ae4a518c1c3be0739df898118d9bccf993858"
+		},
+		{
 			"ImportPath": "golang.org/x/crypto/curve25519",
 			"Rev": "575fdbe86e5dd89229707ebec0575ce7d088a4a6"
 		},
@@ -241,10 +245,6 @@
 			"Rev": "3e7b7e58f491074e9577050058fb95d2351a60b0"
 		},
 		{
-			"ImportPath": "github.com/ugorji/go/codec",
-			"Rev": "646ae4a518c1c3be0739df898118d9bccf993858"
-		},
-		{
 			"ImportPath": "gopkg.in/alecthomas/kingpin.v2",
 			"Comment": "v2.0.11",
 			"Rev": "3eb8ffbc54a2f5e806181081e23098b67fe06d06"
@@ -252,6 +252,11 @@
 		{
 			"ImportPath": "gopkg.in/check.v1",
 			"Rev": "64131543e7896d5bcc6bd5a76287eb75ea96c673"
+		},
+		{
+			"ImportPath": "gopkg.in/mgo.v2/bson",
+			"Comment": "r2015.12.06",
+			"Rev": "e30de8ac9ae3b30df7065f766c71f88bba7d4e49"
 		},
 		{
 			"ImportPath": "gopkg.in/yaml.v2",
@@ -330,11 +335,6 @@
 		{
 			"ImportPath": "speter.net/go/exp/math/dec/inf",
 			"Rev": "42ca6cd68aa922bc3f32f1e056e61b65945d9ad7"
-		},
-		{
-			"ImportPath": "gopkg.in/mgo.v2/bson",
-			"Comment": "r2015.12.06",
-			"Rev": "e30de8ac9ae3b30df7065f766c71f88bba7d4e49"
 		}
 	]
 }

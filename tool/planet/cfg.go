@@ -9,8 +9,8 @@ import (
 
 	"github.com/gravitational/planet/lib/box"
 
+	kv "github.com/gravitational/planet/Godeps/_workspace/src/github.com/gravitational/configure"
 	"github.com/gravitational/planet/Godeps/_workspace/src/github.com/gravitational/configure/cstrings"
-	"github.com/gravitational/planet/Godeps/_workspace/src/github.com/gravitational/trace"
 	"github.com/gravitational/planet/Godeps/_workspace/src/gopkg.in/alecthomas/kingpin.v2"
 )
 
@@ -32,7 +32,7 @@ type Config struct {
 	DockerBackend           string
 	ServiceSubnet           CIDR
 	PODSubnet               CIDR
-	InitialCluster          keyValueList
+	InitialCluster          kv.KeyVal
 	ServiceUser             *user.User
 	ServiceUID              string
 	ServiceGID              string
@@ -143,30 +143,11 @@ func (r hostPort) String() string {
 	return net.JoinHostPort(r.host, fmt.Sprintf("%v", r.port))
 }
 
-// keyValueList is a command line flag that can extract
-// key=value pair lists from the input:
-//
-// key=value,key2=value2,...
-type keyValueList [][2]string
-
-func (r *keyValueList) Set(input string) error {
-	keyValues := strings.Split(input, ",")
-	for _, keyValue := range keyValues {
-		values := strings.SplitN(keyValue, "=", 2)
-		if len(values) != 2 {
-			return trace.Errorf("invalid key/value pair `%v` in `%v`", keyValue, input)
-		}
-		key, value := values[0], values[1]
-		*r = append(*r, [2]string{key, value})
+// toKeyValueList combines key/value pairs from kv into a comma-separated list.
+func toKeyValueList(kv kv.KeyVal) string {
+	var result []string
+	for key, value := range kv {
+		result = append(result, fmt.Sprintf("%v:%v", key, value))
 	}
-	return nil
-}
-
-func (r keyValueList) String() string {
-	var keyValues []string
-	for _, pair := range r {
-		key, value := pair[0], pair[1]
-		keyValues = append(keyValues, fmt.Sprintf("%v=%v", key, value))
-	}
-	return strings.Join(keyValues, ",")
+	return strings.Join(result, ",")
 }

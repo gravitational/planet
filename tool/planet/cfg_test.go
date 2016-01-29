@@ -1,8 +1,11 @@
 package main
 
 import (
+	"fmt"
+	"sort"
 	"testing"
 
+	kv "github.com/gravitational/planet/Godeps/_workspace/src/github.com/gravitational/configure"
 	check "github.com/gravitational/planet/Godeps/_workspace/src/gopkg.in/check.v1"
 )
 
@@ -12,52 +15,54 @@ type CommandFlagSuite struct{}
 
 var _ = check.Suite(&CommandFlagSuite{})
 
-func (r *CommandFlagSuite) TestInputsKeyValues(c *check.C) {
-	input := `172.168.178.1.example.com=172.168.178.2,172.168.178.1.example.com=172.168.178.3`
-
-	// exercise
-	var result keyValueList
-	err := result.Set(input)
-
-	// validate
-	c.Assert(err, check.IsNil)
-	c.Assert(len(result), check.Equals, 2)
-}
-
 func (r *CommandFlagSuite) TestExtractsAddr(c *check.C) {
-	input := `172.168.178.1.example.com=172.168.178.1,172.168.178.2.example.com=172.168.178.2`
+	input := `172.168.178.1.example.com:172.168.178.1,172.168.178.2.example.com:172.168.178.2`
 
 	// exercise
-	var result keyValueList
+	var result kv.KeyVal
 	result.Set(input)
 	addrs := toAddrList(result)
+	sort.Strings(addrs)
 
 	// validate
 	expected := []string{"172.168.178.1", "172.168.178.2"}
-	c.Assert(len(addrs), check.Equals, 2)
+	sort.Strings(expected)
+	c.Assert(addrs, check.HasLen, len(expected))
 	c.Assert(addrs, check.DeepEquals, expected)
 }
 
 func (r *CommandFlagSuite) TestConvertsToEtcdPeer(c *check.C) {
-	input := `172.168.178.1.example.com=172.168.178.1,172.168.178.2.example.com=172.168.178.2`
+	input := `172.168.178.1.example.com:172.168.178.1,172.168.178.2.example.com:172.168.178.2`
 
 	// exercise
-	var result keyValueList
+	var result kv.KeyVal
 	result.Set(input)
 	addrs := toEtcdPeerList(result)
 
 	// validate
 	expected := "172.168.178.1.example.com=http://172.168.178.1:2380,172.168.178.2.example.com=http://172.168.178.2:2380"
-	c.Assert(addrs, check.DeepEquals, expected)
+	expectedReverse := "172.168.178.2.example.com=http://172.168.178.2:2380,172.168.178.1.example.com=http://172.168.178.1:2380"
+	c.Assert(addrs, OneOfEquals, []string{expected, expectedReverse})
 }
 
-func (r *CommandFlagSuite) TestDiscardsInvalidInput(c *check.C) {
-	input := `172.168.178.1.example.com,172.168.178.2.example.com=172.168.178.2`
+// oneOfChecker implements a gocheck.Checker that asserts that the actual value
+// matches one of from the expected list.
+type oneOfChecker struct {
+	*check.CheckerInfo
+}
 
-	// exercise
-	var result keyValueList
-	err := result.Set(input)
+var OneOfEquals check.Checker = &oneOfChecker{
+	&check.CheckerInfo{Name: "OneOfEquals", Params: []string{"obtained", "expectedAlternatives"}},
+}
 
-	// validate
-	c.Assert(err, check.NotNil)
+func (r *oneOfChecker) Check(params []interface{}, names []string) (result bool, error string) {
+	defer func() {
+		if v := recover(); v != nil {
+			result = false
+			error = fmt.Sprint(v)
+		}
+	}()
+	actual := params[0].(string)
+	expected := params[1].([]string)
+	return actual == expected[0] || actual == expected[1], ""
 }

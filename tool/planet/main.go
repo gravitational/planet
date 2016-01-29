@@ -11,6 +11,7 @@ import (
 	"syscall"
 	"time"
 
+	kv "github.com/gravitational/planet/Godeps/_workspace/src/github.com/gravitational/configure"
 	"github.com/gravitational/planet/Godeps/_workspace/src/github.com/gravitational/configure/cstrings"
 	"github.com/gravitational/planet/Godeps/_workspace/src/github.com/gravitational/log"
 	"github.com/gravitational/planet/Godeps/_workspace/src/github.com/gravitational/trace"
@@ -33,6 +34,8 @@ func main() {
 		log.Errorf("Failed to run: '%v'\n", err)
 		if errExit, ok := err.(*box.ExitError); ok {
 			exitCode = errExit.Code
+		} else {
+			exitCode = 1
 		}
 	}
 	os.Exit(exitCode)
@@ -324,8 +327,8 @@ func List(s kingpin.Settings) *list {
 	return l
 }
 
-func KeyValueList(s kingpin.Settings) *keyValueList {
-	l := new(keyValueList)
+func KeyValueList(s kingpin.Settings) *kv.KeyVal {
+	l := new(kv.KeyVal)
 	s.SetValue(l)
 	return l
 }
@@ -391,9 +394,8 @@ func emptyIP(addr *net.IP) bool {
 
 // toAddrList interprets each key/value as domain=addr and extracts
 // just the address part.
-func toAddrList(list keyValueList) (addrs []string) {
-	for _, pair := range list {
-		addr := pair[1]
+func toAddrList(store kv.KeyVal) (addrs []string) {
+	for _, addr := range store {
 		addrs = append(addrs, addr)
 	}
 	return addrs
@@ -401,10 +403,9 @@ func toAddrList(list keyValueList) (addrs []string) {
 
 // toEctdPeerList interprets each key/value pair as domain=addr,
 // decorates each in etcd peer format.
-func toEtcdPeerList(list keyValueList) (peers string) {
+func toEtcdPeerList(list kv.KeyVal) (peers string) {
 	var addrs []string
-	for _, pair := range list {
-		domain, addr := pair[0], pair[1]
+	for domain, addr := range list {
 		addrs = append(addrs, fmt.Sprintf("%v=http://%v:2380", domain, addr))
 	}
 	return strings.Join(addrs, ",")
