@@ -46,7 +46,7 @@ func (r *CommandFlagSuite) TestConvertsToEtcdPeer(c *check.C) {
 }
 
 // oneOfChecker implements a gocheck.Checker that asserts that the actual value
-// matches one of from the expected list.
+// matches one of the values from the expected list.
 type oneOfChecker struct {
 	*check.CheckerInfo
 }
