@@ -4,9 +4,9 @@ import (
 	"testing"
 	"time"
 
-	"github.com/gravitational/planet/Godeps/_workspace/src/github.com/jonboulle/clockwork"
-	_ "github.com/gravitational/planet/Godeps/_workspace/src/github.com/mattn/go-sqlite3"
 	pb "github.com/gravitational/planet/lib/agent/proto/agentpb"
+	"github.com/jonboulle/clockwork"
+	_ "github.com/mattn/go-sqlite3"
 )
 
 const node = "node-1"

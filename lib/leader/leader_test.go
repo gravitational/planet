@@ -7,11 +7,11 @@ import (
 	"testing"
 	"time"
 
-	"github.com/gravitational/planet/Godeps/_workspace/src/github.com/coreos/etcd/client"
-	"github.com/gravitational/planet/Godeps/_workspace/src/github.com/gravitational/log"
-	"github.com/gravitational/planet/Godeps/_workspace/src/github.com/pborman/uuid"
-	"github.com/gravitational/planet/Godeps/_workspace/src/golang.org/x/net/context"
-	. "github.com/gravitational/planet/Godeps/_workspace/src/gopkg.in/check.v1"
+	"github.com/coreos/etcd/client"
+	"github.com/gravitational/log"
+	"github.com/pborman/uuid"
+	"golang.org/x/net/context"
+	. "gopkg.in/check.v1"
 )
 
 func TestLeader(t *testing.T) { TestingT(t) }

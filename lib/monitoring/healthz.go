@@ -6,8 +6,8 @@ import (
 	"net/http"
 	"time"
 
-	"github.com/gravitational/planet/Godeps/_workspace/src/github.com/gravitational/trace"
 	pb "github.com/gravitational/planet/lib/agent/proto/agentpb"
+	"github.com/gravitational/trace"
 )
 
 const healthzCheckTimeout = 1 * time.Second

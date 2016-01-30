@@ -1,6 +1,6 @@
 {
 	"ImportPath": "github.com/gravitational/planet",
-	"GoVersion": "go1.4.2",
+	"GoVersion": "go1.5",
 	"Packages": [
 		"./..."
 	],
@@ -27,18 +27,28 @@
 			"Rev": "b965b613227fddccbfffe13eae360ed3fa822f8d"
 		},
 		{
+			"ImportPath": "github.com/coreos/etcd/Godeps/_workspace/src/github.com/ugorji/go/codec",
+			"Comment": "v2.3.0-alpha.0-492-g98dfdeb",
+			"Rev": "98dfdebf13de7b476e7456b4c3c4b4a49fbda2c3"
+		},
+		{
+			"ImportPath": "github.com/coreos/etcd/Godeps/_workspace/src/golang.org/x/net/context",
+			"Comment": "v2.3.0-alpha.0-492-g98dfdeb",
+			"Rev": "98dfdebf13de7b476e7456b4c3c4b4a49fbda2c3"
+		},
+		{
 			"ImportPath": "github.com/coreos/etcd/client",
-			"Comment": "v2.3.0-alpha.0-493-g98dfdeb",
+			"Comment": "v2.3.0-alpha.0-492-g98dfdeb",
 			"Rev": "98dfdebf13de7b476e7456b4c3c4b4a49fbda2c3"
 		},
 		{
 			"ImportPath": "github.com/coreos/etcd/pkg/pathutil",
-			"Comment": "v2.3.0-alpha.0-493-g98dfdeb",
+			"Comment": "v2.3.0-alpha.0-492-g98dfdeb",
 			"Rev": "98dfdebf13de7b476e7456b4c3c4b4a49fbda2c3"
 		},
 		{
 			"ImportPath": "github.com/coreos/etcd/pkg/types",
-			"Comment": "v2.3.0-alpha.0-493-g98dfdeb",
+			"Comment": "v2.3.0-alpha.0-492-g98dfdeb",
 			"Rev": "98dfdebf13de7b476e7456b4c3c4b4a49fbda2c3"
 		},
 		{
@@ -152,6 +162,7 @@
 		},
 		{
 			"ImportPath": "github.com/julienschmidt/httprouter",
+			"Comment": "v1.1",
 			"Rev": "8c199fb6259ffc1af525cc3ad52ee60ba8359669"
 		},
 		{
@@ -207,10 +218,6 @@
 		{
 			"ImportPath": "github.com/syndtr/gocapability/capability",
 			"Rev": "2c00daeb6c3b45114c80ac44119e7b8801fdd852"
-		},
-		{
-			"ImportPath": "github.com/ugorji/go/codec",
-			"Rev": "646ae4a518c1c3be0739df898118d9bccf993858"
 		},
 		{
 			"ImportPath": "golang.org/x/crypto/curve25519",

@@ -6,7 +6,7 @@ import (
 	"path/filepath"
 	"strings"
 
-	"github.com/gravitational/planet/Godeps/_workspace/src/github.com/gravitational/trace"
+	"github.com/gravitational/trace"
 )
 
 var (

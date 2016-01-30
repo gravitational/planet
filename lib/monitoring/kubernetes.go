@@ -6,9 +6,9 @@ import (
 	"io/ioutil"
 	"net/url"
 
-	"github.com/gravitational/planet/Godeps/_workspace/src/github.com/gravitational/trace"
-	kube "github.com/gravitational/planet/Godeps/_workspace/src/k8s.io/kubernetes/pkg/client/unversioned"
 	pb "github.com/gravitational/planet/lib/agent/proto/agentpb"
+	"github.com/gravitational/trace"
+	kube "k8s.io/kubernetes/pkg/client/unversioned"
 )
 
 const systemNamespace = "kube-system"

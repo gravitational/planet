@@ -3,11 +3,11 @@ package monitoring
 import (
 	"fmt"
 
-	"github.com/gravitational/planet/Godeps/_workspace/src/github.com/gravitational/trace"
-	"github.com/gravitational/planet/Godeps/_workspace/src/k8s.io/kubernetes/pkg/api"
-	"github.com/gravitational/planet/Godeps/_workspace/src/k8s.io/kubernetes/pkg/fields"
-	"github.com/gravitational/planet/Godeps/_workspace/src/k8s.io/kubernetes/pkg/labels"
 	pb "github.com/gravitational/planet/lib/agent/proto/agentpb"
+	"github.com/gravitational/trace"
+	"k8s.io/kubernetes/pkg/api"
+	"k8s.io/kubernetes/pkg/fields"
+	"k8s.io/kubernetes/pkg/labels"
 )
 
 // componentStatusChecker tests and reports health failures in kubernetes

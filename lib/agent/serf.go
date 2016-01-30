@@ -1,7 +1,7 @@
 package agent
 
 import (
-	serf "github.com/gravitational/planet/Godeps/_workspace/src/github.com/hashicorp/serf/client"
+	serf "github.com/hashicorp/serf/client"
 )
 
 // serfClient is the minimal interface to the serf cluster.

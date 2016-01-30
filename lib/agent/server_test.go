@@ -6,11 +6,11 @@ import (
 	"net"
 	"testing"
 
-	"github.com/gravitational/planet/Godeps/_workspace/src/github.com/gravitational/log"
-	serf "github.com/gravitational/planet/Godeps/_workspace/src/github.com/hashicorp/serf/client"
-	"github.com/gravitational/planet/Godeps/_workspace/src/golang.org/x/net/context"
+	"github.com/gravitational/log"
 	"github.com/gravitational/planet/lib/agent/health"
 	pb "github.com/gravitational/planet/lib/agent/proto/agentpb"
+	serf "github.com/hashicorp/serf/client"
+	"golang.org/x/net/context"
 )
 
 func init() {

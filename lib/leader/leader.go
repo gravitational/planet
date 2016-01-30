@@ -5,11 +5,11 @@ import (
 	"sync/atomic"
 	"time"
 
-	"github.com/gravitational/planet/Godeps/_workspace/src/github.com/coreos/etcd/client"
-	"github.com/gravitational/planet/Godeps/_workspace/src/github.com/gravitational/log"
-	"github.com/gravitational/planet/Godeps/_workspace/src/github.com/gravitational/trace"
-	"github.com/gravitational/planet/Godeps/_workspace/src/github.com/mailgun/timetools"
-	"github.com/gravitational/planet/Godeps/_workspace/src/golang.org/x/net/context"
+	"github.com/coreos/etcd/client"
+	"github.com/gravitational/log"
+	"github.com/gravitational/trace"
+	"github.com/mailgun/timetools"
+	"golang.org/x/net/context"
 )
 
 const defaultResponseTimeout = 1 * time.Second

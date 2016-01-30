@@ -9,9 +9,9 @@ import (
 
 	"github.com/gravitational/planet/lib/box"
 
-	kv "github.com/gravitational/planet/Godeps/_workspace/src/github.com/gravitational/configure"
-	"github.com/gravitational/planet/Godeps/_workspace/src/github.com/gravitational/configure/cstrings"
-	"github.com/gravitational/planet/Godeps/_workspace/src/gopkg.in/alecthomas/kingpin.v2"
+	kv "github.com/gravitational/configure"
+	"github.com/gravitational/configure/cstrings"
+	"gopkg.in/alecthomas/kingpin.v2"
 )
 
 type Config struct {

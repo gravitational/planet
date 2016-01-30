@@ -4,10 +4,10 @@ import (
 	"bytes"
 	"os"
 
-	"github.com/gravitational/planet/Godeps/_workspace/src/github.com/docker/docker/pkg/term"
-	"github.com/gravitational/planet/Godeps/_workspace/src/github.com/gravitational/log"
-	"github.com/gravitational/planet/Godeps/_workspace/src/github.com/gravitational/trace"
+	"github.com/docker/docker/pkg/term"
+	"github.com/gravitational/log"
 	"github.com/gravitational/planet/lib/box"
+	"github.com/gravitational/trace"
 )
 
 func enterConsole(rootfs, socketPath, cmd, user string, tty bool, args []string) (err error) {

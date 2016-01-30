@@ -4,9 +4,9 @@ import (
 	"bytes"
 	"os/exec"
 
-	"github.com/gravitational/planet/Godeps/_workspace/src/github.com/coreos/go-systemd/dbus"
-	"github.com/gravitational/planet/Godeps/_workspace/src/github.com/gravitational/trace"
+	"github.com/coreos/go-systemd/dbus"
 	pb "github.com/gravitational/planet/lib/agent/proto/agentpb"
+	"github.com/gravitational/trace"
 )
 
 type loadState string

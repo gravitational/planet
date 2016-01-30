@@ -10,13 +10,13 @@ import (
 	"syscall"
 	"time"
 
-	"github.com/gravitational/planet/Godeps/_workspace/src/github.com/gravitational/log"
-	"github.com/gravitational/planet/Godeps/_workspace/src/github.com/gravitational/trace"
+	"github.com/gravitational/log"
 	"github.com/gravitational/planet/lib/agent"
 	pb "github.com/gravitational/planet/lib/agent/proto/agentpb"
 	"github.com/gravitational/planet/lib/leader"
 	"github.com/gravitational/planet/lib/monitoring"
 	"github.com/gravitational/planet/lib/utils"
+	"github.com/gravitational/trace"
 )
 
 // LeaderConfig represents configuration for the master election task

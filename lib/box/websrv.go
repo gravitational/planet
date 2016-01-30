@@ -7,14 +7,14 @@ import (
 	"os/exec"
 	"syscall"
 
-	"github.com/gravitational/planet/Godeps/_workspace/src/github.com/gravitational/log"
-	"github.com/gravitational/planet/Godeps/_workspace/src/github.com/gravitational/roundtrip"
-	"github.com/gravitational/planet/Godeps/_workspace/src/github.com/gravitational/trace"
+	"github.com/gravitational/log"
+	"github.com/gravitational/roundtrip"
+	"github.com/gravitational/trace"
 
-	"github.com/gravitational/planet/Godeps/_workspace/src/github.com/julienschmidt/httprouter"
-	"github.com/gravitational/planet/Godeps/_workspace/src/github.com/opencontainers/runc/libcontainer"
+	"github.com/julienschmidt/httprouter"
+	"github.com/opencontainers/runc/libcontainer"
 
-	"github.com/gravitational/planet/Godeps/_workspace/src/golang.org/x/net/websocket"
+	"golang.org/x/net/websocket"
 )
 
 // commandOutput is an io.Writer on server-side of the websocket-based remote

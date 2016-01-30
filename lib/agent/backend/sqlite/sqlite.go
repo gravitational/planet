@@ -5,11 +5,11 @@ import (
 	"database/sql/driver"
 	"time"
 
-	"github.com/gravitational/planet/Godeps/_workspace/src/github.com/gravitational/log"
-	"github.com/gravitational/planet/Godeps/_workspace/src/github.com/gravitational/trace"
-	"github.com/gravitational/planet/Godeps/_workspace/src/github.com/jonboulle/clockwork"
-	_ "github.com/gravitational/planet/Godeps/_workspace/src/github.com/mattn/go-sqlite3"
+	"github.com/gravitational/log"
 	pb "github.com/gravitational/planet/lib/agent/proto/agentpb"
+	"github.com/gravitational/trace"
+	"github.com/jonboulle/clockwork"
+	_ "github.com/mattn/go-sqlite3"
 )
 
 type backend struct {

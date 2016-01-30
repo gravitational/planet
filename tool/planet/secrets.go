@@ -3,7 +3,7 @@ package main
 import (
 	"os"
 
-	"github.com/gravitational/planet/Godeps/_workspace/src/github.com/gravitational/trace"
+	"github.com/gravitational/trace"
 )
 
 // initSecrets takes directory and initializes k8s secrets like

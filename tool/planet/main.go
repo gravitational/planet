@@ -11,19 +11,19 @@ import (
 	"syscall"
 	"time"
 
-	kv "github.com/gravitational/planet/Godeps/_workspace/src/github.com/gravitational/configure"
-	"github.com/gravitational/planet/Godeps/_workspace/src/github.com/gravitational/configure/cstrings"
-	"github.com/gravitational/planet/Godeps/_workspace/src/github.com/gravitational/log"
-	"github.com/gravitational/planet/Godeps/_workspace/src/github.com/gravitational/trace"
-	"github.com/gravitational/planet/Godeps/_workspace/src/github.com/gravitational/version"
-	"github.com/gravitational/planet/Godeps/_workspace/src/github.com/opencontainers/runc/libcontainer"
-	"github.com/gravitational/planet/Godeps/_workspace/src/gopkg.in/alecthomas/kingpin.v2"
+	kv "github.com/gravitational/configure"
+	"github.com/gravitational/configure/cstrings"
+	"github.com/gravitational/log"
 	"github.com/gravitational/planet/lib/agent"
 	"github.com/gravitational/planet/lib/agent/backend/sqlite"
 	"github.com/gravitational/planet/lib/agent/cache"
 	"github.com/gravitational/planet/lib/box"
 	"github.com/gravitational/planet/lib/monitoring"
 	"github.com/gravitational/planet/test/e2e"
+	"github.com/gravitational/trace"
+	"github.com/gravitational/version"
+	"github.com/opencontainers/runc/libcontainer"
+	"gopkg.in/alecthomas/kingpin.v2"
 )
 
 func main() {

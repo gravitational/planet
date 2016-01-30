@@ -11,12 +11,12 @@ import (
 	"strings"
 	"time"
 
-	"github.com/gravitational/planet/Godeps/_workspace/src/github.com/gravitational/log"
-	"github.com/gravitational/planet/Godeps/_workspace/src/github.com/gravitational/trace"
-	"github.com/gravitational/planet/Godeps/_workspace/src/github.com/opencontainers/runc/libcontainer"
+	"github.com/gravitational/log"
 	"github.com/gravitational/planet/lib/box"
 	"github.com/gravitational/planet/lib/check"
 	"github.com/gravitational/planet/lib/user"
+	"github.com/gravitational/trace"
+	"github.com/opencontainers/runc/libcontainer"
 )
 
 const MinKernelVersion = 310

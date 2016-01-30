@@ -6,7 +6,7 @@ import (
 	"io"
 	"strings"
 
-	"github.com/gravitational/planet/Godeps/_workspace/src/github.com/opencontainers/runc/libcontainer/user"
+	"github.com/opencontainers/runc/libcontainer/user"
 )
 
 // This file implements edit functions for passwd/group files.

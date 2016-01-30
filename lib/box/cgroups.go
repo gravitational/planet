@@ -9,9 +9,9 @@ import (
 	"strings"
 	"syscall"
 
-	"github.com/gravitational/planet/Godeps/_workspace/src/github.com/gravitational/log"
-	"github.com/gravitational/planet/Godeps/_workspace/src/github.com/gravitational/trace"
+	"github.com/gravitational/log"
 	"github.com/gravitational/planet/lib/check"
+	"github.com/gravitational/trace"
 )
 
 // planet won't start without these groups enabled in the kernel

@@ -3,15 +3,15 @@ package main
 import (
 	"time"
 
-	"github.com/gravitational/planet/Godeps/_workspace/src/github.com/gravitational/log"
-	"github.com/gravitational/planet/Godeps/_workspace/src/github.com/gravitational/trace"
-	"github.com/gravitational/planet/Godeps/_workspace/src/golang.org/x/net/context"
-	"github.com/gravitational/planet/Godeps/_workspace/src/k8s.io/kubernetes/pkg/api"
-	kube "github.com/gravitational/planet/Godeps/_workspace/src/k8s.io/kubernetes/pkg/client/unversioned"
-	"github.com/gravitational/planet/Godeps/_workspace/src/k8s.io/kubernetes/pkg/util/wait"
+	"github.com/gravitational/log"
 	"github.com/gravitational/planet/lib/agent"
 	pb "github.com/gravitational/planet/lib/agent/proto/agentpb"
 	"github.com/gravitational/planet/lib/monitoring"
+	"github.com/gravitational/trace"
+	"golang.org/x/net/context"
+	"k8s.io/kubernetes/pkg/api"
+	kube "k8s.io/kubernetes/pkg/client/unversioned"
+	"k8s.io/kubernetes/pkg/util/wait"
 )
 
 const serviceNamespace = "kube-system"

@@ -12,7 +12,7 @@ import (
 	"strings"
 	"syscall"
 
-	"github.com/gravitational/planet/Godeps/_workspace/src/github.com/gravitational/trace"
+	"github.com/gravitational/trace"
 )
 
 // Return a nil error if the kernel supports a given filesystem (like "aufs" or

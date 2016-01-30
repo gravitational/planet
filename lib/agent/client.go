@@ -1,10 +1,10 @@
 package agent
 
 import (
-	"github.com/gravitational/planet/Godeps/_workspace/src/github.com/gravitational/trace"
-	"github.com/gravitational/planet/Godeps/_workspace/src/golang.org/x/net/context"
-	"github.com/gravitational/planet/Godeps/_workspace/src/google.golang.org/grpc"
 	pb "github.com/gravitational/planet/lib/agent/proto/agentpb"
+	"github.com/gravitational/trace"
+	"golang.org/x/net/context"
+	"google.golang.org/grpc"
 )
 
 // Client is an interface to communicate with the serf cluster via agent RPC.

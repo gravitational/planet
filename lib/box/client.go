@@ -16,8 +16,8 @@ import (
 	"os"
 	"strconv"
 
-	"github.com/gravitational/planet/Godeps/_workspace/src/github.com/gravitational/trace"
-	"github.com/gravitational/planet/Godeps/_workspace/src/golang.org/x/net/websocket"
+	"github.com/gravitational/trace"
+	"golang.org/x/net/websocket"
 )
 
 // ExitError is an error that describes the event of a process exiting with a non-zero value.

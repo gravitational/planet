@@ -5,12 +5,12 @@ import (
 	"fmt"
 	"net"
 
-	"github.com/gravitational/planet/Godeps/_workspace/src/github.com/gravitational/log"
-	"github.com/gravitational/planet/Godeps/_workspace/src/github.com/gravitational/trace"
-	serf "github.com/gravitational/planet/Godeps/_workspace/src/github.com/hashicorp/serf/client"
-	"github.com/gravitational/planet/Godeps/_workspace/src/golang.org/x/net/context"
-	"github.com/gravitational/planet/Godeps/_workspace/src/google.golang.org/grpc"
+	"github.com/gravitational/log"
 	pb "github.com/gravitational/planet/lib/agent/proto/agentpb"
+	"github.com/gravitational/trace"
+	serf "github.com/hashicorp/serf/client"
+	"golang.org/x/net/context"
+	"google.golang.org/grpc"
 )
 
 // Default RPC port.

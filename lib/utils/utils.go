@@ -9,7 +9,7 @@ import (
 	"os"
 	"strings"
 
-	"github.com/gravitational/planet/Godeps/_workspace/src/github.com/gravitational/trace"
+	"github.com/gravitational/trace"
 )
 
 // UpsertHostsLine updates the existing hosts entry or inserts a new

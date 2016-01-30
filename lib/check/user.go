@@ -6,7 +6,7 @@ import (
 	"os/exec"
 	"os/user"
 
-	"github.com/gravitational/planet/Godeps/_workspace/src/github.com/gravitational/trace"
+	"github.com/gravitational/trace"
 )
 
 const (
