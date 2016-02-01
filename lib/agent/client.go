@@ -10,9 +10,9 @@ import (
 // Client is an interface to communicate with the serf cluster via agent RPC.
 type Client interface {
 	// Status reports the health status of a serf cluster.
-	Status() (*pb.SystemStatus, error)
+	Status(context.Context) (*pb.SystemStatus, error)
 	// LocalStatus reports the health status of the local serf cluster node.
-	LocalStatus() (*pb.NodeStatus, error)
+	LocalStatus(context.Context) (*pb.NodeStatus, error)
 }
 
 type client struct {
@@ -31,8 +31,8 @@ func NewClient(addr string) (*client, error) {
 }
 
 // Status reports the health status of the serf cluster.
-func (r *client) Status() (*pb.SystemStatus, error) {
-	resp, err := r.AgentClient.Status(context.TODO(), &pb.StatusRequest{})
+func (r *client) Status(ctx context.Context) (*pb.SystemStatus, error) {
+	resp, err := r.AgentClient.Status(ctx, &pb.StatusRequest{})
 	if err != nil {
 		return nil, trace.Wrap(err)
 	}
@@ -40,8 +40,8 @@ func (r *client) Status() (*pb.SystemStatus, error) {
 }
 
 // LocalStatus reports the health status of the local serf node.
-func (r *client) LocalStatus() (*pb.NodeStatus, error) {
-	resp, err := r.AgentClient.LocalStatus(context.TODO(), &pb.LocalStatusRequest{})
+func (r *client) LocalStatus(ctx context.Context) (*pb.NodeStatus, error) {
+	resp, err := r.AgentClient.LocalStatus(ctx, &pb.LocalStatusRequest{})
 	if err != nil {
 		return nil, trace.Wrap(err)
 	}

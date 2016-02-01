@@ -172,6 +172,7 @@ func (r *agent) LocalStatus(ctx context.Context) (*pb.NodeStatus, error) {
 
 type dialRPC func(*serf.Member) (*client, error)
 
+// TODO: pass context.Context here so that tests can also be cancelled
 func (r *agent) getStatus(local *serf.Member) (status *pb.NodeStatus, err error) {
 	status = r.runChecks()
 	if local == nil {
@@ -201,6 +202,7 @@ func (r *agent) getStatus(local *serf.Member) (status *pb.NodeStatus, err error)
 
 func (r *agent) runChecks() *pb.NodeStatus {
 	var reporter health.Probes
+	// TODO: run tests in parallel
 	for _, c := range r.Checkers {
 		log.Infof("running checker %s", c.Name())
 		c.Check(&reporter)

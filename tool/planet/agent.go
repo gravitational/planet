@@ -17,6 +17,7 @@ import (
 	"github.com/gravitational/planet/lib/monitoring"
 	"github.com/gravitational/planet/lib/utils"
 	"github.com/gravitational/trace"
+	"golang.org/x/net/context"
 )
 
 // LeaderConfig represents configuration for the master election task
@@ -150,6 +151,9 @@ func runAgent(conf *agent.Config, monitoringConf *monitoring.Config, leaderConf 
 	return nil
 }
 
+// statusTimeout is the maximum time status query is blocked.
+const statusTimeout = 5 * time.Second
+
 // status obtains either the status of the planet cluster or that of
 // the local node from the local planet agent.
 func status(RPCPort int, local, prettyPrint bool) (ok bool, err error) {
@@ -160,15 +164,17 @@ func status(RPCPort int, local, prettyPrint bool) (ok bool, err error) {
 	}
 	var statusJson []byte
 	var statusBlob interface{}
+	ctx, cancel := context.WithTimeout(context.Background(), statusTimeout)
+	defer cancel()
 	if local {
-		status, err := client.LocalStatus()
+		status, err := client.LocalStatus(ctx)
 		if err != nil {
 			return false, trace.Wrap(err)
 		}
 		ok = status.Status == pb.NodeStatus_Running
 		statusBlob = status
 	} else {
-		status, err := client.Status()
+		status, err := client.Status(ctx)
 		if err != nil {
 			return false, trace.Wrap(err)
 		}
