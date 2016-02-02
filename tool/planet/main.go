@@ -94,6 +94,7 @@ func run() error {
 		cagentInitialCluster = KeyValueList(cagent.Flag("initial-cluster", "Initial planet cluster configuration as a comma-separated list of peers").OverrideDefaultFromEnvar(EnvInitialCluster))
 		cagentStateDir       = cagent.Flag("state-dir", "Directory where agent-specific state like health stats is stored").Default("/var/planet/agent").String()
 		cagentClusterDNS     = cagent.Flag("cluster-dns", "IP for a cluster DNS server.").OverrideDefaultFromEnvar(EnvClusterDNSIP).IP()
+		cagentRegistryAddr   = HostPort(cagent.Flag("docker-registry-addr", "Address of the planet private docker registry"))
 
 		// stop a running container
 		cstop = app.Command("stop", "Stop planet container")
@@ -166,9 +167,10 @@ func run() error {
 			Cache:       cache,
 		}
 		monitoringConf := &monitoring.Config{
-			Role:       agent.Role(*cagentRole),
-			KubeAddr:   *cagentKubeAddr,
-			ClusterDNS: cagentClusterDNS.String(),
+			Role:         agent.Role(*cagentRole),
+			KubeAddr:     *cagentKubeAddr,
+			ClusterDNS:   cagentClusterDNS.String(),
+			RegistryAddr: cagentRegistryAddr.String(),
 		}
 		leaderConf := &LeaderConfig{
 			PublicIP:      cagentPublicIP.String(),
