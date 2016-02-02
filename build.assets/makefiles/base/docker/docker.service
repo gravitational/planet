@@ -1,8 +1,11 @@
 [Unit]
 Description=Docker
-After=flanneld.service
+Documentation=https://docs.docker.com
+After=flanneld.service docker.socket
+Requires=docker.socket
 
 [Service]
+Type=notify
 EnvironmentFile=/etc/container-environment
 EnvironmentFile=/run/flannel/subnet.env
 Environment="DOCKER_NOFILE=1000000"
@@ -10,6 +13,9 @@ Environment="DOCKER_PIDFILE=/var/run/docker.pid"
 ExecStartPre=-/sbin/ip link set dev docker0 down
 ExecStartPre=-/sbin/brctl delbr docker0
 ExecStartPre=-/bin/rm -f /var/run/docker.pid
-ExecStart=/usr/bin/docker daemon --mtu=${FLANNEL_MTU} --iptables=false --ip-masq=false --bip=${FLANNEL_SUBNET} --graph=/ext/docker $DOCKER_OPTS
+ExecStart=/usr/bin/docker daemon -H fd:// -D --mtu=${FLANNEL_MTU} --iptables=false --ip-masq=false --bip=${FLANNEL_SUBNET} --graph=/ext/docker $DOCKER_OPTS
 Restart=on-failure
 RestartSec=5
+
+[Install]
+Also=docker.socket

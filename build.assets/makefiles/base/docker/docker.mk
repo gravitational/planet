@@ -14,6 +14,8 @@ $(ROOTFS)/usr/bin/docker: $(BINARIES)
 	@echo "\n---> Installing Docker to be used with Kubernetes:\n"
 	cp -af ./docker.service $(ROOTFS)/lib/systemd/system
 	ln -sf /lib/systemd/system/docker.service  $(ROOTFS)/lib/systemd/system/multi-user.target.wants/
+	cp -af ./docker.socket $(ROOTFS)/lib/systemd/system
+	ln -sf /lib/systemd/system/docker.socket $(ROOTFS)/lib/systemd/system/sockets.target.wants/
 
 # install the unmount cleanup script
 	mkdir -p $(ROOTFS)/usr/bin/scripts
