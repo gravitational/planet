@@ -7,7 +7,7 @@ import (
 	"os/exec"
 	"syscall"
 
-	"github.com/gravitational/log"
+	log "github.com/Sirupsen/logrus"
 	"github.com/gravitational/roundtrip"
 	"github.com/gravitational/trace"
 
