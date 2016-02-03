@@ -72,10 +72,6 @@ func (r *intraPodChecker) checkerFunc(client *kube.Client) error {
 		return trace.Wrap(err, "failed to list nodes")
 	}
 
-	// filterNodes(nodes, func(node api.Node) bool {
-	// 	return isNodeReadySetAsExpected(&node, true)
-	// })
-
 	if len(nodes.Items) < 2 {
 		return trace.Errorf("expected at least 2 ready nodes - got %d (%v)", len(nodes.Items), nodes.Items)
 	}
@@ -130,10 +126,7 @@ func (r *intraPodChecker) checkerFunc(client *kube.Client) error {
 	timeout := time.Now().Add(2 * time.Minute)
 	for i := 0; !passed && timeout.After(time.Now()); i++ {
 		time.Sleep(2 * time.Second)
-		// log.Infof("making a proxy status call")
-		// start := time.Now()
 		body, err = getStatus()
-		// log.Infof("proxy status call returned in %v", time.Since(start))
 		if err != nil {
 			log.Infof("attempt %v: service/pod still starting: %v)", i, err)
 			continue
@@ -162,8 +155,7 @@ func (r *intraPodChecker) checkerFunc(client *kube.Client) error {
 // FIXME: original timeout is 5m due to serialized docker pulls
 // Since we're pre-packaging test containers, this should not be an issue
 // as we're always pulling from the local private registry.
-// Edit: 5s is still too small
-const podStartTimeout = 1 * time.Minute
+const podStartTimeout = 15 * time.Second
 
 // How often to poll pods and nodes.
 const pollInterval = 2 * time.Second
