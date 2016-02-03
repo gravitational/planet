@@ -10,7 +10,7 @@ import (
 	"syscall"
 	"time"
 
-	"github.com/gravitational/log"
+	log "github.com/Sirupsen/logrus"
 	"github.com/gravitational/planet/lib/agent"
 	pb "github.com/gravitational/planet/lib/agent/proto/agentpb"
 	"github.com/gravitational/planet/lib/leader"

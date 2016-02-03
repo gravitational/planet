@@ -9,7 +9,7 @@ import (
 	"strings"
 	"syscall"
 
-	"github.com/gravitational/log"
+	log "github.com/Sirupsen/logrus"
 	"github.com/gravitational/planet/lib/check"
 	"github.com/gravitational/trace"
 )

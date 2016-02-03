@@ -5,8 +5,8 @@ import (
 	"io"
 	"os"
 
+	log "github.com/Sirupsen/logrus"
 	"github.com/docker/docker/pkg/term"
-	"github.com/gravitational/log"
 	"github.com/gravitational/trace"
 
 	"github.com/opencontainers/runc/libcontainer"

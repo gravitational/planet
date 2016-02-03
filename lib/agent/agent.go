@@ -5,7 +5,7 @@ import (
 	"net"
 	"time"
 
-	"github.com/gravitational/log"
+	log "github.com/Sirupsen/logrus"
 	"github.com/gravitational/planet/lib/agent/cache"
 	"github.com/gravitational/planet/lib/agent/health"
 	pb "github.com/gravitational/planet/lib/agent/proto/agentpb"

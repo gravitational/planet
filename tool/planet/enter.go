@@ -4,8 +4,8 @@ import (
 	"bytes"
 	"os"
 
+	log "github.com/Sirupsen/logrus"
 	"github.com/docker/docker/pkg/term"
-	"github.com/gravitational/log"
 	"github.com/gravitational/planet/lib/box"
 	"github.com/gravitational/trace"
 )

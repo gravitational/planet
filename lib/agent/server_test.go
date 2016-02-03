@@ -6,7 +6,7 @@ import (
 	"net"
 	"testing"
 
-	"github.com/gravitational/log"
+	log "github.com/Sirupsen/logrus"
 	"github.com/gravitational/planet/lib/agent/health"
 	pb "github.com/gravitational/planet/lib/agent/proto/agentpb"
 	serf "github.com/hashicorp/serf/client"
