@@ -27,44 +27,13 @@ type server struct {
 
 // Status reports the health status of a serf cluster by iterating over the list
 // of currently active cluster members and collecting their respective health statuses.
-func (r *server) Status(ctx context.Context, req *pb.StatusRequest) (*pb.StatusResponse, error) {
-	resp := &pb.StatusResponse{Status: &pb.SystemStatus{Status: pb.SystemStatus_Unknown}}
+func (r *server) Status(ctx context.Context, req *pb.StatusRequest) (resp *pb.StatusResponse, err error) {
+	resp = &pb.StatusResponse{Status: &pb.SystemStatus{Status: pb.SystemStatus_Unknown}}
 
-	members, err := r.agent.serfClient.Members()
+	resp.Status, err = r.agent.recentStatus()
 	if err != nil {
-		return nil, trace.Wrap(err, "failed to query serf members")
+		return nil, trace.Wrap(err)
 	}
-
-	statuses := make(chan *statusResponse, len(members))
-	wg := &sync.WaitGroup{}
-	wg.Add(len(members))
-	for _, member := range members {
-		// var status *pb.NodeStatus
-		if r.agent.name == member.Name {
-			// status, err = r.agent.getStatus(&member)
-			go r.collectLocalStatus(&member, statuses, wg)
-		} else {
-			// status, err = r.getStatusFrom(ctx, &member)
-			go r.collectStatusFrom(ctx, &member, statuses, wg)
-		}
-		// if err != nil {
-		// 	log.Errorf("failed to query status of serf node %s (%v)", member.Name, member.Addr)
-		// } else {
-		// 	// Update agent cache
-		// 	r.agent.cache.UpdateNode(status)
-		// 	resp.Status.Nodes = append(resp.Status.Nodes, status)
-		// }
-	}
-	wg.Wait()
-	for i := 0; i < len(members); i++ {
-		status := <-statuses
-		if status.err != nil {
-			log.Errorf("failed to query status of serf node %s (%v): %v", status.member.Name, status.member.Addr, status.err)
-		} else {
-			resp.Status.Nodes = append(resp.Status.Nodes, status.NodeStatus)
-		}
-	}
-	close(statuses)
 	setSystemStatus(resp)
 
 	return resp, nil
@@ -74,62 +43,12 @@ func (r *server) Status(ctx context.Context, req *pb.StatusRequest) (*pb.StatusR
 func (r *server) LocalStatus(ctx context.Context, req *pb.LocalStatusRequest) (resp *pb.LocalStatusResponse, err error) {
 	resp = &pb.LocalStatusResponse{}
 
-	resp.Status, err = r.agent.getStatus(nil)
+	resp.Status, err = r.agent.recentLocalStatus()
 	if err != nil {
 		return nil, trace.Wrap(err)
 	}
-	// Update agent cache
-	r.agent.cache.UpdateNode(resp.Status)
 
 	return resp, nil
-}
-
-// getStatusFrom obtains the node status from the node identified by member.
-func (r *server) getStatusFrom(ctx context.Context, member *serf.Member) (result *pb.NodeStatus, err error) {
-	client, err := r.agent.dialRPC(member)
-	if err != nil {
-		return nil, trace.Wrap(err)
-	}
-	defer client.Close()
-	var status *pb.NodeStatus
-	status, err = client.LocalStatus(ctx)
-	if err != nil {
-		return nil, trace.Wrap(err)
-	}
-	return status, nil
-}
-
-func (r *server) collectLocalStatus(member *serf.Member, respc chan<- *statusResponse, wg *sync.WaitGroup) {
-	defer wg.Done()
-	status, err := r.agent.getStatus(member)
-	if err != nil {
-		respc <- &statusResponse{nil, member, trace.Wrap(err)}
-		return
-	}
-	respc <- &statusResponse{status, member, nil}
-}
-
-func (r *server) collectStatusFrom(ctx context.Context, member *serf.Member, respc chan<- *statusResponse, wg *sync.WaitGroup) {
-	defer wg.Done()
-	client, err := r.agent.dialRPC(member)
-	if err != nil {
-		respc <- &statusResponse{nil, member, trace.Wrap(err)}
-		return
-	}
-	defer client.Close()
-	var status *pb.NodeStatus
-	status, err = client.LocalStatus(ctx)
-	if err != nil {
-		respc <- &statusResponse{nil, member, trace.Wrap(err)}
-		return
-	}
-	respc <- &statusResponse{status, member, nil}
-}
-
-type statusResponse struct {
-	*pb.NodeStatus
-	member *serf.Member
-	err    error
 }
 
 // newRPCServer creates an agent RPC endpoint for each provided listener.

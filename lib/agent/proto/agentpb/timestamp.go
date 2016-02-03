@@ -45,3 +45,10 @@ func (ts *Timestamp) UnmarshalText(text []byte) error {
 	*ts = TimeToProto(t)
 	return nil
 }
+
+// Clone returns a copy of this timestamp.
+func (ts *Timestamp) Clone() (result *Timestamp) {
+	result = new(Timestamp)
+	*result = *ts
+	return result
+}

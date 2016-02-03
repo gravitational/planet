@@ -1,6 +1,7 @@
 package agentpb
 
-// This file implements JSON encoding/decoding for status types.
+// This file implements JSON encoding/decoding for status types
+// as well as copying functions.
 
 // encoding.TextMarshaler
 func (s SystemStatus_Type) MarshalText() (text []byte, err error) {
@@ -122,4 +123,40 @@ func (s *MemberStatus_Type) UnmarshalText(text []byte) error {
 		*s = MemberStatus_None
 	}
 	return nil
+}
+
+// Clone returns a copy of this NodeStatus value.
+func (r *NodeStatus) Clone() (result *NodeStatus) {
+	result = new(NodeStatus)
+	*result = *r
+	result.MemberStatus = r.MemberStatus.Clone()
+	for i, probe := range r.Probes {
+		result.Probes[i] = probe.Clone()
+	}
+	return result
+}
+
+// Clone returns a copy of this SystemStatus value.
+func (r *SystemStatus) Clone() (result *SystemStatus) {
+	result = new(SystemStatus)
+	*result = *r
+	for i, node := range r.Nodes {
+		result.Nodes[i] = node.Clone()
+	}
+	return result
+}
+
+// Clone returns a copy of this Probe value.
+func (r *Probe) Clone() (result *Probe) {
+	result = new(Probe)
+	*result = *r
+	result.Timestamp = r.Timestamp.Clone()
+	return result
+}
+
+// Clone returns a copy of this MemberStatus value.
+func (r *MemberStatus) Clone() (result *MemberStatus) {
+	result = new(MemberStatus)
+	*result = *r
+	return result
 }
