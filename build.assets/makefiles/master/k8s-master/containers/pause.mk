@@ -1,4 +1,4 @@
-.PHONY: all export pull-from-internet
+.PHONY: all pull-from-internet
 
 IMAGE:=gcr.io/google_containers/pause:0.8.0
 # OUTDIR defines the output directory for the resulting tarball

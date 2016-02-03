@@ -25,7 +25,7 @@ func main() {
 }
 
 func run() error {
-	app := kingpin.New("bulkimport", "Import container images from a directory into private docker registry")
+	app := kingpin.New("docker-import", "Import container images from a directory into private docker registry")
 	tarballDir := app.Flag("dir", "Directory with image tarballs").Required().String()
 	registryAddr := HostPort(app.Flag("registry-addr", "Address of the docker registry for import").Required())
 
@@ -34,7 +34,7 @@ func run() error {
 
 	_, err := app.Parse(os.Args[1:])
 	if err != nil {
-		fmt.Fprintf(os.Stderr, "failed to parse command line: %v.\nUse bulkimport --help for help.\n", err)
+		fmt.Fprintf(os.Stderr, "failed to parse command line: %v.\nUse docker-import --help for help.\n", err)
 		return trace.Wrap(err)
 	}
 
@@ -130,7 +130,7 @@ func importWithRepo(repo Repo, path, registryAddr string) error {
 	return nil
 }
 
-// dockerCommands executes an arbitrary docker command specified with args.
+// dockerCommand executes an arbitrary docker command specified with args.
 // Returns the command output upon failure.
 func dockerCommand(args ...string) ([]byte, error) {
 	out, err := exec.Command("docker", args...).CombinedOutput()
@@ -138,9 +138,6 @@ func dockerCommand(args ...string) ([]byte, error) {
 		return out, trace.Wrap(err)
 	}
 	return nil, nil
-	// cmd := exec.Command("docker", args...)
-	// log.Infof("docker: %v", cmd.Args)
-	// return nil, nil
 }
 
 // Repo describes docker container image repository metadata.
