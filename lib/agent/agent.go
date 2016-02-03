@@ -1,7 +1,6 @@
 package agent
 
 import (
-	"fmt"
 	"net"
 	"sync"
 	"time"
@@ -201,7 +200,7 @@ type dialRPC func(*serf.Member) (*client, error)
 // 	return status, nil
 // }
 
-func (r *agent) runChecks() *pb.NodeStatus {
+func (r *agent) runChecks(ctx context.Context) *pb.NodeStatus {
 	var reporter health.Probes
 	// TODO: run tests in parallel
 	for _, c := range r.Checkers {
@@ -218,11 +217,13 @@ func (r *agent) runChecks() *pb.NodeStatus {
 
 func (r *agent) statusUpdateLoop() {
 	const updateTimeout = 30 * time.Second
-	var err error
 	for {
 		select {
 		case <-time.After(updateTimeout):
-			status := r.collectStatus()
+			status, err := r.collectStatus(context.TODO())
+			if err != nil {
+				log.Infof("error collecting system status: %v", err)
+			}
 			if err = r.cache.Update(status); err != nil {
 				log.Infof("error updating system status in cache: %v", err)
 			}
@@ -246,8 +247,8 @@ func (r *agent) serfEventLoop(filter string, handle serf.StreamHandle) {
 
 // collectStatus obtains the cluster status by querying statuses of
 // known cluster members.
-func (r *agent) collectStatus() (result *pb.SystemStatus, err error) {
-	result = &pb.SystemStatus{Status: pb.SystemStatus_Unknown}
+func (r *agent) collectStatus(ctx context.Context) (systemStatus *pb.SystemStatus, err error) {
+	systemStatus = &pb.SystemStatus{Status: pb.SystemStatus_Unknown}
 
 	members, err := r.serfClient.Members()
 	if err != nil {
@@ -258,8 +259,8 @@ func (r *agent) collectStatus() (result *pb.SystemStatus, err error) {
 	wg := &sync.WaitGroup{}
 	wg.Add(len(members))
 	for _, member := range members {
-		if r.agent.name == member.Name {
-			go r.getLocalStatus(&member, statuses, wg)
+		if r.name == member.Name {
+			go r.getLocalStatus(ctx, &member, statuses, wg)
 		} else {
 			go r.getStatusFrom(ctx, &member, statuses, wg)
 		}
@@ -270,33 +271,33 @@ func (r *agent) collectStatus() (result *pb.SystemStatus, err error) {
 		if status.err != nil {
 			log.Errorf("failed to query status of serf node %s (%v): %v", status.member.Name, status.member.Addr, status.err)
 			// TODO
-			// result.Status.Nodes = append(result.Status.Nodes, failedNodeStatus(status.member.Name))
+			// systemStatus.Nodes = append(systemStatus.Nodes, failedNodeStatus(status.member.Name))
 		} else {
-			result.Nodes = append(result.Nodes, status.NodeStatus)
+			systemStatus.Nodes = append(systemStatus.Nodes, status.NodeStatus)
 		}
 	}
 	close(statuses)
 
-	return result, nil
+	return systemStatus, nil
 }
 
 // collectLocalStatus executes monitoring tests on the local node.
-func (r *agent) collectLocalStatus() (result *pb.NodeStatus, err error) {
-	result, err = r.runChecks()
+func (r *agent) collectLocalStatus(ctx context.Context) (nodeStatus *pb.NodeStatus, err error) {
+	nodeStatus = r.runChecks(ctx)
 	if err != nil {
 		return nil, trace.Wrap(err)
 	}
-	if err = r.cache.UpdateNode(resp.Status); err != nil {
+	if err = r.cache.UpdateNode(nodeStatus); err != nil {
 		log.Infof("failed to update node in cache: %v", err)
 	}
 
-	return result, nil
+	return nodeStatus, nil
 }
 
-// getLocalStatus obtains local node status.
-func (r *agent) getLocalStatus(member *serf.Member, respc chan<- *statusResponse, wg *sync.WaitGroup) {
+// getLocalStatus is a goroutine to obtain local node status.
+func (r *agent) getLocalStatus(ctx context.Context, member *serf.Member, respc chan<- *statusResponse, wg *sync.WaitGroup) {
 	defer wg.Done()
-	status, err := r.collectLocalStatus()
+	status, err := r.collectLocalStatus(ctx)
 	if err != nil {
 		respc <- &statusResponse{nil, member, trace.Wrap(err)}
 		return
@@ -304,7 +305,7 @@ func (r *agent) getLocalStatus(member *serf.Member, respc chan<- *statusResponse
 	respc <- &statusResponse{status, member, nil}
 }
 
-// getStatusFrom obtains node status from the node identified by member.
+// getStatusFrom is a goroutine to obtain node status from the node identified by member.
 func (r *agent) getStatusFrom(ctx context.Context, member *serf.Member, respc chan<- *statusResponse, wg *sync.WaitGroup) {
 	defer wg.Done()
 	client, err := r.dialRPC(member)
@@ -335,7 +336,7 @@ func (r *agent) recentStatus() (*pb.SystemStatus, error) {
 
 // recentLocalStatus returns the last known node status.
 func (r *agent) recentLocalStatus() (*pb.NodeStatus, error) {
-	return r.cache.RecentNodeStatus(r.agent.name)
+	return r.cache.RecentNodeStatus(r.name)
 }
 
 func toMemberStatus(status string) pb.MemberStatus_Type {

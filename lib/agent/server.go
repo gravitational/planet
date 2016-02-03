@@ -4,9 +4,7 @@ import (
 	"errors"
 	"fmt"
 	"net"
-	"sync"
 
-	"github.com/gravitational/log"
 	pb "github.com/gravitational/planet/lib/agent/proto/agentpb"
 	"github.com/gravitational/trace"
 	serf "github.com/hashicorp/serf/client"
