@@ -14,27 +14,34 @@ import (
 	"k8s.io/kubernetes/pkg/util"
 )
 
+// testNamespace is the namespace for functional k8s tests.
 const testNamespace = "planettest"
+
+// serviceName is the prefix used to name test pods.
 const serviceName = "nettest"
 
+// intraPodChecker is a checker that runs a networking test in the cluster
+// by scheduling actual pods and verifying they can communicate.
 type intraPodChecker struct {
 	*kubeChecker
 	registryAddr string
 }
 
+// newIntraPodChecker returns an instance of intraPodChecker.
 func newIntraPodChecker(kubeAddr, registryAddr string) checker {
 	checker := &intraPodChecker{
 		registryAddr: registryAddr,
 	}
 	kubeChecker := &kubeChecker{
 		hostPort:    kubeAddr,
-		checkerFunc: checker.checkerFunc,
+		checkerFunc: checker.testIntraPodCommunication,
 	}
 	checker.kubeChecker = kubeChecker
 	return checker
 }
 
-func (r *intraPodChecker) checkerFunc(client *kube.Client) error {
+// testIntraPodCommunication implements the intra-pod communication test.
+func (r *intraPodChecker) testIntraPodCommunication(client *kube.Client) error {
 	if err := createNamespaceIfNeeded(client, testNamespace); err != nil {
 		return trace.Wrap(err, "faile to create test namespace `%s`", testNamespace)
 	}
@@ -152,16 +159,17 @@ func (r *intraPodChecker) checkerFunc(client *kube.Client) error {
 	return nil
 }
 
-// FIXME: original timeout is 5m due to serialized docker pulls
-// Since we're pre-packaging test containers, this should not be an issue
-// as we're always pulling from the local private registry.
+// podStartTimeout defines the amount of time to wait for a pod to start.
 const podStartTimeout = 15 * time.Second
 
-// How often to poll pods and nodes.
+// pollInterval defines the amount of time to wait between attempts to poll pods/nodes.
 const pollInterval = 2 * time.Second
 
+// podCondition is an interface to verify the specific pod condition.
 type podCondition func(pod *api.Pod) (bool, error)
 
+// waitTimeoutForPodRunningInNamespace waits for a pod in the specified namespace
+// to transition to 'Running' state within the specified amount of time.
 func waitTimeoutForPodRunningInNamespace(client *kube.Client, podName string, namespace string, timeout time.Duration) error {
 	return waitForPodCondition(client, namespace, podName, "running", timeout, func(pod *api.Pod) (bool, error) {
 		if pod.Status.Phase == api.PodRunning {
@@ -175,6 +183,7 @@ func waitTimeoutForPodRunningInNamespace(client *kube.Client, podName string, na
 	})
 }
 
+// waitForPodCondition waits until a pod is in the given condition within the specified amount of time.
 func waitForPodCondition(client *kube.Client, ns, podName, desc string, timeout time.Duration, condition podCondition) error {
 	log.Infof("waiting up to %[1]v for pod %[2]s status to be %[3]s", timeout, podName, desc)
 	for start := time.Now(); time.Since(start) < timeout; time.Sleep(pollInterval) {
@@ -200,6 +209,8 @@ func waitForPodCondition(client *kube.Client, ns, podName, desc string, timeout 
 	return trace.Errorf("gave up waiting for pod '%s' to be '%s' after %v", podName, desc, timeout)
 }
 
+// launchNetTestPodPerNode schedules a new test pod on each of specified nodes
+// using the specified containerImage.
 func launchNetTestPodPerNode(client *kube.Client, nodes *api.NodeList, name, containerImage string) ([]string, error) {
 	podNames := []string{}
 	totalPods := len(nodes.Items)
@@ -219,8 +230,7 @@ func launchNetTestPodPerNode(client *kube.Client, nodes *api.NodeList, name, con
 						Image: containerImage,
 						Args: []string{
 							"-service=" + name,
-							//peers >= totalPods should be asserted by the container.
-							//the nettest container finds peers by looking up list of svc endpoints.
+							// `nettest` container finds peers by looking up list of service endpoints
 							fmt.Sprintf("-peers=%d", totalPods),
 							"-namespace=" + testNamespace},
 						Ports: []api.ContainerPort{{ContainerPort: 8080}},
@@ -239,7 +249,7 @@ func launchNetTestPodPerNode(client *kube.Client, nodes *api.NodeList, name, con
 	return podNames, nil
 }
 
-// podReady returns whether pod has a condition of Ready with a status of true.
+// podReady returns whether pod has a condition of `Ready` with a status of true.
 func podReady(pod *api.Pod) bool {
 	for _, cond := range pod.Status.Conditions {
 		if cond.Type == api.PodReady && cond.Status == api.ConditionTrue {
@@ -249,6 +259,7 @@ func podReady(pod *api.Pod) bool {
 	return false
 }
 
+// createNamespaceIfNeeded creates a namespace if not already created.
 func createNamespaceIfNeeded(client *kube.Client, namespace string) error {
 	log.Infof("creating %s namespace", namespace)
 	if _, err := client.Namespaces().Get(namespace); err != nil {
