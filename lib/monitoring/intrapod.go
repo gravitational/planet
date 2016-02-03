@@ -203,7 +203,7 @@ func waitForPodCondition(client *kube.Client, ns, podName, desc string, timeout 
 			return nil
 		}
 		log.Infof("waiting for pod %s in namespace '%s' status to be '%s'"+
-			"(found phase: %[4]q, readiness: %[5]t) (%[6]v elapsed)",
+			"(found phase: %q, readiness: %t) (%v elapsed)",
 			podName, ns, desc, pod.Status.Phase, podReady(pod), time.Since(start))
 	}
 	return trace.Errorf("gave up waiting for pod '%s' to be '%s' after %v", podName, desc, timeout)
