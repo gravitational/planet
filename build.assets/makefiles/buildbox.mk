@@ -28,7 +28,6 @@ build:
 		planet/buildbox:latest \
 		make -e KUBE_VER=$(KUBE_VER) -C /assets/makefiles -f $(TARGET)-docker.mk
 ifeq ($(TARGET),master)
-	@echo "\b---> !!!!Building Containers!!!!\n"
 	$(MAKE) -C $(ASSETS)/makefiles/kubernetes/containers -e -f containers.mk
 endif
 
