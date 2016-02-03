@@ -129,7 +129,9 @@ func (s *MemberStatus_Type) UnmarshalText(text []byte) error {
 func (r *NodeStatus) Clone() (result *NodeStatus) {
 	result = new(NodeStatus)
 	*result = *r
-	result.MemberStatus = r.MemberStatus.Clone()
+	if r.MemberStatus != nil {
+		result.MemberStatus = r.MemberStatus.Clone()
+	}
 	for i, probe := range r.Probes {
 		result.Probes[i] = probe.Clone()
 	}
@@ -150,7 +152,9 @@ func (r *SystemStatus) Clone() (result *SystemStatus) {
 func (r *Probe) Clone() (result *Probe) {
 	result = new(Probe)
 	*result = *r
-	result.Timestamp = r.Timestamp.Clone()
+	if r.Timestamp != nil {
+		result.Timestamp = r.Timestamp.Clone()
+	}
 	return result
 }
 

@@ -12,21 +12,21 @@ import (
 type cache struct {
 	backend backend.Backend
 	mu      sync.RWMutex // protects following attributes
-	pb.SystemStatus
+	*pb.SystemStatus
 }
 
 // New returns a new instance of cache specialized to use given backend.
 func New(backend backend.Backend) *cache {
 	return &cache{
 		backend:      backend,
-		SystemStatus: pb.SystemStatus{Status: pb.SystemStatus_Unknown},
+		SystemStatus: &pb.SystemStatus{Status: pb.SystemStatus_Unknown},
 	}
 }
 
 // Update updates the system status in cache.
 func (r *cache) Update(status *pb.SystemStatus) error {
 	r.mu.Lock()
-	r.SystemStatus = *status.Clone()
+	r.SystemStatus = status.Clone()
 	r.mu.Unlock()
 	return r.backend.Update(status)
 }

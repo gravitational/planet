@@ -173,34 +173,7 @@ func (r *agent) LocalStatus(ctx context.Context) (*pb.NodeStatus, error) {
 
 type dialRPC func(*serf.Member) (*client, error)
 
-// TODO: pass context.Context here so that tests can also be cancelled
-// func (r *agent) getStatus(local *serf.Member) (status *pb.NodeStatus, err error) {
-// 	status = r.runChecks()
-// 	if local == nil {
-// 		// FIXME: factor this out into a separate method (share the code with the server?)
-// 		members, err := r.serfClient.Members()
-// 		if err != nil {
-// 			return nil, trace.Wrap(err, "failed to query status of local serf node")
-// 		}
-// 		for _, member := range members {
-// 			if member.Name == r.name {
-// 				local = &member
-// 				break
-// 			}
-// 		}
-// 		if local == nil {
-// 			return nil, trace.Errorf("node is not part of serf cluster")
-// 		}
-// 	}
-// 	status.MemberStatus = &pb.MemberStatus{
-// 		Name:   local.Name,
-// 		Status: toMemberStatus(local.Status),
-// 		Tags:   local.Tags,
-// 		Addr:   fmt.Sprintf("%s:%d", local.Addr.String(), local.Port),
-// 	}
-// 	return status, nil
-// }
-
+// runChecks executes the monitoring tests configured for this agent.
 func (r *agent) runChecks(ctx context.Context) *pb.NodeStatus {
 	var reporter health.Probes
 	// TODO: run tests in parallel
@@ -216,6 +189,9 @@ func (r *agent) runChecks(ctx context.Context) *pb.NodeStatus {
 	return status
 }
 
+// statusUpdateLoop is a long running background process that periodically
+// updates the health status of the cluster by querying status of other active
+// cluster members.
 func (r *agent) statusUpdateLoop() {
 	const updateTimeout = 30 * time.Second
 	for {
@@ -261,9 +237,9 @@ func (r *agent) collectStatus(ctx context.Context) (systemStatus *pb.SystemStatu
 	wg.Add(len(members))
 	for _, member := range members {
 		if r.name == member.Name {
-			go r.getLocalStatus(ctx, &member, statuses, wg)
+			go r.getLocalStatus(ctx, member, statuses, wg)
 		} else {
-			go r.getStatusFrom(ctx, &member, statuses, wg)
+			go r.getStatusFrom(ctx, member, statuses, wg)
 		}
 	}
 	wg.Wait()
@@ -271,8 +247,7 @@ func (r *agent) collectStatus(ctx context.Context) (systemStatus *pb.SystemStatu
 		status := <-statuses
 		if status.err != nil {
 			log.Errorf("failed to query node %s(%v) status: %v", status.member.Name, status.member.Addr, status.err)
-			// TODO
-			// systemStatus.Nodes = append(systemStatus.Nodes, failedNodeStatus(status.member.Name))
+			systemStatus.Nodes = append(systemStatus.Nodes, unknownNodeStatus(&status.member))
 		} else {
 			systemStatus.Nodes = append(systemStatus.Nodes, status.NodeStatus)
 		}
@@ -288,12 +263,7 @@ func (r *agent) collectLocalStatus(ctx context.Context, local *serf.Member) (sta
 	if err != nil {
 		return nil, trace.Wrap(err)
 	}
-	status.MemberStatus = &pb.MemberStatus{
-		Name:   local.Name,
-		Status: toMemberStatus(local.Status),
-		Tags:   local.Tags,
-		Addr:   fmt.Sprintf("%s:%d", local.Addr.String(), local.Port),
-	}
+	status.MemberStatus = statusFromMember(local)
 	if err = r.cache.UpdateNode(status); err != nil {
 		log.Infof("failed to update node in cache: %v", err)
 	}
@@ -301,66 +271,40 @@ func (r *agent) collectLocalStatus(ctx context.Context, local *serf.Member) (sta
 	return status, nil
 }
 
-// getLocalStatus is a goroutine to obtain local node status.
-func (r *agent) getLocalStatus(ctx context.Context, member *serf.Member, respc chan<- *statusResponse, wg *sync.WaitGroup) {
+// getLocalStatus obtains local node status in background.
+func (r *agent) getLocalStatus(ctx context.Context, local serf.Member, respc chan<- *statusResponse, wg *sync.WaitGroup) {
 	defer wg.Done()
-	status, err := r.collectLocalStatus(ctx, member)
+	status, err := r.collectLocalStatus(ctx, &local)
 	if err != nil {
-		respc <- &statusResponse{nil, member, trace.Wrap(err)}
+		respc <- &statusResponse{member: local, err: trace.Wrap(err)}
 		return
 	}
-	respc <- &statusResponse{status, member, nil}
+	respc <- &statusResponse{NodeStatus: status, member: local}
 }
 
-// getStatusFrom is a goroutine to obtain node status from the node identified by member.
-func (r *agent) getStatusFrom(ctx context.Context, member *serf.Member, respc chan<- *statusResponse, wg *sync.WaitGroup) {
+// getStatusFrom obtains node status from the node identified by member in background.
+func (r *agent) getStatusFrom(ctx context.Context, member serf.Member, respc chan<- *statusResponse, wg *sync.WaitGroup) {
 	defer wg.Done()
-	client, err := r.dialRPC(member)
+	client, err := r.dialRPC(&member)
 	if err != nil {
-		respc <- &statusResponse{nil, member, trace.Wrap(err)}
+		respc <- &statusResponse{member: member, err: trace.Wrap(err)}
 		return
 	}
 	defer client.Close()
 	var status *pb.NodeStatus
 	status, err = client.LocalStatus(ctx)
 	if err != nil {
-		respc <- &statusResponse{nil, member, trace.Wrap(err)}
+		respc <- &statusResponse{member: member, err: trace.Wrap(err)}
 		return
 	}
-	respc <- &statusResponse{status, member, nil}
+	respc <- &statusResponse{NodeStatus: status, member: member}
 }
-
-// FIXME: lose the `local` parameter - always get status of the local member
-// func (r *agent) getMemberStatus(local *serf.Member) (status *pb.MemberStatus, err error) {
-// 	if local == nil {
-// 		members, err := r.serfClient.Members()
-// 		if err != nil {
-// 			return nil, trace.Wrap(err, "failed to query status of local serf node")
-// 		}
-// 		for _, member := range members {
-// 			if member.Name == r.name {
-// 				local = &member
-// 				break
-// 			}
-// 		}
-// 		if local == nil {
-// 			return nil, trace.Errorf("node is not part of serf cluster")
-// 		}
-// 	}
-// 	status = &pb.MemberStatus{
-// 		Name:   local.Name,
-// 		Status: toMemberStatus(local.Status),
-// 		Tags:   local.Tags,
-// 		Addr:   fmt.Sprintf("%s:%d", local.Addr.String(), local.Port),
-// 	}
-// 	return status, nil
-// }
 
 // statusResponse describes a response from a goroutine that obtains
 // health status on the specified serf node.
 type statusResponse struct {
 	*pb.NodeStatus
-	member *serf.Member
+	member serf.Member
 	err    error
 }
 
@@ -386,4 +330,23 @@ func toMemberStatus(status string) pb.MemberStatus_Type {
 		return pb.MemberStatus_Failed
 	}
 	return pb.MemberStatus_None
+}
+
+// unknownNodeStatus returns a new node status initialized with `unknown`.
+func unknownNodeStatus(member *serf.Member) *pb.NodeStatus {
+	return &pb.NodeStatus{
+		Name:         member.Name,
+		Status:       pb.NodeStatus_Unknown,
+		MemberStatus: statusFromMember(member),
+	}
+}
+
+// statusFromMember returns new member status value for the specified serf member.
+func statusFromMember(member *serf.Member) *pb.MemberStatus {
+	return &pb.MemberStatus{
+		Name:   member.Name,
+		Status: toMemberStatus(member.Status),
+		Tags:   member.Tags,
+		Addr:   fmt.Sprintf("%s:%d", member.Addr.String(), member.Port),
+	}
 }
