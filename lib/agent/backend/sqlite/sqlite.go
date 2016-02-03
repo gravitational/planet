@@ -72,8 +72,24 @@ func (r *backend) UpdateNode(status *pb.NodeStatus) (err error) {
 	return nil
 }
 
-// RecentStatus retrieves the last few status records for the specified node.
-func (r *backend) RecentStatus(node string) ([]*pb.Probe, error) {
+// Update will update the status of all nodes part of the specified system status.
+func (r *backend) Update(status *pb.SystemStatus) (err error) {
+	if err = inTx(r.DB, func(tx *sql.Tx) error {
+		for _, node := range status.Nodes {
+			err = addStatus(tx, node)
+			if err != nil {
+				return trace.Wrap(err)
+			}
+		}
+		return nil
+	}); err != nil {
+		return err
+	}
+	return nil
+}
+
+// RecentStatus obtains the last known status for the specified node.
+func (r *backend) RecentStatus(node string) (*pb.NodeStatus, error) {
 	const selectStmt = `
 	SELECT p.checker, p.extra, p.status, p.error, p.captured_at
 	FROM probe p JOIN node n WHERE p.node = n.id AND n.name = ?
@@ -104,7 +120,8 @@ func (r *backend) RecentStatus(node string) ([]*pb.Probe, error) {
 		return nil, trace.Wrap(err)
 	}
 
-	return probes, nil
+	status := &pb.NodeStatus{Name: node, Probes: probes}
+	return status, nil
 }
 
 // Close closes the database.

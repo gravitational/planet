@@ -26,7 +26,7 @@ func New(backend backend.Backend) *cache {
 // Update updates the system status in cache.
 func (r *cache) Update(status *pb.SystemStatus) error {
 	r.mu.Lock()
-	*r.SystemStatus = *status.Clone()
+	r.SystemStatus = *status.Clone()
 	r.mu.Unlock()
 	return r.backend.Update(status)
 }
@@ -49,24 +49,33 @@ func (r *cache) UpdateNode(status *pb.NodeStatus) error {
 	return r.backend.UpdateNode(status)
 }
 
-// RecentNodeStatus obtains the last known status for the specified node.
-func (r *cache) RecentNodeStatus(node string) (result *pb.NodeStatus, err error) {
+// RecentNodeStatus obtains the last known status of the specified node.
+func (r *cache) RecentNodeStatus(name string) (result *pb.NodeStatus, err error) {
 	r.mu.RLock()
 	defer r.mu.RUnlock()
 	for _, node := range r.Nodes {
-		if node.Name == node {
+		if node.Name == name {
 			return node.Clone(), nil
 		}
 	}
-	return nil, nil
+	memberStatus := &pb.MemberStatus{
+		Status: pb.MemberStatus_None,
+	}
+	return &pb.NodeStatus{
+		Name:         name,
+		MemberStatus: memberStatus,
+		Status:       pb.NodeStatus_Unknown,
+	}, nil
 }
 
+// RecentNodeStatus obtains the last known cluster status.
 func (r *cache) RecentStatus() (*pb.SystemStatus, error) {
 	r.mu.RLock()
 	defer r.mu.RUnlock()
 	return r.SystemStatus.Clone(), nil
 }
 
+// Close is a no-op for in-memory cache.
 func (r *cache) Close() error {
 	return nil
 }

@@ -1,6 +1,7 @@
 package agent
 
 import (
+	"fmt"
 	"net"
 	"sync"
 	"time"
@@ -269,7 +270,7 @@ func (r *agent) collectStatus(ctx context.Context) (systemStatus *pb.SystemStatu
 	for i := 0; i < len(members); i++ {
 		status := <-statuses
 		if status.err != nil {
-			log.Errorf("failed to query status of serf node %s (%v): %v", status.member.Name, status.member.Addr, status.err)
+			log.Errorf("failed to query node %s(%v) status: %v", status.member.Name, status.member.Addr, status.err)
 			// TODO
 			// systemStatus.Nodes = append(systemStatus.Nodes, failedNodeStatus(status.member.Name))
 		} else {
@@ -282,22 +283,28 @@ func (r *agent) collectStatus(ctx context.Context) (systemStatus *pb.SystemStatu
 }
 
 // collectLocalStatus executes monitoring tests on the local node.
-func (r *agent) collectLocalStatus(ctx context.Context) (nodeStatus *pb.NodeStatus, err error) {
-	nodeStatus = r.runChecks(ctx)
+func (r *agent) collectLocalStatus(ctx context.Context, local *serf.Member) (status *pb.NodeStatus, err error) {
+	status = r.runChecks(ctx)
 	if err != nil {
 		return nil, trace.Wrap(err)
 	}
-	if err = r.cache.UpdateNode(nodeStatus); err != nil {
+	status.MemberStatus = &pb.MemberStatus{
+		Name:   local.Name,
+		Status: toMemberStatus(local.Status),
+		Tags:   local.Tags,
+		Addr:   fmt.Sprintf("%s:%d", local.Addr.String(), local.Port),
+	}
+	if err = r.cache.UpdateNode(status); err != nil {
 		log.Infof("failed to update node in cache: %v", err)
 	}
 
-	return nodeStatus, nil
+	return status, nil
 }
 
 // getLocalStatus is a goroutine to obtain local node status.
 func (r *agent) getLocalStatus(ctx context.Context, member *serf.Member, respc chan<- *statusResponse, wg *sync.WaitGroup) {
 	defer wg.Done()
-	status, err := r.collectLocalStatus(ctx)
+	status, err := r.collectLocalStatus(ctx, member)
 	if err != nil {
 		respc <- &statusResponse{nil, member, trace.Wrap(err)}
 		return
@@ -323,6 +330,34 @@ func (r *agent) getStatusFrom(ctx context.Context, member *serf.Member, respc ch
 	respc <- &statusResponse{status, member, nil}
 }
 
+// FIXME: lose the `local` parameter - always get status of the local member
+// func (r *agent) getMemberStatus(local *serf.Member) (status *pb.MemberStatus, err error) {
+// 	if local == nil {
+// 		members, err := r.serfClient.Members()
+// 		if err != nil {
+// 			return nil, trace.Wrap(err, "failed to query status of local serf node")
+// 		}
+// 		for _, member := range members {
+// 			if member.Name == r.name {
+// 				local = &member
+// 				break
+// 			}
+// 		}
+// 		if local == nil {
+// 			return nil, trace.Errorf("node is not part of serf cluster")
+// 		}
+// 	}
+// 	status = &pb.MemberStatus{
+// 		Name:   local.Name,
+// 		Status: toMemberStatus(local.Status),
+// 		Tags:   local.Tags,
+// 		Addr:   fmt.Sprintf("%s:%d", local.Addr.String(), local.Port),
+// 	}
+// 	return status, nil
+// }
+
+// statusResponse describes a response from a goroutine that obtains
+// health status on the specified serf node.
 type statusResponse struct {
 	*pb.NodeStatus
 	member *serf.Member
@@ -334,7 +369,7 @@ func (r *agent) recentStatus() (*pb.SystemStatus, error) {
 	return r.cache.RecentStatus()
 }
 
-// recentLocalStatus returns the last known node status.
+// recentLocalStatus returns the last known local node status.
 func (r *agent) recentLocalStatus() (*pb.NodeStatus, error) {
 	return r.cache.RecentNodeStatus(r.name)
 }

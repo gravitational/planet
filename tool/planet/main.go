@@ -15,8 +15,9 @@ import (
 	"github.com/gravitational/configure/cstrings"
 	"github.com/gravitational/log"
 	"github.com/gravitational/planet/lib/agent"
+	"github.com/gravitational/planet/lib/agent/backend"
 	"github.com/gravitational/planet/lib/agent/backend/sqlite"
-	"github.com/gravitational/planet/lib/agent/cache"
+	"github.com/gravitational/planet/lib/agent/cache/memory"
 	"github.com/gravitational/planet/lib/box"
 	"github.com/gravitational/planet/lib/monitoring"
 	"github.com/gravitational/planet/test/e2e"
@@ -152,13 +153,14 @@ func run() error {
 
 	// "agent" command
 	case cagent.FullCommand():
-		var cache cache.Cache
 		path := filepath.Join(*cagentStateDir, monitoringDbFile)
-		cache, err = sqlite.New(path)
+		var backend backend.Backend
+		backend, err = sqlite.New(path)
 		if err != nil {
 			err = trace.Wrap(err, "failed to create cache")
 			break
 		}
+		cache := memory.New(backend)
 		conf := &agent.Config{
 			Name:        *cagentName,
 			RPCAddrs:    *cagentRPCAddrs,
