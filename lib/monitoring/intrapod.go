@@ -185,11 +185,11 @@ func waitTimeoutForPodRunningInNamespace(client *kube.Client, podName string, na
 
 // waitForPodCondition waits until a pod is in the given condition within the specified amount of time.
 func waitForPodCondition(client *kube.Client, ns, podName, desc string, timeout time.Duration, condition podCondition) error {
-	log.Infof("waiting up to %[1]v for pod %[2]s status to be %[3]s", timeout, podName, desc)
+	log.Infof("waiting up to %v for pod %s status to be %s", timeout, podName, desc)
 	for start := time.Now(); time.Since(start) < timeout; time.Sleep(pollInterval) {
 		pod, err := client.Pods(ns).Get(podName)
 		if err != nil {
-			log.Infof("get pod %[1]s in namespace '%[2]s' failed, ignoring for %[3]v: %[4]v",
+			log.Infof("get pod %s in namespace '%s' failed, ignoring for %v: %v",
 				podName, ns, pollInterval, err)
 			continue
 		}
@@ -202,7 +202,7 @@ func waitForPodCondition(client *kube.Client, ns, podName, desc string, timeout 
 			log.Infof("waiting for pod succeeded")
 			return nil
 		}
-		log.Infof("waiting for pod %[1]s in namespace '%[2]s' status to be '%[3]s'"+
+		log.Infof("waiting for pod %s in namespace '%s' status to be '%s'"+
 			"(found phase: %[4]q, readiness: %[5]t) (%[6]v elapsed)",
 			podName, ns, desc, pod.Status.Phase, podReady(pod), time.Since(start))
 	}
