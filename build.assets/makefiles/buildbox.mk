@@ -28,7 +28,7 @@ build:
 		planet/buildbox:latest \
 		make -e KUBE_VER=$(KUBE_VER) -C /assets/makefiles -f $(TARGET)-docker.mk
 ifeq ($(TARGET),master)
-	$(MAKE) -C $(ASSETS)/makefiles/kubernetes/containers -e -f containers.mk
+	$(MAKE) -C $(ASSETS)/makefiles/master/k8s-master -e -f containers.mk
 endif
 
 planet-image: 
