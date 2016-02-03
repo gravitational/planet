@@ -5,9 +5,7 @@ Requires=docker.socket
 [Service]
 EnvironmentFile=/etc/container-environment
 Type=oneshot
-ExecStart=/usr/bin/docker-bulkimport --dir=/etc/docker/offline/ --registry-addr=${PLANET_PUBLIC_IP}:5000
-#Restart=on-failure
-#RestartSec=5
+ExecStart=/usr/bin/docker-import --dir=/etc/docker/offline/ --registry-addr=${PLANET_PUBLIC_IP}:5000
 
 [Install]
 WantedBy=multi-user.target
