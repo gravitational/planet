@@ -11,9 +11,9 @@ import (
 	"syscall"
 	"time"
 
+	log "github.com/Sirupsen/logrus"
 	kv "github.com/gravitational/configure"
 	"github.com/gravitational/configure/cstrings"
-	"github.com/gravitational/log"
 	"github.com/gravitational/planet/lib/agent"
 	"github.com/gravitational/planet/lib/agent/backend/sqlite"
 	"github.com/gravitational/planet/lib/agent/cache"
@@ -134,10 +134,11 @@ func run() error {
 	}
 
 	if *debug == true {
-		log.Initialize("console", "INFO")
-		log.Infof("Debug mode is ON")
+		log.SetOutput(os.Stderr)
+		log.SetLevel(log.InfoLevel)
 	} else {
-		log.Initialize("console", "WARN")
+		log.SetOutput(os.Stderr)
+		log.SetLevel(log.WarnLevel)
 	}
 
 	if emptyIP(cstartMasterIP) {

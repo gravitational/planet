@@ -5,8 +5,8 @@ import (
 	"sync/atomic"
 	"time"
 
+	log "github.com/Sirupsen/logrus"
 	"github.com/coreos/etcd/client"
-	"github.com/gravitational/log"
 	"github.com/gravitational/trace"
 	"github.com/mailgun/timetools"
 	"golang.org/x/net/context"

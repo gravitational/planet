@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"net"
 
-	"github.com/gravitational/log"
+	log "github.com/Sirupsen/logrus"
 	pb "github.com/gravitational/planet/lib/agent/proto/agentpb"
 	"github.com/gravitational/trace"
 	serf "github.com/hashicorp/serf/client"
