@@ -4,22 +4,33 @@ import (
 	"errors"
 	"fmt"
 	"net"
+	"os"
 	"testing"
+	"time"
 
-	"github.com/gravitational/log"
+	log "github.com/Sirupsen/logrus"
 	"github.com/gravitational/planet/lib/agent/health"
 	pb "github.com/gravitational/planet/lib/agent/proto/agentpb"
 	serf "github.com/hashicorp/serf/client"
+	"github.com/jonboulle/clockwork"
 	"golang.org/x/net/context"
+	. "gopkg.in/check.v1"
 )
 
 func init() {
 	if testing.Verbose() {
-		log.Initialize("console", "INFO")
+		log.SetOutput(os.Stderr)
+		log.SetLevel(log.InfoLevel)
 	}
 }
 
-func TestSetsSystemStatusFromMemberStatuses(t *testing.T) {
+func TestAgent(t *testing.T) { TestingT(t) }
+
+type AgentSuite struct{}
+
+var _ = Suite(&AgentSuite{})
+
+func (_ *AgentSuite) TestSetsSystemStatusFromMemberStatuses(c *C) {
 	resp := &pb.StatusResponse{Status: &pb.SystemStatus{}}
 	resp.Status.Nodes = []*pb.NodeStatus{
 		{
@@ -39,12 +50,10 @@ func TestSetsSystemStatusFromMemberStatuses(t *testing.T) {
 	}
 
 	setSystemStatus(resp)
-	if resp.Status.Status != pb.SystemStatus_Degraded {
-		t.Errorf("expected system status %s but got %s", pb.SystemStatus_Degraded, resp.Status.Status)
-	}
+	c.Assert(resp.Status.Status, Equals, pb.SystemStatus_Degraded)
 }
 
-func TestSetsSystemStatusFromNodeStatuses(t *testing.T) {
+func (_ *AgentSuite) TestSetsSystemStatusFromNodeStatuses(c *C) {
 	resp := &pb.StatusResponse{Status: &pb.SystemStatus{}}
 	resp.Status.Nodes = []*pb.NodeStatus{
 		{
@@ -75,12 +84,10 @@ func TestSetsSystemStatusFromNodeStatuses(t *testing.T) {
 	}
 
 	setSystemStatus(resp)
-	if resp.Status.Status != pb.SystemStatus_Degraded {
-		t.Errorf("expected system status %s but got %s", pb.SystemStatus_Degraded, resp.Status.Status)
-	}
+	c.Assert(resp.Status.Status, Equals, pb.SystemStatus_Degraded)
 }
 
-func TestDetectsNoMaster(t *testing.T) {
+func (_ *AgentSuite) TestDetectsNoMaster(c *C) {
 	resp := &pb.StatusResponse{Status: &pb.SystemStatus{}}
 	resp.Status.Nodes = []*pb.NodeStatus{
 		{
@@ -100,15 +107,11 @@ func TestDetectsNoMaster(t *testing.T) {
 	}
 
 	setSystemStatus(resp)
-	if resp.Status.Status != pb.SystemStatus_Degraded {
-		t.Errorf("expected degraded system status but got %s", resp.Status)
-	}
-	if resp.Summary != errNoMaster.Error() {
-		t.Errorf("expected '%s' but got '%s'", errNoMaster.Error(), resp.Summary)
-	}
+	c.Assert(resp.Status.Status, Equals, pb.SystemStatus_Degraded)
+	c.Assert(resp.Summary, Equals, errNoMaster.Error())
 }
 
-func TestSetsOkSystemStatus(t *testing.T) {
+func (_ *AgentSuite) TestSetsOkSystemStatus(c *C) {
 	resp := &pb.StatusResponse{Status: &pb.SystemStatus{}}
 	resp.Status.Nodes = []*pb.NodeStatus{
 		{
@@ -133,31 +136,35 @@ func TestSetsOkSystemStatus(t *testing.T) {
 
 	expectedStatus := pb.SystemStatus_Running
 	setSystemStatus(resp)
-	if resp.Status.Status != expectedStatus {
-		t.Errorf("expected system status %s but got %s", expectedStatus, resp.Status.Status)
-	}
+	c.Assert(resp.Status.Status, Equals, expectedStatus)
 }
 
-func TestAgentProvidesStatus(t *testing.T) {
+func (_ *AgentSuite) TestAgentProvidesStatus(c *C) {
 	for _, testCase := range agentTestCases {
-		t.Logf("running test %s", testCase.comment)
+		c.Logf("running test %s", testCase.comment)
+
+		clock := clockwork.NewFakeClock()
 		localNode := testCase.members[0].Name
 		remoteNode := testCase.members[1].Name
-		localServer := newLocalNode(localNode, remoteNode, testCase.rpcPort, testCase.members[:], testCase.checkers[0])
-		remoteServer, err := newRemoteNode(remoteNode, localNode, testCase.rpcPort, testCase.members[:], testCase.checkers[1])
-		if err != nil {
-			t.Fatal(err)
-		}
-		req := &pb.StatusRequest{}
-		resp, err := localServer.Status(context.TODO(), req)
-		if err != nil {
-			t.Error(err)
-		}
+		localAgent := newLocalNode(localNode, remoteNode, testCase.rpcPort,
+			testCase.members[:], testCase.checkers[0], clock, c)
+		remoteAgent, err := newRemoteNode(remoteNode, localNode, testCase.rpcPort,
+			testCase.members[:], testCase.checkers[1], clock, c)
+		c.Assert(err, IsNil)
 
-		if resp.Status.Status != testCase.status {
-			t.Errorf("expected status %s but got %s", testCase.status, resp.Status.Status)
-		}
-		remoteServer.Stop()
+		clock.BlockUntil(2)
+		clock.Advance(statusUpdateTimeout + time.Second)
+		// Ensure that the status update loop has finished updating status
+		clock.BlockUntil(2)
+
+		req := &pb.StatusRequest{}
+		resp, err := localAgent.rpc.Status(context.TODO(), req)
+		c.Assert(err, IsNil)
+
+		c.Assert(resp.Status.Status, Equals, testCase.status)
+		c.Assert(resp.Status.Nodes, HasLen, len(testCase.members))
+		localAgent.Close()
+		remoteAgent.Close()
 	}
 }
 
@@ -209,13 +216,17 @@ var agentTestCases = []struct {
 	},
 }
 
-func newLocalNode(node, peerNode string, rpcPort int, members []serf.Member, checkers []health.Checker) *server {
-	agent := newAgent(node, peerNode, rpcPort, members, checkers)
-	server := &server{agent: agent}
-	return server
+func newLocalNode(node, peerNode string, rpcPort int, members []serf.Member,
+	checkers []health.Checker, clock clockwork.Clock, c *C) *agent {
+	agent := newAgent(node, peerNode, rpcPort, members, checkers, clock, c)
+	agent.rpc = &fakeServer{&server{agent: agent}}
+	err := agent.Start()
+	c.Assert(err, IsNil)
+	return agent
 }
 
-func newRemoteNode(node, peerNode string, rpcPort int, members []serf.Member, checkers []health.Checker) (*server, error) {
+func newRemoteNode(node, peerNode string, rpcPort int, members []serf.Member,
+	checkers []health.Checker, clock clockwork.Clock, c *C) (*agent, error) {
 	network := "tcp"
 	addr := fmt.Sprintf(":%d", rpcPort)
 	listener, err := net.Listen(network, addr)
@@ -223,10 +234,13 @@ func newRemoteNode(node, peerNode string, rpcPort int, members []serf.Member, ch
 		return nil, err
 	}
 
-	agent := newAgent(node, peerNode, rpcPort, members, checkers)
+	agent := newAgent(node, peerNode, rpcPort, members, checkers, clock, c)
+	err = agent.Start()
+	c.Assert(err, IsNil)
 	server := newRPCServer(agent, []net.Listener{listener})
+	agent.rpc = server
 
-	return server, nil
+	return agent, nil
 }
 
 func newMember(name string, status string) serf.Member {
@@ -241,6 +255,7 @@ func newMember(name string, status string) serf.Member {
 	return result
 }
 
+// fakeSerfClient implements serfClient
 type fakeSerfClient struct {
 	members []serf.Member
 }
@@ -265,22 +280,51 @@ func (r *fakeSerfClient) Join(peers []string, replay bool) (int, error) {
 	return 0, nil
 }
 
+// fakeCache implements cache.Cache
 type fakeCache struct {
-	statuses []*pb.NodeStatus
+	*pb.SystemStatus
+	c *C
 }
 
-func (r *fakeCache) UpdateNode(status *pb.NodeStatus) error {
-	r.statuses = append(r.statuses, status)
+func (r *fakeCache) Update(status *pb.SystemStatus) error {
+	r.SystemStatus = status
 	return nil
 }
 
-func (r fakeCache) RecentStatus(string) ([]*pb.Probe, error) {
+func (r *fakeCache) UpdateNode(status *pb.NodeStatus) error {
+	for i, node := range r.Nodes {
+		if node.Name == status.Name {
+			r.Nodes[i] = status
+			return nil
+		}
+	}
+	r.Nodes = append(r.Nodes, status)
+	return nil
+}
+
+func (r fakeCache) RecentStatus() (*pb.SystemStatus, error) {
+	return r.SystemStatus, nil
+}
+
+func (r fakeCache) RecentNodeStatus(name string) (*pb.NodeStatus, error) {
+	for _, node := range r.Nodes {
+		if node.Name == name {
+			return node, nil
+		}
+	}
 	return nil, nil
 }
 
 func (r *fakeCache) Close() error {
 	return nil
 }
+
+// fakeServer implements RPCServer
+type fakeServer struct {
+	*server
+}
+
+func (_ *fakeServer) Stop() {}
 
 func testDialRPC(port int) dialRPC {
 	return func(member *serf.Member) (*client, error) {
@@ -293,13 +337,15 @@ func testDialRPC(port int) dialRPC {
 	}
 }
 
-func newAgent(node, peerNode string, rpcPort int, members []serf.Member, checkers []health.Checker) *agent {
+func newAgent(node, peerNode string, rpcPort int, members []serf.Member,
+	checkers []health.Checker, clock clockwork.Clock, c *C) *agent {
 	return &agent{
 		name:       node,
 		serfClient: &fakeSerfClient{members: members},
 		dialRPC:    testDialRPC(rpcPort),
-		cache:      &fakeCache{},
+		cache:      &fakeCache{c: c, SystemStatus: &pb.SystemStatus{Status: pb.SystemStatus_Unknown}},
 		Checkers:   checkers,
+		clock:      clock,
 	}
 }
 
@@ -319,10 +365,10 @@ func (r *fakeChecker) Check(reporter health.Reporter) {
 			Error:   r.err.Error(),
 			Status:  pb.Probe_Failed,
 		})
-	} else {
-		reporter.Add(&pb.Probe{
-			Checker: r.name,
-			Status:  pb.Probe_Running,
-		})
+		return
 	}
+	reporter.Add(&pb.Probe{
+		Checker: r.name,
+		Status:  pb.Probe_Running,
+	})
 }

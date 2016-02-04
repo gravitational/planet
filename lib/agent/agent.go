@@ -12,6 +12,7 @@ import (
 	pb "github.com/gravitational/planet/lib/agent/proto/agentpb"
 	"github.com/gravitational/trace"
 	serf "github.com/hashicorp/serf/client"
+	"github.com/jonboulle/clockwork"
 	"golang.org/x/net/context"
 )
 
@@ -94,6 +95,7 @@ func New(config *Config) (Agent, error) {
 		name:       config.Name,
 		cache:      config.Cache,
 		dialRPC:    defaultDialRPC,
+		clock:      clockwork.NewRealClock(),
 	}
 	agent.rpc = newRPCServer(agent, listeners)
 	return agent, nil
@@ -109,7 +111,7 @@ type agent struct {
 	name string
 	// RPC server used by agent for client communication as well as
 	// status sync with other agents.
-	rpc *server
+	rpc RPCServer
 	// cache persists node status history.
 	cache cache.Cache
 
@@ -121,6 +123,10 @@ type agent struct {
 	done chan struct{}
 	// eventc is a channel used to stream serf events.
 	eventc chan map[string]interface{}
+
+	// clock abstracts away access to the time package to allow
+	// testing.
+	clock clockwork.Clock
 }
 
 // Start starts the agent's background tasks.
@@ -189,14 +195,16 @@ func (r *agent) runChecks(ctx context.Context) *pb.NodeStatus {
 	return status
 }
 
+// statusUpdateTimeout is the amount of time to wait between status update collections.
+const statusUpdateTimeout = 30 * time.Second
+
 // statusUpdateLoop is a long running background process that periodically
 // updates the health status of the cluster by querying status of other active
 // cluster members.
 func (r *agent) statusUpdateLoop() {
-	const updateTimeout = 30 * time.Second
 	for {
 		select {
-		case <-time.After(updateTimeout):
+		case <-r.clock.After(statusUpdateTimeout):
 			status, err := r.collectStatus(context.TODO())
 			if err != nil {
 				log.Infof("error collecting system status: %v", err)
@@ -233,20 +241,22 @@ func (r *agent) collectStatus(ctx context.Context) (systemStatus *pb.SystemStatu
 	}
 
 	statuses := make(chan *statusResponse, len(members))
-	wg := &sync.WaitGroup{}
+	var wg sync.WaitGroup
+
 	wg.Add(len(members))
 	for _, member := range members {
 		if r.name == member.Name {
-			go r.getLocalStatus(ctx, member, statuses, wg)
+			go r.getLocalStatus(ctx, member, statuses, &wg)
 		} else {
-			go r.getStatusFrom(ctx, member, statuses, wg)
+			go r.getStatusFrom(ctx, member, statuses, &wg)
 		}
 	}
 	wg.Wait()
+
 	for i := 0; i < len(members); i++ {
 		status := <-statuses
 		if status.err != nil {
-			log.Errorf("failed to query node %s(%v) status: %v", status.member.Name, status.member.Addr, status.err)
+			log.Infof("failed to query node %s(%v) status: %v", status.member.Name, status.member.Addr, status.err)
 			systemStatus.Nodes = append(systemStatus.Nodes, unknownNodeStatus(&status.member))
 		} else {
 			systemStatus.Nodes = append(systemStatus.Nodes, status.NodeStatus)
@@ -300,7 +310,7 @@ func (r *agent) getStatusFrom(ctx context.Context, member serf.Member, respc cha
 	respc <- &statusResponse{NodeStatus: status, member: member}
 }
 
-// statusResponse describes a response from a goroutine that obtains
+// statusResponse describes a status response from a background process that obtains
 // health status on the specified serf node.
 type statusResponse struct {
 	*pb.NodeStatus

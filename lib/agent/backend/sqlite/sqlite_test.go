@@ -1,119 +1,123 @@
 package sqlite
 
 import (
+	"os"
 	"testing"
 	"time"
 
+	log "github.com/Sirupsen/logrus"
 	pb "github.com/gravitational/planet/lib/agent/proto/agentpb"
 	"github.com/jonboulle/clockwork"
 	_ "github.com/mattn/go-sqlite3"
+	. "gopkg.in/check.v1"
 )
+
+func init() {
+	if testing.Verbose() {
+		log.SetOutput(os.Stderr)
+		log.SetLevel(log.InfoLevel)
+	}
+}
 
 const node = "node-1"
 const anotherNode = "node-2"
 
-func TestAddsStats(t *testing.T) {
-	backend, err := newTestBackend()
-	if err != nil {
-		t.Fatal(err)
-	}
-	defer backend.Close()
+func TestBackend(t *testing.T) { TestingT(t) }
 
+type BackendSuite struct {
+	backend *backend
+}
+
+type BackendWithClockSuite struct {
+	backend *backend
+	clock   clockwork.FakeClock
+}
+
+var _ = Suite(&BackendSuite{})
+var _ = Suite(&BackendWithClockSuite{})
+
+func (r *BackendSuite) SetUpTest(c *C) {
+	var err error
+	r.backend, err = newTestBackend()
+	c.Assert(err, IsNil)
+}
+
+func (r *BackendSuite) TearDownTest(c *C) {
+	r.backend.Close()
+}
+
+func (r *BackendWithClockSuite) SetUpTest(c *C) {
+	var err error
+	r.clock = clockwork.NewFakeClock()
+	r.backend, err = newTestBackendWithClock(r.clock)
+	c.Assert(err, IsNil)
+}
+
+func (r *BackendWithClockSuite) TearDownTest(c *C) {
+	r.backend.Close()
+}
+
+func (r *BackendSuite) TestAddsStats(c *C) {
 	ts := time.Now()
 	status := newStatus(node, ts)
-	err = backend.UpdateNode(status)
-	if err != nil {
-		t.Fatal(err)
-	}
+	err := r.backend.UpdateNode(status)
+	c.Assert(err, IsNil)
 
 	var count int64
 	when := timestamp(pb.TimeToProto(ts))
-	if err = backend.QueryRow(`SELECT COUNT(*) FROM probe WHERE captured_at = ?`, when).Scan(&count); err != nil {
-		t.Error(err)
-	}
-	if count != 2 {
-		t.Errorf("expected 2 probes but got %d", count)
-	}
+	err = r.backend.QueryRow(`SELECT COUNT(*) FROM probe WHERE captured_at = ?`, when).Scan(&count)
+	c.Assert(err, IsNil)
+
+	c.Assert(count, Equals, int64(2))
 }
 
-func TestDeletesOlderStats(t *testing.T) {
-	backend, err := newTestBackend()
-	if err != nil {
-		t.Fatal(err)
-	}
-	defer backend.Close()
-
+func (r *BackendSuite) TestDeletesOlderStats(c *C) {
 	ts := time.Now().Add(-scavengeTimeout)
 	status := newStatus(anotherNode, ts)
-	err = backend.UpdateNode(status)
-	if err != nil {
-		t.Fatal(err)
-	}
+	err := r.backend.UpdateNode(status)
+	c.Assert(err, IsNil)
 
-	if err = backend.deleteOlderThan(ts.Add(1 * time.Second)); err != nil {
-		t.Error(err)
-	}
+	err = r.backend.deleteOlderThan(ts.Add(time.Second))
+	c.Assert(err, IsNil)
 
 	var count int64
 	when := timestamp(pb.TimeToProto(ts))
-	if err = backend.QueryRow(`SELECT COUNT(*) FROM probe WHERE captured_at = ?`, when).Scan(&count); err != nil {
-		t.Error(err)
-	}
-	if count != 0 {
-		t.Errorf("expected no probes for %s but got %d", when, count)
-	}
+	err = r.backend.QueryRow(`SELECT COUNT(*) FROM probe WHERE captured_at = ?`, when).Scan(&count)
+	c.Assert(err, IsNil)
+
+	c.Assert(count, Equals, int64(0))
 }
 
-func TestGetsRecentStats(t *testing.T) {
+func (r *BackendSuite) TestGetsRecentStats(c *C) {
 	clock := clockwork.NewFakeClock()
-	backend, err := newTestBackend()
-	if err != nil {
-		t.Fatal(err)
-	}
-	defer backend.Close()
 
-	if err = addStatsForNode(t, backend, node, clock); err != nil {
-		t.Fatal(err)
-	}
-	if err = addStatsForNode(t, backend, anotherNode, clock); err != nil {
-		t.Fatal(err)
-	}
+	err := addStatsForNode(r.backend, node, clock)
+	c.Assert(err, IsNil)
 
-	expected := 5
-	probes, err := backend.RecentStatus(node)
-	if err != nil {
-		t.Fatal(err)
-	}
-	if len(probes) != expected {
-		t.Errorf("expected %d probes but got %d", expected, len(probes))
-	}
+	err = addStatsForNode(r.backend, anotherNode, clock)
+	c.Assert(err, IsNil)
+
+	status, err := r.backend.RecentStatus(node)
+	c.Assert(err, IsNil)
+
+	c.Assert(len(status.Probes), Equals, 5)
 }
 
-func TestScavengesOlderStats(t *testing.T) {
-	clock := clockwork.NewFakeClock()
-	backend, err := newTestBackendWithClock(clock)
-	if err != nil {
-		t.Fatal(err)
-	}
-	defer backend.Close()
+func (r *BackendWithClockSuite) TestScavengesOlderStats(c *C) {
+	err := addStatsForNode(r.backend, node, r.clock)
+	c.Assert(err, IsNil)
 
-	if err := addStatsForNode(t, backend, node, clock); err != nil {
-		t.Fatal(err)
-	}
-	clock.BlockUntil(1)
-	clock.Advance(scavengeTimeout + 1*time.Second)
+	r.clock.BlockUntil(1)
+	r.clock.Advance(scavengeTimeout + time.Second)
 	// block until the scavenge loop goes on another wait round
-	clock.BlockUntil(1)
-	probes, err := backend.RecentStatus(node)
-	if err != nil {
-		t.Fatal(err)
-	}
-	if len(probes) > 0 {
-		t.Errorf("expected no stats but got %d", len(probes))
-	}
+	r.clock.BlockUntil(1)
+	status, err := r.backend.RecentStatus(node)
+	c.Assert(err, IsNil)
+
+	c.Assert(len(status.Probes), Equals, 0)
 }
 
-func addStatsForNode(t *testing.T, b *backend, node string, clock clockwork.Clock) error {
+func addStatsForNode(b *backend, node string, clock clockwork.Clock) error {
 	baseTime := clock.Now()
 	for i := 0; i < 3; i++ {
 		status := newStatus(node, baseTime)

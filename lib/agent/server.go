@@ -17,7 +17,14 @@ const RPCPort = 7575 // FIXME: use serf to discover agents
 
 var errNoMaster = errors.New("master node unavailable")
 
-// server implements RPC for an agent.
+// RPCServer is the interface that defines the interaction with an agent via RPC.
+type RPCServer interface {
+	Status(context.Context, *pb.StatusRequest) (*pb.StatusResponse, error)
+	LocalStatus(context.Context, *pb.LocalStatusRequest) (*pb.LocalStatusResponse, error)
+	Stop()
+}
+
+// server implements RPCServer for an agent.
 type server struct {
 	*grpc.Server
 	agent *agent
@@ -66,6 +73,9 @@ func defaultDialRPC(member *serf.Member) (*client, error) {
 	return NewClient(fmt.Sprintf("%s:%d", member.Addr.String(), RPCPort))
 }
 
+// setSystemStatus combines the status of individual nodes into the status of the
+// cluster as a whole.
+// It additionally augments the cluster status repsonse with human-readable summary.
 func setSystemStatus(resp *pb.StatusResponse) {
 	var foundMaster bool
 
