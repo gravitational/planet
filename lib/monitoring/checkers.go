@@ -13,6 +13,8 @@ type Config struct {
 	KubeAddr string
 	// ClusterDNS is the IP of the kubernetes DNS service
 	ClusterDNS string
+	// RegistryAddr is the address of private docker registry
+	RegistryAddr string
 }
 
 // AddCheckers adds checkers to the agent.
@@ -32,6 +34,7 @@ func addToMaster(node agent.Agent, conf *Config) {
 	node.AddChecker(dockerRegistryHealth())
 	node.AddChecker(etcdHealth())
 	node.AddChecker(systemdHealth())
+	// node.AddChecker(intraPodCommunication(conf.KubeAddr, conf.RegistryAddr))
 }
 
 func addToNode(node agent.Agent, conf *Config) {
@@ -68,4 +71,8 @@ func dockerRegistryHealth() health.Checker {
 
 func systemdHealth() health.Checker {
 	return newChecker(systemdChecker{}, "systemd")
+}
+
+func intraPodCommunication(kubeAddr, registryAddr string) health.Checker {
+	return newChecker(newIntraPodChecker(kubeAddr, registryAddr), "networking")
 }
