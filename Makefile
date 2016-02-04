@@ -68,7 +68,7 @@ dev: buildbox
 # WARNING: careful here. This is production build!!!!
 #
 production: buildbox
-	rm $(BUILD_ASSETS)/planet
+	@rm -f $(BUILD_ASSETS)/planet
 	$(MAKE) -C $(ASSETS)/makefiles -e TARGET=master -f buildbox.mk
 	$(MAKE) -C $(ASSETS)/makefiles -e TARGET=node -f buildbox.mk
 
