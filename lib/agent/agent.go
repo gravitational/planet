@@ -198,6 +198,9 @@ func (r *agent) runChecks(ctx context.Context) *pb.NodeStatus {
 // statusUpdateTimeout is the amount of time to wait between status update collections.
 const statusUpdateTimeout = 30 * time.Second
 
+// statusQueryWaitTimeout is the amount of time to wait for status query reply.
+const statusQueryWaitTimeout = 10 * time.Second
+
 // statusUpdateLoop is a long running background process that periodically
 // updates the health status of the cluster by querying status of other active
 // cluster members.
@@ -205,7 +208,9 @@ func (r *agent) statusUpdateLoop() {
 	for {
 		select {
 		case <-r.clock.After(statusUpdateTimeout):
-			status, err := r.collectStatus(context.TODO())
+			ctx, cancel := context.WithTimeout(context.Background(), statusQueryWaitTimeout)
+			status, err := r.collectStatus(ctx)
+			cancel()
 			if err != nil {
 				log.Infof("error collecting system status: %v", err)
 			}
