@@ -34,6 +34,7 @@ endif
 planet-image: 
 	cp $(ASSETS)/orbit.manifest.json $(TARGETDIR)
 	cp $(ASSETDIR)/planet $(ROOTFS)/usr/bin/
+	cp $(ASSETDIR)/docker-import $(ROOTFS)/usr/bin/
 	@echo -e "\n---> Moving current symlink to $(TARGETDIR)\n"
 	@rm -f $(BUILDDIR)/current
 	@cd $(BUILDDIR) && ln -fs $(TARGET) $(BUILDDIR)/current
