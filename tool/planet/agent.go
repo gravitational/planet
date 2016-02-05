@@ -56,7 +56,6 @@ func startLeaderClient(conf *LeaderConfig) (io.Closer, error) {
 	if err != nil {
 		return nil, trace.Wrap(err)
 	}
-	defer client.Close()
 	if conf.Role == RoleMaster {
 		if err := client.AddVoter(conf.LeaderKey, conf.PublicIP, conf.Term); err != nil {
 			return nil, trace.Wrap(err)
