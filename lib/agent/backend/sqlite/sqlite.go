@@ -22,6 +22,7 @@ type backend struct {
 
 const schema = `
 PRAGMA foreign_keys = TRUE;
+
 CREATE TABLE IF NOT EXISTS node (
 	id INTEGER PRIMARY KEY NOT NULL,
 	name TEXT UNIQUE,
@@ -29,18 +30,22 @@ CREATE TABLE IF NOT EXISTS node (
 	status CHAR(1)	CHECK(status IN ('A', 'L', 'F')) NOT NULL DEFAULT 'A'
 );
 
+-- system status snapshot
+CREATE TABLE IF NOT EXISTS system_status (
+)
+
 CREATE TABLE IF NOT EXISTS checker (
 	id   INTEGER PRIMARY KEY NOT NULL,
 	name TEXT UNIQUE,
 	desc TEXT
 );
 
--- composite ID: (node, checker, captured_at)
+-- history of monitoring test results for a node
 CREATE TABLE IF NOT EXISTS probe (
 	node	    INTEGER NOT NULL,
 	checker	    TEXT NOT NULL,
-	extra 	    TEXT,
-	-- running/failed/terminated
+	detail	    TEXT,
+	-- healthy/failed/terminated
 	status	    CHAR(1) CHECK(status IN ('H', 'F', 'T')) NOT NULL DEFAULT 'F',
 	error	    TEXT NOT NULL,
 	captured_at TIMESTAMP NOT NULL,
@@ -91,7 +96,7 @@ func (r *backend) Update(status *pb.SystemStatus) (err error) {
 // RecentStatus obtains the last known status for the specified node.
 func (r *backend) RecentStatus(node string) (*pb.NodeStatus, error) {
 	const selectStmt = `
-	SELECT p.checker, p.extra, p.status, p.error, p.captured_at
+	SELECT p.checker, p.detail, p.status, p.error, p.captured_at
 	FROM probe p JOIN node n WHERE p.node = n.id AND n.name = ?
 	ORDER BY p.captured_at DESC
 	LIMIT 5
@@ -107,7 +112,7 @@ func (r *backend) RecentStatus(node string) (*pb.NodeStatus, error) {
 		probe := pb.Probe{}
 		var when timestamp
 		var status string
-		err = rows.Scan(&probe.Checker, &probe.Extra, &status, &probe.Error, &when)
+		err = rows.Scan(&probe.Checker, &probe.Detail, &status, &probe.Error, &when)
 		if err != nil {
 			return nil, trace.Wrap(err)
 		}
@@ -133,11 +138,11 @@ func (r *backend) Close() error {
 func addStatus(tx *sql.Tx, status *pb.NodeStatus) (err error) {
 	const insertStmt = `
 		INSERT OR IGNORE INTO node(name) VALUES(?);
-		INSERT INTO probe(node, checker, extra, status, error, captured_at)
+		INSERT INTO probe(node, checker, detail, status, error, captured_at)
 		SELECT n."rowid", ?, ?, ?, ?, ? FROM node n WHERE n.name=?
 	`
 	for _, probe := range status.Probes {
-		_, err = tx.Exec(insertStmt, status.Name, probe.Checker, probe.Extra, protoToStatus(probe.Status),
+		_, err = tx.Exec(insertStmt, status.Name, probe.Checker, probe.Detail, protoToStatus(probe.Status),
 			probe.Error, timestamp(*probe.Timestamp), status.Name)
 		if err != nil {
 			return trace.Wrap(err)

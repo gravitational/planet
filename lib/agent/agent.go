@@ -209,13 +209,25 @@ func (r *agent) statusUpdateLoop() {
 		select {
 		case <-r.clock.After(statusUpdateTimeout):
 			ctx, cancel := context.WithTimeout(context.Background(), statusQueryWaitTimeout)
-			status, err := r.collectStatus(ctx)
-			cancel()
-			if err != nil {
-				log.Infof("error collecting system status: %v", err)
-			}
-			if err = r.cache.Update(status); err != nil {
-				log.Infof("error updating system status in cache: %v", err)
+			go func() {
+				defer cancel() // close context if collection finishes before the deadline
+				status, err := r.collectStatus(ctx)
+				if err != nil {
+					log.Infof("error collecting system status: %v", err)
+					return
+				}
+				if err = r.cache.Update(status); err != nil {
+					log.Infof("error updating system status in cache: %v", err)
+				}
+			}()
+			select {
+			case <-ctx.Done():
+				if ctx.Err() == context.DeadlineExceeded {
+					log.Infof("timed out collecting system status")
+				}
+			case <-r.done:
+				cancel()
+				return
 			}
 		case <-r.done:
 			return
@@ -257,9 +269,9 @@ func (r *agent) collectStatus(ctx context.Context) (systemStatus *pb.SystemStatu
 		}
 	}
 	wg.Wait()
+	close(statuses)
 
-	for i := 0; i < len(members); i++ {
-		status := <-statuses
+	for status := range statuses {
 		if status.err != nil {
 			log.Infof("failed to query node %s(%v) status: %v", status.member.Name, status.member.Addr, status.err)
 			systemStatus.Nodes = append(systemStatus.Nodes, unknownNodeStatus(&status.member))
@@ -267,7 +279,6 @@ func (r *agent) collectStatus(ctx context.Context) (systemStatus *pb.SystemStatu
 			systemStatus.Nodes = append(systemStatus.Nodes, status.NodeStatus)
 		}
 	}
-	close(statuses)
 
 	return systemStatus, nil
 }

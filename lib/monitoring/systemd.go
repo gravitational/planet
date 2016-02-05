@@ -67,7 +67,7 @@ func (r systemdChecker) check(reporter reporter) {
 
 	for _, condition := range conditions {
 		reporter.addProbe(&pb.Probe{
-			Extra:  condition.name,
+			Detail: condition.name,
 			Status: condition.status,
 			Error:  condition.err.Error(),
 		})

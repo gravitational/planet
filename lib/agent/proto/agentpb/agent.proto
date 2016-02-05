@@ -67,9 +67,8 @@ message Probe {
 
   // Name of the checker that generated the probe.
   string checker = 2;
-  // Auxiliary field that can be used to provide additional details of the
-  // checker activity.
-  string extra = 3;
+  // Additional detail specific to the checker
+  string detail = 3;
   enum Type {
     Unknown = 0;
     Running = 1;

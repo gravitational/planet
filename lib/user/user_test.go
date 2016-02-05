@@ -17,7 +17,7 @@ func TestReadsPasswdFile(t *testing.T) {
 		t.Fatal(err)
 	}
 	if len(r.users) != 3 {
-		t.Error("expected 3 users but got %d", len(r.users))
+		t.Errorf("expected 3 users but got %d", len(r.users))
 	}
 }
 
