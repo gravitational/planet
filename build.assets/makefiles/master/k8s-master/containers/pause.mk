@@ -3,7 +3,7 @@
 IMAGE:=gcr.io/google_containers/pause:0.8.0
 # OUTDIR defines the output directory for the resulting tarball
 # (set in the parent makefile)
-OUT:=$(OUTDIR)/pause.tar.gz
+override OUT:=$(OUTDIR)/pause.tar.gz
 
 all: pull-from-internet $(OUT)
 

@@ -3,7 +3,7 @@
 IMAGE:=gcr.io/google_containers/nettest:1.6
 # OUTDIR defines the output directory for the resulting tarball
 # (set in the parent makefile)
-OUT:=$(OUTDIR)/nettest.tar.gz
+override OUT:=$(OUTDIR)/nettest.tar.gz
 
 all: pull-from-internet $(OUT)
 
