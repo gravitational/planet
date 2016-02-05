@@ -32,9 +32,7 @@ func (s *SystemStatus_Type) UnmarshalText(text []byte) error {
 func (s NodeStatus_Type) MarshalText() (text []byte, err error) {
 	switch s {
 	case NodeStatus_Running:
-		// FIXME: unique for backwards-compatibility
-		// will be changed to `running`
-		return []byte("healthy"), nil // "running"
+		return []byte("running"), nil
 	case NodeStatus_Degraded:
 		return []byte("degraded"), nil
 	default:
@@ -45,9 +43,7 @@ func (s NodeStatus_Type) MarshalText() (text []byte, err error) {
 // encoding.TextUnmarshaler
 func (s *NodeStatus_Type) UnmarshalText(text []byte) error {
 	switch string(text) {
-	// FIXME: unique for backwards-compatibility
-	// will be changed to `running`
-	case "healthy": // "running"
+	case "running":
 		*s = NodeStatus_Running
 	case "degraded":
 		*s = NodeStatus_Degraded
@@ -61,9 +57,7 @@ func (s *NodeStatus_Type) UnmarshalText(text []byte) error {
 func (s Probe_Type) MarshalText() (text []byte, err error) {
 	switch s {
 	case Probe_Running:
-		// FIXME: unique for backwards-compatibility
-		// will be changed to `running`
-		return []byte("healthy"), nil // "running"
+		return []byte("running"), nil
 	case Probe_Failed:
 		return []byte("failed"), nil
 	case Probe_Terminated:
@@ -76,9 +70,7 @@ func (s Probe_Type) MarshalText() (text []byte, err error) {
 // encoding.TextUnmarshaler
 func (s *Probe_Type) UnmarshalText(text []byte) error {
 	switch string(text) {
-	// FIXME: unique for backwards-compatibility
-	// will be changed to `running`
-	case "healthy": // "running"
+	case "running":
 		*s = Probe_Running
 	case "failed":
 		*s = Probe_Failed

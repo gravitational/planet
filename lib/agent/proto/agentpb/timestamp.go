@@ -26,6 +26,13 @@ func NewTimeToProto(t time.Time) *Timestamp {
 	return ts
 }
 
+// NewTimestamp returns a timestamp set to current time.
+func NewProto() *Timestamp {
+	ts := new(Timestamp)
+	*ts = TimeToProto(time.Now())
+	return ts
+}
+
 // Equal compares this timestamp with other to determine if they're equal.
 func (ts Timestamp) Equal(other Timestamp) bool {
 	return ts.ToTime().Equal(other.ToTime())

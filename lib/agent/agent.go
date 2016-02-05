@@ -272,12 +272,12 @@ func (r *agent) collectStatus(ctx context.Context) (systemStatus *pb.SystemStatu
 	close(statuses)
 
 	for status := range statuses {
+		nodeStatus := status.NodeStatus
 		if status.err != nil {
 			log.Infof("failed to query node %s(%v) status: %v", status.member.Name, status.member.Addr, status.err)
-			systemStatus.Nodes = append(systemStatus.Nodes, unknownNodeStatus(&status.member))
-		} else {
-			systemStatus.Nodes = append(systemStatus.Nodes, status.NodeStatus)
+			nodeStatus = unknownNodeStatus(&status.member)
 		}
+		systemStatus.Nodes = append(systemStatus.Nodes, nodeStatus)
 	}
 
 	return systemStatus, nil
@@ -301,29 +301,39 @@ func (r *agent) collectLocalStatus(ctx context.Context, local *serf.Member) (sta
 func (r *agent) getLocalStatus(ctx context.Context, local serf.Member, respc chan<- *statusResponse, wg *sync.WaitGroup) {
 	defer wg.Done()
 	status, err := r.collectLocalStatus(ctx, &local)
+	resp := &statusResponse{member: local}
 	if err != nil {
-		respc <- &statusResponse{member: local, err: trace.Wrap(err)}
-		return
+		resp.err = trace.Wrap(err)
+	} else {
+		resp.NodeStatus = status
 	}
-	respc <- &statusResponse{NodeStatus: status, member: local}
+	select {
+	case respc <- resp:
+	case <-r.done:
+	}
 }
 
 // getStatusFrom obtains node status from the node identified by member in background.
 func (r *agent) getStatusFrom(ctx context.Context, member serf.Member, respc chan<- *statusResponse, wg *sync.WaitGroup) {
 	defer wg.Done()
 	client, err := r.dialRPC(&member)
+	resp := &statusResponse{member: member}
 	if err != nil {
-		respc <- &statusResponse{member: member, err: trace.Wrap(err)}
-		return
+		resp.err = trace.Wrap(err)
+	} else {
+		defer client.Close()
+		var status *pb.NodeStatus
+		status, err = client.LocalStatus(ctx)
+		if err != nil {
+			resp.err = trace.Wrap(err)
+		} else {
+			resp.NodeStatus = status
+		}
 	}
-	defer client.Close()
-	var status *pb.NodeStatus
-	status, err = client.LocalStatus(ctx)
-	if err != nil {
-		respc <- &statusResponse{member: member, err: trace.Wrap(err)}
-		return
+	select {
+	case respc <- resp:
+	case <-r.done:
 	}
-	respc <- &statusResponse{NodeStatus: status, member: member}
 }
 
 // statusResponse describes a status response from a background process that obtains
