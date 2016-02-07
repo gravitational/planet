@@ -104,7 +104,7 @@ CREATE TRIGGER IF NOT EXISTS insert_system_status
 INSTEAD OF INSERT ON system_status
 BEGIN
   INSERT OR IGNORE INTO system_snapshot(status, captured_at) VALUES(new.cluster_status, new.captured_at);
-  -- TODO: insert tags
+
   INSERT OR IGNORE INTO node(name, member_addr) VALUES(new.name, new.member_addr);
   
   INSERT OR IGNORE INTO node_snapshot(node_id, snapshot_id, status, member_status)
