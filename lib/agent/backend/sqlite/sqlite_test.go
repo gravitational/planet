@@ -19,7 +19,7 @@ func init() {
 	}
 }
 
-var nodes = []string{"node-1", "node-2"}
+var nodes = [2]string{"node-1", "node-2"}
 
 func TestBackend(t *testing.T) { TestingT(t) }
 
@@ -91,9 +91,12 @@ func (r *BackendSuite) TestExplicitlyDeletesOlderStats(c *C) {
 func (r *BackendSuite) TestObtainsRecentStatus(c *C) {
 	clock := clockwork.NewFakeClock()
 
+	tags := [2]map[string]string{
+		{"publicip": "178.168.192.1", "role": "master"},
+		{"publicip": "178.168.192.2", "role": "node"},
+	}
 	time := clock.Now()
-	status := newStatus(nodes, time)
-	status.Status = pb.SystemStatus_Unknown // status not persisted
+	status := newStatusWithTags(nodes, time, tags)
 	c.Assert(r.backend.UpdateStatus(status), IsNil)
 
 	actualStatus, err := r.backend.RecentStatus()
@@ -105,6 +108,7 @@ func (r *BackendSuite) TestObtainsRecentStatus(c *C) {
 func (r *BackendWithClockSuite) TestScavengesOlderStats(c *C) {
 	c.Assert(updateStatus(r.backend, nodes, r.clock), IsNil)
 
+	emptyStatus := &pb.SystemStatus{Status: pb.SystemStatus_Unknown}
 	r.clock.BlockUntil(1)
 	r.clock.Advance(scavengeTimeout + time.Second)
 	// block until the scavenge loop goes on another wait round
@@ -112,10 +116,10 @@ func (r *BackendWithClockSuite) TestScavengesOlderStats(c *C) {
 	status, err := r.backend.RecentStatus()
 	c.Assert(err, IsNil)
 
-	c.Assert(status, IsNil)
+	c.Assert(status, DeepEquals, emptyStatus)
 }
 
-func updateStatus(b *backend, nodes []string, clock clockwork.Clock) error {
+func updateStatus(b *backend, nodes [2]string, clock clockwork.Clock) error {
 	baseTime := clock.Now()
 	for i := 0; i < 3; i++ {
 		status := newStatus(nodes, baseTime)
@@ -139,28 +143,34 @@ func newTestBackendWithClock(clock clockwork.Clock) (*backend, error) {
 	return backend, nil
 }
 
-func newStatus(names []string, time time.Time) *pb.SystemStatus {
+func newStatus(names [2]string, time time.Time) *pb.SystemStatus {
+	defaultTags := map[string]string{"key": "value", "key2": "value2"}
+
+	return newStatusWithTags(names, time, [2]map[string]string{defaultTags, defaultTags})
+}
+
+func newStatusWithTags(names [2]string, time time.Time, tags [2]map[string]string) *pb.SystemStatus {
 	when := pb.NewTimeToProto(time)
 	var nodes []*pb.NodeStatus
-	for _, name := range names {
+	for i, name := range names {
 		nodes = append(nodes, &pb.NodeStatus{
 			Name:   name,
 			Status: pb.NodeStatus_Degraded,
 			MemberStatus: &pb.MemberStatus{
 				Name:   name,
 				Status: pb.MemberStatus_Alive,
-				Tags:   map[string]string{"key": "value", "key2": "value2"},
+				Tags:   tags[i],
 			},
 			Probes: []*pb.Probe{
 				&pb.Probe{
-					Checker: "foo",
+					Checker: "checker a",
 					Status:  pb.Probe_Failed,
-					Error:   "cannot lift weights",
+					Error:   "sync error",
 				},
 				&pb.Probe{
-					Checker: "bar",
+					Checker: "checker b",
 					Status:  pb.Probe_Failed,
-					Error:   "cannot get up",
+					Error:   "invalid state",
 				},
 			},
 		})

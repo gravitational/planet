@@ -55,7 +55,7 @@ BEGIN
 
   INSERT INTO node_tag(node_id, tag_id)
   SELECT n.id, t.id FROM node n JOIN tag t
-  WHERE n.name = new.node_name AND t.key = new.key AND t.value = t.value;
+  WHERE n.name = new.node_name AND t.key = new.key AND t.value = new.value;
 END;
 
 -- history of system status changes
@@ -191,6 +191,8 @@ func (r *backend) RecentStatus() (*pb.SystemStatus, error) {
 		if err := r.selector(selectTags, tagSelector(status), ts); err != nil {
 			return nil, trace.Wrap(err)
 		}
+	} else {
+		status = &pb.SystemStatus{Status: pb.SystemStatus_Unknown}
 	}
 	return status, nil
 }
@@ -244,6 +246,7 @@ func statusSelector(status **pb.SystemStatus) accumulator {
 			}
 			if *status == nil {
 				*status = &pb.SystemStatus{
+					Status:    systemStatus.toProto(),
 					Timestamp: (*pb.Timestamp)(&ts),
 				}
 			}

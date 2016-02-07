@@ -91,11 +91,12 @@ func New(config *Config) (Agent, error) {
 		listeners = append(listeners, listener)
 	}
 	agent := &agent{
-		serfClient: client,
-		name:       config.Name,
-		cache:      config.Cache,
-		dialRPC:    defaultDialRPC,
-		clock:      clockwork.NewRealClock(),
+		serfClient:  client,
+		name:        config.Name,
+		cache:       config.Cache,
+		dialRPC:     defaultDialRPC,
+		clock:       clockwork.NewRealClock(),
+		localStatus: emptyNodeStatus(config.Name),
 	}
 	agent.rpc = newRPCServer(agent, listeners)
 	return agent, nil
@@ -230,7 +231,7 @@ func (r *agent) statusUpdateLoop() {
 // collectStatus obtains the cluster status by querying statuses of
 // known cluster members.
 func (r *agent) collectStatus(ctx context.Context) (systemStatus *pb.SystemStatus, err error) {
-	systemStatus = &pb.SystemStatus{Status: pb.SystemStatus_Unknown}
+	systemStatus = &pb.SystemStatus{Status: pb.SystemStatus_Unknown, Timestamp: pb.NewTimestamp()}
 
 	members, err := r.serfClient.Members()
 	if err != nil {
@@ -350,12 +351,28 @@ func toMemberStatus(status string) pb.MemberStatus_Type {
 	return pb.MemberStatus_None
 }
 
-// unknownNodeStatus returns a new node status initialized with `unknown`.
+// unknownNodeStatus creates an `unknown` node status for a node specified with member.
 func unknownNodeStatus(member *serf.Member) *pb.NodeStatus {
 	return &pb.NodeStatus{
 		Name:         member.Name,
 		Status:       pb.NodeStatus_Unknown,
 		MemberStatus: statusFromMember(member),
+	}
+}
+
+// emptyNodeStatus creates an empty node status.
+func emptyNodeStatus(name string) *pb.NodeStatus {
+	return &pb.NodeStatus{
+		Name:         name,
+		Status:       pb.NodeStatus_Unknown,
+		MemberStatus: &pb.MemberStatus{Name: name},
+	}
+}
+
+// emptySystemStatus creates an empty system status.
+func emptySystemStatus() *pb.SystemStatus {
+	return &pb.SystemStatus{
+		Status: pb.SystemStatus_Unknown,
 	}
 }
 

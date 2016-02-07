@@ -294,33 +294,13 @@ type fakeCache struct {
 	c *C
 }
 
-func (r *fakeCache) Update(status *pb.SystemStatus) error {
+func (r *fakeCache) UpdateStatus(status *pb.SystemStatus) error {
 	r.SystemStatus = status
-	return nil
-}
-
-func (r *fakeCache) UpdateNode(status *pb.NodeStatus) error {
-	for i, node := range r.Nodes {
-		if node.Name == status.Name {
-			r.Nodes[i] = status
-			return nil
-		}
-	}
-	r.Nodes = append(r.Nodes, status)
 	return nil
 }
 
 func (r fakeCache) RecentStatus() (*pb.SystemStatus, error) {
 	return r.SystemStatus, nil
-}
-
-func (r fakeCache) RecentNodeStatus(name string) (*pb.NodeStatus, error) {
-	for _, node := range r.Nodes {
-		if node.Name == name {
-			return node, nil
-		}
-	}
-	return nil, nil
 }
 
 func (r *fakeCache) Close() error {
@@ -354,12 +334,13 @@ func testDialRPC(port int) dialRPC {
 func newAgent(node, peerNode string, rpcPort int, members []serf.Member,
 	checkers []health.Checker, clock clockwork.Clock, c *C) *agent {
 	return &agent{
-		name:       node,
-		serfClient: &fakeSerfClient{members: members},
-		dialRPC:    testDialRPC(rpcPort),
-		cache:      &fakeCache{c: c, SystemStatus: &pb.SystemStatus{Status: pb.SystemStatus_Unknown}},
-		Checkers:   checkers,
-		clock:      clock,
+		name:        node,
+		serfClient:  &fakeSerfClient{members: members},
+		dialRPC:     testDialRPC(rpcPort),
+		cache:       &fakeCache{c: c, SystemStatus: &pb.SystemStatus{Status: pb.SystemStatus_Unknown}},
+		Checkers:    checkers,
+		clock:       clock,
+		localStatus: emptyNodeStatus(node),
 	}
 }
 

@@ -33,7 +33,7 @@ type server struct {
 // Status reports the health status of a serf cluster by iterating over the list
 // of currently active cluster members and collecting their respective health statuses.
 func (r *server) Status(ctx context.Context, req *pb.StatusRequest) (resp *pb.StatusResponse, err error) {
-	resp = &pb.StatusResponse{Status: &pb.SystemStatus{Status: pb.SystemStatus_Unknown}}
+	resp = &pb.StatusResponse{}
 
 	resp.Status, err = r.agent.recentStatus()
 	if err != nil {
