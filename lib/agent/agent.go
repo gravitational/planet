@@ -273,9 +273,6 @@ func (r *agent) collectLocalStatus(ctx context.Context, local *serf.Member) (sta
 	r.mu.Lock()
 	r.localStatus = status
 	r.mu.Unlock()
-	// if err = r.cache.UpdateNode(status); err != nil {
-	// 	log.Infof("failed to update node in cache: %v", err)
-	// }
 
 	return status, nil
 }
