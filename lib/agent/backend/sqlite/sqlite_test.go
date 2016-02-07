@@ -55,7 +55,6 @@ func (r *BackendWithClockSuite) SetUpTest(c *C) {
 }
 
 func (r *BackendWithClockSuite) TearDownTest(c *C) {
-	c.Logf("Tearing down the test")
 	r.backend.Close()
 }
 
