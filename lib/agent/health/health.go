@@ -1,11 +1,7 @@
 // package health defines health checking primitives.
 package health
 
-import (
-	"time"
-
-	pb "github.com/gravitational/planet/lib/agent/proto/agentpb"
-)
+import pb "github.com/gravitational/planet/lib/agent/proto/agentpb"
 
 // Checker is an interface for executing a health check.
 type Checker interface {
@@ -41,9 +37,6 @@ type Probes []*pb.Probe
 
 func (r *Probes) Add(probe *pb.Probe) {
 	*r = append(*r, probe)
-	if probe.Timestamp == nil {
-		probe.Timestamp = pb.NewTimeToProto(time.Now())
-	}
 }
 
 func (r Probes) GetProbes() []*pb.Probe {

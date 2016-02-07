@@ -25,7 +25,7 @@ type Agent interface {
 	// Join makes an attempt to join a cluster specified by the list of peers.
 	Join(peers []string) error
 	// LocalStatus reports the health status of the local agent node.
-	LocalStatus(context.Context) (*pb.NodeStatus, error)
+	LocalStatus() *pb.NodeStatus
 
 	health.CheckerRepository
 }
@@ -104,14 +104,17 @@ func New(config *Config) (Agent, error) {
 type agent struct {
 	health.Checkers
 
+	// serfClient provides access to the serf agent.
 	serfClient serfClient
 
 	// Name of this agent.  Must be the same as the serf agent's name
 	// running on the same node.
 	name string
+
 	// RPC server used by agent for client communication as well as
 	// status sync with other agents.
 	rpc RPCServer
+
 	// cache persists node status history.
 	cache cache.Cache
 
@@ -121,27 +124,21 @@ type agent struct {
 
 	// done is a channel used for cleanup.
 	done chan struct{}
-	// eventc is a channel used to stream serf events.
-	eventc chan map[string]interface{}
 
 	// clock abstracts away access to the time package to allow
 	// testing.
 	clock clockwork.Clock
+
+	mu sync.Mutex
+	// localStatus is the last obtained local node status.
+	localStatus *pb.NodeStatus
 }
 
 // Start starts the agent's background tasks.
 func (r *agent) Start() error {
-	var allEvents string
-	eventc := make(chan map[string]interface{})
-	handle, err := r.serfClient.Stream(allEvents, eventc)
-	if err != nil {
-		return trace.Wrap(err, "failed to stream events from serf")
-	}
-	r.eventc = eventc
 	r.done = make(chan struct{})
 
 	go r.statusUpdateLoop()
-	go r.serfEventLoop(allEvents, handle)
 	return nil
 }
 
@@ -168,13 +165,8 @@ func (r *agent) Close() (err error) {
 }
 
 // LocalStatus reports the status of the local agent node.
-func (r *agent) LocalStatus(ctx context.Context) (*pb.NodeStatus, error) {
-	req := &pb.LocalStatusRequest{}
-	resp, err := r.rpc.LocalStatus(ctx, req)
-	if err != nil {
-		return nil, trace.Wrap(err)
-	}
-	return resp.Status, nil
+func (r *agent) LocalStatus() *pb.NodeStatus {
+	return r.recentLocalStatus()
 }
 
 type dialRPC func(*serf.Member) (*client, error)
@@ -216,7 +208,7 @@ func (r *agent) statusUpdateLoop() {
 					log.Infof("error collecting system status: %v", err)
 					return
 				}
-				if err = r.cache.Update(status); err != nil {
+				if err = r.cache.UpdateStatus(status); err != nil {
 					log.Infof("error updating system status in cache: %v", err)
 				}
 			}()
@@ -230,18 +222,6 @@ func (r *agent) statusUpdateLoop() {
 				return
 			}
 		case <-r.done:
-			return
-		}
-	}
-}
-
-func (r *agent) serfEventLoop(filter string, handle serf.StreamHandle) {
-	for {
-		select {
-		case resp := <-r.eventc:
-			log.Infof("serf event: %v (%T)", resp, resp)
-		case <-r.done:
-			r.serfClient.Stop(handle)
 			return
 		}
 	}
@@ -290,9 +270,12 @@ func (r *agent) collectLocalStatus(ctx context.Context, local *serf.Member) (sta
 		return nil, trace.Wrap(err)
 	}
 	status.MemberStatus = statusFromMember(local)
-	if err = r.cache.UpdateNode(status); err != nil {
-		log.Infof("failed to update node in cache: %v", err)
-	}
+	r.mu.Lock()
+	r.localStatus = status
+	r.mu.Unlock()
+	// if err = r.cache.UpdateNode(status); err != nil {
+	// 	log.Infof("failed to update node in cache: %v", err)
+	// }
 
 	return status, nil
 }
@@ -350,8 +333,10 @@ func (r *agent) recentStatus() (*pb.SystemStatus, error) {
 }
 
 // recentLocalStatus returns the last known local node status.
-func (r *agent) recentLocalStatus() (*pb.NodeStatus, error) {
-	return r.cache.RecentNodeStatus(r.name)
+func (r *agent) recentLocalStatus() *pb.NodeStatus {
+	r.mu.Lock()
+	defer r.mu.Unlock()
+	return r.localStatus
 }
 
 func toMemberStatus(status string) pb.MemberStatus_Type {

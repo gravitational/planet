@@ -48,10 +48,7 @@ func (r *server) Status(ctx context.Context, req *pb.StatusRequest) (resp *pb.St
 func (r *server) LocalStatus(ctx context.Context, req *pb.LocalStatusRequest) (resp *pb.LocalStatusResponse, err error) {
 	resp = &pb.LocalStatusResponse{}
 
-	resp.Status, err = r.agent.recentLocalStatus()
-	if err != nil {
-		return nil, trace.Wrap(err)
-	}
+	resp.Status = r.agent.recentLocalStatus()
 
 	return resp, nil
 }

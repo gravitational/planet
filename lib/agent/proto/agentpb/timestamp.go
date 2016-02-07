@@ -27,7 +27,7 @@ func NewTimeToProto(t time.Time) *Timestamp {
 }
 
 // NewTimestamp returns a timestamp set to current time.
-func NewProto() *Timestamp {
+func NewTimestamp() *Timestamp {
 	ts := new(Timestamp)
 	*ts = TimeToProto(time.Now())
 	return ts

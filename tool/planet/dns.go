@@ -8,7 +8,6 @@ import (
 	pb "github.com/gravitational/planet/lib/agent/proto/agentpb"
 	"github.com/gravitational/planet/lib/monitoring"
 	"github.com/gravitational/trace"
-	"golang.org/x/net/context"
 	"k8s.io/kubernetes/pkg/api"
 	kube "k8s.io/kubernetes/pkg/client/unversioned"
 	"k8s.io/kubernetes/pkg/util/wait"
@@ -76,11 +75,7 @@ func (r *DNSBootstrapper) create() {
 
 	if err := wait.Poll(retryPeriod, retryTimeout, func() (done bool, err error) {
 		var status *pb.NodeStatus
-		status, err = r.agent.LocalStatus(context.TODO())
-		if err != nil {
-			log.Infof("failed to query cluster status: %v", err)
-			return false, nil
-		}
+		status = r.agent.LocalStatus()
 		if status.Status != pb.NodeStatus_Running {
 			log.Infof("node unhealthy, retrying")
 			return false, nil

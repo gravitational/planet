@@ -12,7 +12,7 @@ import (
 // probeType represents value of type pb.Probe_Type in the backend
 type probeType string
 
-func protoToStatus(status pb.Probe_Type) probeType {
+func protoToProbe(status pb.Probe_Type) probeType {
 	switch status {
 	case pb.Probe_Running:
 		return probeType("H")
@@ -41,7 +41,7 @@ func (r probeType) Value() (value driver.Value, err error) {
 
 // Scan implements sql.Scanner
 func (r *probeType) Scan(src interface{}) error {
-	*r = probeType(src.(string))
+	*r = probeType(src.([]byte))
 	return nil
 }
 
@@ -60,6 +60,19 @@ func (ts timestamp) Value() (value driver.Value, err error) {
 
 // memberStatusType represents value of type pb.MemberStatus_Type in the backend
 type memberStatusType string
+
+func protoToMemberStatus(status pb.MemberStatus_Type) memberStatusType {
+	switch status {
+	case pb.MemberStatus_Alive:
+		return memberStatusType("A")
+	case pb.MemberStatus_Leaving:
+		return memberStatusType("G")
+	case pb.MemberStatus_Left:
+		return memberStatusType("L")
+	default:
+		return memberStatusType("F")
+	}
+}
 
 func (r memberStatusType) toProto() pb.MemberStatus_Type {
 	switch r {
@@ -83,12 +96,23 @@ func (r memberStatusType) Value() (value driver.Value, err error) {
 
 // Scan implements sql.Scanner
 func (r *memberStatusType) Scan(src interface{}) error {
-	*r = memberStatusType(src.(string))
+	*r = memberStatusType(src.([]byte))
 	return nil
 }
 
+func (r memberStatusType) String() string { return string(r) }
+
 // systemStatusType represents value of type pb.SystemStatus_Type in the backend
 type systemStatusType string
+
+func protoToSystemStatus(status pb.SystemStatus_Type) systemStatusType {
+	switch status {
+	case pb.SystemStatus_Running:
+		return systemStatusType("H")
+	default:
+		return systemStatusType("F")
+	}
+}
 
 func (r systemStatusType) toProto() pb.SystemStatus_Type {
 	switch r {
@@ -108,12 +132,23 @@ func (r systemStatusType) Value() (value driver.Value, err error) {
 
 // Scan implements sql.Scanner
 func (r *systemStatusType) Scan(src interface{}) error {
-	*r = systemStatusType(src.(string))
+	*r = systemStatusType(src.([]byte))
 	return nil
 }
 
+func (r systemStatusType) String() string { return string(r) }
+
 // nodeStatusType represents value of type pb.NodeStatus_Type in the backend
 type nodeStatusType string
+
+func protoToNodeStatus(status pb.NodeStatus_Type) nodeStatusType {
+	switch status {
+	case pb.NodeStatus_Running:
+		return nodeStatusType("H")
+	default:
+		return nodeStatusType("F")
+	}
+}
 
 func (r nodeStatusType) toProto() pb.NodeStatus_Type {
 	switch r {
@@ -133,6 +168,8 @@ func (r nodeStatusType) Value() (value driver.Value, err error) {
 
 // Scan implements sql.Scanner
 func (r *nodeStatusType) Scan(src interface{}) error {
-	*r = nodeStatusType(src.(string))
+	*r = nodeStatusType(src.([]byte))
 	return nil
 }
+
+func (r nodeStatusType) String() string { return string(r) }

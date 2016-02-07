@@ -27,7 +27,9 @@ message SystemStatus {
   }
   Type status = 1;
   // Health status of individual nodes.
-  repeated NodeStatus nodes = 3;
+  repeated NodeStatus nodes = 2;
+  Timestamp timestamp = 3;
+
 }
 
 // MembereStatus represents the status of a member of the serf cluster.
@@ -63,20 +65,18 @@ message NodeStatus {
 }
 
 message Probe {
-  Timestamp timestamp = 1;
-
   // Name of the checker that generated the probe.
-  string checker = 2;
+  string checker = 1;
   // Additional detail specific to the checker
-  string detail = 3;
+  string detail = 2;
   enum Type {
     Unknown = 0;
     Running = 1;
     Failed = 2;
     Terminated = 3;
   }
-  Type status = 4;
-  string error = 5;
+  Type status = 3;
+  string error = 4;
 }
 
 message Timestamp {

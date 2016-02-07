@@ -10,8 +10,10 @@ import (
 )
 
 func init() {
-	log.SetOutput(os.Stderr)
-	log.SetLevel(log.InfoLevel)
+	if testing.Verbose() {
+		log.SetOutput(os.Stderr)
+		log.SetLevel(log.InfoLevel)
+	}
 }
 
 func TestProtoStatus(t *testing.T) { TestingT(t) }
@@ -54,9 +56,8 @@ func (r *ProtoStatus) TestMarshalsMemberStatus(c *C) {
 			c.Errorf("expected %s but got %s", test.expected, text)
 		}
 		status := new(MemberStatus_Type)
-		err = status.UnmarshalText(text)
-		c.Assert(err, IsNil)
-		c.Assert(test.status, DeepEquals, *status)
+		c.Assert(status.UnmarshalText(text), IsNil)
+		c.Assert(test.status, Equals, *status)
 	}
 }
 
@@ -86,8 +87,7 @@ func (r *ProtoStatus) TestMarshalsSystemStatus(c *C) {
 			c.Errorf("expected %s but got %s", test.expected, text)
 		}
 		status := new(SystemStatus_Type)
-		err = status.UnmarshalText(text)
-		c.Assert(err, IsNil)
+		c.Assert(status.UnmarshalText(text), IsNil)
 		c.Assert(test.status, DeepEquals, *status)
 	}
 }
@@ -99,7 +99,7 @@ func (r *ProtoStatus) TestMarshalsNodeStatus(c *C) {
 	}{
 		{
 			status:   NodeStatus_Running,
-			expected: []byte("healthy"), // FIXME: "running"
+			expected: []byte("running"),
 		},
 		{
 			status:   NodeStatus_Degraded,
@@ -118,8 +118,7 @@ func (r *ProtoStatus) TestMarshalsNodeStatus(c *C) {
 			c.Errorf("expected %s but got %s", test.expected, text)
 		}
 		status := new(NodeStatus_Type)
-		err = status.UnmarshalText(text)
-		c.Assert(err, IsNil)
+		c.Assert(status.UnmarshalText(text), IsNil)
 		c.Assert(test.status, DeepEquals, *status)
 	}
 }
