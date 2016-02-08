@@ -187,7 +187,7 @@ func (r *backend) UpdateStatus(status *pb.SystemStatus) (err error) {
 // RecentStatus obtains the last known cluster status.
 func (r *backend) RecentStatus() (*pb.SystemStatus, error) {
 	const selectEverything = `
-	SELECT s.cluster_status, s.captured_at,
+	SELECT s.cluster_status, s.summary, s.captured_at,
 	  s.name as node_name, s.node_status, s.member_status, s.member_addr,
 	  s.checker, s.detail, s.status, s.error
 	FROM system_status s WHERE s.id in (SELECT max(id) FROM system_snapshot)
@@ -249,6 +249,7 @@ func statusSelector(status **pb.SystemStatus) accumulator {
 		for rows.Next() {
 			var (
 				ts           timestamp
+				summary      sql.NullString
 				systemStatus systemStatusType
 				nodeName     string
 				nodeStatus   nodeStatusType
@@ -259,7 +260,7 @@ func statusSelector(status **pb.SystemStatus) accumulator {
 				probeStatus  probeType
 				probeMessage sql.NullString
 			)
-			if err := rows.Scan(&systemStatus, &ts,
+			if err := rows.Scan(&systemStatus, &summary, &ts,
 				&nodeName, &nodeStatus, &memberStatus, &memberAddr,
 				&checker, &detail, &probeStatus, &probeMessage); err != nil {
 				return trace.Wrap(err)
@@ -268,6 +269,7 @@ func statusSelector(status **pb.SystemStatus) accumulator {
 				*status = &pb.SystemStatus{
 					Status:    systemStatus.toProto(),
 					Timestamp: (*pb.Timestamp)(&ts),
+					Summary:   summary.String,
 				}
 			}
 			if node != nil && node.Name != nodeName {

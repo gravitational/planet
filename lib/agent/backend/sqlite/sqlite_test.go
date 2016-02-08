@@ -192,6 +192,7 @@ func newStatusWithTags(names [2]string, time time.Time, tags [2]map[string]strin
 	status := &pb.SystemStatus{
 		Status:    pb.SystemStatus_Degraded,
 		Timestamp: when,
+		Summary:   "system status summary",
 		Nodes:     nodes,
 	}
 	return status
