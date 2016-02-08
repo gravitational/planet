@@ -41,7 +41,9 @@ func (r probeType) Value() (value driver.Value, err error) {
 
 // Scan implements sql.Scanner
 func (r *probeType) Scan(src interface{}) error {
-	*r = probeType(src.([]byte))
+	if src != nil {
+		*r = probeType(src.([]byte))
+	}
 	return nil
 }
 

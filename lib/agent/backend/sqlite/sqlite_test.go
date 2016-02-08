@@ -119,6 +119,20 @@ func (r *BackendWithClockSuite) TestScavengesOlderStats(c *C) {
 	c.Assert(status, DeepEquals, emptyStatus)
 }
 
+func (r *BackendWithClockSuite) TestUpdatesNodeEvenWithNoProbes(c *C) {
+	clock := clockwork.NewFakeClock()
+
+	time := clock.Now()
+	status := newStatus(nodes, time)
+	status.Nodes[0].Probes = nil // reset probes on the node
+	c.Assert(r.backend.UpdateStatus(status), IsNil)
+
+	actualStatus, err := r.backend.RecentStatus()
+	c.Assert(err, IsNil)
+
+	c.Assert(actualStatus, DeepEquals, status)
+}
+
 func updateStatus(b *backend, nodes [2]string, clock clockwork.Clock) error {
 	baseTime := clock.Now()
 	for i := 0; i < 3; i++ {

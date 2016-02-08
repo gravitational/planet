@@ -1,7 +1,6 @@
 package agent
 
 import (
-	"errors"
 	"fmt"
 	"net"
 
@@ -14,8 +13,6 @@ import (
 
 // Default RPC port.
 const RPCPort = 7575 // FIXME: use serf to discover agents
-
-var errNoMaster = errors.New("master node unavailable")
 
 // RPCServer is the interface that defines the interaction with an agent via RPC.
 type RPCServer interface {
@@ -39,7 +36,6 @@ func (r *server) Status(ctx context.Context, req *pb.StatusRequest) (resp *pb.St
 	if err != nil {
 		return nil, trace.Wrap(err)
 	}
-	setSystemStatus(resp)
 
 	return resp, nil
 }
@@ -68,44 +64,4 @@ func newRPCServer(agent *agent, listeners []net.Listener) *server {
 // It creates a new client based on address details from the specific serf member.
 func defaultDialRPC(member *serf.Member) (*client, error) {
 	return NewClient(fmt.Sprintf("%s:%d", member.Addr.String(), RPCPort))
-}
-
-// setSystemStatus combines the status of individual nodes into the status of the
-// cluster as a whole.
-// It additionally augments the cluster status repsonse with human-readable summary.
-func setSystemStatus(resp *pb.StatusResponse) {
-	var foundMaster bool
-
-	resp.Status.Status = pb.SystemStatus_Running
-	for _, node := range resp.Status.Nodes {
-		if !foundMaster && isMaster(node.MemberStatus) {
-			foundMaster = true
-		}
-		if resp.Status.Status == pb.SystemStatus_Running {
-			resp.Status.Status = nodeToSystemStatus(node.Status)
-		}
-		if node.MemberStatus.Status == pb.MemberStatus_Failed {
-			resp.Status.Status = pb.SystemStatus_Degraded
-		}
-	}
-	if !foundMaster {
-		resp.Status.Status = pb.SystemStatus_Degraded
-		resp.Summary = errNoMaster.Error()
-	}
-}
-
-func isMaster(member *pb.MemberStatus) bool {
-	value, ok := member.Tags["role"]
-	return ok && value == "master"
-}
-
-func nodeToSystemStatus(status pb.NodeStatus_Type) pb.SystemStatus_Type {
-	switch status {
-	case pb.NodeStatus_Running:
-		return pb.SystemStatus_Running
-	case pb.NodeStatus_Degraded:
-		return pb.SystemStatus_Degraded
-	default:
-		return pb.SystemStatus_Unknown
-	}
 }

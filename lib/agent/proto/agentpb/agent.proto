@@ -7,8 +7,6 @@ message StatusRequest {
 
 message StatusResponse {
   SystemStatus status = 1;
-  // Human-readable status summary.
-  string summary = 2;
 }
 
 message LocalStatusRequest {
@@ -29,7 +27,8 @@ message SystemStatus {
   // Health status of individual nodes.
   repeated NodeStatus nodes = 2;
   Timestamp timestamp = 3;
-
+  // Human-readable status summary.
+  string summary = 4;
 }
 
 // MembereStatus represents the status of a member of the serf cluster.

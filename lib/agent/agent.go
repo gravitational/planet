@@ -237,6 +237,7 @@ func (r *agent) collectStatus(ctx context.Context) (systemStatus *pb.SystemStatu
 	if err != nil {
 		return nil, trace.Wrap(err, "failed to query serf members")
 	}
+	log.Infof("started collecting statuses from %d members: %v", len(members), members)
 
 	statuses := make(chan *statusResponse, len(members))
 	var wg sync.WaitGroup
@@ -253,6 +254,7 @@ func (r *agent) collectStatus(ctx context.Context) (systemStatus *pb.SystemStatu
 	close(statuses)
 
 	for status := range statuses {
+		log.Infof("retrieved status from %v: %v", status.member, status.NodeStatus)
 		nodeStatus := status.NodeStatus
 		if status.err != nil {
 			log.Infof("failed to query node %s(%v) status: %v", status.member.Name, status.member.Addr, status.err)
@@ -260,6 +262,7 @@ func (r *agent) collectStatus(ctx context.Context) (systemStatus *pb.SystemStatu
 		}
 		systemStatus.Nodes = append(systemStatus.Nodes, nodeStatus)
 	}
+	setSystemStatus(systemStatus)
 
 	return systemStatus, nil
 }

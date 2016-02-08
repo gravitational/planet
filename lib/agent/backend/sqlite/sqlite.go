@@ -38,7 +38,8 @@ CREATE TABLE IF NOT EXISTS node_tag (
   node_id INTEGER,
   tag_id INTEGER,
   FOREIGN KEY(node_id) REFERENCES node(id),
-  FOREIGN KEY(tag_id) REFERENCES tag(id)
+  FOREIGN KEY(tag_id) REFERENCES tag(id),
+  UNIQUE (node_id, tag_id) ON CONFLICT IGNORE
 );
 
 CREATE VIEW IF NOT EXISTS node_tags AS
@@ -53,7 +54,7 @@ WHEN EXISTS (SELECT 1 FROM node WHERE node.name = new.node_name)
 BEGIN
   INSERT OR IGNORE INTO tag(key, value) VALUES(new.key, new.value);
 
-  INSERT INTO node_tag(node_id, tag_id)
+  INSERT OR IGNORE INTO node_tag(node_id, tag_id)
   SELECT n.id, t.id FROM node n JOIN tag t
   WHERE n.name = new.node_name AND t.key = new.key AND t.value = new.value;
 END;
@@ -63,6 +64,7 @@ CREATE TABLE IF NOT EXISTS system_snapshot (
   id INTEGER PRIMARY KEY NOT NULL,
   -- system status: running/degraded
   status CHAR(1) CHECK(status IN ('H', 'F')) NOT NULL DEFAULT 'H',
+  summary TEXT,
   captured_at TIMESTAMP NOT NULL UNIQUE
 );
 
@@ -93,17 +95,18 @@ CREATE TABLE IF NOT EXISTS probe (
 );
 
 CREATE VIEW IF NOT EXISTS system_status AS
-SELECT s.id, s.captured_at, s.status AS cluster_status, ns.status AS node_status, ns.member_status,
+SELECT s.id, s.captured_at, s.status AS cluster_status, s.summary, ns.status AS node_status, ns.member_status,
 	n.name, n.member_addr, p.checker, p.detail, p.status, p.error
 FROM system_snapshot s
   INNER JOIN node_snapshot ns ON ns.snapshot_id = s.id AND ns.node_id = n.id
   INNER JOIN node n ON ns.node_id = n.id
-  INNER JOIN probe p ON p.node_id = n.id AND p.snapshot_id = s.id;
+  LEFT OUTER JOIN probe p ON p.node_id = n.id AND p.snapshot_id = s.id;
 
 CREATE TRIGGER IF NOT EXISTS insert_system_status
 INSTEAD OF INSERT ON system_status
 BEGIN
-  INSERT OR IGNORE INTO system_snapshot(status, captured_at) VALUES(new.cluster_status, new.captured_at);
+  INSERT OR IGNORE INTO system_snapshot(status, summary, captured_at)
+  VALUES(new.cluster_status, new.summary, new.captured_at);
 
   INSERT OR IGNORE INTO node(name, member_addr) VALUES(new.name, new.member_addr);
   
@@ -113,7 +116,8 @@ BEGIN
   
   INSERT INTO probe(node_id, snapshot_id, checker, detail, status, error)
   SELECT n.id, s.id, new.checker, new.detail, new.status, new.error
-  FROM node n JOIN system_snapshot s WHERE n.name = new.name AND s.captured_at = new.captured_at;
+  FROM node n JOIN system_snapshot s
+  WHERE n.name = new.name AND s.captured_at = new.captured_at AND new.checker IS NOT NULL;
 END;
 `
 
@@ -129,11 +133,12 @@ func New(path string) (*backend, error) {
 
 // Update creates a new snapshot of the system state specified with status.
 func (r *backend) UpdateStatus(status *pb.SystemStatus) (err error) {
+	log.Infof("sqlite: update status for %d nodes: %v", len(status.Nodes), status)
 	if err = inTx(r.DB, func(tx *sql.Tx) error {
 		const insertStatus = `
-			INSERT INTO system_status(captured_at, cluster_status, node_status, member_status,
+			INSERT INTO system_status(captured_at, cluster_status, summary, node_status, member_status,
 						  name, member_addr, checker, detail, status, error)
-			VALUES(?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+			VALUES(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
 		`
 		const insertTags = `INSERT INTO node_tags(node_name, key, value) VALUES(?, ?, ?)`
 
@@ -142,11 +147,26 @@ func (r *backend) UpdateStatus(status *pb.SystemStatus) (err error) {
 				if _, err = tx.Exec(insertStatus,
 					(*timestamp)(status.Timestamp),
 					protoToSystemStatus(status.Status),
+					status.Summary,
 					protoToNodeStatus(node.Status),
 					protoToMemberStatus(node.MemberStatus.Status),
 					node.Name, node.MemberStatus.Addr,
 					probe.Checker, probe.Detail, protoToProbe(probe.Status),
 					probe.Error); err != nil {
+					return trace.Wrap(err)
+				}
+			}
+			// Persist node status even for nodes w/o probes
+			if len(node.Probes) == 0 {
+				var null *string
+				if _, err = tx.Exec(insertStatus,
+					(*timestamp)(status.Timestamp),
+					protoToSystemStatus(status.Status),
+					status.Summary,
+					protoToNodeStatus(node.Status),
+					protoToMemberStatus(node.MemberStatus.Status),
+					node.Name, node.MemberStatus.Addr,
+					null, null, null, null); err != nil {
 					return trace.Wrap(err)
 				}
 			}
@@ -234,10 +254,10 @@ func statusSelector(status **pb.SystemStatus) accumulator {
 				nodeStatus   nodeStatusType
 				memberStatus memberStatusType
 				memberAddr   string
-				checker      string
-				detail       string
+				checker      sql.NullString
+				detail       sql.NullString
 				probeStatus  probeType
-				probeMessage string
+				probeMessage sql.NullString
 			)
 			if err := rows.Scan(&systemStatus, &ts,
 				&nodeName, &nodeStatus, &memberStatus, &memberAddr,
@@ -265,12 +285,14 @@ func statusSelector(status **pb.SystemStatus) accumulator {
 					},
 				}
 			}
-			node.Probes = append(node.Probes, &pb.Probe{
-				Checker: checker,
-				Detail:  detail,
-				Status:  probeStatus.toProto(),
-				Error:   probeMessage,
-			})
+			if checker.Valid {
+				node.Probes = append(node.Probes, &pb.Probe{
+					Checker: checker.String,
+					Detail:  detail.String,
+					Status:  probeStatus.toProto(),
+					Error:   probeMessage.String,
+				})
+			}
 		}
 		if node != nil {
 			(*status).Nodes = append((*status).Nodes, node)
