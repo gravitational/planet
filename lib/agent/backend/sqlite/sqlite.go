@@ -140,6 +140,11 @@ func (r *backend) UpdateStatus(status *pb.SystemStatus) (err error) {
 						  name, member_addr, checker, detail, status, error)
 			VALUES(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
 		`
+		const insertStatusNoProbe = `
+			INSERT INTO system_status(captured_at, cluster_status, summary, node_status, member_status,
+						  name, member_addr)
+			VALUES(?, ?, ?, ?, ?, ?, ?)
+		`
 		const insertTags = `INSERT INTO node_tags(node_name, key, value) VALUES(?, ?, ?)`
 
 		for _, node := range status.Nodes {
@@ -158,15 +163,13 @@ func (r *backend) UpdateStatus(status *pb.SystemStatus) (err error) {
 			}
 			// Persist node status even for nodes w/o probes
 			if len(node.Probes) == 0 {
-				var null *string
-				if _, err = tx.Exec(insertStatus,
+				if _, err = tx.Exec(insertStatusNoProbe,
 					(*timestamp)(status.Timestamp),
 					protoToSystemStatus(status.Status),
 					status.Summary,
 					protoToNodeStatus(node.Status),
 					protoToMemberStatus(node.MemberStatus.Status),
-					node.Name, node.MemberStatus.Addr,
-					null, null, null, null); err != nil {
+					node.Name, node.MemberStatus.Addr); err != nil {
 					return trace.Wrap(err)
 				}
 			}
