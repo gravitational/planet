@@ -10,7 +10,7 @@ import (
 	"syscall"
 	"time"
 
-	"github.com/gravitational/log"
+	log "github.com/Sirupsen/logrus"
 	"github.com/gravitational/planet/lib/agent"
 	pb "github.com/gravitational/planet/lib/agent/proto/agentpb"
 	"github.com/gravitational/planet/lib/leader"
@@ -57,7 +57,6 @@ func startLeaderClient(conf *LeaderConfig) (io.Closer, error) {
 	if err != nil {
 		return nil, trace.Wrap(err)
 	}
-	defer client.Close()
 	if conf.Role == RoleMaster {
 		if err := client.AddVoter(conf.LeaderKey, conf.PublicIP, conf.Term); err != nil {
 			return nil, trace.Wrap(err)

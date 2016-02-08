@@ -6,10 +6,13 @@ ASSETDIR:=$(BUILDDIR)/assets
 ROOTFS:=$(TARGETDIR)/rootfs
 CONTAINERNAME:=planet-base-$(TARGET)
 TARBALL:=$(TARGETDIR)/planet-$(TARGET).tar.gz
+export
 
-.PHONY: all clean
+.PHONY: all build clean planet-image
 
-all: $(ROOTFS)/bin/bash 
+all: $(ROOTFS)/bin/bash build planet-image
+
+build:
 	@echo -e "\n---> Launching 'buildbox' Docker container to build $(TARGET):\n"
 	@mkdir -p $(ASSETDIR)
 	docker run -i -u $$(id -u) --rm=true \
@@ -24,8 +27,14 @@ all: $(ROOTFS)/bin/bash
 		--env="ASSETDIR=/assetdir" \
 		planet/buildbox:latest \
 		make -e KUBE_VER=$(KUBE_VER) -C /assets/makefiles -f $(TARGET)-docker.mk
+ifeq ($(TARGET),master)
+	$(MAKE) -C $(ASSETS)/makefiles/master/k8s-master -e -f containers.mk
+endif
+
+planet-image: 
 	cp $(ASSETS)/orbit.manifest.json $(TARGETDIR)
 	cp $(ASSETDIR)/planet $(ROOTFS)/usr/bin/
+	cp $(ASSETDIR)/docker-import $(ROOTFS)/usr/bin/
 	@echo -e "\n---> Moving current symlink to $(TARGETDIR)\n"
 	@rm -f $(BUILDDIR)/current
 	@cd $(BUILDDIR) && ln -fs $(TARGET) $(BUILDDIR)/current
@@ -46,7 +55,6 @@ enter_buildbox:
 		--env="ASSETDIR=/assetdir" \
 		planet/buildbox:latest \
 		/bin/bash
-
 
 $(ROOTFS)/bin/bash: clean-rootfs
 	@echo -e "\n---> Creating RootFS for Planet image:\n"

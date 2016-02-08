@@ -5,18 +5,17 @@ ROOTFS := /rootfs
 TARGETDIR := /targetdir
 ASSETDIR := /assetdir
 
-all: $(ASSETDIR)/planet
+all: $(ASSETDIR)/planet $(ASSETDIR)/docker-import
 	make -C $(ASSETS)/makefiles/base/network -f network.mk
 	make -C $(ASSETS)/makefiles/base/docker -f docker.mk 
-	make -C $(ASSETS)/makefiles/base/docker -f registry.mk
 	make -C $(ASSETS)/makefiles/base/agent -f agent.mk
 	make -C $(ASSETS)/makefiles/kubernetes -f kubernetes.mk
 	make -C $(ASSETS)/makefiles/etcd -f etcd.mk
 
-$(ASSETDIR)/planet: .FORCE
+$(ASSETDIR)/planet:
 # Add to ldflags to compile a completely static version of the planet binary (w/o the glibc dependency)
 # -ldflags '-extldflags "-static"'
 	GOOS=linux GOARCH=amd64 go build -ldflags "$(PLANET_GO_LDFLAGS)" -o $@ github.com/gravitational/planet/tool/planet
 
-# force recompilation
-.FORCE:
+$(ASSETDIR)/docker-import:
+	GOOS=linux GOARCH=amd64 go build -ldflags "$(PLANET_GO_LDFLAGS)" -o $@ github.com/gravitational/planet/tool/docker-import

@@ -39,6 +39,7 @@ SHELL:=/bin/bash
 
 PWD := $(shell pwd)
 ASSETS := $(PWD)/build.assets
+BUILD_ASSETS := $(PWD)/build/assets
 BUILDDIR ?= $(PWD)/build
 BUILDDIR := $(shell realpath $(BUILDDIR))
 KUBE_VER:=v1.1.4
@@ -54,7 +55,7 @@ all: production dev
 # development on an _already built image_. You need to build an image first, for 
 # example with "make dev"
 build: $(BUILDDIR)/current
-	GOOS=linux GOARCH=amd64 go install -ldflags $(PLANET_GO_LDFLAGS) github.com/gravitational/planet/tool/planet
+	GOOS=linux GOARCH=amd64 go install -ldflags "$(PLANET_GO_LDFLAGS)" github.com/gravitational/planet/tool/planet
 	cp -f $$GOPATH/bin/planet $(BUILDDIR)/current/planet 
 	rm -f $(BUILDDIR)/current/rootfs/usr/bin/planet
 	cp -f $$GOPATH/bin/planet $(BUILDDIR)/current/rootfs/usr/bin/planet
@@ -67,6 +68,7 @@ dev: buildbox
 # WARNING: careful here. This is production build!!!!
 #
 production: buildbox
+	@rm -f $(BUILD_ASSETS)/planet
 	$(MAKE) -C $(ASSETS)/makefiles -e TARGET=master -f buildbox.mk
 	$(MAKE) -C $(ASSETS)/makefiles -e TARGET=node -f buildbox.mk
 
@@ -106,12 +108,18 @@ dev-test: dev prepare-to-run
 # Starts "planet-dev" build.
 dev-start: dev prepare-to-run
 	cd $(BUILDDIR)/current && sudo rootfs/usr/bin/planet start\
-		--debug\
-		--public-ip=$(PUBLIC_IP)\
-		--role=master\
-		--role=node\
-		--volume=/var/planet/etcd:/ext/etcd\
-		--volume=/var/planet/registry:/ext/registry\
+		--debug \
+		--etcd-member-name=v-planet-master \
+		--secrets-dir=/var/planet/state \
+		--state-dir=/var/planet/state \
+		--public-ip=$(PUBLIC_IP) \
+		--role=master \
+		--role=node \
+		--service-uid=1000 \
+		--initial-cluster=v-planet-master:$(PUBLIC_IP) \
+		--volume=/var/planet/agent:/ext/agent \
+		--volume=/var/planet/etcd:/ext/etcd \
+		--volume=/var/planet/registry:/ext/registry \
 		--volume=/var/planet/docker:/ext/docker
 
 # Starts "planet-node" image.

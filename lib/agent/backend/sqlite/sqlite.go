@@ -4,7 +4,7 @@ import (
 	"database/sql"
 	"time"
 
-	"github.com/gravitational/log"
+	log "github.com/Sirupsen/logrus"
 	pb "github.com/gravitational/planet/lib/agent/proto/agentpb"
 	"github.com/gravitational/trace"
 	"github.com/jonboulle/clockwork"

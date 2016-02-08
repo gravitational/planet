@@ -11,9 +11,9 @@ import (
 	"syscall"
 	"time"
 
+	log "github.com/Sirupsen/logrus"
 	kv "github.com/gravitational/configure"
 	"github.com/gravitational/configure/cstrings"
-	"github.com/gravitational/log"
 	"github.com/gravitational/planet/lib/agent"
 	"github.com/gravitational/planet/lib/agent/backend/sqlite"
 	"github.com/gravitational/planet/lib/agent/cache"
@@ -94,6 +94,7 @@ func run() error {
 		cagentInitialCluster = KeyValueList(cagent.Flag("initial-cluster", "Initial planet cluster configuration as a comma-separated list of peers").OverrideDefaultFromEnvar(EnvInitialCluster))
 		cagentStateDir       = cagent.Flag("state-dir", "Directory where agent-specific state like health stats is stored").Default("/var/planet/agent").String()
 		cagentClusterDNS     = cagent.Flag("cluster-dns", "IP for a cluster DNS server.").OverrideDefaultFromEnvar(EnvClusterDNSIP).IP()
+		cagentRegistryAddr   = HostPort(cagent.Flag("docker-registry-addr", "Address of the planet private docker registry"))
 
 		// stop a running container
 		cstop = app.Command("stop", "Stop planet container")
@@ -133,10 +134,11 @@ func run() error {
 	}
 
 	if *debug == true {
-		log.Initialize("console", "INFO")
-		log.Infof("Debug mode is ON")
+		log.SetOutput(os.Stderr)
+		log.SetLevel(log.InfoLevel)
 	} else {
-		log.Initialize("console", "WARN")
+		log.SetOutput(os.Stderr)
+		log.SetLevel(log.WarnLevel)
 	}
 
 	if emptyIP(cstartMasterIP) {
@@ -166,9 +168,10 @@ func run() error {
 			Cache:       cache,
 		}
 		monitoringConf := &monitoring.Config{
-			Role:       agent.Role(*cagentRole),
-			KubeAddr:   *cagentKubeAddr,
-			ClusterDNS: cagentClusterDNS.String(),
+			Role:         agent.Role(*cagentRole),
+			KubeAddr:     *cagentKubeAddr,
+			ClusterDNS:   cagentClusterDNS.String(),
+			RegistryAddr: cagentRegistryAddr.String(),
 		}
 		leaderConf := &LeaderConfig{
 			PublicIP:      cagentPublicIP.String(),

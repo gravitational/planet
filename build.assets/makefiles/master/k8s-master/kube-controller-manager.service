@@ -16,3 +16,4 @@ Restart=always
 RestartSec=10
 User=planet
 Group=planet
+SuccessExitStatus=2

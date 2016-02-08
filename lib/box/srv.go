@@ -11,7 +11,7 @@ import (
 	"path/filepath"
 	"syscall"
 
-	"github.com/gravitational/log"
+	log "github.com/Sirupsen/logrus"
 	"github.com/gravitational/trace"
 
 	"github.com/opencontainers/runc/libcontainer"

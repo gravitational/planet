@@ -7,8 +7,8 @@ import (
 	"testing"
 	"time"
 
+	log "github.com/Sirupsen/logrus"
 	"github.com/coreos/etcd/client"
-	"github.com/gravitational/log"
 	"github.com/pborman/uuid"
 	"golang.org/x/net/context"
 	. "gopkg.in/check.v1"

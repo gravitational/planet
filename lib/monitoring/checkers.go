@@ -34,7 +34,7 @@ func addToMaster(node agent.Agent, conf *Config) {
 	node.AddChecker(dockerRegistryHealth())
 	node.AddChecker(etcdHealth())
 	node.AddChecker(systemdHealth())
-	// node.AddChecker(intraPodCommunication(conf.KubeAddr, conf.RegistryAddr))
+	node.AddChecker(intraPodCommunication(conf.KubeAddr, conf.RegistryAddr))
 }
 
 func addToNode(node agent.Agent, conf *Config) {
