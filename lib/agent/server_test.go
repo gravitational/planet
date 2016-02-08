@@ -49,7 +49,7 @@ func (_ *AgentSuite) TestSetsSystemStatusFromMemberStatuses(c *C) {
 		},
 	}
 
-	setSystemStatus(resp)
+	setSystemStatus(resp.Status)
 	c.Assert(resp.Status.Status, Equals, pb.SystemStatus_Degraded)
 }
 
@@ -83,7 +83,7 @@ func (_ *AgentSuite) TestSetsSystemStatusFromNodeStatuses(c *C) {
 		},
 	}
 
-	setSystemStatus(resp)
+	setSystemStatus(resp.Status)
 	c.Assert(resp.Status.Status, Equals, pb.SystemStatus_Degraded)
 }
 
@@ -106,9 +106,9 @@ func (_ *AgentSuite) TestDetectsNoMaster(c *C) {
 		},
 	}
 
-	setSystemStatus(resp)
+	setSystemStatus(resp.Status)
 	c.Assert(resp.Status.Status, Equals, pb.SystemStatus_Degraded)
-	c.Assert(resp.Summary, Equals, errNoMaster.Error())
+	c.Assert(resp.Status.Summary, Equals, errNoMaster.Error())
 }
 
 func (_ *AgentSuite) TestSetsOkSystemStatus(c *C) {
@@ -135,7 +135,7 @@ func (_ *AgentSuite) TestSetsOkSystemStatus(c *C) {
 	}
 
 	expectedStatus := pb.SystemStatus_Running
-	setSystemStatus(resp)
+	setSystemStatus(resp.Status)
 	c.Assert(resp.Status.Status, Equals, expectedStatus)
 }
 
