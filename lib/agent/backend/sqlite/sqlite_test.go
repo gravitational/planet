@@ -133,6 +133,24 @@ func (r *BackendWithClockSuite) TestUpdatesNodeEvenWithNoProbes(c *C) {
 	c.Assert(actualStatus, DeepEquals, status)
 }
 
+func (r *BackendWithClockSuite) TestUpdatesMemberAddrForNode(c *C) {
+	clock := clockwork.NewFakeClock()
+
+	ts := clock.Now()
+	status := newStatus(nodes, ts)
+	status.Nodes[0].MemberStatus.Addr = "" // reset member address
+	c.Assert(r.backend.UpdateStatus(status), IsNil)
+
+	status.Timestamp = pb.NewTimeToProto(ts.Add(time.Second)) // skew time to force new snapshot
+	status.Nodes[0].MemberStatus.Addr = "198.168.172.1"
+	c.Assert(r.backend.UpdateStatus(status), IsNil)
+
+	actualStatus, err := r.backend.RecentStatus()
+	c.Assert(err, IsNil)
+
+	c.Assert(actualStatus, DeepEquals, status)
+}
+
 func updateStatus(b *backend, nodes [2]string, clock clockwork.Clock) error {
 	baseTime := clock.Now()
 	for i := 0; i < 3; i++ {

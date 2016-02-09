@@ -109,6 +109,7 @@ BEGIN
   VALUES(new.cluster_status, new.summary, new.captured_at);
 
   INSERT OR IGNORE INTO node(name, member_addr) VALUES(new.name, new.member_addr);
+  UPDATE node SET member_addr = new.member_addr WHERE name = new.name AND new.member_addr IS NOT NULL;
   
   INSERT OR IGNORE INTO node_snapshot(node_id, snapshot_id, status, member_status)
   SELECT n.id as node_id, s.id as snapshot_id, new.node_status, new.member_status
@@ -133,7 +134,6 @@ func New(path string) (*backend, error) {
 
 // Update creates a new snapshot of the system state specified with status.
 func (r *backend) UpdateStatus(status *pb.SystemStatus) (err error) {
-	log.Infof("sqlite: update status for %d nodes: %v", len(status.Nodes), status)
 	if err = inTx(r.DB, func(tx *sql.Tx) error {
 		const insertStatus = `
 			INSERT INTO system_status(captured_at, cluster_status, summary, node_status, member_status,
@@ -147,15 +147,17 @@ func (r *backend) UpdateStatus(status *pb.SystemStatus) (err error) {
 		`
 		const insertTags = `INSERT INTO node_tags(node_name, key, value) VALUES(?, ?, ?)`
 
+		summary := nullString(status.Summary)
 		for _, node := range status.Nodes {
+			memberAddr := nullString(node.MemberStatus.Addr)
 			for _, probe := range node.Probes {
 				if _, err = tx.Exec(insertStatus,
 					(*timestamp)(status.Timestamp),
 					protoToSystemStatus(status.Status),
-					status.Summary,
+					summary,
 					protoToNodeStatus(node.Status),
 					protoToMemberStatus(node.MemberStatus.Status),
-					node.Name, node.MemberStatus.Addr,
+					node.Name, memberAddr,
 					probe.Checker, probe.Detail, protoToProbe(probe.Status),
 					probe.Error); err != nil {
 					return trace.Wrap(err)
@@ -257,7 +259,7 @@ func statusSelector(status **pb.SystemStatus) accumulator {
 				nodeName     string
 				nodeStatus   nodeStatusType
 				memberStatus memberStatusType
-				memberAddr   string
+				memberAddr   sql.NullString
 				checker      sql.NullString
 				detail       sql.NullString
 				probeStatus  probeType
@@ -285,7 +287,7 @@ func statusSelector(status **pb.SystemStatus) accumulator {
 					Status: nodeStatus.toProto(),
 					MemberStatus: &pb.MemberStatus{
 						Name:   nodeName,
-						Addr:   memberAddr,
+						Addr:   memberAddr.String,
 						Status: memberStatus.toProto(),
 					},
 				}
@@ -414,4 +416,11 @@ func newBackend(db *sql.DB, clock clockwork.Clock) (*backend, error) {
 	}
 	go backend.scavengeLoop()
 	return backend, nil
+}
+
+func nullString(value string) sql.NullString {
+	return sql.NullString{
+		String: value,
+		Valid:  value != "",
+	}
 }
