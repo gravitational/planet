@@ -20,4 +20,4 @@ ExecStart=/usr/bin/planet --debug agent \
 	--kube-addr=http://${KUBE_APISERVER}:8080 \
 	--state-dir=${PLANET_STATE_DIR} \
 	--cluster-dns=${KUBE_CLUSTER_DNS_IP} \
-	--docker-registry-addr=${KUBE_MASTER_IP}:5000
+	--docker-registry-addr=${KUBE_APISERVER}:5000
