@@ -108,6 +108,7 @@ func start(config *Config, monitorc chan<- bool) (*box.Box, error) {
 		return nil, trace.Wrap(err)
 	}
 
+	apiserverName := fmt.Sprintf("apiserver.%v", config.ClusterID)
 	config.Env = append(config.Env,
 		box.EnvPair{Name: EnvMasterIP, Val: config.MasterIP},
 		box.EnvPair{Name: EnvCloudProvider, Val: config.CloudProvider},
@@ -119,7 +120,7 @@ func start(config *Config, monitorc chan<- bool) (*box.Box, error) {
 		box.EnvPair{Name: EnvAgentName, Val: config.EtcdMemberName},
 		box.EnvPair{Name: EnvInitialCluster, Val: toKeyValueList(config.InitialCluster)},
 		box.EnvPair{Name: EnvClusterDNSIP, Val: config.ServiceSubnet.RelativeIP(3).String()},
-		box.EnvPair{Name: EnvAPIServerName, Val: fmt.Sprintf("apiserver.%v", config.ClusterID)},
+		box.EnvPair{Name: EnvAPIServerName, Val: apiserverName},
 		box.EnvPair{Name: EnvEtcdMemberName, Val: config.EtcdMemberName},
 		box.EnvPair{Name: EnvEtcdInitialCluster, Val: config.EtcdInitialCluster},
 		box.EnvPair{Name: EnvEtcdInitialClusterState, Val: config.EtcdInitialClusterState},
@@ -129,7 +130,10 @@ func start(config *Config, monitorc chan<- bool) (*box.Box, error) {
 
 	// Always trust local registry (for now)
 	config.InsecureRegistries = append(
-		config.InsecureRegistries, fmt.Sprintf("%v:5000", config.MasterIP))
+		config.InsecureRegistries,
+		fmt.Sprintf("%v:5000", config.MasterIP),
+		fmt.Sprintf("%v:5000", apiserverName),
+	)
 
 	addInsecureRegistries(config)
 	addDockerOptions(config)
