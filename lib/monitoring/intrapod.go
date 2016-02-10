@@ -8,17 +8,19 @@ import (
 	log "github.com/Sirupsen/logrus"
 	"github.com/gravitational/trace"
 	"k8s.io/kubernetes/pkg/api"
+	"k8s.io/kubernetes/pkg/api/errors"
 	kube "k8s.io/kubernetes/pkg/client/unversioned"
 	"k8s.io/kubernetes/pkg/fields"
 	"k8s.io/kubernetes/pkg/labels"
 	"k8s.io/kubernetes/pkg/util"
+	"k8s.io/kubernetes/pkg/util/wait"
 )
 
-// testNamespace is the namespace for functional k8s tests.
-const testNamespace = "planettest"
+// testNamespace is the name of the namespace used for functional k8s tests.
+const testNamespace = "planet-test"
 
-// serviceName is the prefix used to name test pods.
-const serviceName = "nettest"
+// serviceNamePrefix is the prefix used to name test pods.
+const serviceNamePrefix = "nettest-"
 
 // intraPodChecker is a checker that runs a networking test in the cluster
 // by scheduling actual pods and verifying they can communicate.
@@ -42,9 +44,18 @@ func newIntraPodChecker(kubeAddr, registryAddr string) checker {
 
 // testIntraPodCommunication implements the intra-pod communication test.
 func (r *intraPodChecker) testIntraPodCommunication(client *kube.Client) error {
+	serviceName := generateName(serviceNamePrefix)
 	if err := createNamespaceIfNeeded(client, testNamespace); err != nil {
-		return trace.Wrap(err, "faile to create test namespace `%s`", testNamespace)
+		return trace.Wrap(err, "failed to create namespace `%v`", testNamespace)
 	}
+
+	const shouldWait = true
+	const userName = "default"
+
+	if _, err := getServiceAccount(client, testNamespace, userName, shouldWait); err != nil {
+		return trace.Wrap(err, "service account has not yet been created - test postponed")
+	}
+
 	svc, err := client.Services(testNamespace).Create(&api.Service{
 		ObjectMeta: api.ObjectMeta{
 			Name: serviceName,
@@ -84,7 +95,7 @@ func (r *intraPodChecker) testIntraPodCommunication(client *kube.Client) error {
 	}
 
 	testContainer := fmt.Sprintf("%s/nettest:1.6", r.registryAddr)
-	podNames, err := launchNetTestPodPerNode(client, nodes, serviceName, testContainer)
+	podNames, err := launchNetTestPodPerNode(client, nodes, serviceName, testContainer, testNamespace)
 	if err != nil {
 		return trace.Wrap(err, "failed to start `nettest` pod")
 	}
@@ -211,12 +222,12 @@ func waitForPodCondition(client *kube.Client, ns, podName, desc string, timeout 
 
 // launchNetTestPodPerNode schedules a new test pod on each of specified nodes
 // using the specified containerImage.
-func launchNetTestPodPerNode(client *kube.Client, nodes *api.NodeList, name, containerImage string) ([]string, error) {
+func launchNetTestPodPerNode(client *kube.Client, nodes *api.NodeList, name, containerImage, namespace string) ([]string, error) {
 	podNames := []string{}
 	totalPods := len(nodes.Items)
 
 	for _, node := range nodes.Items {
-		pod, err := client.Pods(testNamespace).Create(&api.Pod{
+		pod, err := client.Pods(namespace).Create(&api.Pod{
 			ObjectMeta: api.ObjectMeta{
 				GenerateName: name + "-",
 				Labels: map[string]string{
@@ -232,7 +243,7 @@ func launchNetTestPodPerNode(client *kube.Client, nodes *api.NodeList, name, con
 							"-service=" + name,
 							// `nettest` container finds peers by looking up list of service endpoints
 							fmt.Sprintf("-peers=%d", totalPods),
-							"-namespace=" + testNamespace},
+							"-namespace=" + namespace},
 						Ports: []api.ContainerPort{{ContainerPort: 8080}},
 					},
 				},
@@ -270,4 +281,35 @@ func createNamespaceIfNeeded(client *kube.Client, namespace string) error {
 		}
 	}
 	return nil
+}
+
+// generateName generates a name for a kubernetes object.
+// The name generated is guaranteed to satisfy kubernetes requirements.
+func generateName(prefix string) string {
+	return api.SimpleNameGenerator.GenerateName(prefix)
+}
+
+// getServiceAccount retrieves the service account with the specified name
+// in the provided namespace.
+func getServiceAccount(c *kube.Client, ns, name string, shouldWait bool) (*api.ServiceAccount, error) {
+	if !shouldWait {
+		return c.ServiceAccounts(ns).Get(name)
+	}
+
+	const interval = time.Second
+	const timeout = 10 * time.Second
+
+	var user *api.ServiceAccount
+	var err error
+	err = wait.Poll(interval, timeout, func() (bool, error) {
+		user, err = c.ServiceAccounts(ns).Get(name)
+		if errors.IsNotFound(err) {
+			return false, nil
+		}
+		if err != nil {
+			return false, err
+		}
+		return true, nil
+	})
+	return user, err
 }
