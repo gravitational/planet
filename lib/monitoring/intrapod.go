@@ -8,10 +8,12 @@ import (
 	log "github.com/Sirupsen/logrus"
 	"github.com/gravitational/trace"
 	"k8s.io/kubernetes/pkg/api"
+	"k8s.io/kubernetes/pkg/api/errors"
 	kube "k8s.io/kubernetes/pkg/client/unversioned"
 	"k8s.io/kubernetes/pkg/fields"
 	"k8s.io/kubernetes/pkg/labels"
 	"k8s.io/kubernetes/pkg/util"
+	"k8s.io/kubernetes/pkg/util/wait"
 )
 
 // testNamespace is the name of the namespace used for functional k8s tests.
@@ -46,6 +48,14 @@ func (r *intraPodChecker) testIntraPodCommunication(client *kube.Client) error {
 	if err := createNamespaceIfNeeded(client, testNamespace); err != nil {
 		return trace.Wrap(err, "failed to create namespace `%v`", testNamespace)
 	}
+
+	const shouldWait = true
+	const userName = "default"
+
+	if _, err := getServiceAccount(client, testNamespace, userName, shouldWait); err != nil {
+		return trace.Wrap(err, "service account has not yet been created - test postponed")
+	}
+
 	svc, err := client.Services(testNamespace).Create(&api.Service{
 		ObjectMeta: api.ObjectMeta{
 			Name: serviceName,
@@ -277,4 +287,29 @@ func createNamespaceIfNeeded(client *kube.Client, namespace string) error {
 // The name generated is guaranteed to satisfy kubernetes requirements.
 func generateName(prefix string) string {
 	return api.SimpleNameGenerator.GenerateName(prefix)
+}
+
+// getServiceAccount retrieves the service account with the specified name
+// in the provided namespace.
+func getServiceAccount(c *kube.Client, ns, name string, shouldWait bool) (*api.ServiceAccount, error) {
+	if !shouldWait {
+		return c.ServiceAccounts(ns).Get(name)
+	}
+
+	const interval = time.Second
+	const timeout = 10 * time.Second
+
+	var user *api.ServiceAccount
+	var err error
+	err = wait.Poll(interval, timeout, func() (bool, error) {
+		user, err = c.ServiceAccounts(ns).Get(name)
+		if errors.IsNotFound(err) {
+			return false, nil
+		}
+		if err != nil {
+			return false, err
+		}
+		return true, nil
+	})
+	return user, err
 }
