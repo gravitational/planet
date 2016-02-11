@@ -39,6 +39,7 @@ type Config struct {
 	EtcdMemberName          string
 	EtcdInitialCluster      string
 	EtcdInitialClusterState string
+	NodeName                string
 }
 
 func (cfg *Config) hasRole(r string) bool {

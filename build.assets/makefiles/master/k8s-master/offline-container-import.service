@@ -1,6 +1,6 @@
 [Unit]
 Description=Prepackaged Kubernetes container images
-Requires=docker.socket
+Requires=docker.service
 
 [Service]
 EnvironmentFile=/etc/container-environment

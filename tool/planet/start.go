@@ -126,6 +126,7 @@ func start(config *Config, monitorc chan<- bool) (*box.Box, error) {
 		box.EnvPair{Name: EnvEtcdInitialClusterState, Val: config.EtcdInitialClusterState},
 		box.EnvPair{Name: EnvRole, Val: config.Roles[0]},
 		box.EnvPair{Name: EnvClusterID, Val: config.ClusterID},
+		box.EnvPair{Name: EnvNodeName, Val: config.NodeName},
 	)
 
 	// Always trust local registry (for now)

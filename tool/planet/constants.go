@@ -18,6 +18,7 @@ const (
 	EnvLeaderKey               = "KUBE_LEADER_KEY"
 	EnvRole                    = "PLANET_ROLE"
 	EnvClusterID               = "KUBE_CLUSTER_ID"
+	EnvNodeName                = "KUBE_NODE_NAME"
 	EnvAgentName               = "PLANET_AGENT_NAME"
 	EnvInitialCluster          = "PLANET_INITIAL_CLUSTER"
 	EnvStateDir                = "PLANET_STATE_DIR"
