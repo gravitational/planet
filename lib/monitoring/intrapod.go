@@ -299,9 +299,9 @@ func getServiceAccount(c *kube.Client, ns, name string, shouldWait bool) (*api.S
 	const interval = time.Second
 	const timeout = 10 * time.Second
 
-	var user *api.ServiceAccount
 	var err error
-	err = wait.Poll(interval, timeout, func() (bool, error) {
+	var user *api.ServiceAccount
+	if err = wait.Poll(interval, timeout, func() (bool, error) {
 		user, err = c.ServiceAccounts(ns).Get(name)
 		if errors.IsNotFound(err) {
 			return false, nil
@@ -310,6 +310,8 @@ func getServiceAccount(c *kube.Client, ns, name string, shouldWait bool) (*api.S
 			return false, err
 		}
 		return true, nil
-	})
-	return user, err
+	}); err != nil {
+		return nil, trace.Wrap(err)
+	}
+	return user, nil
 }
