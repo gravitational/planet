@@ -165,11 +165,13 @@ func Start(cfg Config) (*Box, error) {
 			},
 		},
 		Cgroups: &configs.Cgroup{
-			Name:             containerID,
-			Parent:           "system",
-			AllowAllDevices:  true,
-			AllowedDevices:   configs.DefaultAllowedDevices,
-			MemorySwappiness: -1, // -1 means "machine-default" and that's what we need because we don't care
+			Name:   containerID,
+			Parent: "system",
+			Resources: &configs.Resources{
+				AllowAllDevices:  true,
+				AllowedDevices:   configs.DefaultAllowedDevices,
+				MemorySwappiness: -1, // -1 means "machine-default" and that's what we need because we don't care
+			},
 		},
 
 		Devices:  append(configs.DefaultAutoCreatedDevices, loopDevices...),
