@@ -3,11 +3,12 @@ package main
 import (
 	"time"
 
-	log "github.com/Sirupsen/logrus"
-	"github.com/gravitational/planet/lib/agent"
-	pb "github.com/gravitational/planet/lib/agent/proto/agentpb"
-	"github.com/gravitational/planet/lib/monitoring"
+	"github.com/gravitational/satellite/agent"
+	pb "github.com/gravitational/satellite/agent/proto/agentpb"
+	"github.com/gravitational/satellite/monitoring"
 	"github.com/gravitational/trace"
+
+	log "github.com/Sirupsen/logrus"
 	"k8s.io/kubernetes/pkg/api"
 	kube "k8s.io/kubernetes/pkg/client/unversioned"
 	"k8s.io/kubernetes/pkg/util/wait"

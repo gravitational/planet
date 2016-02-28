@@ -11,11 +11,11 @@ import (
 	"time"
 
 	log "github.com/Sirupsen/logrus"
-	"github.com/gravitational/planet/lib/agent"
-	pb "github.com/gravitational/planet/lib/agent/proto/agentpb"
 	"github.com/gravitational/planet/lib/leader"
 	"github.com/gravitational/planet/lib/monitoring"
 	"github.com/gravitational/planet/lib/utils"
+	"github.com/gravitational/satellite/agent"
+	pb "github.com/gravitational/satellite/agent/proto/agentpb"
 	"github.com/gravitational/trace"
 	"golang.org/x/net/context"
 )

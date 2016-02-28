@@ -1,8 +1,11 @@
 package monitoring
 
 import (
-	"github.com/gravitational/planet/lib/agent"
-	"github.com/gravitational/planet/lib/agent/health"
+	"io"
+
+	"github.com/gravitational/satellite/agent"
+	"github.com/gravitational/satellite/agent/health"
+	"github.com/gravitational/satellite/monitoring"
 )
 
 // Config represents configuration for setting up monitoring checkers.
@@ -13,8 +16,9 @@ type Config struct {
 	KubeAddr string
 	// ClusterDNS is the IP of the kubernetes DNS service
 	ClusterDNS string
-	// RegistryAddr is the address of private docker registry
-	RegistryAddr string
+	// NettestContainerImage is the name of the container image used for
+	// networking test
+	NettestContainerImage string
 }
 
 // AddCheckers adds checkers to the agent.
@@ -27,52 +31,27 @@ func AddCheckers(node agent.Agent, conf *Config) {
 	}
 }
 
-func addToMaster(node agent.Agent, conf *Config) {
-	node.AddChecker(kubeApiServerHealth())
-	node.AddChecker(componentStatusHealth(conf.KubeAddr))
-	node.AddChecker(dockerHealth())
+func addToMaster(node agent.Agent, config *Config) {
+	node.AddChecker(monitoring.KubeApiServerHealth(config.KubeAddr))
+	node.AddChecker(monitoring.ComponentStatusHealth(config.KubeAddr))
+	node.AddChecker(monitoring.DockerHealth("unix://var/run/docker.sock"))
 	node.AddChecker(dockerRegistryHealth())
-	node.AddChecker(etcdHealth())
-	node.AddChecker(systemdHealth())
-	node.AddChecker(intraPodCommunication(conf.KubeAddr, conf.RegistryAddr))
+	node.AddChecker(monitoring.EtcdHealth("http://127.0.0.1:2379"))
+	node.AddChecker(monitoring.SystemdHealth())
+	node.AddChecker(monitoring.IntraPodCommunication(config.KubeAddr, config.NettestContainerImage))
 }
 
-func addToNode(node agent.Agent, conf *Config) {
-	node.AddChecker(kubeletHealth())
-	node.AddChecker(dockerHealth())
-	node.AddChecker(etcdHealth())
-	node.AddChecker(systemdHealth())
-}
-
-func kubeApiServerHealth() health.Checker {
-	return newChecker(newHTTPHealthzChecker("http://127.0.0.1:8080/healthz", kubeHealthz), "kube-apiserver")
-}
-
-func kubeletHealth() health.Checker {
-	return newChecker(newHTTPHealthzChecker("http://127.0.0.1:10248/healthz", kubeHealthz), "kubelet")
-}
-
-func componentStatusHealth(kubeAddr string) health.Checker {
-	return newChecker(&componentStatusChecker{hostPort: kubeAddr}, "componentstatuses")
-}
-
-func etcdHealth() health.Checker {
-	return newChecker(newHTTPHealthzChecker("http://127.0.0.1:2379/health", etcdChecker), "etcd-healthz")
-}
-
-func dockerHealth() health.Checker {
-	return newChecker(newUnixSocketHealthzChecker("http://docker/version", "/var/run/docker.sock",
-		dockerChecker), "docker")
+func addToNode(node agent.Agent, confg *Config) {
+	node.AddChecker(monitoring.KubeletHealth("http://127.0.0.1:10248"))
+	node.AddChecker(monitoring.DockerHealth("unix://var/run/docker.sock"))
+	node.AddChecker(monitoring.EtcdHealth("http://127.0.0.1:2379"))
+	node.AddChecker(monitoring.SystemdHealth())
 }
 
 func dockerRegistryHealth() health.Checker {
-	return newChecker(newHTTPHealthzChecker("http://127.0.0.1:5000/v2/", dockerChecker), "docker-registry")
+	return monitoring.NewHTTPHealthzChecker("docker-registry", "http://127.0.0.1:5000/v2/", noopResponseChecker)
 }
 
-func systemdHealth() health.Checker {
-	return newChecker(systemdChecker{}, "systemd")
-}
-
-func intraPodCommunication(kubeAddr, registryAddr string) health.Checker {
-	return newChecker(newIntraPodChecker(kubeAddr, registryAddr), "networking")
+func noopResponseChecker(response io.Reader) error {
+	return nil
 }
