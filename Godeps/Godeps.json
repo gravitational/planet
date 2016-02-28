@@ -66,6 +66,11 @@
 			"Rev": "b4a58d95188dd092ae20072bac14cece0e67c388"
 		},
 		{
+			"ImportPath": "github.com/coreos/go-systemd/util",
+			"Comment": "v4",
+			"Rev": "b4a58d95188dd092ae20072bac14cece0e67c388"
+		},
+		{
 			"ImportPath": "github.com/davecgh/go-spew/spew",
 			"Rev": "5215b55f46b2b919f50a1df0eaa5886afe4e3b3d"
 		},
@@ -98,6 +103,11 @@
 			"ImportPath": "github.com/docker/docker/pkg/units",
 			"Comment": "v1.9.1",
 			"Rev": "a34a1d598c6096ed8b5ce5219e77d68e5cd85462"
+		},
+		{
+			"ImportPath": "github.com/docker/go-units",
+			"Comment": "v0.1.0-21-g0bbddae",
+			"Rev": "0bbddae09c5a5419a8c6dcdd7ff90da3d450393b"
 		},
 		{
 			"ImportPath": "github.com/emicklei/go-restful",
@@ -135,6 +145,14 @@
 		{
 			"ImportPath": "github.com/gravitational/roundtrip",
 			"Rev": "e7bee8354256fe4ae0d847e4c5d946d3e86f22af"
+		},
+		{
+			"ImportPath": "github.com/gravitational/satellite/agent",
+			"Rev": "ae6694e8d022feaee38f1152c4f95d579c2f9ec7"
+		},
+		{
+			"ImportPath": "github.com/gravitational/satellite/monitoring",
+			"Rev": "ae6694e8d022feaee38f1152c4f95d579c2f9ec7"
 		},
 		{
 			"ImportPath": "github.com/gravitational/trace",
@@ -231,12 +249,20 @@
 			"Rev": "406e5b7bfd8201a36e2bb5f7bdae0b03380c2ce8"
 		},
 		{
+			"ImportPath": "github.com/seccomp/libseccomp-golang",
+			"Rev": "1b506fc7c24eec5a3693cdcbed40d9c226cfc6a1"
+		},
+		{
 			"ImportPath": "github.com/spf13/pflag",
 			"Rev": "7f60f83a2c81bc3c3c0d5297f61ddfa68da9d3b7"
 		},
 		{
 			"ImportPath": "github.com/syndtr/gocapability/capability",
 			"Rev": "2c00daeb6c3b45114c80ac44119e7b8801fdd852"
+		},
+		{
+			"ImportPath": "github.com/vishvananda/netlink",
+			"Rev": "bfd70f556483c008636b920dda142fdaa0d59ef9"
 		},
 		{
 			"ImportPath": "golang.org/x/crypto/curve25519",
