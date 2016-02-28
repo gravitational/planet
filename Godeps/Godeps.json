@@ -62,8 +62,8 @@
 		},
 		{
 			"ImportPath": "github.com/coreos/go-systemd/dbus",
-			"Comment": "v2",
-			"Rev": "f743bc15d6bddd23662280b4ad20f7c874cdd5ad"
+			"Comment": "v4",
+			"Rev": "b4a58d95188dd092ae20072bac14cece0e67c388"
 		},
 		{
 			"ImportPath": "github.com/davecgh/go-spew/spew",
@@ -109,8 +109,8 @@
 		},
 		{
 			"ImportPath": "github.com/godbus/dbus",
-			"Comment": "v2-6-ga5942de",
-			"Rev": "a5942dec6340eb0d57f43f2003c190ce06e43dea"
+			"Comment": "v3",
+			"Rev": "c7fdd8b5cd55e87b4e1f4e372cdb1db61dd6c66f"
 		},
 		{
 			"ImportPath": "github.com/golang/glog",
@@ -199,8 +199,8 @@
 		},
 		{
 			"ImportPath": "github.com/opencontainers/runc/libcontainer",
-			"Comment": "v0.0.2",
-			"Rev": "1eeb86fbf2ec75661b9d843fd46679c868bc242d"
+			"Comment": "v0.0.8",
+			"Rev": "1a124e9c2da68c867ed2c4f4ff19f0cd95cda0cd"
 		},
 		{
 			"ImportPath": "github.com/pborman/uuid",

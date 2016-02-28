@@ -13,10 +13,13 @@ import (
 	"syscall"
 	"time"
 
+	"github.com/docker/docker/pkg/mount"
 	"github.com/docker/docker/pkg/symlink"
 	"github.com/opencontainers/runc/libcontainer/cgroups"
 	"github.com/opencontainers/runc/libcontainer/configs"
 	"github.com/opencontainers/runc/libcontainer/label"
+	"github.com/opencontainers/runc/libcontainer/system"
+	libcontainerUtils "github.com/opencontainers/runc/libcontainer/utils"
 )
 
 const defaultMountFlags = syscall.MS_NOEXEC | syscall.MS_NOSUID | syscall.MS_NODEV
@@ -27,6 +30,8 @@ func setupRootfs(config *configs.Config, console *linuxConsole) (err error) {
 	if err := prepareRoot(config); err != nil {
 		return newSystemError(err)
 	}
+
+	setupDev := len(config.Devices) != 0
 	for _, m := range config.Mounts {
 		for _, precmd := range m.PremountCmds {
 			if err := mountCmd(precmd); err != nil {
@@ -43,14 +48,16 @@ func setupRootfs(config *configs.Config, console *linuxConsole) (err error) {
 			}
 		}
 	}
-	if err := createDevices(config); err != nil {
-		return newSystemError(err)
-	}
-	if err := setupPtmx(config, console); err != nil {
-		return newSystemError(err)
-	}
-	if err := setupDevSymlinks(config.Rootfs); err != nil {
-		return newSystemError(err)
+	if setupDev {
+		if err := createDevices(config); err != nil {
+			return newSystemError(err)
+		}
+		if err := setupPtmx(config, console); err != nil {
+			return newSystemError(err)
+		}
+		if err := setupDevSymlinks(config.Rootfs); err != nil {
+			return newSystemError(err)
+		}
 	}
 	if err := syscall.Chdir(config.Rootfs); err != nil {
 		return newSystemError(err)
@@ -63,8 +70,10 @@ func setupRootfs(config *configs.Config, console *linuxConsole) (err error) {
 	if err != nil {
 		return newSystemError(err)
 	}
-	if err := reOpenDevNull(config.Rootfs); err != nil {
-		return newSystemError(err)
+	if setupDev {
+		if err := reOpenDevNull(); err != nil {
+			return newSystemError(err)
+		}
 	}
 	if config.Readonlyfs {
 		if err := setReadonly(); err != nil {
@@ -90,7 +99,6 @@ func mountCmd(cmd configs.Command) error {
 func mountToRootfs(m *configs.Mount, rootfs, mountLabel string) error {
 	var (
 		dest = m.Destination
-		data = label.FormatMountLabel(m.Data, mountLabel)
 	)
 	if !strings.HasPrefix(dest, rootfs) {
 		dest = filepath.Join(rootfs, dest)
@@ -98,26 +106,30 @@ func mountToRootfs(m *configs.Mount, rootfs, mountLabel string) error {
 
 	switch m.Device {
 	case "proc", "sysfs":
-		if err := os.MkdirAll(dest, 0755); err != nil && !os.IsExist(err) {
+		if err := os.MkdirAll(dest, 0755); err != nil {
 			return err
 		}
-		return syscall.Mount(m.Source, dest, m.Device, uintptr(m.Flags), "")
+		// Selinux kernels do not support labeling of /proc or /sys
+		return mountPropagate(m, rootfs, "")
 	case "mqueue":
-		if err := os.MkdirAll(dest, 0755); err != nil && !os.IsExist(err) {
+		if err := os.MkdirAll(dest, 0755); err != nil {
 			return err
 		}
-		if err := syscall.Mount(m.Source, dest, m.Device, uintptr(m.Flags), ""); err != nil {
-			return err
+		if err := mountPropagate(m, rootfs, mountLabel); err != nil {
+			// older kernels do not support labeling of /dev/mqueue
+			if err := mountPropagate(m, rootfs, ""); err != nil {
+				return err
+			}
 		}
 		return label.SetFileLabel(dest, mountLabel)
 	case "tmpfs":
 		stat, err := os.Stat(dest)
 		if err != nil {
-			if err := os.MkdirAll(dest, 0755); err != nil && !os.IsExist(err) {
+			if err := os.MkdirAll(dest, 0755); err != nil {
 				return err
 			}
 		}
-		if err := syscall.Mount(m.Source, dest, m.Device, uintptr(m.Flags), data); err != nil {
+		if err := mountPropagate(m, rootfs, mountLabel); err != nil {
 			return err
 		}
 		if stat != nil {
@@ -127,10 +139,15 @@ func mountToRootfs(m *configs.Mount, rootfs, mountLabel string) error {
 		}
 		return nil
 	case "devpts":
-		if err := os.MkdirAll(dest, 0755); err != nil && !os.IsExist(err) {
+		if err := os.MkdirAll(dest, 0755); err != nil {
 			return err
 		}
-		return syscall.Mount(m.Source, dest, m.Device, uintptr(m.Flags), data)
+		return mountPropagate(m, rootfs, mountLabel)
+	case "securityfs":
+		if err := os.MkdirAll(dest, 0755); err != nil {
+			return err
+		}
+		return mountPropagate(m, rootfs, mountLabel)
 	case "bind":
 		stat, err := os.Stat(m.Source)
 		if err != nil {
@@ -148,54 +165,51 @@ func mountToRootfs(m *configs.Mount, rootfs, mountLabel string) error {
 		if err := checkMountDestination(rootfs, dest); err != nil {
 			return err
 		}
+		// update the mount with the correct dest after symlinks are resolved.
+		m.Destination = dest
 		if err := createIfNotExists(dest, stat.IsDir()); err != nil {
 			return err
 		}
-		if err := syscall.Mount(m.Source, dest, m.Device, uintptr(m.Flags), data); err != nil {
+		if err := mountPropagate(m, rootfs, mountLabel); err != nil {
 			return err
 		}
-		if m.Flags&syscall.MS_RDONLY != 0 {
-			if err := syscall.Mount(m.Source, dest, m.Device, uintptr(m.Flags|syscall.MS_REMOUNT), ""); err != nil {
+		// bind mount won't change mount options, we need remount to make mount options effective.
+		// first check that we have non-default options required before attempting a remount
+		if m.Flags&^(syscall.MS_REC|syscall.MS_REMOUNT|syscall.MS_BIND) != 0 {
+			// only remount if unique mount options are set
+			if err := remount(m, rootfs); err != nil {
 				return err
 			}
 		}
+
 		if m.Relabel != "" {
-			if err := label.Relabel(m.Source, mountLabel, m.Relabel); err != nil {
+			if err := label.Validate(m.Relabel); err != nil {
 				return err
 			}
-		}
-		if m.Flags&syscall.MS_PRIVATE != 0 {
-			if err := syscall.Mount("", dest, "none", uintptr(syscall.MS_PRIVATE), ""); err != nil {
+			shared := label.IsShared(m.Relabel)
+			if err := label.Relabel(m.Source, mountLabel, shared); err != nil {
 				return err
 			}
 		}
 	case "cgroup":
-		mounts, err := cgroups.GetCgroupMounts()
+		binds, err := getCgroupMounts(m)
 		if err != nil {
 			return err
 		}
-		var binds []*configs.Mount
-		for _, mm := range mounts {
-			dir, err := mm.GetThisCgroupDir()
-			if err != nil {
-				return err
+		var merged []string
+		for _, b := range binds {
+			ss := filepath.Base(b.Destination)
+			if strings.Contains(ss, ",") {
+				merged = append(merged, ss)
 			}
-			relDir, err := filepath.Rel(mm.Root, dir)
-			if err != nil {
-				return err
-			}
-			binds = append(binds, &configs.Mount{
-				Device:      "bind",
-				Source:      filepath.Join(mm.Mountpoint, relDir),
-				Destination: filepath.Join(m.Destination, strings.Join(mm.Subsystems, ",")),
-				Flags:       syscall.MS_BIND | syscall.MS_REC | m.Flags,
-			})
 		}
 		tmpfs := &configs.Mount{
-			Source:      "tmpfs",
-			Device:      "tmpfs",
-			Destination: m.Destination,
-			Flags:       defaultMountFlags,
+			Source:           "tmpfs",
+			Device:           "tmpfs",
+			Destination:      m.Destination,
+			Flags:            defaultMountFlags,
+			Data:             "mode=755",
+			PropagationFlags: m.PropagationFlags,
 		}
 		if err := mountToRootfs(tmpfs, rootfs, mountLabel); err != nil {
 			return err
@@ -205,21 +219,105 @@ func mountToRootfs(m *configs.Mount, rootfs, mountLabel string) error {
 				return err
 			}
 		}
+		// create symlinks for merged cgroups
+		cwd, err := os.Getwd()
+		if err != nil {
+			return err
+		}
+		if err := os.Chdir(filepath.Join(rootfs, m.Destination)); err != nil {
+			return err
+		}
+		for _, mc := range merged {
+			for _, ss := range strings.Split(mc, ",") {
+				if err := os.Symlink(mc, ss); err != nil {
+					// if cgroup already exists, then okay(it could have been created before)
+					if os.IsExist(err) {
+						continue
+					}
+					os.Chdir(cwd)
+					return err
+				}
+			}
+		}
+		if err := os.Chdir(cwd); err != nil {
+			return err
+		}
+		if m.Flags&syscall.MS_RDONLY != 0 {
+			// remount cgroup root as readonly
+			mcgrouproot := &configs.Mount{
+				Destination: m.Destination,
+				Flags:       defaultMountFlags | syscall.MS_RDONLY,
+			}
+			if err := remount(mcgrouproot, rootfs); err != nil {
+				return err
+			}
+		}
 	default:
 		return fmt.Errorf("unknown mount device %q to %q", m.Device, m.Destination)
 	}
 	return nil
 }
 
-// checkMountDestination checks to ensure that the mount destination is not over the
-// top of /proc or /sys.
+func getCgroupMounts(m *configs.Mount) ([]*configs.Mount, error) {
+	mounts, err := cgroups.GetCgroupMounts()
+	if err != nil {
+		return nil, err
+	}
+
+	cgroupPaths, err := cgroups.ParseCgroupFile("/proc/self/cgroup")
+	if err != nil {
+		return nil, err
+	}
+
+	var binds []*configs.Mount
+
+	for _, mm := range mounts {
+		dir, err := mm.GetThisCgroupDir(cgroupPaths)
+		if err != nil {
+			return nil, err
+		}
+		relDir, err := filepath.Rel(mm.Root, dir)
+		if err != nil {
+			return nil, err
+		}
+		binds = append(binds, &configs.Mount{
+			Device:           "bind",
+			Source:           filepath.Join(mm.Mountpoint, relDir),
+			Destination:      filepath.Join(m.Destination, strings.Join(mm.Subsystems, ",")),
+			Flags:            syscall.MS_BIND | syscall.MS_REC | m.Flags,
+			PropagationFlags: m.PropagationFlags,
+		})
+	}
+
+	return binds, nil
+}
+
+// checkMountDestination checks to ensure that the mount destination is not over the top of /proc.
 // dest is required to be an abs path and have any symlinks resolved before calling this function.
 func checkMountDestination(rootfs, dest string) error {
-	if filepath.Clean(rootfs) == filepath.Clean(dest) {
+	if libcontainerUtils.CleanPath(rootfs) == libcontainerUtils.CleanPath(dest) {
 		return fmt.Errorf("mounting into / is prohibited")
 	}
 	invalidDestinations := []string{
 		"/proc",
+	}
+	// White list, it should be sub directories of invalid destinations
+	validDestinations := []string{
+		// These entries can be bind mounted by files emulated by fuse,
+		// so commands like top, free displays stats in container.
+		"/proc/cpuinfo",
+		"/proc/diskstats",
+		"/proc/meminfo",
+		"/proc/stats",
+	}
+	for _, valid := range validDestinations {
+		path, err := filepath.Rel(filepath.Join(rootfs, valid), dest)
+		if err != nil {
+			return err
+		}
+		if path == "." {
+			return nil
+		}
 	}
 	for _, invalid := range invalidDestinations {
 		path, err := filepath.Rel(filepath.Join(rootfs, invalid), dest)
@@ -261,9 +359,9 @@ func setupDevSymlinks(rootfs string) error {
 // this method will make them point to `/dev/null` in this container's rootfs.  This
 // needs to be called after we chroot/pivot into the container's rootfs so that any
 // symlinks are resolved locally.
-func reOpenDevNull(rootfs string) error {
+func reOpenDevNull() error {
 	var stat, devNullStat syscall.Stat_t
-	file, err := os.Open("/dev/null")
+	file, err := os.OpenFile("/dev/null", os.O_RDWR, 0)
 	if err != nil {
 		return fmt.Errorf("Failed to open /dev/null - %s", err)
 	}
@@ -287,17 +385,29 @@ func reOpenDevNull(rootfs string) error {
 
 // Create the device nodes in the container.
 func createDevices(config *configs.Config) error {
+	useBindMount := system.RunningInUserNS() || config.Namespaces.Contains(configs.NEWUSER)
 	oldMask := syscall.Umask(0000)
 	for _, node := range config.Devices {
 		// containers running in a user namespace are not allowed to mknod
 		// devices so we can just bind mount it from the host.
-		if err := createDeviceNode(config.Rootfs, node, config.Namespaces.Contains(configs.NEWUSER)); err != nil {
+		if err := createDeviceNode(config.Rootfs, node, useBindMount); err != nil {
 			syscall.Umask(oldMask)
 			return err
 		}
 	}
 	syscall.Umask(oldMask)
 	return nil
+}
+
+func bindMountDeviceNode(dest string, node *configs.Device) error {
+	f, err := os.Create(dest)
+	if err != nil && !os.IsExist(err) {
+		return err
+	}
+	if f != nil {
+		f.Close()
+	}
+	return syscall.Mount(node.Path, dest, "bind", syscall.MS_BIND, "")
 }
 
 // Creates the device node in the rootfs of the container.
@@ -308,18 +418,13 @@ func createDeviceNode(rootfs string, node *configs.Device, bind bool) error {
 	}
 
 	if bind {
-		f, err := os.Create(dest)
-		if err != nil && !os.IsExist(err) {
-			return err
-		}
-		if f != nil {
-			f.Close()
-		}
-		return syscall.Mount(node.Path, dest, "bind", syscall.MS_BIND, "")
+		return bindMountDeviceNode(dest, node)
 	}
 	if err := mknodDevice(dest, node); err != nil {
 		if os.IsExist(err) {
 			return nil
+		} else if os.IsPermission(err) {
+			return bindMountDeviceNode(dest, node)
 		}
 		return err
 	}
@@ -342,14 +447,89 @@ func mknodDevice(dest string, node *configs.Device) error {
 	return syscall.Chown(dest, int(node.Uid), int(node.Gid))
 }
 
+func getMountInfo(mountinfo []*mount.Info, dir string) *mount.Info {
+	for _, m := range mountinfo {
+		if m.Mountpoint == dir {
+			return m
+		}
+	}
+	return nil
+}
+
+// Get the parent mount point of directory passed in as argument. Also return
+// optional fields.
+func getParentMount(rootfs string) (string, string, error) {
+	var path string
+
+	mountinfos, err := mount.GetMounts()
+	if err != nil {
+		return "", "", err
+	}
+
+	mountinfo := getMountInfo(mountinfos, rootfs)
+	if mountinfo != nil {
+		return rootfs, mountinfo.Optional, nil
+	}
+
+	path = rootfs
+	for {
+		path = filepath.Dir(path)
+
+		mountinfo = getMountInfo(mountinfos, path)
+		if mountinfo != nil {
+			return path, mountinfo.Optional, nil
+		}
+
+		if path == "/" {
+			break
+		}
+	}
+
+	// If we are here, we did not find parent mount. Something is wrong.
+	return "", "", fmt.Errorf("Could not find parent mount of %s", rootfs)
+}
+
+// Make parent mount private if it was shared
+func rootfsParentMountPrivate(config *configs.Config) error {
+	sharedMount := false
+
+	parentMount, optionalOpts, err := getParentMount(config.Rootfs)
+	if err != nil {
+		return err
+	}
+
+	optsSplit := strings.Split(optionalOpts, " ")
+	for _, opt := range optsSplit {
+		if strings.HasPrefix(opt, "shared:") {
+			sharedMount = true
+			break
+		}
+	}
+
+	// Make parent mount PRIVATE if it was shared. It is needed for two
+	// reasons. First of all pivot_root() will fail if parent mount is
+	// shared. Secondly when we bind mount rootfs it will propagate to
+	// parent namespace and we don't want that to happen.
+	if sharedMount {
+		return syscall.Mount("", parentMount, "", syscall.MS_PRIVATE, "")
+	}
+
+	return nil
+}
+
 func prepareRoot(config *configs.Config) error {
 	flag := syscall.MS_SLAVE | syscall.MS_REC
-	if config.Privatefs {
-		flag = syscall.MS_PRIVATE | syscall.MS_REC
+	if config.RootPropagation != 0 {
+		flag = config.RootPropagation
 	}
 	if err := syscall.Mount("", "/", "", uintptr(flag), ""); err != nil {
 		return err
 	}
+
+	if err := rootfsParentMountPrivate(config); err != nil {
+		return err
+	}
+
 	return syscall.Mount(config.Rootfs, config.Rootfs, "bind", syscall.MS_BIND|syscall.MS_REC, "")
 }
 
@@ -366,7 +546,7 @@ func setupPtmx(config *configs.Config, console *linuxConsole) error {
 		return fmt.Errorf("symlink dev ptmx %s", err)
 	}
 	if console != nil {
-		return console.mount(config.Rootfs, config.MountLabel, 0, 0)
+		return console.mount(config.Rootfs, config.MountLabel)
 	}
 	return nil
 }
@@ -391,6 +571,13 @@ func pivotRoot(rootfs, pivotBaseDir string) error {
 	}
 	// path to pivot dir now changed, update
 	pivotDir = filepath.Join(pivotBaseDir, filepath.Base(pivotDir))
+
+	// Make pivotDir rprivate to make sure any of the unmounts don't
+	// propagate to parent.
+	if err := syscall.Mount("", pivotDir, "", syscall.MS_PRIVATE|syscall.MS_REC, ""); err != nil {
+		return err
+	}
+
 	if err := syscall.Unmount(pivotDir, syscall.MNT_DETACH); err != nil {
 		return fmt.Errorf("unmount pivot_root dir %s", err)
 	}
@@ -464,4 +651,40 @@ func maskFile(path string) error {
 func writeSystemProperty(key, value string) error {
 	keyPath := strings.Replace(key, ".", "/", -1)
 	return ioutil.WriteFile(path.Join("/proc/sys", keyPath), []byte(value), 0644)
+}
+
+func remount(m *configs.Mount, rootfs string) error {
+	var (
+		dest = m.Destination
+	)
+	if !strings.HasPrefix(dest, rootfs) {
+		dest = filepath.Join(rootfs, dest)
+	}
+	if err := syscall.Mount(m.Source, dest, m.Device, uintptr(m.Flags|syscall.MS_REMOUNT), ""); err != nil {
+		return err
+	}
+	return nil
+}
+
+// Do the mount operation followed by additional mounts required to take care
+// of propagation flags.
+func mountPropagate(m *configs.Mount, rootfs string, mountLabel string) error {
+	var (
+		dest = m.Destination
+		data = label.FormatMountLabel(m.Data, mountLabel)
+	)
+	if !strings.HasPrefix(dest, rootfs) {
+		dest = filepath.Join(rootfs, dest)
+	}
+
+	if err := syscall.Mount(m.Source, dest, m.Device, uintptr(m.Flags), data); err != nil {
+		return err
+	}
+
+	for _, pflag := range m.PropagationFlags {
+		if err := syscall.Mount("", dest, "", uintptr(pflag), ""); err != nil {
+			return err
+		}
+	}
+	return nil
 }
