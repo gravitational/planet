@@ -81,21 +81,22 @@ func run() error {
 		cstartNodeName                = cstart.Flag("node-name", "node name").OverrideDefaultFromEnvar("PLANET_NODE_NAME").String()
 
 		// start the planet agent
-		cagent                      = app.Command("agent", "Start Planet Agent")
-		cagentPublicIP              = cagent.Flag("public-ip", "IP accessible by other nodes for inter-host communication").OverrideDefaultFromEnvar(EnvPublicIP).IP()
-		cagentLeaderKey             = cagent.Flag("leader-key", "Etcd key holding the new leader").Required().String()
-		cagentRole                  = cagent.Flag("role", "Server role").OverrideDefaultFromEnvar(EnvRole).String()
-		cagentAPI                   = cagent.Flag("apiserver-dns", "API server DNS entry").OverrideDefaultFromEnvar(EnvAPIServerName).String()
-		cagentTerm                  = cagent.Flag("term", "Leader lease duration").Default(DefaultLeaderTerm.String()).Duration()
-		cagentEtcdEndpoints         = List(cagent.Flag("etcd-endpoints", "Etcd endpoints").Default(DefaultEtcdEndpoints))
-		cagentRPCAddrs              = List(cagent.Flag("rpc-addr", "Address to bind the RPC listener to.  Can be specified multiple times").Default("127.0.0.1:7575"))
-		cagentKubeAddr              = cagent.Flag("kube-addr", "Address of the kubernetes api server").Default("127.0.0.1:8080").String()
-		cagentName                  = cagent.Flag("name", "Agent name.  Must be the same as the name of the local serf node").OverrideDefaultFromEnvar(EnvAgentName).String()
-		cagentSerfRPCAddr           = cagent.Flag("serf-rpc-addr", "RPC address of the local serf node").Default("127.0.0.1:7373").String()
-		cagentInitialCluster        = KeyValueList(cagent.Flag("initial-cluster", "Initial planet cluster configuration as a comma-separated list of peers").OverrideDefaultFromEnvar(EnvInitialCluster))
-		cagentStateDir              = cagent.Flag("state-dir", "Directory where agent-specific state like health stats is stored").Default("/var/planet/agent").String()
-		cagentClusterDNS            = cagent.Flag("cluster-dns", "IP for a cluster DNS server.").OverrideDefaultFromEnvar(EnvClusterDNSIP).IP()
-		cagentNettestContainerImage = cagent.Flag("nettest-container-image", "Name of the container image to use for networking test").Default("apiserver.com:5000/gcr.io/google_containers/nettest:1.6").String()
+		cagent                 = app.Command("agent", "Start Planet Agent")
+		cagentPublicIP         = cagent.Flag("public-ip", "IP accessible by other nodes for inter-host communication").OverrideDefaultFromEnvar(EnvPublicIP).IP()
+		cagentLeaderKey        = cagent.Flag("leader-key", "Etcd key holding the new leader").Required().String()
+		cagentRole             = cagent.Flag("role", "Server role").OverrideDefaultFromEnvar(EnvRole).String()
+		cagentKubeAPIServerDNS = cagent.Flag("apiserver-dns", "Kubernetes API server DNS entry").OverrideDefaultFromEnvar(EnvAPIServerName).String()
+		cagentTerm             = cagent.Flag("term", "Leader lease duration").Default(DefaultLeaderTerm.String()).Duration()
+		cagentEtcdEndpoints    = List(cagent.Flag("etcd-endpoints", "Etcd endpoints").Default(DefaultEtcdEndpoints))
+		cagentRPCAddrs         = List(cagent.Flag("rpc-addr", "Address to bind the RPC listener to.  Can be specified multiple times").Default("127.0.0.1:7575"))
+		cagentKubeAddr         = cagent.Flag("kube-addr", "Address of the kubernetes API server.  Will default to apiserver-dns:8080").String()
+		cagentName             = cagent.Flag("name", "Agent name.  Must be the same as the name of the local serf node").OverrideDefaultFromEnvar(EnvAgentName).String()
+		cagentSerfRPCAddr      = cagent.Flag("serf-rpc-addr", "RPC address of the local serf node").Default("127.0.0.1:7373").String()
+		cagentInitialCluster   = KeyValueList(cagent.Flag("initial-cluster", "Initial planet cluster configuration as a comma-separated list of peers").OverrideDefaultFromEnvar(EnvInitialCluster))
+		cagentStateDir         = cagent.Flag("state-dir", "Directory where agent-specific state like health stats is stored").Default("/var/planet/agent").String()
+		cagentClusterDNS       = cagent.Flag("cluster-dns", "IP for a cluster DNS server.").OverrideDefaultFromEnvar(EnvClusterDNSIP).IP()
+		cagentRegistryAddr     = cagent.Flag("docker-registry-addr",
+			"Address of the private docker registry.  Will default to apiserver-dns:5000").String()
 
 		// stop a running container
 		cstop = app.Command("stop", "Stop planet container")
@@ -162,6 +163,14 @@ func run() error {
 			err = trace.Wrap(err, "failed to create cache")
 			break
 		}
+		if *cagentKubeAddr == "" {
+			*cagentKubeAddr = fmt.Sprintf("%v:8080", *cagentKubeAPIServerDNS)
+		}
+		if *cagentRegistryAddr == "" {
+			*cagentRegistryAddr = fmt.Sprintf("%v:5000", *cagentKubeAPIServerDNS)
+		}
+		log.Infof("Kubernetes API server: %v", *cagentKubeAddr)
+		log.Infof("Private docker registry: %v", *cagentRegistryAddr)
 		conf := &agent.Config{
 			Name:        *cagentName,
 			RPCAddrs:    *cagentRPCAddrs,
@@ -172,7 +181,7 @@ func run() error {
 			Role:                  agent.Role(*cagentRole),
 			KubeAddr:              *cagentKubeAddr,
 			ClusterDNS:            cagentClusterDNS.String(),
-			NettestContainerImage: *cagentNettestContainerImage,
+			NettestContainerImage: fmt.Sprintf("%v/nettest:1.6", *cagentRegistryAddr),
 		}
 		leaderConf := &LeaderConfig{
 			PublicIP:      cagentPublicIP.String(),
@@ -180,7 +189,7 @@ func run() error {
 			Role:          *cagentRole,
 			Term:          *cagentTerm,
 			EtcdEndpoints: *cagentEtcdEndpoints,
-			APIServerDNS:  *cagentAPI,
+			APIServerDNS:  *cagentKubeAPIServerDNS,
 		}
 		err = runAgent(conf, monitoringConf, leaderConf, toAddrList(*cagentInitialCluster))
 

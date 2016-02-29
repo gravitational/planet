@@ -34,7 +34,7 @@ func AddCheckers(node agent.Agent, conf *Config) {
 func addToMaster(node agent.Agent, config *Config) {
 	node.AddChecker(monitoring.KubeApiServerHealth(config.KubeAddr))
 	node.AddChecker(monitoring.ComponentStatusHealth(config.KubeAddr))
-	node.AddChecker(monitoring.DockerHealth("unix://var/run/docker.sock"))
+	node.AddChecker(monitoring.DockerHealth("/var/run/docker.sock"))
 	node.AddChecker(dockerRegistryHealth())
 	node.AddChecker(monitoring.EtcdHealth("http://127.0.0.1:2379"))
 	node.AddChecker(monitoring.SystemdHealth())
@@ -43,7 +43,7 @@ func addToMaster(node agent.Agent, config *Config) {
 
 func addToNode(node agent.Agent, confg *Config) {
 	node.AddChecker(monitoring.KubeletHealth("http://127.0.0.1:10248"))
-	node.AddChecker(monitoring.DockerHealth("unix://var/run/docker.sock"))
+	node.AddChecker(monitoring.DockerHealth("/var/run/docker.sock"))
 	node.AddChecker(monitoring.EtcdHealth("http://127.0.0.1:2379"))
 	node.AddChecker(monitoring.SystemdHealth())
 }
