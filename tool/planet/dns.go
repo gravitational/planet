@@ -39,7 +39,6 @@ func (r *DNSBootstrapper) createService(client *kube.Client) (err error) {
 				"kubernetes.io/cluster-service": "true",
 				"kubernetes.io/name":            "KubeDNS",
 			},
-			ResourceVersion: "1",
 		},
 		Spec: api.ServiceSpec{
 			Selector: map[string]string{
