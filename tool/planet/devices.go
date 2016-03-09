@@ -33,28 +33,10 @@ func createDeviceNode(node *configs.Device) error {
 		return trace.Wrap(err)
 	}
 
-	if err := mknodDevice(dest, node); err != nil {
-		if os.IsExist(err) {
-			return nil
-		} else if os.IsPermission(err) {
-			// FIXME
-			return bindMountDeviceNode(dest, node)
-		}
+	if err := mknodDevice(dest, node); err != nil && !os.IsExist(err) {
 		return trace.Wrap(err)
 	}
 	return nil
-}
-
-// bindMountDeviceNode bind-mounts the specified device in dest
-func bindMountDeviceNode(dest string, node *configs.Device) error {
-	f, err := os.Create(dest)
-	if err != nil && !os.IsExist(err) {
-		return trace.Wrap(err)
-	}
-	if f != nil {
-		f.Close()
-	}
-	return syscall.Mount(node.Path, dest, "bind", syscall.MS_BIND, "")
 }
 
 // mknodDevice creates the device node inside the container using `mknod`
