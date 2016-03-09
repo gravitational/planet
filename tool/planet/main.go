@@ -290,7 +290,7 @@ func run() error {
 const monitoringDbFile = "monitoring.db"
 
 func selfTest(config *Config, repoDir, spec string, extraArgs []string) error {
-	var process *box.Box
+	var ctx *runtimeContext
 	var err error
 	const idleTimeout = 30 * time.Second
 
@@ -300,7 +300,7 @@ func selfTest(config *Config, repoDir, spec string, extraArgs []string) error {
 	}
 
 	monitorc := make(chan bool, 1)
-	process, err = start(config, monitorc)
+	ctx, err = start(config, monitorc)
 	if err == nil {
 		select {
 		case clusterUp := <-monitorc:
@@ -317,7 +317,7 @@ func selfTest(config *Config, repoDir, spec string, extraArgs []string) error {
 			err = trace.Errorf("timed out waiting for units to come up")
 		}
 		stop(config.Rootfs, config.SocketPath)
-		process.Close()
+		ctx.Close()
 	}
 
 	return err
