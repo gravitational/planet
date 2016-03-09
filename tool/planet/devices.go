@@ -1,67 +1,14 @@
 package main
 
 import (
-	"encoding/json"
-	"fmt"
 	"os"
 	"path/filepath"
 	"syscall"
 
 	"github.com/gravitational/trace"
 
-	log "github.com/Sirupsen/logrus"
 	"github.com/opencontainers/runc/libcontainer/configs"
-	"gopkg.in/alecthomas/kingpin.v2"
 )
-
-func main() {
-	if err := run(); err != nil {
-		log.Fatalln(err)
-	}
-}
-
-func run() error {
-	var (
-		app   = kingpin.New("device", "Manage devices in container")
-		debug = app.Flag("debug", "Verbose mode").Bool()
-
-		cdeviceAdd     = app.Command("add", "Add new device to container")
-		cdeviceAddData = cdeviceAdd.Flag("data", "Device definition as seen on host").Required().String()
-
-		cdeviceRemove     = app.Command("remove", "Remove device from container")
-		cdeviceRemoveNode = cdeviceRemove.Flag("node", "Device node to remove").Required().String()
-	)
-
-	log.SetOutput(os.Stderr)
-	if *debug {
-		log.SetLevel(log.WarnLevel)
-	} else {
-		log.SetLevel(log.InfoLevel)
-	}
-
-	cmd, err := app.Parse(os.Args[1:])
-	if err != nil {
-		fmt.Fprintf(os.Stderr, "failed to parse command line: %v.\nUse deviced --help for help.\n", err)
-		return trace.Wrap(err)
-	}
-
-	switch cmd {
-	case cdeviceAdd.FullCommand():
-		var device configs.Device
-		if err = json.Unmarshal([]byte(*cdeviceAddData), &device); err != nil {
-			break
-		}
-		err = createDevice(&device)
-	case cdeviceRemove.FullCommand():
-		err = removeDevice(*cdeviceRemoveNode)
-	}
-	// FIXME: vendor updated trace
-	// return trace.Wrap(err)
-	if err != nil {
-		return trace.Wrap(err)
-	}
-	return nil
-}
 
 // createDevice creates a node for the specified device in the container
 func createDevice(device *configs.Device) error {
@@ -74,6 +21,7 @@ func createDevice(device *configs.Device) error {
 	return nil
 }
 
+// removeDevice removes the device specified with node path
 func removeDevice(node string) error {
 	return os.Remove(node)
 }

@@ -61,8 +61,6 @@ type udevListener struct {
 	recvC      <-chan *udev.Device
 }
 
-const deviceCmd = "/usr/bin/planet-device"
-
 // loop runs the actual udev event loop
 func (r *udevListener) loop() {
 	const cgroupPermissions = "rwm"
@@ -96,26 +94,28 @@ func (r *udevListener) createDevice(device *configs.Device) error {
 	if err != nil {
 		return trace.Wrap(err)
 	}
-	config := &box.ProcessConfig{
-		User: "root",
-		Args: []string{deviceCmd, "--debug", "add", "--data", string(deviceJson)},
-		In:   os.Stdin,
-		Out:  os.Stdout,
-	}
 
-	return enter(r.rootfs, r.socketPath, config)
+	return enter(r.rootfs, r.socketPath, deviceCmd("add", "--data", string(deviceJson)))
 }
 
-// removeDevice dispatches a command to add a new device in the container
+// removeDevice dispatches a command to remove a device in the container
 func (r *udevListener) removeDevice(node string) error {
 	log.Infof("removeDevice: %v", node)
 
+	return enter(r.rootfs, r.socketPath, deviceCmd("remove", "--node", node))
+}
+
+// deviceCmd creates a configuration object to invoke the device agent
+// with the specified arguments
+func deviceCmd(args ...string) *box.ProcessConfig {
+	const cmd = "/usr/bin/planet"
 	config := &box.ProcessConfig{
 		User: "root",
-		Args: []string{deviceCmd, "--debug", "remove", "--node", node},
+		Args: []string{cmd, "--debug", "device"},
 		In:   os.Stdin,
 		Out:  os.Stdout,
 	}
 
-	return enter(r.rootfs, r.socketPath, config)
+	config.Args = append(config.Args, args...)
+	return config
 }

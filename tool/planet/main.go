@@ -1,6 +1,7 @@
 package main
 
 import (
+	"encoding/json"
 	"fmt"
 	"net"
 	"os"
@@ -11,7 +12,6 @@ import (
 	"syscall"
 	"time"
 
-	log "github.com/Sirupsen/logrus"
 	kv "github.com/gravitational/configure"
 	"github.com/gravitational/configure/cstrings"
 	"github.com/gravitational/planet/lib/box"
@@ -22,7 +22,10 @@ import (
 	"github.com/gravitational/satellite/agent/cache"
 	"github.com/gravitational/trace"
 	"github.com/gravitational/version"
+
+	log "github.com/Sirupsen/logrus"
 	"github.com/opencontainers/runc/libcontainer"
+	"github.com/opencontainers/runc/libcontainer/configs"
 	"gopkg.in/alecthomas/kingpin.v2"
 )
 
@@ -127,6 +130,15 @@ func run() error {
 		csecretsInitDir           = csecretsInit.Arg("dir", "directory where secrets will be placed").Required().String()
 		csecretsInitDomain        = csecretsInit.Flag("domain", "domain name for the certificate").Required().String()
 		csecretsInitServiceSubnet = CIDRFlag(csecretsInit.Flag("service-subnet", "subnet dedicated to the services in cluster").Default(DefaultServiceSubnet))
+
+		// device management
+		cdevice = app.Command("device", "Manage devices in container")
+
+		cdeviceAdd     = cdevice.Command("add", "Add new device to container")
+		cdeviceAddData = cdeviceAdd.Flag("data", "Device definition as seen on host").Required().String()
+
+		cdeviceRemove     = cdevice.Command("remove", "Remove device from container")
+		cdeviceRemoveNode = cdeviceRemove.Flag("node", "Device node to remove").Required().String()
 	)
 
 	cmd, err := app.Parse(args[1:])
@@ -279,6 +291,16 @@ func run() error {
 	case csecretsInit.FullCommand():
 		err = initSecrets(
 			*csecretsInitDir, *csecretsInitDomain, *csecretsInitServiceSubnet)
+
+	case cdeviceAdd.FullCommand():
+		var device configs.Device
+		if err = json.Unmarshal([]byte(*cdeviceAddData), &device); err != nil {
+			break
+		}
+		err = createDevice(&device)
+
+	case cdeviceRemove.FullCommand():
+		err = removeDevice(*cdeviceRemoveNode)
 
 	default:
 		err = trace.Errorf("unsupported command: %v", cmd)

@@ -5,7 +5,7 @@ ROOTFS := /rootfs
 TARGETDIR := /targetdir
 ASSETDIR := /assetdir
 
-all: $(ASSETDIR)/planet $(ASSETDIR)/docker-import $(ASSETDIR)/planet-device
+all: $(ASSETDIR)/planet $(ASSETDIR)/docker-import
 	make -C $(ASSETS)/makefiles/base/network -f network.mk
 	make -C $(ASSETS)/makefiles/base/docker -f docker.mk 
 	make -C $(ASSETS)/makefiles/base/agent -f agent.mk
@@ -19,6 +19,3 @@ $(ASSETDIR)/planet:
 
 $(ASSETDIR)/docker-import:
 	GOOS=linux GOARCH=amd64 go build -ldflags "$(PLANET_GO_LDFLAGS)" -o $@ github.com/gravitational/planet/tool/docker-import
-
-$(ASSETDIR)/planet-device:
-	GOOS=linux GOARCH=amd64 go build -ldflags "$(PLANET_GO_LDFLAGS)" -o $@ github.com/gravitational/planet/tool/device
