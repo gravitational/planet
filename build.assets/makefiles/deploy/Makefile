@@ -11,14 +11,6 @@ BUILD_TAG=$(shell git describe)
 
 all: deploy
 
-#
-# Prepare awslci configuration for jenkins. Only used on jenkins!
-# When deploying from local machine, follow the Build deployment configuration
-# section in gravity README
-#
-deploy-jenkins:
-	-cp deploy_artifacts.ini $(HOME)/.aws/
-
 deploy:
 	@echo "Deploying $(BUILD_TAG) to Amazon S3"
 	$(foreach target,\
