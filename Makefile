@@ -66,7 +66,7 @@ dev: buildbox
 
 # Deploys the build artifacts to Amazon S3
 deploy:
-	make -C $(ASSETS)/makefiles -f deploy.mk
+	make -C $(ASSETS)/makefiles/deploy
 
 #
 # WARNING: careful here. This is production build!!!!
