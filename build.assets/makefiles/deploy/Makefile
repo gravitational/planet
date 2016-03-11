@@ -15,6 +15,5 @@ deploy:
 	@echo "Deploying $(BUILD_TAG) to Amazon S3"
 	$(foreach target,\
 		$(TARGETS),\
-		AWS_CONFIG_FILE=./deploy_artifacts.ini aws s3 cp \
-		$(BUILDDIR)/$(target)/planet-$(target).tar.gz \
-		$(BUILD_BUCKET_URL)/$(BUILD_TAG)/ --profile artifacts;)
+		aws s3 cp $(BUILDDIR)/$(target)/planet-$(target).tar.gz \
+		$(BUILD_BUCKET_URL)/$(BUILD_TAG)/;)
