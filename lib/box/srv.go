@@ -34,17 +34,10 @@ type Box struct {
 // times in a row for extra robustness.
 func (b *Box) Close() error {
 	var err error
-	var status libcontainer.Status
 
 	if b.Container != nil {
-		status, err = b.Container.Status()
-		if err != nil {
-			log.Errorf("unable to check container status: %v", err)
-		}
-		if status != libcontainer.Checkpointed {
-			if err = b.Container.Destroy(); err != nil {
-				log.Errorf("box.Close() :%v", err)
-			}
+		if err = b.Container.Destroy(); err != nil {
+			log.Errorf("box.Close() :%v", err)
 		}
 	}
 	if b.listener != nil {
@@ -144,6 +137,13 @@ func Start(cfg Config) (*Box, error) {
 			// don't mount real dev, otherwise systemd will mess up with the host
 			// OS real badly
 			{
+				Source:      "none",
+				Destination: "/tmpdevfs",
+				Device:      "devtmpfs",
+				Flags:       syscall.MS_NOSUID | syscall.MS_RELATIME,
+				Data:        "mode=755",
+			},
+			{
 				Source:      "tmpfs",
 				Destination: "/dev",
 				Device:      "tmpfs",
@@ -170,7 +170,7 @@ func Start(cfg Config) (*Box, error) {
 			Resources: &configs.Resources{
 				AllowAllDevices:  true,
 				AllowedDevices:   configs.DefaultAllowedDevices,
-				MemorySwappiness: -1, // -1 means "machine-default" and that's what we need because we don't care
+				MemorySwappiness: nil, // nil means "machine-default" and that's what we need because we don't care
 			},
 		},
 
