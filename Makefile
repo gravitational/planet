@@ -35,7 +35,7 @@
 #
 .DEFAULT_GOAL:=all
 SHELL:=/bin/bash
-.PHONY: build os base buildbox dev master node testbox test
+.PHONY: build os base buildbox dev testbox test production deploy
 
 PWD := $(shell pwd)
 ASSETS := $(PWD)/build.assets
@@ -63,6 +63,10 @@ build: $(BUILDDIR)/current
 # Makes a "developer" image, with _all_ parts of Kubernetes installed
 dev: buildbox
 	$(MAKE) -C $(ASSETS)/makefiles -e TARGET=dev -f buildbox.mk
+
+# Deploys the build artifacts to Amazon S3
+deploy:
+	make -C $(ASSETS)/makefiles/deploy
 
 #
 # WARNING: careful here. This is production build!!!!
