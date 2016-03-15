@@ -29,7 +29,7 @@ func removeDevice(node string) error {
 // createDeviceNode creates the device node inside the container.
 func createDeviceNode(node *configs.Device) error {
 	dest := node.Path
-	if err := os.MkdirAll(filepath.Dir(dest), 0755); err != nil {
+	if err := os.MkdirAll(filepath.Dir(dest), 0777); err != nil {
 		return trace.Wrap(err)
 	}
 
