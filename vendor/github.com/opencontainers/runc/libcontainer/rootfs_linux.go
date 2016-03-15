@@ -4,7 +4,6 @@ package libcontainer
 
 import (
 	"fmt"
-	"io"
 	"io/ioutil"
 	"os"
 	"os/exec"
@@ -27,7 +26,7 @@ const defaultMountFlags = syscall.MS_NOEXEC | syscall.MS_NOSUID | syscall.MS_NOD
 
 // setupRootfs sets up the devices, mount points, and filesystems for use inside a
 // new mount namespace.
-func setupRootfs(config *configs.Config, console *linuxConsole, pipe io.ReadWriter) (err error) {
+func setupRootfs(config *configs.Config, console *linuxConsole) (err error) {
 	if err := prepareRoot(config); err != nil {
 		return newSystemError(err)
 	}
@@ -60,13 +59,6 @@ func setupRootfs(config *configs.Config, console *linuxConsole, pipe io.ReadWrit
 			return newSystemError(err)
 		}
 	}
-	// Signal the parent to run the pre-start hooks.
-	// The hooks are run after the mounts are setup, but before we switch to the new
-	// root, so that the old root is still available in the hooks for any mount
-	// manipulations.
-	if err := syncParentHooks(pipe); err != nil {
-		return err
-	}
 	if err := syscall.Chdir(config.Rootfs); err != nil {
 		return newSystemError(err)
 	}
@@ -83,18 +75,6 @@ func setupRootfs(config *configs.Config, console *linuxConsole, pipe io.ReadWrit
 			return newSystemError(err)
 		}
 	}
-	// remount dev as ro if specifed
-	for _, m := range config.Mounts {
-		if m.Destination == "/dev" {
-			if m.Flags&syscall.MS_RDONLY != 0 {
-				if err := remountReadonly(m.Destination); err != nil {
-					return newSystemError(err)
-				}
-			}
-			break
-		}
-	}
-	// set rootfs ( / ) as readonly
 	if config.Readonlyfs {
 		if err := setReadonly(); err != nil {
 			return newSystemError(err)
@@ -321,8 +301,7 @@ func checkMountDestination(rootfs, dest string) error {
 		"/proc/cpuinfo",
 		"/proc/diskstats",
 		"/proc/meminfo",
-		"/proc/stat",
-		"/proc/net/dev",
+		"/proc/stats",
 	}
 	for _, valid := range validDestinations {
 		path, err := filepath.Rel(filepath.Join(rootfs, valid), dest)
@@ -355,7 +334,7 @@ func setupDevSymlinks(rootfs string) error {
 	// kcore support can be toggled with CONFIG_PROC_KCORE; only create a symlink
 	// in /dev if it exists in /proc.
 	if _, err := os.Stat("/proc/kcore"); err == nil {
-		links = append(links, [2]string{"/proc/kcore", "/dev/core"})
+		links = append(links, [2]string{"/proc/kcore", "/dev/kcore"})
 	}
 	for _, link := range links {
 		var (

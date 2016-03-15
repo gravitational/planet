@@ -225,8 +225,8 @@
 		},
 		{
 			"ImportPath": "github.com/opencontainers/runc/libcontainer",
-			"Comment": "v0.0.8-119-g5b439d8",
-			"Rev": "5b439d8c4883602be9db7de409500470e199e791"
+			"Comment": "v0.0.8",
+			"Rev": "1a124e9c2da68c867ed2c4f4ff19f0cd95cda0cd"
 		},
 		{
 			"ImportPath": "github.com/pborman/uuid",

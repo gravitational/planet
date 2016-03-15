@@ -27,6 +27,9 @@ const (
 	// The container exists, but all its processes are paused.
 	Paused
 
+	// The container exists, but its state is saved on disk
+	Checkpointed
+
 	// The container does not exist.
 	Destroyed
 )
@@ -41,6 +44,8 @@ func (s Status) String() string {
 		return "pausing"
 	case Paused:
 		return "paused"
+	case Checkpointed:
+		return "checkpointed"
 	case Destroyed:
 		return "destroyed"
 	default:

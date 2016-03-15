@@ -78,7 +78,7 @@ func Start(cfg Config) (*Box, error) {
 
 	if len(cfg.Files) != 0 {
 		for _, f := range cfg.Files {
-			log.Errorf("writing file to: %v", filepath.Join(rootfs, f.Path))
+			log.Infof("writing file to: %v", filepath.Join(rootfs, f.Path))
 			if err := writeFile(filepath.Join(rootfs, f.Path), f); err != nil {
 				return nil, err
 			}
@@ -170,7 +170,7 @@ func Start(cfg Config) (*Box, error) {
 			Resources: &configs.Resources{
 				AllowAllDevices:  true,
 				AllowedDevices:   configs.DefaultAllowedDevices,
-				MemorySwappiness: nil, // nil means "machine-default" and that's what we need because we don't care
+				MemorySwappiness: -1, // -1 means "machine-default" and that's what we need because we don't care
 			},
 		},
 
@@ -219,7 +219,7 @@ func Start(cfg Config) (*Box, error) {
 	}
 	err = startWebServer(listener, container)
 	if err != nil {
-		return nil, err
+		return nil, trace.Wrap(err)
 	}
 
 	process := &libcontainer.Process{

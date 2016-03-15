@@ -330,8 +330,9 @@ func setupCloudOptions(c *Config) error {
 
 	// check cloud provider settings
 	if c.CloudProvider == "aws" {
-		if c.Env.Get("AWS_ACCESS_KEY_ID") == "" || c.Env.Get("AWS_SECRET_ACCESS_KEY") == "" {
-			return trace.Errorf("Cloud provider set to AWS, but AWS_KEY_ID and AWS_SECRET_ACCESS_KEY are not specified")
+		if c.Env.Get(EnvAWSAccessKey) == "" || c.Env.Get(EnvAWSSecretKey) == "" {
+			return trace.Errorf("Cloud provider set to AWS, but %s and %s are not specified",
+				EnvAWSAccessKey, EnvAWSSecretKey)
 		}
 	}
 

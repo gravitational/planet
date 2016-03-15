@@ -76,7 +76,7 @@ config := &configs.Config{
 		Name:   "test-container",
 		Parent: "system",
 		Resources: &configs.Resources{
-			MemorySwappiness: nil,
+			MemorySwappiness: -1,
 			AllowAllDevices:  false,
 			AllowedDevices:   configs.DefaultAllowedDevices,
 		},
