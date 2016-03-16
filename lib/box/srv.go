@@ -137,13 +137,6 @@ func Start(cfg Config) (*Box, error) {
 			// don't mount real dev, otherwise systemd will mess up with the host
 			// OS real badly
 			{
-				Source:      "none",
-				Destination: "/tmpdevfs",
-				Device:      "devtmpfs",
-				Flags:       syscall.MS_NOSUID | syscall.MS_RELATIME,
-				Data:        "mode=755",
-			},
-			{
 				Source:      "tmpfs",
 				Destination: "/dev",
 				Device:      "tmpfs",
