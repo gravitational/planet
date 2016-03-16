@@ -22,6 +22,9 @@ const (
 	EnvAgentName               = "PLANET_AGENT_NAME"
 	EnvInitialCluster          = "PLANET_INITIAL_CLUSTER"
 	EnvStateDir                = "PLANET_STATE_DIR"
-	DefaultLeaderTerm          = 10 * time.Second
-	DefaultEtcdEndpoints       = "http://127.0.0.1:2379"
+	EnvAWSAccessKey            = "AWS_ACCESS_KEY_ID"
+	EnvAWSSecretKey            = "AWS_SECRET_ACCESS_KEY"
+
+	DefaultLeaderTerm    = 10 * time.Second
+	DefaultEtcdEndpoints = "http://127.0.0.1:2379"
 )

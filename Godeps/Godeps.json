@@ -2,7 +2,7 @@
 	"ImportPath": "github.com/gravitational/planet",
 	"GoVersion": "go1.5",
 	"Packages": [
-		"github.com/gravitational/planet/tool/planet/..."
+		"./tool/..."
 	],
 	"Deps": [
 		{
@@ -156,7 +156,7 @@
 		},
 		{
 			"ImportPath": "github.com/gravitational/trace",
-			"Rev": "ef858f0ffc8fd474f9b5f5706bdcb69bcd4ba733"
+			"Rev": "6218803b4afb5490afd43d14edcbaa502d568938"
 		},
 		{
 			"ImportPath": "github.com/gravitational/version",
@@ -188,6 +188,14 @@
 			"ImportPath": "github.com/hashicorp/serf/serf",
 			"Comment": "v0.6.4-176-g11bb88a",
 			"Rev": "11bb88abf7b17f0b794b51416a9107d781e95f35"
+		},
+		{
+			"ImportPath": "github.com/jkeiser/iter",
+			"Rev": "67b94d6149c6b2efe0fde15d36a50a7692c2da17"
+		},
+		{
+			"ImportPath": "github.com/jochenvg/go-udev",
+			"Rev": "13a9632a960f89c1b5348d87fcd9edd9d047c7bd"
 		},
 		{
 			"ImportPath": "github.com/jonboulle/clockwork",

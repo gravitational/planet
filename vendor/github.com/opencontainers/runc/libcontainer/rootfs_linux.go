@@ -138,16 +138,6 @@ func mountToRootfs(m *configs.Mount, rootfs, mountLabel string) error {
 			}
 		}
 		return nil
-	case "devpts":
-		if err := os.MkdirAll(dest, 0755); err != nil {
-			return err
-		}
-		return mountPropagate(m, rootfs, mountLabel)
-	case "securityfs":
-		if err := os.MkdirAll(dest, 0755); err != nil {
-			return err
-		}
-		return mountPropagate(m, rootfs, mountLabel)
 	case "bind":
 		stat, err := os.Stat(m.Source)
 		if err != nil {
@@ -253,7 +243,10 @@ func mountToRootfs(m *configs.Mount, rootfs, mountLabel string) error {
 			}
 		}
 	default:
-		return fmt.Errorf("unknown mount device %q to %q", m.Device, m.Destination)
+		if err := os.MkdirAll(dest, 0755); err != nil {
+			return err
+		}
+		return mountPropagate(m, rootfs, mountLabel)
 	}
 	return nil
 }
@@ -551,7 +544,7 @@ func setupPtmx(config *configs.Config, console *linuxConsole) error {
 	return nil
 }
 
-func pivotRoot(rootfs, pivotBaseDir string) error {
+func pivotRoot(rootfs, pivotBaseDir string) (err error) {
 	if pivotBaseDir == "" {
 		pivotBaseDir = "/"
 	}
@@ -563,6 +556,12 @@ func pivotRoot(rootfs, pivotBaseDir string) error {
 	if err != nil {
 		return fmt.Errorf("can't create pivot_root dir %s, error %v", pivotDir, err)
 	}
+	defer func() {
+		errVal := os.Remove(pivotDir)
+		if err == nil {
+			err = errVal
+		}
+	}()
 	if err := syscall.PivotRoot(rootfs, pivotDir); err != nil {
 		return fmt.Errorf("pivot_root %s", err)
 	}
@@ -581,7 +580,7 @@ func pivotRoot(rootfs, pivotBaseDir string) error {
 	if err := syscall.Unmount(pivotDir, syscall.MNT_DETACH); err != nil {
 		return fmt.Errorf("unmount pivot_root dir %s", err)
 	}
-	return os.Remove(pivotDir)
+	return nil
 }
 
 func msMoveRoot(rootfs string) error {
@@ -670,14 +669,18 @@ func remount(m *configs.Mount, rootfs string) error {
 // of propagation flags.
 func mountPropagate(m *configs.Mount, rootfs string, mountLabel string) error {
 	var (
-		dest = m.Destination
-		data = label.FormatMountLabel(m.Data, mountLabel)
+		dest  = m.Destination
+		data  = label.FormatMountLabel(m.Data, mountLabel)
+		flags = m.Flags
 	)
+	if dest == "/dev" {
+		flags &= ^syscall.MS_RDONLY
+	}
 	if !strings.HasPrefix(dest, rootfs) {
 		dest = filepath.Join(rootfs, dest)
 	}
 
-	if err := syscall.Mount(m.Source, dest, m.Device, uintptr(m.Flags), data); err != nil {
+	if err := syscall.Mount(m.Source, dest, m.Device, uintptr(flags), data); err != nil {
 		return err
 	}
 

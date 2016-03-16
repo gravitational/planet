@@ -27,16 +27,30 @@ const (
 	DefaultPODSubnet     = "10.244.0.0/16"
 )
 
+// runtimeContext defines the context of a running planet container
+type runtimeContext struct {
+	// process is the main planet process
+	process *box.Box
+	// listener is the udev device listener
+	listener io.Closer
+}
+
+// Close closes the container process and stops the udev listener
+func (r *runtimeContext) Close() error {
+	r.listener.Close()
+	return r.process.Close()
+}
+
 func startAndWait(config *Config) error {
-	process, err := start(config, nil)
+	ctx, err := start(config, nil)
 
 	if err != nil {
 		return err
 	}
-	defer process.Close()
+	defer ctx.Close()
 
 	// wait for the process to finish.
-	status, err := process.Wait()
+	status, err := ctx.process.Wait()
 	if err != nil {
 		return trace.Wrap(err)
 	}
@@ -44,7 +58,7 @@ func startAndWait(config *Config) error {
 	return nil
 }
 
-func start(config *Config, monitorc chan<- bool) (*box.Box, error) {
+func start(config *Config, monitorc chan<- bool) (*runtimeContext, error) {
 	log.Infof("starting with config: %#v", config)
 
 	if !isRoot() {
@@ -57,14 +71,14 @@ func start(config *Config, monitorc chan<- bool) (*box.Box, error) {
 	if CheckKernel {
 		v, err := check.KernelVersion()
 		if err != nil {
-			return nil, err
+			return nil, trace.Wrap(err)
 		}
 		log.Infof("kernel: %v\n", v)
 		if v < MinKernelVersion {
 			err := trace.Errorf(
 				"current minimum supported kernel version is %0.2f. Upgrade kernel before moving on.", MinKernelVersion/100.0)
 			if !config.IgnoreChecks {
-				return nil, err
+				return nil, trace.Wrap(err)
 			}
 			log.Infof("warning: %v", err)
 		}
@@ -140,14 +154,14 @@ func start(config *Config, monitorc chan<- bool) (*box.Box, error) {
 	addDockerOptions(config)
 	setupFlannel(config)
 	if err = setupCloudOptions(config); err != nil {
-		return nil, err
+		return nil, trace.Wrap(err)
 	}
 	if err = addResolv(config); err != nil {
-		return nil, err
+		return nil, trace.Wrap(err)
 	}
 	if config.hasRole(RoleMaster) {
 		if err = mountSecrets(config); err != nil {
-			return nil, err
+			return nil, trace.Wrap(err)
 		}
 	}
 	if err = setHosts(config, []HostEntry{
@@ -177,10 +191,15 @@ func start(config *Config, monitorc chan<- bool) (*box.Box, error) {
 	}
 	defer log.Infof("start() is done!")
 
-	// start the container:
-	b, err := box.Start(cfg)
+	listener, err := newUdevListener(config.Rootfs, config.SocketPath)
 	if err != nil {
-		return nil, err
+		return nil, trace.Wrap(err)
+	}
+
+	// start the container:
+	box, err := box.Start(cfg)
+	if err != nil {
+		return nil, trace.Wrap(err)
 	}
 
 	units := []string{}
@@ -191,9 +210,12 @@ func start(config *Config, monitorc chan<- bool) (*box.Box, error) {
 		units = appendUnique(units, nodeUnits)
 	}
 
-	go monitorUnits(b.Container, units, monitorc)
+	go monitorUnits(box.Container, units, monitorc)
 
-	return b, nil
+	return &runtimeContext{
+		process:  box,
+		listener: listener,
+	}, nil
 }
 
 // ensureUsersGroups ensures that all user accounts exist.
@@ -308,8 +330,9 @@ func setupCloudOptions(c *Config) error {
 
 	// check cloud provider settings
 	if c.CloudProvider == "aws" {
-		if c.Env.Get("AWS_ACCESS_KEY_ID") == "" || c.Env.Get("AWS_SECRET_ACCESS_KEY") == "" {
-			return trace.Errorf("Cloud provider set to AWS, but AWS_KEY_ID and AWS_SECRET_ACCESS_KEY are not specified")
+		if c.Env.Get(EnvAWSAccessKey) == "" || c.Env.Get(EnvAWSSecretKey) == "" {
+			return trace.Errorf("Cloud provider set to AWS, but %s and %s are not specified",
+				EnvAWSAccessKey, EnvAWSSecretKey)
 		}
 	}
 

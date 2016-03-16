@@ -34,17 +34,10 @@ type Box struct {
 // times in a row for extra robustness.
 func (b *Box) Close() error {
 	var err error
-	var status libcontainer.Status
 
 	if b.Container != nil {
-		status, err = b.Container.Status()
-		if err != nil {
-			log.Errorf("unable to check container status: %v", err)
-		}
-		if status != libcontainer.Checkpointed {
-			if err = b.Container.Destroy(); err != nil {
-				log.Errorf("box.Close() :%v", err)
-			}
+		if err = b.Container.Destroy(); err != nil {
+			log.Errorf("box.Close() :%v", err)
 		}
 	}
 	if b.listener != nil {
@@ -85,7 +78,7 @@ func Start(cfg Config) (*Box, error) {
 
 	if len(cfg.Files) != 0 {
 		for _, f := range cfg.Files {
-			log.Errorf("writing file to: %v", filepath.Join(rootfs, f.Path))
+			log.Infof("writing file to: %v", filepath.Join(rootfs, f.Path))
 			if err := writeFile(filepath.Join(rootfs, f.Path), f); err != nil {
 				return nil, err
 			}
@@ -219,7 +212,7 @@ func Start(cfg Config) (*Box, error) {
 	}
 	err = startWebServer(listener, container)
 	if err != nil {
-		return nil, err
+		return nil, trace.Wrap(err)
 	}
 
 	process := &libcontainer.Process{
