@@ -19,7 +19,7 @@ $(BINARIES):
 	mkdir -p $(OUTPUTDIR)
 	mkdir -p $(GOPATH)/src/github.com/kubernetes
 	cd $(GOPATH)/src/github.com/kubernetes && git clone https://github.com/kubernetes/kubernetes -b $(KUBE_VER) --depth 1 
-	cd $(REPODIR) && ./hack/build-go.sh
+	cd $(REPODIR) && GO15VENDOREXPERIMENT= ./hack/build-go.sh
 	cp $(REPODIR)/_output/local/bin/linux/amd64/kube* $(OUTPUTDIR)/
 	cp $(REPODIR)/_output/local/bin/linux/amd64/ginkgo $(OUTPUTDIR)/
 	cp $(REPODIR)/_output/local/bin/linux/amd64/e2e.test $(OUTPUTDIR)/
