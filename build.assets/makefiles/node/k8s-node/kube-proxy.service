@@ -4,6 +4,11 @@ Documentation=https://github.com/GoogleCloudPlatform/kubernetes
 
 [Service]
 EnvironmentFile=/etc/container-environment
-ExecStart=/usr/bin/kube-proxy --master=http://${KUBE_APISERVER}:8080 --logtostderr=true --hostname-override=${KUBE_NODE_NAME}
+ExecStart=/usr/bin/kube-proxy \
+	--master=http://${KUBE_APISERVER}:8080 \
+	--logtostderr=true \
+	--hostname-override=${KUBE_NODE_NAME} \
+	--conntrack-max=0 \
+	--conntrack-tcp-timeout-established=0
 Restart=always
 RestartSec=10

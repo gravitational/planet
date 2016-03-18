@@ -193,7 +193,7 @@ func run() error {
 			Role:                  agent.Role(*cagentRole),
 			KubeAddr:              *cagentKubeAddr,
 			ClusterDNS:            cagentClusterDNS.String(),
-			NettestContainerImage: fmt.Sprintf("%v/nettest:1.6", *cagentRegistryAddr),
+			NettestContainerImage: fmt.Sprintf("%v/nettest:1.8", *cagentRegistryAddr),
 		}
 		leaderConf := &LeaderConfig{
 			PublicIP:      cagentPublicIP.String(),
