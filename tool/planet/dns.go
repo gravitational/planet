@@ -69,8 +69,8 @@ func (r *DNSBootstrapper) createService(client *kube.Client) (err error) {
 // The loop continues until the master node has become healthy and the service
 // gets created or a specified number of attempts have been made.
 func (r *DNSBootstrapper) create() {
-	const retryPeriod = 1 * time.Second
-	const retryTimeout = 60 * time.Second
+	const retryPeriod = 5 * time.Second
+	const retryTimeout = 240 * time.Second
 	var client *kube.Client
 
 	if err := wait.Poll(retryPeriod, retryTimeout, func() (done bool, err error) {
