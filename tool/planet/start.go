@@ -159,7 +159,7 @@ func start(config *Config, monitorc chan<- bool) (*runtimeContext, error) {
 	if err = addResolv(config); err != nil {
 		return nil, trace.Wrap(err)
 	}
-	if config.hasRole(RoleMaster) {
+	if config.SecretsDir != "" {
 		if err = mountSecrets(config); err != nil {
 			return nil, trace.Wrap(err)
 		}

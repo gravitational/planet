@@ -8,9 +8,17 @@ EnvironmentFile=/etc/container-environment
 ExecStart=/usr/bin/etcd \
           --name=${ETCD_MEMBER_NAME} \
           --data-dir=/ext/etcd \
-          --initial-advertise-peer-urls=http://${PLANET_PUBLIC_IP}:2380 \
-          --advertise-client-urls=http://${PLANET_PUBLIC_IP}:2379,http://${PLANET_PUBLIC_IP}:4001 \
-          --listen-client-urls=http://0.0.0.0:2379,http://0.0.0.0:4001 \
-          --listen-peer-urls=http://${PLANET_PUBLIC_IP}:2380,http://${PLANET_PUBLIC_IP}:7001
+          --initial-advertise-peer-urls=https://${PLANET_PUBLIC_IP}:2380 \
+          --advertise-client-urls=https://${PLANET_PUBLIC_IP}:2379,https://${PLANET_PUBLIC_IP}:4001 \
+          --listen-client-urls=https://0.0.0.0:2379,https://0.0.0.0:4001 \
+          --listen-peer-urls=https://${PLANET_PUBLIC_IP}:2380,https://${PLANET_PUBLIC_IP}:7001 \
+          --cert-file=/var/state/etcd.cert \ 
+          --key-file=/var/state/etcd.key \ 
+          --peer-cert-file=/var/state/etcd.cert \
+          --peer-key-file=/var/state/etcd.key \
+          --peer-trusted-ca-file=var/state/root.cert \
+          --trusted-ca-file=var/state/root.cert \
+          --client-cert-auth \
+          --peer-client-cert-auth
 User=planet
 Group=planet

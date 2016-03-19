@@ -123,13 +123,18 @@ func run() error {
 		ctestAssetPath    = ctest.Flag("asset-dir", "Path to test executables and data files").String()
 
 		// secrets subsystem helps to manage master secrets
-		csecrets = app.Command("secrets", "Subsystem to control k8s master secrets")
+		csecrets = app.Command("secrets", "Subsystem to control TLS keys and certificates for kubernetes and etcd")
 
 		// csecretsInit will create directory with secrets
 		csecretsInit              = csecrets.Command("init", "initialize directory with secrets")
 		csecretsInitDir           = csecretsInit.Arg("dir", "directory where secrets will be placed").Required().String()
 		csecretsInitDomain        = csecretsInit.Flag("domain", "domain name for the certificate").Required().String()
 		csecretsInitServiceSubnet = CIDRFlag(csecretsInit.Flag("service-subnet", "subnet dedicated to the services in cluster").Default(DefaultServiceSubnet))
+
+		csecretsGencert       = csecrets.Command("gencert", "generate a new key and certificate from CSR")
+		csecretsGencertCADir  = csecretsGencert.Arg("ca-dir", "directory with CA key/certificate").Required().String()
+		csecretsGencertDir    = csecretsGencert.Arg("dir", "directory where secrets will be placed").Required().String()
+		csecretsGencertDomain = csecretsGencert.Flag("domain", "domain name for the certificate").Required().String()
 
 		// device management
 		cdevice = app.Command("device", "Manage devices in container")
@@ -292,6 +297,10 @@ func run() error {
 		err = initSecrets(
 			*csecretsInitDir, *csecretsInitDomain, *csecretsInitServiceSubnet)
 
+	case csecretsGencert.FullCommand():
+		err = generateCert(
+			*csecretsGencertCADir, *csecretsGencertDir, *csecretsGencertDomain)
+
 	case cdeviceAdd.FullCommand():
 		var device configs.Device
 		if err = json.Unmarshal([]byte(*cdeviceAddData), &device); err != nil {
@@ -442,7 +451,7 @@ func toAddrList(store kv.KeyVal) (addrs []string) {
 func toEtcdPeerList(list kv.KeyVal) (peers string) {
 	var addrs []string
 	for domain, addr := range list {
-		addrs = append(addrs, fmt.Sprintf("%v=http://%v:2380", domain, addr))
+		addrs = append(addrs, fmt.Sprintf("%v=https://%v:2380", domain, addr))
 	}
 	return strings.Join(addrs, ",")
 }
