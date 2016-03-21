@@ -12,13 +12,13 @@ ExecStart=/usr/bin/etcd \
           --advertise-client-urls=https://${PLANET_PUBLIC_IP}:2379,https://${PLANET_PUBLIC_IP}:4001 \
           --listen-client-urls=https://0.0.0.0:2379,https://0.0.0.0:4001 \
           --listen-peer-urls=https://${PLANET_PUBLIC_IP}:2380,https://${PLANET_PUBLIC_IP}:7001 \
-          --cert-file=/var/state/etcd.cert \ 
-          --key-file=/var/state/etcd.key \ 
+          --cert-file=/var/state/etcd.cert \
+          --key-file=/var/state/etcd.key \
+          --trusted-ca-file=/var/state/root.cert \
+          --client-cert-auth \
           --peer-cert-file=/var/state/etcd.cert \
           --peer-key-file=/var/state/etcd.key \
-          --peer-trusted-ca-file=var/state/root.cert \
-          --trusted-ca-file=var/state/root.cert \
-          --client-cert-auth \
+          --peer-trusted-ca-file=/var/state/root.cert \
           --peer-client-cert-auth
 User=planet
 Group=planet

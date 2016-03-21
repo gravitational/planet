@@ -20,6 +20,7 @@ import (
 	"github.com/gravitational/satellite/agent"
 	"github.com/gravitational/satellite/agent/backend/sqlite"
 	"github.com/gravitational/satellite/agent/cache"
+	agentmonitoring "github.com/gravitational/satellite/monitoring"
 	"github.com/gravitational/trace"
 	"github.com/gravitational/version"
 
@@ -100,6 +101,9 @@ func run() error {
 		cagentClusterDNS       = cagent.Flag("cluster-dns", "IP for a cluster DNS server.").OverrideDefaultFromEnvar(EnvClusterDNSIP).IP()
 		cagentRegistryAddr     = cagent.Flag("docker-registry-addr",
 			"Address of the private docker registry.  Will default to apiserver-dns:5000").String()
+		cagentEtcdCAFile   = cagent.Flag("etcd-cafile", "Certificate Authority file used to secure etcd communication").String()
+		cagentEtcdCertFile = cagent.Flag("etcd-certfile", "TLS certificate file used to secure etcd communication").String()
+		cagentEtcdKeyFile  = cagent.Flag("etcd-keyfile", "TLS key file used to secure etcd communication").String()
 
 		// stop a running container
 		cstop = app.Command("stop", "Stop planet container")
@@ -132,9 +136,11 @@ func run() error {
 		csecretsInitServiceSubnet = CIDRFlag(csecretsInit.Flag("service-subnet", "subnet dedicated to the services in cluster").Default(DefaultServiceSubnet))
 
 		csecretsGencert       = csecrets.Command("gencert", "generate a new key and certificate from CSR")
-		csecretsGencertCADir  = csecretsGencert.Arg("ca-dir", "directory with CA key/certificate").Required().String()
+		csecretsGencertCA     = csecretsGencert.Arg("ca", "Path to CA certificate file").Required().String()
+		csecretsGencertCAKey  = csecretsGencert.Arg("ca-key", "Path to CA key file").Required().String()
 		csecretsGencertDir    = csecretsGencert.Arg("dir", "directory where secrets will be placed").Required().String()
 		csecretsGencertDomain = csecretsGencert.Flag("domain", "domain name for the certificate").Required().String()
+		csecretsGencertIPs    = List(csecretsGencert.Flag("ip", "IP address for the certificate. Can be specified multiple times"))
 
 		// device management
 		cdevice = app.Command("device", "Manage devices in container")
@@ -199,6 +205,14 @@ func run() error {
 			KubeAddr:              *cagentKubeAddr,
 			ClusterDNS:            cagentClusterDNS.String(),
 			NettestContainerImage: fmt.Sprintf("%v/nettest:1.8", *cagentRegistryAddr),
+		}
+		if *cagentEtcdCertFile != "" {
+			tlsConfig := &agentmonitoring.TLSConfig{
+				CAFile:   *cagentEtcdCAFile,
+				CertFile: *cagentEtcdCertFile,
+				KeyFile:  *cagentEtcdKeyFile,
+			}
+			monitoringConf.Etcd.TLSConfig = tlsConfig
 		}
 		leaderConf := &LeaderConfig{
 			PublicIP:      cagentPublicIP.String(),
@@ -294,12 +308,20 @@ func run() error {
 		err = e2e.RunTests(config, extraArgs)
 
 	case csecretsInit.FullCommand():
-		err = initSecrets(
-			*csecretsInitDir, *csecretsInitDomain, *csecretsInitServiceSubnet)
+		hosts := append([]string{*csecretsInitDomain}, csecretsInitServiceSubnet.FirstIP().String())
+		err = initSecrets(hosts, *csecretsInitDir)
 
 	case csecretsGencert.FullCommand():
-		err = generateCert(
-			*csecretsGencertCADir, *csecretsGencertDir, *csecretsGencertDomain)
+		config := &CertConfig{
+			CA: CAConfig{
+				certPath: *csecretsGencertCA,
+				keyPath:  *csecretsGencertCAKey,
+			},
+			Hosts: []string{*csecretsGencertDomain},
+			CN:    "etcd",
+		}
+		config.Hosts = append(config.Hosts, *csecretsGencertIPs...)
+		err = generateCert(config, *csecretsGencertDir, "etcd")
 
 	case cdeviceAdd.FullCommand():
 		var device configs.Device

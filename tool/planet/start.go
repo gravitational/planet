@@ -159,10 +159,12 @@ func start(config *Config, monitorc chan<- bool) (*runtimeContext, error) {
 	if err = addResolv(config); err != nil {
 		return nil, trace.Wrap(err)
 	}
-	if config.SecretsDir != "" {
-		if err = mountSecrets(config); err != nil {
+	if config.hasRole(RoleMaster) {
+		if err = mountMasterSecrets(config); err != nil {
 			return nil, trace.Wrap(err)
 		}
+	} else {
+		mountSecrets(config)
 	}
 	if err = setHosts(config, []HostEntry{
 		HostEntry{IP: "127.0.0.1", Hostnames: "localhost localhost.localdomain localhost4 localhost4.localdomain4"},
@@ -450,11 +452,11 @@ const (
 	RoleNode = "node"
 )
 
-// mountSecrets mounts k8s secrets directory
-func mountSecrets(c *Config) error {
+// mountMasterSecrets mounts k8s secrets directory
+func mountMasterSecrets(config *Config) error {
 	p := &keyPairPaths{
 		name:      CertificateAuthorityKeyPair,
-		sourceDir: c.SecretsDir,
+		sourceDir: config.SecretsDir,
 	}
 	// key pair have been already initialized
 	exists, err := p.exists()
@@ -467,7 +469,7 @@ func mountSecrets(c *Config) error {
 
 	p = &keyPairPaths{
 		name:      APIServerKeyPair,
-		sourceDir: c.SecretsDir,
+		sourceDir: config.SecretsDir,
 	}
 	// key pair have been already initialized
 	exists, err = p.exists()
@@ -478,22 +480,26 @@ func mountSecrets(c *Config) error {
 		return trace.Errorf("expected %v.cert file", APIServerKeyPair)
 	}
 
-	c.Mounts = append(c.Mounts, []box.Mount{
-		{
-			Src:      c.SecretsDir,
-			Dst:      "/var/state",
-			Readonly: true,
-		},
-	}...)
+	mountSecrets(config)
 
 	return nil
 }
 
-func setupFlannel(c *Config) {
-	if c.CloudProvider == "aws" {
-		c.Env.Upsert("FLANNEL_BACKEND", "aws-vpc")
+func mountSecrets(config *Config) {
+	config.Mounts = append(config.Mounts, []box.Mount{
+		{
+			Src:      config.SecretsDir,
+			Dst:      "/var/state",
+			Readonly: true,
+		},
+	}...)
+}
+
+func setupFlannel(config *Config) {
+	if config.CloudProvider == "aws" {
+		config.Env.Upsert("FLANNEL_BACKEND", "aws-vpc")
 	} else {
-		c.Env.Upsert("FLANNEL_BACKEND", "vxlan")
+		config.Env.Upsert("FLANNEL_BACKEND", "vxlan")
 	}
 }
 
