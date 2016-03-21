@@ -454,37 +454,23 @@ const (
 
 // mountMasterSecrets mounts k8s secrets directory
 func mountMasterSecrets(config *Config) error {
-	p := &keyPairPaths{
-		name:      CertificateAuthorityKeyPair,
-		sourceDir: config.SecretsDir,
-	}
-	// key pair have been already initialized
-	exists, err := p.exists()
-	if err != nil {
-		return trace.Wrap(err)
-	}
-	if !exists {
-		return trace.Errorf("expected %v.cert file", CertificateAuthorityKeyPair)
-	}
-
-	p = &keyPairPaths{
-		name:      APIServerKeyPair,
-		sourceDir: config.SecretsDir,
-	}
-	// key pair have been already initialized
-	exists, err = p.exists()
-	if err != nil {
-		return trace.Wrap(err)
-	}
-	if !exists {
-		return trace.Errorf("expected %v.cert file", APIServerKeyPair)
+	names := []string{CertificateAuthorityKeyPair, APIServerKeyPair}
+	for _, name := range names {
+		exists, err := validateKeyPair(config.SecretsDir, name)
+		if err != nil {
+			return trace.Wrap(err)
+		}
+		if !exists {
+			return trace.Errorf("expected %v.cert file", name)
+		}
 	}
 
 	mountSecrets(config)
-
 	return nil
 }
 
+// mountSecrets mounts files in secret directory under the specified
+// location inside container
 func mountSecrets(config *Config) {
 	config.Mounts = append(config.Mounts, []box.Mount{
 		{
@@ -493,6 +479,38 @@ func mountSecrets(config *Config) {
 			Readonly: true,
 		},
 	}...)
+}
+
+// validateKeyPair validates existence of certificate/key pair in dir
+// using baseName as a base name for files
+func validateKeyPair(dir, baseName string) (exists bool, err error) {
+	path := func(fileType string) string {
+		return filepath.Join(dir, fmt.Sprintf("%v.%v", baseName, fileType))
+	}
+	validatePath := func(path string) bool {
+		if _, err = os.Stat(path); err != nil {
+			err = trace.Wrap(err)
+			return false
+		}
+		return true
+	}
+	keyPath := path("key")
+	certPath := path("cert")
+	haveKey := validatePath(keyPath)
+	haveCert := validatePath(certPath)
+
+	if err != nil {
+		return false, trace.Wrap(err)
+	}
+
+	if !haveCert && haveKey {
+		return false, trace.Errorf("cert `%v` is missing", certPath)
+	}
+	if haveCert && !haveKey {
+		return false, trace.Errorf("key `%v` is missing", keyPath)
+	}
+
+	return haveCert && haveKey, nil
 }
 
 func setupFlannel(config *Config) {

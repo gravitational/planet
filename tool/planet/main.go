@@ -135,12 +135,13 @@ func run() error {
 		csecretsInitDomain        = csecretsInit.Flag("domain", "domain name for the certificate").Required().String()
 		csecretsInitServiceSubnet = CIDRFlag(csecretsInit.Flag("service-subnet", "subnet dedicated to the services in cluster").Default(DefaultServiceSubnet))
 
-		csecretsGencert       = csecrets.Command("gencert", "generate a new key and certificate from CSR")
-		csecretsGencertCA     = csecretsGencert.Arg("ca", "Path to CA certificate file").Required().String()
-		csecretsGencertCAKey  = csecretsGencert.Arg("ca-key", "Path to CA key file").Required().String()
-		csecretsGencertDir    = csecretsGencert.Arg("dir", "directory where secrets will be placed").Required().String()
-		csecretsGencertDomain = csecretsGencert.Flag("domain", "domain name for the certificate").Required().String()
-		csecretsGencertIPs    = List(csecretsGencert.Flag("ip", "IP address for the certificate. Can be specified multiple times"))
+		csecretsGencert         = csecrets.Command("gencert", "generate a new key and certificate from CSR")
+		csecretsGencertCA       = csecretsGencert.Arg("ca", "Path to CA certificate file").Required().String()
+		csecretsGencertCAKey    = csecretsGencert.Arg("ca-key", "Path to CA key file").Required().String()
+		csecretsGencertDir      = csecretsGencert.Arg("dir", "directory where secrets will be placed").Required().String()
+		csecretsGencertDomain   = csecretsGencert.Flag("domain", "domain name for the certificate").Required().String()
+		csecretsGencertIPs      = List(csecretsGencert.Flag("ip", "IP address for the certificate. Can be specified multiple times"))
+		csecretsGencertBasename = csecretsGencert.Flag("base-name", "Base name of the ceriticate/key pair").String()
 
 		// device management
 		cdevice = app.Command("device", "Manage devices in container")
@@ -312,16 +313,16 @@ func run() error {
 		err = initSecrets(hosts, *csecretsInitDir)
 
 	case csecretsGencert.FullCommand():
-		config := &CertConfig{
-			CA: CAConfig{
+		config := &certConfig{
+			CA: keyPairConfig{
 				certPath: *csecretsGencertCA,
 				keyPath:  *csecretsGencertCAKey,
 			},
+			CN:    *csecretsGencertBasename,
 			Hosts: []string{*csecretsGencertDomain},
-			CN:    "etcd",
 		}
 		config.Hosts = append(config.Hosts, *csecretsGencertIPs...)
-		err = generateCert(config, *csecretsGencertDir, "etcd")
+		err = generateCert(config, *csecretsGencertDir, *csecretsGencertBasename)
 
 	case cdeviceAdd.FullCommand():
 		var device configs.Device
