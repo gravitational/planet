@@ -20,6 +20,7 @@ import (
 	"github.com/gravitational/satellite/agent"
 	"github.com/gravitational/satellite/agent/backend/sqlite"
 	"github.com/gravitational/satellite/agent/cache"
+	agentmonitoring "github.com/gravitational/satellite/monitoring"
 	"github.com/gravitational/trace"
 	"github.com/gravitational/version"
 
@@ -100,6 +101,9 @@ func run() error {
 		cagentClusterDNS       = cagent.Flag("cluster-dns", "IP for a cluster DNS server.").OverrideDefaultFromEnvar(EnvClusterDNSIP).IP()
 		cagentRegistryAddr     = cagent.Flag("docker-registry-addr",
 			"Address of the private docker registry.  Will default to apiserver-dns:5000").String()
+		cagentEtcdCAFile   = cagent.Flag("etcd-cafile", "Certificate Authority file used to secure etcd communication").String()
+		cagentEtcdCertFile = cagent.Flag("etcd-certfile", "TLS certificate file used to secure etcd communication").String()
+		cagentEtcdKeyFile  = cagent.Flag("etcd-keyfile", "TLS key file used to secure etcd communication").String()
 
 		// stop a running container
 		cstop = app.Command("stop", "Stop planet container")
@@ -123,13 +127,21 @@ func run() error {
 		ctestAssetPath    = ctest.Flag("asset-dir", "Path to test executables and data files").String()
 
 		// secrets subsystem helps to manage master secrets
-		csecrets = app.Command("secrets", "Subsystem to control k8s master secrets")
+		csecrets = app.Command("secrets", "Subsystem to control TLS keys and certificates for kubernetes and etcd")
 
 		// csecretsInit will create directory with secrets
 		csecretsInit              = csecrets.Command("init", "initialize directory with secrets")
 		csecretsInitDir           = csecretsInit.Arg("dir", "directory where secrets will be placed").Required().String()
 		csecretsInitDomain        = csecretsInit.Flag("domain", "domain name for the certificate").Required().String()
 		csecretsInitServiceSubnet = CIDRFlag(csecretsInit.Flag("service-subnet", "subnet dedicated to the services in cluster").Default(DefaultServiceSubnet))
+
+		csecretsGencert         = csecrets.Command("gencert", "generate a new key and certificate from CSR")
+		csecretsGencertCA       = csecretsGencert.Arg("ca", "Path to CA certificate file").Required().String()
+		csecretsGencertCAKey    = csecretsGencert.Arg("ca-key", "Path to CA key file").Required().String()
+		csecretsGencertDir      = csecretsGencert.Arg("dir", "directory where secrets will be placed").Required().String()
+		csecretsGencertDomain   = csecretsGencert.Flag("domain", "domain name for the certificate").Required().String()
+		csecretsGencertIPs      = List(csecretsGencert.Flag("ip", "IP address for the certificate. Can be specified multiple times"))
+		csecretsGencertBasename = csecretsGencert.Flag("base-name", "Base name of the ceriticate/key pair").String()
 
 		// device management
 		cdevice = app.Command("device", "Manage devices in container")
@@ -194,6 +206,14 @@ func run() error {
 			KubeAddr:              *cagentKubeAddr,
 			ClusterDNS:            cagentClusterDNS.String(),
 			NettestContainerImage: fmt.Sprintf("%v/nettest:1.8", *cagentRegistryAddr),
+		}
+		if *cagentEtcdCertFile != "" {
+			tlsConfig := &agentmonitoring.TLSConfig{
+				CAFile:   *cagentEtcdCAFile,
+				CertFile: *cagentEtcdCertFile,
+				KeyFile:  *cagentEtcdKeyFile,
+			}
+			monitoringConf.Etcd.TLSConfig = tlsConfig
 		}
 		leaderConf := &LeaderConfig{
 			PublicIP:      cagentPublicIP.String(),
@@ -289,8 +309,20 @@ func run() error {
 		err = e2e.RunTests(config, extraArgs)
 
 	case csecretsInit.FullCommand():
-		err = initSecrets(
-			*csecretsInitDir, *csecretsInitDomain, *csecretsInitServiceSubnet)
+		hosts := append([]string{*csecretsInitDomain}, csecretsInitServiceSubnet.FirstIP().String())
+		err = initSecrets(hosts, *csecretsInitDir)
+
+	case csecretsGencert.FullCommand():
+		config := &certConfig{
+			CA: keyPairConfig{
+				certPath: *csecretsGencertCA,
+				keyPath:  *csecretsGencertCAKey,
+			},
+			CN:    *csecretsGencertBasename,
+			Hosts: []string{*csecretsGencertDomain},
+		}
+		config.Hosts = append(config.Hosts, *csecretsGencertIPs...)
+		err = generateCert(config, *csecretsGencertDir, *csecretsGencertBasename)
 
 	case cdeviceAdd.FullCommand():
 		var device configs.Device
@@ -442,7 +474,7 @@ func toAddrList(store kv.KeyVal) (addrs []string) {
 func toEtcdPeerList(list kv.KeyVal) (peers string) {
 	var addrs []string
 	for domain, addr := range list {
-		addrs = append(addrs, fmt.Sprintf("%v=http://%v:2380", domain, addr))
+		addrs = append(addrs, fmt.Sprintf("%v=https://%v:2380", domain, addr))
 	}
 	return strings.Join(addrs, ",")
 }

@@ -160,9 +160,11 @@ func start(config *Config, monitorc chan<- bool) (*runtimeContext, error) {
 		return nil, trace.Wrap(err)
 	}
 	if config.hasRole(RoleMaster) {
-		if err = mountSecrets(config); err != nil {
+		if err = mountMasterSecrets(config); err != nil {
 			return nil, trace.Wrap(err)
 		}
+	} else {
+		mountSecrets(config)
 	}
 	if err = setHosts(config, []HostEntry{
 		HostEntry{IP: "127.0.0.1", Hostnames: "localhost localhost.localdomain localhost4 localhost4.localdomain4"},
@@ -450,50 +452,72 @@ const (
 	RoleNode = "node"
 )
 
-// mountSecrets mounts k8s secrets directory
-func mountSecrets(c *Config) error {
-	p := &keyPairPaths{
-		name:      CertificateAuthorityKeyPair,
-		sourceDir: c.SecretsDir,
-	}
-	// key pair have been already initialized
-	exists, err := p.exists()
-	if err != nil {
-		return trace.Wrap(err)
-	}
-	if !exists {
-		return trace.Errorf("expected %v.cert file", CertificateAuthorityKeyPair)
+// mountMasterSecrets mounts k8s secrets directory
+func mountMasterSecrets(config *Config) error {
+	names := []string{CertificateAuthorityKeyPair, APIServerKeyPair}
+	for _, name := range names {
+		exists, err := validateKeyPair(config.SecretsDir, name)
+		if err != nil {
+			return trace.Wrap(err)
+		}
+		if !exists {
+			return trace.Errorf("expected %v.cert file", name)
+		}
 	}
 
-	p = &keyPairPaths{
-		name:      APIServerKeyPair,
-		sourceDir: c.SecretsDir,
-	}
-	// key pair have been already initialized
-	exists, err = p.exists()
-	if err != nil {
-		return trace.Wrap(err)
-	}
-	if !exists {
-		return trace.Errorf("expected %v.cert file", APIServerKeyPair)
-	}
+	mountSecrets(config)
+	return nil
+}
 
-	c.Mounts = append(c.Mounts, []box.Mount{
+// mountSecrets mounts files in secret directory under the specified
+// location inside container
+func mountSecrets(config *Config) {
+	config.Mounts = append(config.Mounts, []box.Mount{
 		{
-			Src:      c.SecretsDir,
+			Src:      config.SecretsDir,
 			Dst:      "/var/state",
 			Readonly: true,
 		},
 	}...)
-
-	return nil
 }
 
-func setupFlannel(c *Config) {
-	if c.CloudProvider == "aws" {
-		c.Env.Upsert("FLANNEL_BACKEND", "aws-vpc")
+// validateKeyPair validates existence of certificate/key pair in dir
+// using baseName as a base name for files
+func validateKeyPair(dir, baseName string) (exists bool, err error) {
+	path := func(fileType string) string {
+		return filepath.Join(dir, fmt.Sprintf("%v.%v", baseName, fileType))
+	}
+	validatePath := func(path string) bool {
+		if _, err = os.Stat(path); err != nil {
+			err = trace.Wrap(err)
+			return false
+		}
+		return true
+	}
+	keyPath := path("key")
+	certPath := path("cert")
+	haveKey := validatePath(keyPath)
+	haveCert := validatePath(certPath)
+
+	if err != nil {
+		return false, trace.Wrap(err)
+	}
+
+	if !haveCert && haveKey {
+		return false, trace.Errorf("cert `%v` is missing", certPath)
+	}
+	if haveCert && !haveKey {
+		return false, trace.Errorf("key `%v` is missing", keyPath)
+	}
+
+	return haveCert && haveKey, nil
+}
+
+func setupFlannel(config *Config) {
+	if config.CloudProvider == "aws" {
+		config.Env.Upsert("FLANNEL_BACKEND", "aws-vpc")
 	} else {
-		c.Env.Upsert("FLANNEL_BACKEND", "vxlan")
+		config.Env.Upsert("FLANNEL_BACKEND", "vxlan")
 	}
 }
 

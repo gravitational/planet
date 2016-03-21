@@ -9,7 +9,8 @@
       {"name": "enter", "args": ["rootfs/usr/bin/planet", "enter"]},
       {"name": "status", "args": ["rootfs/usr/bin/planet", "status"]},
       {"name": "local-status", "args": ["rootfs/usr/bin/planet", "status", "--local"]},
-      {"name": "secrets-init", "args": ["rootfs/usr/bin/planet", "secrets", "init"]}
+      {"name": "secrets-init", "args": ["rootfs/usr/bin/planet", "secrets", "init"]},
+      {"name": "gen-cert", "args": ["rootfs/usr/bin/planet", "secrets", "gencert"]}
     ],
     "config": {
         "params": [

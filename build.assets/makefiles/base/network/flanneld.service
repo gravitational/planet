@@ -15,6 +15,16 @@ ExecStartPre=/sbin/modprobe ip_tables
 ExecStartPre=/bin/mkdir -p /run/flannel
 ExecStartPre=/usr/bin/touch /run/flannel/options.env
 ExecStartPre=/usr/bin/scripts/wait-for-etcd.sh
-ExecStartPre=/usr/bin/etcdctl --peers 127.0.0.1:4001 set /coreos.com/network/config '{"Network":"${KUBE_POD_SUBNET}", "Backend": {"Type": "${FLANNEL_BACKEND}"}}'
-ExecStart=/usr/bin/flanneld --ip-masq=true --etcd-endpoints http://127.0.0.1:4001,http://127.0.0.1:2379 --iface=${PLANET_PUBLIC_IP}
+ExecStartPre=/usr/bin/etcdctl \
+    --cert-file=/var/state/etcd.cert \
+    --key-file=/var/state/etcd.key \
+    --ca-file=/var/state/root.cert \
+    --peers https://127.0.0.1:4001 set /coreos.com/network/config '{"Network":"${KUBE_POD_SUBNET}", "Backend": {"Type": "${FLANNEL_BACKEND}"}}'
+ExecStart=/usr/bin/flanneld \
+    --ip-masq=true \
+    --etcd-endpoints https://127.0.0.1:4001,https://127.0.0.1:2379 \
+    --etcd-cafile=/var/state/root.cert \
+    --etcd-certfile=/var/state/etcd.cert \
+    --etcd-keyfile=/var/state/etcd.key \
+    --iface=${PLANET_PUBLIC_IP}
 ExecStartPost=-/bin/bash -c "until [ -e /run/flannel/subnet.env ]; do echo \"waiting for write.\"; sleep 3; done"
