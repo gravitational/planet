@@ -65,8 +65,9 @@ func initCA(hosts []string, dir string) (configCA *keyPairConfig, err error) {
 	return configCA, trace.Wrap(w.err)
 }
 
-// generateCert generates a certificate/key pair using the specified config,
-// writes resulting pair into dir using baseName as filename.
+// generateCert generates a certificate/key pair signed by the provided CA
+// using the specified config, writes resulting pair into dir using
+// baseName as filename.
 func generateCert(config *certConfig, dir, baseName string) error {
 	root := universal.Root{
 		Config: map[string]string{

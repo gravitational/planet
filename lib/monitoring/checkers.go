@@ -24,6 +24,7 @@ type Config struct {
 	Etcd EtcdConfig
 }
 
+// EtcdConfig defines etcd-specific configuration
 type EtcdConfig struct {
 	// TLSConfig defines configuration for securing etcd communication
 	TLSConfig *monitoring.TLSConfig
