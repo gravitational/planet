@@ -81,6 +81,11 @@
 			"Rev": "545f606c6fe02bd8490539bea1535ffaaf96f82e"
 		},
 		{
+			"ImportPath": "github.com/cloudflare/cfssl/initca",
+			"Comment": "1.2.0",
+			"Rev": "545f606c6fe02bd8490539bea1535ffaaf96f82e"
+		},
+		{
 			"ImportPath": "github.com/cloudflare/cfssl/log",
 			"Comment": "1.2.0",
 			"Rev": "545f606c6fe02bd8490539bea1535ffaaf96f82e"
@@ -217,13 +222,13 @@
 		},
 		{
 			"ImportPath": "github.com/gravitational/satellite/agent",
-			"Comment": "v0.0.2",
-			"Rev": "99b1387d18f837dba8a0e6332cab14fbe10f8a15"
+			"Comment": "v0.0.2-3-g48f0145",
+			"Rev": "48f014516e74e1c204cd20bd35aa4a1d932d5932"
 		},
 		{
 			"ImportPath": "github.com/gravitational/satellite/monitoring",
-			"Comment": "v0.0.2",
-			"Rev": "99b1387d18f837dba8a0e6332cab14fbe10f8a15"
+			"Comment": "v0.0.2-3-g48f0145",
+			"Rev": "48f014516e74e1c204cd20bd35aa4a1d932d5932"
 		},
 		{
 			"ImportPath": "github.com/gravitational/trace",
