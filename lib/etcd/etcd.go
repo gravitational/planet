@@ -1,9 +1,6 @@
 package etcd
 
 import (
-	"crypto/tls"
-	"net"
-	"net/http"
 	"time"
 
 	"github.com/gravitational/trace"
@@ -31,7 +28,12 @@ type Config struct {
 
 // NewClient creates a new instance of an etcd client
 func (r *Config) NewClient() (etcd.Client, error) {
-	transport, err := r.newHttpTransport()
+	info := transport.TLSInfo{
+		CertFile: r.CertFile,
+		KeyFile:  r.KeyFile,
+		CAFile:   r.CAFile,
+	}
+	transport, err := transport.NewTransport(info)
 	if err != nil {
 		return nil, trace.Wrap(err)
 	}
@@ -46,38 +48,4 @@ func (r *Config) NewClient() (etcd.Client, error) {
 	}
 
 	return client, nil
-}
-
-// ClientConfig creates a TLS client configuration for an HTTP transport
-func (r *Config) ClientConfig() (*tls.Config, error) {
-	info := transport.TLSInfo{
-		CertFile: r.CertFile,
-		KeyFile:  r.KeyFile,
-		CAFile:   r.CAFile,
-	}
-	config, err := info.ClientConfig()
-	if err != nil {
-		return nil, trace.Wrap(err)
-	}
-	return config, nil
-}
-
-func (r *Config) newHttpTransport() (*http.Transport, error) {
-	config, err := r.ClientConfig()
-	if err != nil {
-		return nil, trace.Wrap(err)
-	}
-
-	transport := &http.Transport{
-		Proxy: http.ProxyFromEnvironment,
-		Dial: (&net.Dialer{
-			Timeout:   30 * time.Second,
-			KeepAlive: 30 * time.Second,
-		}).Dial,
-		TLSHandshakeTimeout: 10 * time.Second,
-		MaxIdleConnsPerHost: 500,
-		TLSClientConfig:     config,
-	}
-
-	return transport, nil
 }
