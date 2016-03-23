@@ -234,7 +234,7 @@ type DeleteOptions struct {
 
 type Watcher interface {
 	// Next blocks until an etcd event occurs, then returns a Response
-	// representing that event. The behavior of Next depends on the
+	// represeting that event. The behavior of Next depends on the
 	// WatcherOptions used to construct the Watcher. Next is designed to
 	// be called repeatedly, each time blocking until a subsequent event
 	// is available.

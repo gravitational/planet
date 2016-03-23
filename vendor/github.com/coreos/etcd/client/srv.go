@@ -50,8 +50,8 @@ func (d *srvDiscover) Discover(domain string) ([]string, error) {
 		return nil
 	}
 
-	errHTTPS := updateURLs("etcd-client-ssl", "https")
-	errHTTP := updateURLs("etcd-client", "http")
+	errHTTPS := updateURLs("etcd-server-ssl", "https")
+	errHTTP := updateURLs("etcd-server", "http")
 
 	if errHTTPS != nil && errHTTP != nil {
 		return nil, fmt.Errorf("dns lookup errors: %s and %s", errHTTPS, errHTTP)

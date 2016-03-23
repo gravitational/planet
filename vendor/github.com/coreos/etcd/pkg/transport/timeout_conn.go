@@ -12,10 +12,33 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package client
+package transport
 
-// Discoverer is an interface that wraps the Discover method.
-type Discoverer interface {
-	// Dicover looks up the etcd servers for the domain.
-	Discover(domain string) ([]string, error)
+import (
+	"net"
+	"time"
+)
+
+type timeoutConn struct {
+	net.Conn
+	wtimeoutd  time.Duration
+	rdtimeoutd time.Duration
+}
+
+func (c timeoutConn) Write(b []byte) (n int, err error) {
+	if c.wtimeoutd > 0 {
+		if err := c.SetWriteDeadline(time.Now().Add(c.wtimeoutd)); err != nil {
+			return 0, err
+		}
+	}
+	return c.Conn.Write(b)
+}
+
+func (c timeoutConn) Read(b []byte) (n int, err error) {
+	if c.rdtimeoutd > 0 {
+		if err := c.SetReadDeadline(time.Now().Add(c.rdtimeoutd)); err != nil {
+			return 0, err
+		}
+	}
+	return c.Conn.Read(b)
 }

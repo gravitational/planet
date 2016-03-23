@@ -29,11 +29,14 @@ import (
 
 const healthzCheckTimeout = 1 * time.Second
 const healthzTLSHandshakeTimeout = 10 * time.Second
+const dialTimeout = 30 * time.Second
+const keepAlivePeriod = 30 * time.Second
 
-// HttpResponseChecker is a function that can validate service status from response
+// HttpResponseChecker is a function that can validate service health
+// from the provided response
 type HttpResponseChecker func(response io.Reader) error
 
-// HttpHealthzChecker is a health checker that can check servhice status over HTTP
+// HttpHealthzChecker is a health.Checker that can validate service health over HTTP
 type HttpHealthzChecker struct {
 	name    string
 	URL     string
@@ -72,57 +75,30 @@ func (r *HttpHealthzChecker) Check(reporter health.Reporter) {
 	})
 }
 
-// NewHTTPHealthzChecker is a Checker that tests the specified HTTP endpoint
+// NewHTTPHealthzChecker creates a health.Checker for an HTTP health endpoint
+// using the specified URL and a custom response checker
 func NewHTTPHealthzChecker(name, URL string, checker HttpResponseChecker) health.Checker {
-	client := &http.Client{
-		Timeout: healthzCheckTimeout,
-	}
-	return &HttpHealthzChecker{
-		name:    name,
-		URL:     URL,
-		client:  client,
-		checker: checker,
-	}
-}
-
-// NewHTTPSHealthzChecker is a Checker that tests the specified HTTPS endpoint
-func NewHTTPSHealthzChecker(name, URL string, config *TLSConfig, checker HttpResponseChecker) (health.Checker, error) {
-	const dialTimeout = 30 * time.Second
-	const keepAlivePeriod = 30 * time.Second
-	tlsConfig, err := config.ClientConfig()
-	if err != nil {
-		return nil, trace.Wrap(err)
-	}
-	transport := &http.Transport{
-		Dial: (&net.Dialer{
-			Timeout:   dialTimeout,
-			KeepAlive: keepAlivePeriod,
-		}).Dial,
-		TLSClientConfig:     tlsConfig,
-		TLSHandshakeTimeout: healthzTLSHandshakeTimeout,
-	}
-	client := &http.Client{
-		Transport: transport,
-		Timeout:   healthzCheckTimeout,
-	}
-	return &HttpHealthzChecker{
-		name:    name,
-		URL:     URL,
-		client:  client,
-		checker: checker,
-	}, nil
+	defaultTransport := http.RoundTripper(nil)
+	return NewHTTPHealthzCheckerWithTransport(name, URL, defaultTransport, checker)
 }
 
 // NewUnixSocketHealthzChecker returns a new Checker that tests
 // the specified unix domain socket path and URL
 func NewUnixSocketHealthzChecker(name, URL, socketPath string, checker HttpResponseChecker) health.Checker {
-	client := &http.Client{
-		Timeout: healthzCheckTimeout,
-		Transport: &http.Transport{
-			Dial: func(network, addr string) (net.Conn, error) {
-				return net.Dial("unix", socketPath)
-			},
+	transport := &http.Transport{
+		Dial: func(network, addr string) (net.Conn, error) {
+			return net.Dial("unix", socketPath)
 		},
+	}
+	return NewHTTPHealthzCheckerWithTransport(name, URL, transport, checker)
+}
+
+// NewHTTPHealthzCheckerWithTransport creates a health.Checker for an HTTP health endpoint
+// using the specified transport, URL and a custom response checker
+func NewHTTPHealthzCheckerWithTransport(name, URL string, transport http.RoundTripper, checker HttpResponseChecker) health.Checker {
+	client := &http.Client{
+		Transport: transport,
+		Timeout:   healthzCheckTimeout,
 	}
 	return &HttpHealthzChecker{
 		name:    name,
