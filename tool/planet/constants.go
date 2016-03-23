@@ -26,5 +26,5 @@ const (
 	EnvAWSSecretKey            = "AWS_SECRET_ACCESS_KEY"
 
 	DefaultLeaderTerm    = 10 * time.Second
-	DefaultEtcdEndpoints = "http://127.0.0.1:2379"
+	DefaultEtcdEndpoints = "https://127.0.0.1:2379"
 )
