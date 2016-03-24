@@ -2,7 +2,8 @@
 	"ImportPath": "github.com/gravitational/planet",
 	"GoVersion": "go1.5",
 	"Packages": [
-		"./tool/..."
+		"./tool/...",
+		"./lib/..."
 	],
 	"Deps": [
 		{
@@ -102,28 +103,33 @@
 		},
 		{
 			"ImportPath": "github.com/coreos/etcd/Godeps/_workspace/src/github.com/ugorji/go/codec",
-			"Comment": "v2.3.0-alpha.0-492-g98dfdeb",
-			"Rev": "98dfdebf13de7b476e7456b4c3c4b4a49fbda2c3"
+			"Comment": "v2.2.5",
+			"Rev": "bc9ddf260115d2680191c46977ae72b837785472"
 		},
 		{
 			"ImportPath": "github.com/coreos/etcd/Godeps/_workspace/src/golang.org/x/net/context",
-			"Comment": "v2.3.0-alpha.0-492-g98dfdeb",
-			"Rev": "98dfdebf13de7b476e7456b4c3c4b4a49fbda2c3"
+			"Comment": "v2.2.5",
+			"Rev": "bc9ddf260115d2680191c46977ae72b837785472"
 		},
 		{
 			"ImportPath": "github.com/coreos/etcd/client",
-			"Comment": "v2.3.0-alpha.0-492-g98dfdeb",
-			"Rev": "98dfdebf13de7b476e7456b4c3c4b4a49fbda2c3"
+			"Comment": "v2.2.5",
+			"Rev": "bc9ddf260115d2680191c46977ae72b837785472"
 		},
 		{
 			"ImportPath": "github.com/coreos/etcd/pkg/pathutil",
-			"Comment": "v2.3.0-alpha.0-492-g98dfdeb",
-			"Rev": "98dfdebf13de7b476e7456b4c3c4b4a49fbda2c3"
+			"Comment": "v2.2.5",
+			"Rev": "bc9ddf260115d2680191c46977ae72b837785472"
+		},
+		{
+			"ImportPath": "github.com/coreos/etcd/pkg/transport",
+			"Comment": "v2.2.5",
+			"Rev": "bc9ddf260115d2680191c46977ae72b837785472"
 		},
 		{
 			"ImportPath": "github.com/coreos/etcd/pkg/types",
-			"Comment": "v2.3.0-alpha.0-492-g98dfdeb",
-			"Rev": "98dfdebf13de7b476e7456b4c3c4b4a49fbda2c3"
+			"Comment": "v2.2.5",
+			"Rev": "bc9ddf260115d2680191c46977ae72b837785472"
 		},
 		{
 			"ImportPath": "github.com/coreos/go-systemd/dbus",
@@ -222,13 +228,13 @@
 		},
 		{
 			"ImportPath": "github.com/gravitational/satellite/agent",
-			"Comment": "v0.0.2-3-g48f0145",
-			"Rev": "48f014516e74e1c204cd20bd35aa4a1d932d5932"
+			"Comment": "v0.0.2-13-gb7b69c7",
+			"Rev": "b7b69c70dda1f1fe687c7532a0779c4616ad3cbe"
 		},
 		{
 			"ImportPath": "github.com/gravitational/satellite/monitoring",
-			"Comment": "v0.0.2-3-g48f0145",
-			"Rev": "48f014516e74e1c204cd20bd35aa4a1d932d5932"
+			"Comment": "v0.0.2-13-gb7b69c7",
+			"Rev": "b7b69c70dda1f1fe687c7532a0779c4616ad3cbe"
 		},
 		{
 			"ImportPath": "github.com/gravitational/trace",

@@ -5,27 +5,28 @@ import (
 	"sync/atomic"
 	"time"
 
+	"github.com/gravitational/planet/lib/etcdconf"
+	"github.com/gravitational/trace"
+
 	log "github.com/Sirupsen/logrus"
 	"github.com/coreos/etcd/client"
-	"github.com/gravitational/trace"
 	"github.com/mailgun/timetools"
 	"golang.org/x/net/context"
 )
 
+// defaultResponseTimeout specifies the default time limit to wait for response
+// header in a single request made by an etcd client
 const defaultResponseTimeout = 1 * time.Second
 
 // Config sets leader election configuration options
 type Config struct {
-	// EtcdEndpoints is a list of etcd endpoints to use
-	EtcdEndpoints []string
-	// Timeout is header response operation timeout,
-	// set to defaultResponseTimeout by default
-	Timeout time.Duration
+	// ETCD defines etcd configuration
+	ETCD etcdconf.Config
 	// Clock is a time provider
 	Clock timetools.TimeProvider
 }
 
-// Client implements Etcd-backed leader election client
+// Client implements ETCD-backed leader election client
 // that helps to elect new leaders for a given key and
 // monitors the changes to the leaders
 type Client struct {
@@ -37,20 +38,17 @@ type Client struct {
 
 // NewClient returns a new instance of leader election client
 func NewClient(cfg Config) (*Client, error) {
-	if len(cfg.EtcdEndpoints) == 0 {
+	if len(cfg.ETCD.Endpoints) == 0 {
 		return nil, trace.Errorf("need at least one endpoint")
 	}
 	if cfg.Clock == nil {
 		cfg.Clock = &timetools.RealTime{}
 	}
-	if cfg.Timeout == 0 {
-		cfg.Timeout = defaultResponseTimeout
+	if cfg.ETCD.HeaderTimeoutPerRequest == 0 {
+		cfg.ETCD.HeaderTimeoutPerRequest = defaultResponseTimeout
 	}
-	client, err := client.New(client.Config{
-		Endpoints:               cfg.EtcdEndpoints,
-		Transport:               client.DefaultTransport,
-		HeaderTimeoutPerRequest: cfg.Timeout,
-	})
+
+	client, err := cfg.ETCD.NewClient()
 	if err != nil {
 		return nil, trace.Wrap(err)
 	}

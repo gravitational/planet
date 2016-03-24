@@ -28,24 +28,24 @@ import (
 )
 
 const healthzCheckTimeout = 1 * time.Second
-const healthzTLSHandshakeTimeout = 10 * time.Second
 
-// HttpResponseChecker is a function that can validate service status from response
-type HttpResponseChecker func(response io.Reader) error
+// HTTPResponseChecker is a function that can validate service health
+// from the provided response
+type HTTPResponseChecker func(response io.Reader) error
 
-// HttpHealthzChecker is a health checker that can check servhice status over HTTP
-type HttpHealthzChecker struct {
+// HTTPHealthzChecker is a health.Checker that can validate service health over HTTP
+type HTTPHealthzChecker struct {
 	name    string
 	URL     string
 	client  *http.Client
-	checker HttpResponseChecker
+	checker HTTPResponseChecker
 }
 
 // Name returns the name of this checker
-func (r *HttpHealthzChecker) Name() string { return r.name }
+func (r *HTTPHealthzChecker) Name() string { return r.name }
 
 // Check runs an HTTP check and reports errors to the specified Reporter
-func (r *HttpHealthzChecker) Check(reporter health.Reporter) {
+func (r *HTTPHealthzChecker) Check(reporter health.Reporter) {
 	resp, err := r.client.Get(r.URL)
 	if err != nil {
 		reporter.Add(NewProbeFromErr(r.name, trace.Errorf("healthz check failed: %v", err)))
@@ -72,59 +72,32 @@ func (r *HttpHealthzChecker) Check(reporter health.Reporter) {
 	})
 }
 
-// NewHTTPHealthzChecker is a Checker that tests the specified HTTP endpoint
-func NewHTTPHealthzChecker(name, URL string, checker HttpResponseChecker) health.Checker {
-	client := &http.Client{
-		Timeout: healthzCheckTimeout,
-	}
-	return &HttpHealthzChecker{
-		name:    name,
-		URL:     URL,
-		client:  client,
-		checker: checker,
-	}
-}
-
-// NewHTTPSHealthzChecker is a Checker that tests the specified HTTPS endpoint
-func NewHTTPSHealthzChecker(name, URL string, config *TLSConfig, checker HttpResponseChecker) (health.Checker, error) {
-	const dialTimeout = 30 * time.Second
-	const keepAlivePeriod = 30 * time.Second
-	tlsConfig, err := config.ClientConfig()
-	if err != nil {
-		return nil, trace.Wrap(err)
-	}
-	transport := &http.Transport{
-		Dial: (&net.Dialer{
-			Timeout:   dialTimeout,
-			KeepAlive: keepAlivePeriod,
-		}).Dial,
-		TLSClientConfig:     tlsConfig,
-		TLSHandshakeTimeout: healthzTLSHandshakeTimeout,
-	}
-	client := &http.Client{
-		Transport: transport,
-		Timeout:   healthzCheckTimeout,
-	}
-	return &HttpHealthzChecker{
-		name:    name,
-		URL:     URL,
-		client:  client,
-		checker: checker,
-	}, nil
+// NewHTTPHealthzChecker creates a health.Checker for an HTTP health endpoint
+// using the specified URL and a custom response checker
+func NewHTTPHealthzChecker(name, URL string, checker HTTPResponseChecker) health.Checker {
+	defaultTransport := http.RoundTripper(nil)
+	return NewHTTPHealthzCheckerWithTransport(name, URL, defaultTransport, checker)
 }
 
 // NewUnixSocketHealthzChecker returns a new Checker that tests
 // the specified unix domain socket path and URL
-func NewUnixSocketHealthzChecker(name, URL, socketPath string, checker HttpResponseChecker) health.Checker {
-	client := &http.Client{
-		Timeout: healthzCheckTimeout,
-		Transport: &http.Transport{
-			Dial: func(network, addr string) (net.Conn, error) {
-				return net.Dial("unix", socketPath)
-			},
+func NewUnixSocketHealthzChecker(name, URL, socketPath string, checker HTTPResponseChecker) health.Checker {
+	transport := &http.Transport{
+		Dial: func(network, addr string) (net.Conn, error) {
+			return net.Dial("unix", socketPath)
 		},
 	}
-	return &HttpHealthzChecker{
+	return NewHTTPHealthzCheckerWithTransport(name, URL, transport, checker)
+}
+
+// NewHTTPHealthzCheckerWithTransport creates a health.Checker for an HTTP health endpoint
+// using the specified transport, URL and a custom response checker
+func NewHTTPHealthzCheckerWithTransport(name, URL string, transport http.RoundTripper, checker HTTPResponseChecker) health.Checker {
+	client := &http.Client{
+		Transport: transport,
+		Timeout:   healthzCheckTimeout,
+	}
+	return &HTTPHealthzChecker{
 		name:    name,
 		URL:     URL,
 		client:  client,

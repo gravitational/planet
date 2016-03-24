@@ -1,8 +1,10 @@
 package monitoring
 
 import (
+	"fmt"
 	"io"
 
+	"github.com/gravitational/planet/lib/etcdconf"
 	"github.com/gravitational/satellite/agent"
 	"github.com/gravitational/satellite/agent/health"
 	"github.com/gravitational/satellite/monitoring"
@@ -17,47 +19,49 @@ type Config struct {
 	KubeAddr string
 	// ClusterDNS is the IP of the kubernetes DNS service
 	ClusterDNS string
+	// RegistryAddr is the address of the private docker registry
+	RegistryAddr string
 	// NettestContainerImage is the name of the container image used for
 	// networking test
 	NettestContainerImage string
-	// Etcd defines etcd-specific configuration
-	Etcd EtcdConfig
-}
-
-// EtcdConfig defines etcd-specific configuration
-type EtcdConfig struct {
-	// TLSConfig defines configuration for securing etcd communication
-	TLSConfig *monitoring.TLSConfig
+	// ETCDConfig defines etcd-specific configuration
+	ETCDConfig etcdconf.Config
 }
 
 // AddCheckers adds checkers to the agent.
 func AddCheckers(node agent.Agent, config *Config) {
+	etcdConfig := &monitoring.ETCDConfig{
+		Endpoints: config.ETCDConfig.Endpoints,
+		CAFile:    config.ETCDConfig.CAFile,
+		CertFile:  config.ETCDConfig.CertFile,
+		KeyFile:   config.ETCDConfig.KeyFile,
+	}
 	switch config.Role {
 	case agent.RoleMaster:
-		addToMaster(node, config)
+		addToMaster(node, config, etcdConfig)
 	case agent.RoleNode:
-		addToNode(node, config)
+		addToNode(node, config, etcdConfig)
 	}
 }
 
-func addToMaster(node agent.Agent, config *Config) error {
-	etcdChecker, err := monitoring.EtcdHealth("https://127.0.0.1:2379", config.Etcd.TLSConfig)
+func addToMaster(node agent.Agent, config *Config, etcdConfig *monitoring.ETCDConfig) error {
+	etcdChecker, err := monitoring.EtcdHealth(etcdConfig)
 	if err != nil {
 		return trace.Wrap(err)
 	}
-	node.AddChecker(monitoring.KubeApiServerHealth(config.KubeAddr))
+	node.AddChecker(monitoring.KubeAPIServerHealth(config.KubeAddr))
 	// See: https://github.com/kubernetes/kubernetes/issues/17737
 	// node.AddChecker(monitoring.ComponentStatusHealth(config.KubeAddr))
 	node.AddChecker(monitoring.DockerHealth("/var/run/docker.sock"))
-	node.AddChecker(dockerRegistryHealth())
+	node.AddChecker(dockerRegistryHealth(config.RegistryAddr))
 	node.AddChecker(etcdChecker)
 	node.AddChecker(monitoring.SystemdHealth())
 	node.AddChecker(monitoring.IntraPodCommunication(config.KubeAddr, config.NettestContainerImage))
 	return nil
 }
 
-func addToNode(node agent.Agent, config *Config) error {
-	etcdChecker, err := monitoring.EtcdHealth("https://127.0.0.1:2379", config.Etcd.TLSConfig)
+func addToNode(node agent.Agent, config *Config, etcdConfig *monitoring.ETCDConfig) error {
+	etcdChecker, err := monitoring.EtcdHealth(etcdConfig)
 	if err != nil {
 		return trace.Wrap(err)
 	}
@@ -68,8 +72,8 @@ func addToNode(node agent.Agent, config *Config) error {
 	return nil
 }
 
-func dockerRegistryHealth() health.Checker {
-	return monitoring.NewHTTPHealthzChecker("docker-registry", "http://127.0.0.1:5000/v2/", noopResponseChecker)
+func dockerRegistryHealth(addr string) health.Checker {
+	return monitoring.NewHTTPHealthzChecker("docker-registry", fmt.Sprintf("%v/v2/", addr), noopResponseChecker)
 }
 
 func noopResponseChecker(response io.Reader) error {

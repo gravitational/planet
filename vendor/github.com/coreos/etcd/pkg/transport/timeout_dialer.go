@@ -12,6 +12,25 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-// Package types declares various data types and implements type-checking
-// functions.
-package types
+package transport
+
+import (
+	"net"
+	"time"
+)
+
+type rwTimeoutDialer struct {
+	wtimeoutd  time.Duration
+	rdtimeoutd time.Duration
+	net.Dialer
+}
+
+func (d *rwTimeoutDialer) Dial(network, address string) (net.Conn, error) {
+	conn, err := d.Dialer.Dial(network, address)
+	tconn := &timeoutConn{
+		rdtimeoutd: d.rdtimeoutd,
+		wtimeoutd:  d.wtimeoutd,
+		Conn:       conn,
+	}
+	return tconn, err
+}

@@ -15,12 +15,12 @@ import (
 	kv "github.com/gravitational/configure"
 	"github.com/gravitational/configure/cstrings"
 	"github.com/gravitational/planet/lib/box"
+	"github.com/gravitational/planet/lib/etcdconf"
 	"github.com/gravitational/planet/lib/monitoring"
 	"github.com/gravitational/planet/test/e2e"
 	"github.com/gravitational/satellite/agent"
 	"github.com/gravitational/satellite/agent/backend/sqlite"
 	"github.com/gravitational/satellite/agent/cache"
-	agentmonitoring "github.com/gravitational/satellite/monitoring"
 	"github.com/gravitational/trace"
 	"github.com/gravitational/version"
 
@@ -201,27 +201,27 @@ func run() error {
 			SerfRPCAddr: *cagentSerfRPCAddr,
 			Cache:       cache,
 		}
+		etcdConf := etcdconf.Config{
+			Endpoints: *cagentEtcdEndpoints,
+			CAFile:    *cagentEtcdCAFile,
+			CertFile:  *cagentEtcdCertFile,
+			KeyFile:   *cagentEtcdKeyFile,
+		}
 		monitoringConf := &monitoring.Config{
 			Role:                  agent.Role(*cagentRole),
 			KubeAddr:              *cagentKubeAddr,
 			ClusterDNS:            cagentClusterDNS.String(),
+			RegistryAddr:          fmt.Sprintf("http://%v", *cagentRegistryAddr),
 			NettestContainerImage: fmt.Sprintf("%v/nettest:1.8", *cagentRegistryAddr),
-		}
-		if *cagentEtcdCertFile != "" {
-			tlsConfig := &agentmonitoring.TLSConfig{
-				CAFile:   *cagentEtcdCAFile,
-				CertFile: *cagentEtcdCertFile,
-				KeyFile:  *cagentEtcdKeyFile,
-			}
-			monitoringConf.Etcd.TLSConfig = tlsConfig
+			ETCDConfig:            etcdConf,
 		}
 		leaderConf := &LeaderConfig{
-			PublicIP:      cagentPublicIP.String(),
-			LeaderKey:     *cagentLeaderKey,
-			Role:          *cagentRole,
-			Term:          *cagentTerm,
-			EtcdEndpoints: *cagentEtcdEndpoints,
-			APIServerDNS:  *cagentKubeAPIServerDNS,
+			PublicIP:     cagentPublicIP.String(),
+			LeaderKey:    *cagentLeaderKey,
+			Role:         *cagentRole,
+			Term:         *cagentTerm,
+			ETCD:         etcdConf,
+			APIServerDNS: *cagentKubeAPIServerDNS,
 		}
 		err = runAgent(conf, monitoringConf, leaderConf, toAddrList(*cagentInitialCluster))
 
