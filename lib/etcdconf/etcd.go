@@ -1,4 +1,4 @@
-package etcd
+package etcdconf
 
 import (
 	"time"

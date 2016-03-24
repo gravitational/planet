@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"io"
 
-	"github.com/gravitational/planet/lib/etcd"
+	"github.com/gravitational/planet/lib/etcdconf"
 	"github.com/gravitational/satellite/agent"
 	"github.com/gravitational/satellite/agent/health"
 	"github.com/gravitational/satellite/monitoring"
@@ -24,17 +24,17 @@ type Config struct {
 	// NettestContainerImage is the name of the container image used for
 	// networking test
 	NettestContainerImage string
-	// Etcd defines etcd-specific configuration
-	EtcdConfig etcd.Config
+	// ETCDConfig defines etcd-specific configuration
+	ETCDConfig etcdconf.Config
 }
 
 // AddCheckers adds checkers to the agent.
 func AddCheckers(node agent.Agent, config *Config) {
-	etcdConfig := &monitoring.EtcdConfig{
-		Endpoints: config.EtcdConfig.Endpoints,
-		CAFile:    config.EtcdConfig.CAFile,
-		CertFile:  config.EtcdConfig.CertFile,
-		KeyFile:   config.EtcdConfig.KeyFile,
+	etcdConfig := &monitoring.ETCDConfig{
+		Endpoints: config.ETCDConfig.Endpoints,
+		CAFile:    config.ETCDConfig.CAFile,
+		CertFile:  config.ETCDConfig.CertFile,
+		KeyFile:   config.ETCDConfig.KeyFile,
 	}
 	switch config.Role {
 	case agent.RoleMaster:
@@ -44,12 +44,12 @@ func AddCheckers(node agent.Agent, config *Config) {
 	}
 }
 
-func addToMaster(node agent.Agent, config *Config, etcdConfig *monitoring.EtcdConfig) error {
+func addToMaster(node agent.Agent, config *Config, etcdConfig *monitoring.ETCDConfig) error {
 	etcdChecker, err := monitoring.EtcdHealth(etcdConfig)
 	if err != nil {
 		return trace.Wrap(err)
 	}
-	node.AddChecker(monitoring.KubeApiServerHealth(config.KubeAddr))
+	node.AddChecker(monitoring.KubeAPIServerHealth(config.KubeAddr))
 	// See: https://github.com/kubernetes/kubernetes/issues/17737
 	// node.AddChecker(monitoring.ComponentStatusHealth(config.KubeAddr))
 	node.AddChecker(monitoring.DockerHealth("/var/run/docker.sock"))
@@ -60,7 +60,7 @@ func addToMaster(node agent.Agent, config *Config, etcdConfig *monitoring.EtcdCo
 	return nil
 }
 
-func addToNode(node agent.Agent, config *Config, etcdConfig *monitoring.EtcdConfig) error {
+func addToNode(node agent.Agent, config *Config, etcdConfig *monitoring.ETCDConfig) error {
 	etcdChecker, err := monitoring.EtcdHealth(etcdConfig)
 	if err != nil {
 		return trace.Wrap(err)

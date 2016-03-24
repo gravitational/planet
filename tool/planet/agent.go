@@ -10,7 +10,7 @@ import (
 	"syscall"
 	"time"
 
-	"github.com/gravitational/planet/lib/etcd"
+	"github.com/gravitational/planet/lib/etcdconf"
 	"github.com/gravitational/planet/lib/leader"
 	"github.com/gravitational/planet/lib/monitoring"
 	"github.com/gravitational/planet/lib/utils"
@@ -33,8 +33,8 @@ type LeaderConfig struct {
 	// Term is the TTL of the lease before it expires if the server
 	// fails to renew it
 	Term time.Duration
-	// EtcdConfig defines etcd configuration
-	EtcdConfig etcd.Config
+	// ETCD defines etcd configuration
+	ETCD etcdconf.Config
 	// APIServerDNS is a name of the API server entry to lookup
 	// for the currently active API server
 	APIServerDNS string
@@ -43,7 +43,7 @@ type LeaderConfig struct {
 // String returns string representation of the agent leader configuration
 func (conf LeaderConfig) String() string {
 	return fmt.Sprintf("LeaderConfig(key=%v, ip=%v, role=%v, term=%v, endpoints=%v, apiserverDNS=%v)",
-		conf.LeaderKey, conf.PublicIP, conf.Role, conf.Term, conf.EtcdConfig.Endpoints, conf.APIServerDNS)
+		conf.LeaderKey, conf.PublicIP, conf.Role, conf.Term, conf.ETCD.Endpoints, conf.APIServerDNS)
 }
 
 // startLeaderClient starts the master election loop and sets up callbacks
@@ -55,7 +55,7 @@ func (conf LeaderConfig) String() string {
 // to reflect the change of the kubernetes API server.
 func startLeaderClient(conf *LeaderConfig) (io.Closer, error) {
 	log.Infof("%v start", conf)
-	client, err := leader.NewClient(leader.Config{EtcdConfig: conf.EtcdConfig})
+	client, err := leader.NewClient(leader.Config{ETCD: conf.ETCD})
 	if err != nil {
 		return nil, trace.Wrap(err)
 	}

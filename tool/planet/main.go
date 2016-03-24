@@ -15,7 +15,7 @@ import (
 	kv "github.com/gravitational/configure"
 	"github.com/gravitational/configure/cstrings"
 	"github.com/gravitational/planet/lib/box"
-	"github.com/gravitational/planet/lib/etcd"
+	"github.com/gravitational/planet/lib/etcdconf"
 	"github.com/gravitational/planet/lib/monitoring"
 	"github.com/gravitational/planet/test/e2e"
 	"github.com/gravitational/satellite/agent"
@@ -201,7 +201,7 @@ func run() error {
 			SerfRPCAddr: *cagentSerfRPCAddr,
 			Cache:       cache,
 		}
-		etcdConf := etcd.Config{
+		etcdConf := etcdconf.Config{
 			Endpoints: *cagentEtcdEndpoints,
 			CAFile:    *cagentEtcdCAFile,
 			CertFile:  *cagentEtcdCertFile,
@@ -213,14 +213,14 @@ func run() error {
 			ClusterDNS:            cagentClusterDNS.String(),
 			RegistryAddr:          fmt.Sprintf("http://%v", *cagentRegistryAddr),
 			NettestContainerImage: fmt.Sprintf("%v/nettest:1.8", *cagentRegistryAddr),
-			EtcdConfig:            etcdConf,
+			ETCDConfig:            etcdConf,
 		}
 		leaderConf := &LeaderConfig{
 			PublicIP:     cagentPublicIP.String(),
 			LeaderKey:    *cagentLeaderKey,
 			Role:         *cagentRole,
 			Term:         *cagentTerm,
-			EtcdConfig:   etcdConf,
+			ETCD:         etcdConf,
 			APIServerDNS: *cagentKubeAPIServerDNS,
 		}
 		err = runAgent(conf, monitoringConf, leaderConf, toAddrList(*cagentInitialCluster))
