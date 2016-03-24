@@ -228,13 +228,13 @@
 		},
 		{
 			"ImportPath": "github.com/gravitational/satellite/agent",
-			"Comment": "v0.0.2-6-gbaa6ce3",
-			"Rev": "baa6ce325784e5c2218b294e8e178e02526847cb"
+			"Comment": "v0.0.2-13-gb7b69c7",
+			"Rev": "b7b69c70dda1f1fe687c7532a0779c4616ad3cbe"
 		},
 		{
 			"ImportPath": "github.com/gravitational/satellite/monitoring",
-			"Comment": "v0.0.2-6-gbaa6ce3",
-			"Rev": "baa6ce325784e5c2218b294e8e178e02526847cb"
+			"Comment": "v0.0.2-13-gb7b69c7",
+			"Rev": "b7b69c70dda1f1fe687c7532a0779c4616ad3cbe"
 		},
 		{
 			"ImportPath": "github.com/gravitational/trace",

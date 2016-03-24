@@ -29,9 +29,9 @@ import (
 	"github.com/gravitational/trace"
 )
 
-// EtcdConfig defines a set of configuration parameters for accessing
+// ETCDConfig defines a set of configuration parameters for accessing
 // etcd endpoints
-type EtcdConfig struct {
+type ETCDConfig struct {
 	// Endpoints lists etcd server endpoints
 	Endpoints []string
 	// CAFile is an SSL Certificate Authority file used to secure
@@ -44,7 +44,19 @@ type EtcdConfig struct {
 	KeyFile string
 }
 
-// etcdChecker is an HttpResponseChecker that interprets results from
+// defaultTLSHandshakeTimeout specifies the default maximum amount of time
+// spent waiting to for a TLS handshake
+const defaultTLSHandshakeTimeout = 10 * time.Second
+
+// defaultDialTimeout is the default maximum amount of time a dial will wait for
+// a connect to complete.
+const defaultDialTimeout = 30 * time.Second
+
+// defaultKeepAlive specifies the default keep-alive period for an active
+// network connection.
+const defaultKeepAlivePeriod = 30 * time.Second
+
+// etcdChecker is an HTTPResponseChecker that interprets results from
 // an etcd HTTP-based healthz end-point.
 func etcdChecker(response io.Reader) error {
 	payload, err := ioutil.ReadAll(response)
@@ -79,10 +91,10 @@ func etcdStatus(payload []byte) (healthy bool, err error) {
 	return (result.Health == "true" || nresult.Health == true), nil
 }
 
-// newHttpTransport creates a new http.Transport from the specified
+// newHTTPTransport creates a new http.Transport from the specified
 // set of attributes.
 // The resulting transport can be used to create an http.Client
-func (r *EtcdConfig) newHttpTransport() (*http.Transport, error) {
+func (r *ETCDConfig) newHTTPTransport() (*http.Transport, error) {
 	tlsConfig, err := r.clientConfig()
 	if err != nil {
 		return nil, trace.Wrap(err)
@@ -90,11 +102,10 @@ func (r *EtcdConfig) newHttpTransport() (*http.Transport, error) {
 	transport := &http.Transport{
 		Proxy: http.ProxyFromEnvironment,
 		Dial: (&net.Dialer{
-			Timeout:   30 * time.Second,
-			KeepAlive: 30 * time.Second,
+			Timeout:   defaultDialTimeout,
+			KeepAlive: defaultKeepAlivePeriod,
 		}).Dial,
-		TLSHandshakeTimeout: 10 * time.Second,
-		MaxIdleConnsPerHost: 500,
+		TLSHandshakeTimeout: defaultTLSHandshakeTimeout,
 		TLSClientConfig:     tlsConfig,
 	}
 
@@ -102,7 +113,7 @@ func (r *EtcdConfig) newHttpTransport() (*http.Transport, error) {
 }
 
 // clientConfig generates a tls.Config object for use by an HTTP client.
-func (r *EtcdConfig) clientConfig() (*tls.Config, error) {
+func (r *ETCDConfig) clientConfig() (*tls.Config, error) {
 	if r.empty() {
 		return nil, nil
 	}
@@ -132,9 +143,8 @@ func (r *EtcdConfig) clientConfig() (*tls.Config, error) {
 	return config, nil
 }
 
-// Empty determines if the configuration does not reference any certificate/key
-// files
-func (r *EtcdConfig) empty() bool {
+// Empty determines if the configuration is empty
+func (r *ETCDConfig) empty() bool {
 	return r.CAFile == "" && r.CertFile == "" && r.KeyFile == ""
 }
 
