@@ -27,4 +27,7 @@ const (
 
 	DefaultLeaderTerm    = 10 * time.Second
 	DefaultEtcdEndpoints = "https://127.0.0.1:2379"
+
+	// APIServerDNSName defines the DNS entry name of the master node
+	APIServerDNSName = "apiserver"
 )
