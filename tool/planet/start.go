@@ -122,7 +122,7 @@ func start(config *Config, monitorc chan<- bool) (*runtimeContext, error) {
 		return nil, trace.Wrap(err)
 	}
 
-	apiserverName := fmt.Sprintf("apiserver.%v", config.ClusterID)
+	apiserverDNSName := "apiserver"
 	config.Env = append(config.Env,
 		box.EnvPair{Name: EnvMasterIP, Val: config.MasterIP},
 		box.EnvPair{Name: EnvCloudProvider, Val: config.CloudProvider},
@@ -134,7 +134,7 @@ func start(config *Config, monitorc chan<- bool) (*runtimeContext, error) {
 		box.EnvPair{Name: EnvAgentName, Val: config.EtcdMemberName},
 		box.EnvPair{Name: EnvInitialCluster, Val: toKeyValueList(config.InitialCluster)},
 		box.EnvPair{Name: EnvClusterDNSIP, Val: config.ServiceSubnet.RelativeIP(3).String()},
-		box.EnvPair{Name: EnvAPIServerName, Val: apiserverName},
+		box.EnvPair{Name: EnvAPIServerName, Val: apiserverDNSName},
 		box.EnvPair{Name: EnvEtcdMemberName, Val: config.EtcdMemberName},
 		box.EnvPair{Name: EnvEtcdInitialCluster, Val: config.EtcdInitialCluster},
 		box.EnvPair{Name: EnvEtcdInitialClusterState, Val: config.EtcdInitialClusterState},
@@ -147,7 +147,7 @@ func start(config *Config, monitorc chan<- bool) (*runtimeContext, error) {
 	config.InsecureRegistries = append(
 		config.InsecureRegistries,
 		fmt.Sprintf("%v:5000", config.MasterIP),
-		fmt.Sprintf("%v:5000", apiserverName),
+		fmt.Sprintf("%v:5000", apiserverDNSName),
 	)
 
 	addInsecureRegistries(config)
@@ -169,7 +169,7 @@ func start(config *Config, monitorc chan<- bool) (*runtimeContext, error) {
 	if err = setHosts(config, []HostEntry{
 		HostEntry{IP: "127.0.0.1", Hostnames: "localhost localhost.localdomain localhost4 localhost4.localdomain4"},
 		HostEntry{IP: "::1", Hostnames: "localhost localhost.localdomain localhost6 localhost6.localdomain6"},
-		HostEntry{IP: config.MasterIP, Hostnames: fmt.Sprintf("apiserver.%v", config.ClusterID)},
+		HostEntry{IP: config.MasterIP, Hostnames: apiserverDNSName},
 	}); err != nil {
 		return nil, trace.Wrap(err)
 	}
