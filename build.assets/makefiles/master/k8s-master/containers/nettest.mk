@@ -7,7 +7,7 @@ override OUT:=$(OUTDIR)/nettest.tar.gz
 
 all: pull-from-internet $(OUT)
 
-$(OUT):
+$(OUT): nettest.mk
 	@echo "Exporting image to file system..."
 	docker save -o $@ $(IMAGE)
 

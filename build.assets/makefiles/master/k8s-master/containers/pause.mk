@@ -7,7 +7,7 @@ override OUT:=$(OUTDIR)/pause.tar.gz
 
 all: pull-from-internet $(OUT)
 
-$(OUT):
+$(OUT): pause.mk
 	@echo "Exporting image to file system..."
 	docker save -o $@ $(IMAGE)
 
