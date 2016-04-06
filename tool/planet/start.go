@@ -329,18 +329,10 @@ func setupCloudOptions(c *Config) error {
 		return nil
 	}
 
-	// check cloud provider settings
-	if c.CloudProvider == "aws" {
-		if c.Env.Get(EnvAWSAccessKey) == "" || c.Env.Get(EnvAWSSecretKey) == "" {
-			return trace.Errorf("Cloud provider set to AWS, but %s and %s are not specified",
-				EnvAWSAccessKey, EnvAWSSecretKey)
-		}
-	}
-
 	flags := []string{fmt.Sprintf("--cloud-provider=%v", c.CloudProvider)}
 
 	// generate AWS cloud config for kubernetes cluster
-	if c.CloudProvider == "aws" && c.ClusterID != "" {
+	if c.CloudProvider == CloudProviderAWS && c.ClusterID != "" {
 		flags = append(flags,
 			"--cloud-config=/etc/cloud-config.conf")
 		c.Files = append(c.Files, box.File{
@@ -513,7 +505,7 @@ func validateKeyPair(dir, baseName string) (exists bool, err error) {
 }
 
 func setupFlannel(config *Config) {
-	if config.CloudProvider == "aws" {
+	if config.CloudProvider == CloudProviderAWS {
 		config.Env.Upsert("FLANNEL_BACKEND", "aws-vpc")
 	} else {
 		config.Env.Upsert("FLANNEL_BACKEND", "vxlan")

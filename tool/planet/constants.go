@@ -30,4 +30,6 @@ const (
 
 	// APIServerDNSName defines the DNS entry name of the master node
 	APIServerDNSName = "apiserver"
+
+	CloudProviderAWS = "aws"
 )
