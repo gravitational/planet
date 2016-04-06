@@ -31,5 +31,7 @@ const (
 	// APIServerDNSName defines the DNS entry name of the master node
 	APIServerDNSName = "apiserver"
 
+	// CloudProviderAWS defines the name of the AWS cloud provider used to
+	// setup AWS integration in kubernetes
 	CloudProviderAWS = "aws"
 )
