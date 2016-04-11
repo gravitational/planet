@@ -8,6 +8,7 @@ RUN apt-get update && apt-get install -q -y bridge-utils \
         e2fsprogs \
         libncurses5 \
         net-tools \
+        curl \
         iproute2 \
         lsb-base \
         dash \
@@ -18,4 +19,3 @@ RUN apt-get update && apt-get install -q -y bridge-utils \
 
 RUN groupadd --system --non-unique --gid 1000 planet ;\
     useradd --system --non-unique --no-create-home -g 1000 -u 1000 planet
-
