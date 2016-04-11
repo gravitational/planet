@@ -1,15 +1,15 @@
 # Quick Start
 # -----------
-# make production: 
+# make production:
 #     CD/CD build of Planet. This is what's used by Jenkins builds and this
 #     is what gets released to customers.
 #
-# make dev: 
-#     builds 'development' image of Planet, stores output in build/dev and 
-#     points build/current symlink to it. 
+# make dev:
+#     builds 'development' image of Planet, stores output in build/dev and
+#     points build/current symlink to it.
 #
-# make: 
-#     builds your changes and updates planet binary in 
+# make:
+#     builds your changes and updates planet binary in
 #     build/current/rootfs/usr/bin/planet
 #
 # make dev-start:
@@ -24,7 +24,7 @@
 # The sequence of steps the build process takes:
 #     1. Make 'os' Docker image: the empty Debian 8 image.
 #     2. Make 'base' image on top of 'os' (Debian + our additions)
-#     3. Make 'buildbox' image on top of 'os'. Used for building, 
+#     3. Make 'buildbox' image on top of 'os'. Used for building,
 #        not part of the Planet image.
 #     4. Build various components (flannel, etcd, k8s, etc) inside
 #        of the 'buildbox' based on inputs (master/node/dev)
@@ -42,7 +42,7 @@ ASSETS := $(PWD)/build.assets
 BUILD_ASSETS := $(PWD)/build/assets
 BUILDDIR ?= $(PWD)/build
 BUILDDIR := $(shell realpath $(BUILDDIR))
-KUBE_VER:=v1.2.0
+KUBE_VER:=v1.2.2
 PUBLIC_IP:=127.0.0.1
 export
 PLANET_PACKAGE_PATH=$(PWD)
@@ -51,12 +51,12 @@ PLANET_VERSION_PACKAGE_PATH=$(PLANET_PACKAGE)/Godeps/_workspace/src/github.com/g
 
 all: production dev
 
-# 'make build' compiles the Go portion of Planet, meant for quick & iterative 
-# development on an _already built image_. You need to build an image first, for 
+# 'make build' compiles the Go portion of Planet, meant for quick & iterative
+# development on an _already built image_. You need to build an image first, for
 # example with "make dev"
 build: $(BUILDDIR)/current
 	GOOS=linux GOARCH=amd64 go install -ldflags "$(PLANET_GO_LDFLAGS)" github.com/gravitational/planet/tool/planet
-	cp -f $$GOPATH/bin/planet $(BUILDDIR)/current/planet 
+	cp -f $$GOPATH/bin/planet $(BUILDDIR)/current/planet
 	rm -f $(BUILDDIR)/current/rootfs/usr/bin/planet
 	cp -f $$GOPATH/bin/planet $(BUILDDIR)/current/rootfs/usr/bin/planet
 
@@ -150,9 +150,9 @@ stop:
 enter:
 	cd $(BUILDDIR)/current && sudo rootfs/usr/bin/planet enter --debug /bin/bash
 
-# Builds the base Docker image (bare bones OS). Everything else is based on. 
-# Debian stable + configured locales. 
-os: 
+# Builds the base Docker image (bare bones OS). Everything else is based on.
+# Debian stable + configured locales.
+os:
 	@echo -e "\n---> Making Planet/OS (Debian) Docker image...\n"
 	$(MAKE) -e BUILDIMAGE=planet/os DOCKERFILE=os.dockerfile make-docker-image
 
@@ -173,7 +173,7 @@ testbox:
 	@echo -e "\n---> Making planet/testbox image for e2e testing:\n" ;\
 	$(MAKE) -e BUILDIMAGE=planet/testbox DOCKERFILE=testbox.dockerfile make-docker-image
 
-# removes all build aftifacts 
+# removes all build aftifacts
 clean: dev-clean master-clean node-clean test-clean
 	rm -rf $(BUILDDIR)
 
@@ -195,7 +195,7 @@ remove-godeps:
 	find . -iregex .*go | xargs sed -i 's:".*Godeps/_workspace/src/:":g'
 
 prepare-to-run: build
-	@sudo mkdir -p /var/planet/registry /var/planet/etcd /var/planet/docker 
+	@sudo mkdir -p /var/planet/registry /var/planet/etcd /var/planet/docker
 	@sudo chown $$USER:$$USER /var/planet/etcd -R
 	@cp -f $(BUILDDIR)/current/planet $(BUILDDIR)/current/rootfs/usr/bin/planet
 
