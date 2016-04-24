@@ -55,6 +55,10 @@ func (conf LeaderConfig) String() string {
 // to reflect the change of the kubernetes API server.
 func startLeaderClient(conf *LeaderConfig) (io.Closer, error) {
 	log.Infof("%v start", conf)
+	hostname, err := os.Hostname()
+	if err != nil {
+		return nil, trace.Wrap(err)
+	}
 	client, err := leader.NewClient(leader.Config{ETCD: conf.ETCD})
 	if err != nil {
 		return nil, trace.Wrap(err)
@@ -78,10 +82,16 @@ func startLeaderClient(conf *LeaderConfig) (io.Closer, error) {
 			}
 		})
 	}
-	// modify /etc/hosts with new apiserver
+	// modify /etc/hosts with new entries
 	client.AddWatchCallback(conf.LeaderKey, conf.Term/3, func(key, prevVal, newVal string) {
 		log.Infof("about to set %v to %v in /etc/hosts", conf.LeaderKey, newVal)
-		if err := utils.UpsertHostsFile(conf.APIServerDNS, newVal, ""); err != nil {
+		entries := []utils.HostEntry{
+			{Hostname: conf.APIServerDNS, IP: newVal},
+			// Resolve hostname to our public IP, useful for
+			// containers that use host networking
+			{Hostname: hostname, IP: conf.PublicIP},
+		}
+		if err := utils.UpsertHostsFile(entries, ""); err != nil {
 			log.Errorf("failed to set hosts file: %v", err)
 		}
 	})
