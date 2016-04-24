@@ -24,6 +24,7 @@ ExecStart=/usr/bin/kube-apiserver \
         --etcd-cafile=/var/state/root.cert \
         --etcd-certfile=/var/state/etcd.cert \
         --etcd-keyfile=/var/state/etcd.key \
+        --event-ttl=24h0m0s \
         --bind-address=${PLANET_PUBLIC_IP} \
         --logtostderr=true $KUBE_CLOUD_FLAGS
 Restart=always
