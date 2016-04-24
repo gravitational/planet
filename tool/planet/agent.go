@@ -86,10 +86,10 @@ func startLeaderClient(conf *LeaderConfig) (io.Closer, error) {
 	client.AddWatchCallback(conf.LeaderKey, conf.Term/3, func(key, prevVal, newVal string) {
 		log.Infof("about to set %v to %v in /etc/hosts", conf.LeaderKey, newVal)
 		entries := []utils.HostEntry{
-			{Hostname: conf.APIServerDNS, IP: newVal},
+			{Hostnames: conf.APIServerDNS, IP: newVal},
 			// Resolve hostname to our public IP, useful for
 			// containers that use host networking
-			{Hostname: hostname, IP: conf.PublicIP},
+			{Hostnames: hostname, IP: conf.PublicIP},
 		}
 		if err := utils.UpsertHostsFile(entries, ""); err != nil {
 			log.Errorf("failed to set hosts file: %v", err)
