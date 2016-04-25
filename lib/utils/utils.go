@@ -16,9 +16,7 @@ import (
 // entry with hostnames and ips
 func UpsertHostsLines(reader io.Reader, writer io.Writer, entries []HostEntry) error {
 	remainingEntries := make([]HostEntry, len(entries))
-	for i := range entries {
-		remainingEntries[i] = entries[i]
-	}
+	copy(remainingEntries, entries)
 	scanner := bufio.NewScanner(reader)
 	var line string
 	for scanner.Scan() {
@@ -41,9 +39,9 @@ func UpsertHostsLines(reader io.Reader, writer io.Writer, entries []HostEntry) e
 
 // HostEntry consists of host name and IP it resolves to
 type HostEntry struct {
-	// Hostnames is the name of the host
+	// Hostnames is a list of space separated hostnames
 	Hostnames string
-	// IP is the IP this host resolves to
+	// IP is the IP the hostnames should resolve to
 	IP string
 }
 
