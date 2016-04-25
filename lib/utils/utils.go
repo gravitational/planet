@@ -12,34 +12,43 @@ import (
 	"github.com/gravitational/trace"
 )
 
-// UpsertHostsLine updates the existing hosts entry or inserts a new
-// entry with hostname and ip
-func UpsertHostsLine(reader io.Reader, writer io.Writer, hostname, ip string) error {
+// UpsertHostsLines updates the existing hosts entry or inserts a new
+// entry with hostnames and ips
+func UpsertHostsLines(reader io.Reader, writer io.Writer, entries []HostEntry) error {
+	remainingEntries := make([]HostEntry, len(entries))
+	copy(remainingEntries, entries)
 	scanner := bufio.NewScanner(reader)
-	var replacedEntry bool
+	var line string
 	for scanner.Scan() {
-		replaced, line := replaceLine(scanner.Text(), hostname, ip)
-		if replaced {
-			replacedEntry = true
-		}
+		// replaceLine will remove the host entry from the entries list
+		// if it finds the match
+		line, remainingEntries = replaceLine(scanner.Text(), remainingEntries)
 		if _, err := io.WriteString(writer, line+"\n"); err != nil {
 			return trace.Wrap(err)
 		}
 	}
-	if replacedEntry {
-		return nil
-	}
-	entry := fmt.Sprintf("%v %v", ip, hostname)
-	if _, err := io.WriteString(writer, entry+"\n"); err != nil {
-		return trace.Wrap(err)
+	// just append remaining entries if there was no match found
+	for _, e := range remainingEntries {
+		line := fmt.Sprintf("%v %v", e.IP, e.Hostnames)
+		if _, err := io.WriteString(writer, line+"\n"); err != nil {
+			return trace.Wrap(err)
+		}
 	}
 	return nil
 }
 
+// HostEntry consists of host name and IP it resolves to
+type HostEntry struct {
+	// Hostnames is a list of space separated hostnames
+	Hostnames string
+	// IP is the IP the hostnames should resolve to
+	IP string
+}
+
 // UpsertHostsFile modifies /etc/hosts to contain hostname and ip
-// pair, either by adding new entry or replacing the existing one
+// entries, either by adding new entry or replacing the existing one
 // in a given path, if path is empty, it will be "/etc/hosts"
-func UpsertHostsFile(hostname, ip string, path string) error {
+func UpsertHostsFile(entries []HostEntry, path string) error {
 	if path == "" {
 		path = "/etc/hosts"
 	}
@@ -53,7 +62,7 @@ func UpsertHostsFile(hostname, ip string, path string) error {
 	}
 	input := bytes.NewBuffer(contents)
 	output := &bytes.Buffer{}
-	if err := UpsertHostsLine(input, output, hostname, ip); err != nil {
+	if err := UpsertHostsLines(input, output, entries); err != nil {
 		return trace.Wrap(err)
 	}
 	err = ioutil.WriteFile(path, output.Bytes(), fi.Mode())
@@ -63,17 +72,20 @@ func UpsertHostsFile(hostname, ip string, path string) error {
 	return nil
 }
 
-func replaceLine(line, hostname, ip string) (bool, string) {
+func replaceLine(line string, entries []HostEntry) (string, []HostEntry) {
 	if strings.HasPrefix(line, "#") {
-		return false, line
+		return line, entries
 	}
 	fields := strings.Fields(line)
 	if len(fields) < 2 {
-		return false, line
+		return line, entries
 	}
-	if fields[1] != hostname {
-		return false, line
+	for i, e := range entries {
+		if fields[1] == e.Hostnames {
+			fields[0] = e.IP
+			return strings.Join(fields, " "), append(entries[:i], entries[i+1:]...)
+		}
 	}
-	fields[0] = ip
-	return true, strings.Join(fields, " ")
+
+	return line, entries
 }

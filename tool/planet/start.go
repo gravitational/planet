@@ -15,6 +15,7 @@ import (
 	"github.com/gravitational/planet/lib/box"
 	"github.com/gravitational/planet/lib/check"
 	"github.com/gravitational/planet/lib/user"
+	"github.com/gravitational/planet/lib/utils"
 	"github.com/gravitational/trace"
 	"github.com/opencontainers/runc/libcontainer"
 )
@@ -165,10 +166,10 @@ func start(config *Config, monitorc chan<- bool) (*runtimeContext, error) {
 	} else {
 		mountSecrets(config)
 	}
-	if err = setHosts(config, []HostEntry{
-		HostEntry{IP: "127.0.0.1", Hostnames: "localhost localhost.localdomain localhost4 localhost4.localdomain4"},
-		HostEntry{IP: "::1", Hostnames: "localhost localhost.localdomain localhost6 localhost6.localdomain6"},
-		HostEntry{IP: config.MasterIP, Hostnames: APIServerDNSName},
+	if err = setHosts(config, []utils.HostEntry{
+		{IP: "127.0.0.1", Hostnames: "localhost localhost.localdomain localhost4 localhost4.localdomain4"},
+		{IP: "::1", Hostnames: "localhost localhost.localdomain localhost6 localhost6.localdomain6"},
+		{IP: config.MasterIP, Hostnames: APIServerDNSName},
 	}); err != nil {
 		return nil, trace.Wrap(err)
 	}
@@ -412,10 +413,11 @@ func addResolv(config *Config) error {
 	return nil
 }
 
-func setHosts(config *Config, entries []HostEntry) error {
+func setHosts(config *Config, entries []utils.HostEntry) error {
+	in := &bytes.Buffer{}
 	out := &bytes.Buffer{}
-	for _, e := range entries {
-		io.WriteString(out, fmt.Sprintf("%v %v\n", e.IP, e.Hostnames))
+	if err := utils.UpsertHostsLines(in, out, entries); err != nil {
+		return trace.Wrap(err)
 	}
 	config.Files = append(config.Files, box.File{
 		Path:     "/etc/hosts",
@@ -423,11 +425,6 @@ func setHosts(config *Config, entries []HostEntry) error {
 		Mode:     0666,
 	})
 	return nil
-}
-
-type HostEntry struct {
-	Hostnames string
-	IP        string
 }
 
 const (

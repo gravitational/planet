@@ -96,7 +96,7 @@ func Start(cfg Config) (*Box, error) {
 		return nil, trace.Wrap(err)
 	}
 	loopDevices := make([]*configs.Device, len(hostLoops))
-	for i, _ := range hostLoops {
+	for i := range hostLoops {
 		loopDevices[i] = &configs.Device{
 			Type:        'b',
 			Path:        fmt.Sprintf("/dev/loop%d", i),
@@ -110,6 +110,10 @@ func Start(cfg Config) (*Box, error) {
 	}
 
 	containerID := uuid.New()
+	hostname, err := os.Hostname()
+	if err != nil {
+		return nil, trace.Wrap(err, "failed to get hostname")
+	}
 
 	config := &configs.Config{
 		Rootfs:       rootfs,
@@ -168,7 +172,7 @@ func Start(cfg Config) (*Box, error) {
 		},
 
 		Devices:  append(configs.DefaultAutoCreatedDevices, loopDevices...),
-		Hostname: containerID,
+		Hostname: hostname,
 	}
 
 	for _, m := range cfg.Mounts {
