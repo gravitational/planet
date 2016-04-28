@@ -42,7 +42,7 @@ ASSETS := $(PWD)/build.assets
 BUILD_ASSETS := $(PWD)/build/assets
 BUILDDIR ?= $(PWD)/build
 BUILDDIR := $(shell realpath $(BUILDDIR))
-KUBE_VER:=v1.2.2
+KUBE_VER:=v1.2.3
 PUBLIC_IP:=127.0.0.1
 export
 PLANET_PACKAGE_PATH=$(PWD)
