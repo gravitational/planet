@@ -4,7 +4,6 @@ Requires=docker.service
 
 [Service]
 EnvironmentFile=/etc/container-environment
-Type=oneshot
 Restart=on-failure
 ExecStart=/usr/bin/docker-import --dir=/etc/docker/offline/ --registry-addr=${KUBE_APISERVER}:5000
 
