@@ -7,6 +7,7 @@ Requires=docker.socket
 [Service]
 Type=notify
 NotifyAccess=all
+LimitNOFILE=1000000
 EnvironmentFile=/etc/container-environment
 EnvironmentFile=/run/flannel/subnet.env
 Environment="DOCKER_NOFILE=1000000"
