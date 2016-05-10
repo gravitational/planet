@@ -174,7 +174,7 @@ testbox:
 	$(MAKE) -e BUILDIMAGE=planet/testbox DOCKERFILE=testbox.dockerfile make-docker-image
 
 # removes all build aftifacts
-clean: dev-clean master-clean node-clean test-clean
+clean: dev-clean master-clean node-clean
 	rm -rf $(BUILDDIR)
 
 dev-clean:
@@ -183,8 +183,6 @@ node-clean:
 	$(MAKE) -C $(ASSETS)/makefiles -e TARGET=node -f buildbox.mk clean
 master-clean:
 	$(MAKE) -C $(ASSETS)/makefiles -e TARGET=master -f buildbox.mk clean
-test-clean:
-	$(MAKE) -C $(ASSETS)/makefiles -e TARGET=dev -f testbox.mk clean
 
 # internal use:
 make-docker-image:
