@@ -188,7 +188,7 @@ test-clean:
 
 # internal use:
 make-docker-image:
-	cd $(ASSETS)/docker; docker build -t $(BUILDIMAGE) -f $(DOCKERFILE) . ;\
+	cd $(ASSETS)/docker; docker build --no-cache -t $(BUILDIMAGE) -f $(DOCKERFILE) . ;\
 
 remove-godeps:
 	rm -rf Godeps/
