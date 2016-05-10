@@ -184,7 +184,7 @@ node-clean:
 master-clean:
 	$(MAKE) -C $(ASSETS)/makefiles -e TARGET=master -f buildbox.mk clean
 test-clean:
-	$(MAKE) -C $(ASSETS)/makefiles -e TARGET=dev -f testbox.mk clean
+	$(MAKE) -C $(ASSETS)/makefiles -e TARGET=dev -f test.mk clean
 
 # internal use:
 make-docker-image:
