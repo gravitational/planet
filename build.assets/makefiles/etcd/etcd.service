@@ -2,6 +2,8 @@
 Description=Etcd Service
 
 [Service]
+Restart=always
+RestartSec=10
 Type=notify
 TimeoutStartSec=0
 EnvironmentFile=/etc/container-environment
