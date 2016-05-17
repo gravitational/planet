@@ -2,7 +2,7 @@
 Description=Etcd Service
 
 [Service]
-Restart=Always
+Restart=always
 RestartSec=10
 Type=notify
 TimeoutStartSec=0
