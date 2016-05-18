@@ -3,7 +3,8 @@
 SRCDIR:=$(ASSETS)/makefiles/master/k8s-master/containers/
 export OUTDIR:=$(ROOTFS)/etc/docker/offline
 TARBALLS:=$(OUTDIR)/pause.tar.gz \
-		$(OUTDIR)/nettest.tar.gz
+		$(OUTDIR)/nettest.tar.gz \
+		$(OUTDIR)/hook.tar.gz
 
 all: install $(TARBALLS)
 
