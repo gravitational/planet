@@ -24,6 +24,8 @@ type Config struct {
 	// NettestContainerImage is the name of the container image used for
 	// networking test
 	NettestContainerImage string
+	// DisableInterPodCheck disables inter-pod communication tests
+	DisableInterPodCheck bool
 	// ETCDConfig defines etcd-specific configuration
 	ETCDConfig etcdconf.Config
 }
@@ -56,7 +58,9 @@ func addToMaster(node agent.Agent, config *Config, etcdConfig *monitoring.ETCDCo
 	node.AddChecker(dockerRegistryHealth(config.RegistryAddr))
 	node.AddChecker(etcdChecker)
 	node.AddChecker(monitoring.SystemdHealth())
-	node.AddChecker(monitoring.IntraPodCommunication(config.KubeAddr, config.NettestContainerImage))
+	if !config.DisableInterPodCheck {
+		node.AddChecker(monitoring.InterPodCommunication(config.KubeAddr, config.NettestContainerImage))
+	}
 	return nil
 }
 

@@ -207,6 +207,10 @@ func run() error {
 			CertFile:  *cagentEtcdCertFile,
 			KeyFile:   *cagentEtcdKeyFile,
 		}
+		disableInterPodCheck := true
+		if *cstartInitialCluster != nil && len(*cstartInitialCluster) > 2 {
+			disableInterPodCheck = false
+		}
 		monitoringConf := &monitoring.Config{
 			Role:                  agent.Role(*cagentRole),
 			KubeAddr:              *cagentKubeAddr,
@@ -214,6 +218,7 @@ func run() error {
 			RegistryAddr:          fmt.Sprintf("http://%v", *cagentRegistryAddr),
 			NettestContainerImage: fmt.Sprintf("%v/nettest:1.8", *cagentRegistryAddr),
 			ETCDConfig:            etcdConf,
+			DisableInterPodCheck:  disableInterPodCheck,
 		}
 		leaderConf := &LeaderConfig{
 			PublicIP:     cagentPublicIP.String(),
