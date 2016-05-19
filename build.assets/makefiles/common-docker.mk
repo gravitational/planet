@@ -5,6 +5,7 @@ ROOTFS := /rootfs
 TARGETDIR := /targetdir
 ASSETDIR := /assetdir
 
+.PHONY: all
 all: $(ASSETDIR)/planet $(ASSETDIR)/docker-import
 	make -C $(ASSETS)/makefiles/base/network -f network.mk
 	make -C $(ASSETS)/makefiles/base/docker -f docker.mk 
