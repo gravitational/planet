@@ -1,6 +1,8 @@
-FROM alpine:latest
+FROM alpine:3.3
 
 MAINTAINER "Gravitational" <admin@gravitational.com>
+
+ADD hook.dockerfile /Dockerfile
 
 ARG KUBE_VER
 # do not install ca-certificates since wget is unable to verify google's certificate for storage.googleapis.com
