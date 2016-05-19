@@ -1,4 +1,4 @@
-.PHONY: all build docker clean
+.PHONY: all docker clean
 
 ifndef KUBE_VER
 $(error KUBE_VER not set)
