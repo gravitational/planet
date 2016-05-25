@@ -32,3 +32,5 @@ run.sh
 stop.sh
 enter.sh
 make.sh
+
+*.swp
