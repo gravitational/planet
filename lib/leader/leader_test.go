@@ -7,7 +7,8 @@ import (
 	"testing"
 	"time"
 
-	log "github.com/Sirupsen/logrus"
+	"github.com/gravitational/planet/lib/etcdconf"
+
 	"github.com/coreos/etcd/client"
 	"github.com/pborman/uuid"
 	"golang.org/x/net/context"
@@ -30,11 +31,10 @@ func (s *LeaderSuite) SetUpSuite(c *C) {
 		return
 	}
 	s.nodes = strings.Split(nodesString, ",")
-	log.Initialize("console", "INFO")
 }
 
 func (s *LeaderSuite) newClient(c *C) *Client {
-	clt, err := NewClient(Config{EtcdEndpoints: s.nodes, Timeout: 100 * time.Millisecond})
+	clt, err := NewClient(Config{ETCD: etcdconf.Config{Endpoints: s.nodes, HeaderTimeoutPerRequest: 100 * time.Millisecond}})
 	c.Assert(err, IsNil)
 	return clt
 }
