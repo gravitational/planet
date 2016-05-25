@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"github.com/gravitational/planet/lib/etcdconf"
+	"github.com/gravitational/planet/lib/utils"
 	"github.com/gravitational/trace"
 
 	log "github.com/Sirupsen/logrus"
@@ -91,6 +92,11 @@ func (l *Client) AddWatch(key string, retry time.Duration, valuesC chan string) 
 	prefix := fmt.Sprintf("AddWatch(key=%v)", key)
 	api := client.NewKeysAPI(l.client)
 	go func() {
+		backoff := &utils.Backoff{
+			Initial: 50 * time.Millisecond,
+			Max:     10 * time.Second,
+		}
+
 		// make sure we've sent the existing value first,
 		// so we can reliably detect the transitions
 		re, err := l.getFirstValue(key, retry)
@@ -121,8 +127,15 @@ func (l *Client) AddWatch(key string, retry time.Duration, valuesC chan string) 
 					continue
 				}
 				log.Infof("watcher.Next for %v got %v", key, re.Node.Value)
+				backoff.Reset()
 			}
 			if err != nil {
+				duration := backoff.Delay()
+				if backoff.Tries > 1 {
+					log.Infof("backing off for %v", duration)
+					time.Sleep(duration)
+				}
+
 				if err == context.Canceled {
 					log.Infof("client is closing, return")
 					return
