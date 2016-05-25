@@ -97,30 +97,42 @@ func (l *Client) AddWatch(key string, retry time.Duration, valuesC chan string) 
 			Max:     10 * time.Second,
 		}
 
-		// make sure we've sent the existing value first,
-		// so we can reliably detect the transitions
-		re, err := l.getFirstValue(key, retry)
+		var watcher client.Watcher
+		var re *client.Response
+		var err error
+
+		resetWatch := func() error {
+			// make sure we've sent the existing value first,
+			// so we can reliably detect the transitions
+			re, err = l.getFirstValue(key, retry)
+			if err != nil {
+				log.Errorf("%v unexpected error: %v, returning", prefix, err)
+				return err
+			} else if re == nil {
+				log.Infof("%v client is closing, return", prefix)
+				return err
+			}
+			log.Infof("%v got current value '%v' for key '%v'", prefix, re.Node.Value, key)
+			watcher = api.Watcher(key, &client.WatcherOptions{
+				AfterIndex: re.Node.ModifiedIndex,
+			})
+			log.Infof("%v reset watch at %v", prefix, re.Node.ModifiedIndex)
+			return nil
+		}
+
+		err = resetWatch()
 		if err != nil {
-			log.Errorf("%v unexpected error: %v, returning", prefix, err)
-			return
-		} else if re == nil {
-			log.Infof("%v client is closing, return", prefix)
 			return
 		}
-		log.Infof("%v got current value '%v' for key '%v'", prefix, re.Node.Value, key)
 
-		// we've got the value, now we can set up a watcher
-		// that will detect changes
-		watcher := api.Watcher(key, &client.WatcherOptions{
-			AfterIndex: re.Node.ModifiedIndex,
-		})
 		ctx, closer := context.WithCancel(context.Background())
 		go func() {
 			<-l.closeC
 			closer()
 		}()
+
 		for {
-			re, err := watcher.Next(ctx)
+			re, err = watcher.Next(ctx)
 			if err == nil {
 				if re.Node.Value == "" {
 					log.Infof("watcher.Next for %v skipping empty value", key)
@@ -148,15 +160,16 @@ func (l *Client) AddWatch(key string, retry time.Duration, valuesC chan string) 
 					continue
 				} else if cerr, ok := err.(client.Error); ok && cerr.Code == client.ErrorCodeEventIndexCleared {
 					log.Infof("watch index error, resetting watch index: %v", cerr)
-					re, err = l.getFirstValue(key, retry)
+					err = resetWatch()
 					if err != nil {
 						continue
 					}
-					watcher = api.Watcher(key, &client.WatcherOptions{
-						AfterIndex: re.Node.ModifiedIndex,
-					})
 				} else {
 					log.Infof("unexpected watch error: %v", err)
+					// try recreating the watch if we get repeated unknown errors
+					if backoff.Tries > 10 {
+						resetWatch()
+					}
 					continue
 				}
 			}
