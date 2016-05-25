@@ -9,6 +9,7 @@ import (
 
 	"github.com/gravitational/planet/lib/etcdconf"
 
+	log "github.com/Sirupsen/logrus"
 	"github.com/coreos/etcd/client"
 	"github.com/pborman/uuid"
 	"golang.org/x/net/context"
@@ -118,4 +119,38 @@ func (s *LeaderSuite) TestLeaderExtendLease(c *C) {
 	expiresIn := re.Node.Expiration.Sub(time.Now())
 	maxTTL := 500 * time.Millisecond
 	c.Assert(expiresIn > maxTTL, Equals, true, Commentf("%v > %v", expiresIn, maxTTL))
+}
+
+func (s *LeaderSuite) TestHandleLostIndex(c *C) {
+	clt := s.newClient(c)
+	defer s.closeClient(c, clt)
+
+	key := fmt.Sprintf("/planet/tests/index/%v", uuid.New())
+	kapi := client.NewKeysAPI(clt.client)
+
+	changeC := make(chan string)
+	clt.AddWatchCallback(key, 50*time.Millisecond, func(key, prevVal, newVal string) {
+		changeC <- newVal
+	})
+
+	last := ""
+	log.Info("setting our key 1100 times")
+	for i := 0; i < 1100; i++ {
+		val := fmt.Sprintf("%v", uuid.New())
+		kapi.Set(context.Background(), key, val, nil)
+		last = val
+	}
+
+	for {
+		select {
+		case val := <-changeC:
+			log.Infof("got value: %s last: %s", val, last)
+			if val == last {
+				log.Infof("got expected final value from watch")
+				return
+			}
+		case <-time.After(20 * time.Second):
+			c.Fatalf("never got anticipated last value from watch")
+		}
+	}
 }

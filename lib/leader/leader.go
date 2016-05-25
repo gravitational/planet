@@ -102,6 +102,7 @@ func (l *Client) AddWatch(key string, retry time.Duration, valuesC chan string) 
 			return
 		}
 		log.Infof("%v got current value '%v' for key '%v'", prefix, re.Node.Value, key)
+
 		// we've got the value, now we can set up a watcher
 		// that will detect changes
 		watcher := api.Watcher(key, &client.WatcherOptions{
@@ -132,6 +133,15 @@ func (l *Client) AddWatch(key string, retry time.Duration, valuesC chan string) 
 					}
 					log.Infof("unexpected cluster error: %v (%v)", err, cerr.Detail())
 					continue
+				} else if cerr, ok := err.(client.Error); ok && cerr.Code == client.ErrorCodeEventIndexCleared {
+					log.Infof("watch index error, resetting watch index: %v", cerr)
+					re, err = l.getFirstValue(key, retry)
+					if err != nil {
+						continue
+					}
+					watcher = api.Watcher(key, &client.WatcherOptions{
+						AfterIndex: re.Node.ModifiedIndex,
+					})
 				} else {
 					log.Infof("unexpected watch error: %v", err)
 					continue
