@@ -18,7 +18,7 @@ all: test.mk $(BINARIES)
 		--env="TARGETDIR=/targetdir" \
 		planet/testbox \
 		/bindir/planet test \
-			--kube-master=$(KUBE_MASTER) \
+			--kube-addr=$(KUBE_MASTER) \
 			--kube-repo=$(KUBE_HOME) -- \
 			-focus=$(TEST_FOCUS) -progress -trace -p -noisyPendings=false
 	@echo -e "\nDone"
