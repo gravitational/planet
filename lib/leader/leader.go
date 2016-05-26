@@ -146,7 +146,7 @@ func (l *Client) AddWatch(key string, retry time.Duration, valuesC chan string) 
 			if err != nil {
 				select {
 				case b := <-ticker.C:
-					log.Infof("backoff %v", b)
+					log.Infof("%v backoff %v", prefix, b)
 				}
 
 				if err == context.Canceled {
@@ -182,7 +182,6 @@ func (l *Client) AddWatch(key string, retry time.Duration, valuesC chan string) 
 
 			select {
 			case valuesC <- re.Node.Value:
-				log.Info("got value")
 			case <-l.closeC:
 				return
 			}
