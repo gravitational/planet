@@ -6,9 +6,11 @@ import (
 	"time"
 
 	"github.com/gravitational/planet/lib/etcdconf"
+	"github.com/gravitational/planet/lib/utils"
 	"github.com/gravitational/trace"
 
 	log "github.com/Sirupsen/logrus"
+	ebackoff "github.com/cenk/backoff"
 	"github.com/coreos/etcd/client"
 	"github.com/mailgun/timetools"
 	"golang.org/x/net/context"
@@ -85,43 +87,68 @@ func (l *Client) AddWatchCallback(key string, retry time.Duration, fn CallbackFn
 	}()
 }
 
+func (l *Client) getWatchAtLatestIndex(ctx context.Context, api client.KeysAPI, key string, retry time.Duration) (client.Watcher, *client.Response, error) {
+	re, err := l.getFirstValue(key, retry)
+	if err != nil {
+		return nil, nil, trace.Errorf("%v unexpected error: %v, returning", ctx.Value("prefix"), err)
+	} else if re == nil {
+		log.Infof("%v client is closing, return", ctx.Value("prefix"))
+		return nil, nil, nil
+	}
+	log.Infof("%v got current value '%v' for key '%v'", ctx.Value("prefix"), re.Node.Value, key)
+	watcher := api.Watcher(key, &client.WatcherOptions{
+		AfterIndex: re.Node.ModifiedIndex,
+	})
+	return watcher, re, nil
+}
+
 // AddWatch starts watching the key for changes and sending them
 // to the valuesC, the watch is stopped
 func (l *Client) AddWatch(key string, retry time.Duration, valuesC chan string) {
 	prefix := fmt.Sprintf("AddWatch(key=%v)", key)
 	api := client.NewKeysAPI(l.client)
+
 	go func() {
-		// make sure we've sent the existing value first,
-		// so we can reliably detect the transitions
-		re, err := l.getFirstValue(key, retry)
-		if err != nil {
-			log.Errorf("%v unexpected error: %v, returning", prefix, err)
-			return
-		} else if re == nil {
-			log.Infof("%v client is closing, return", prefix)
-			return
-		}
-		log.Infof("%v got current value '%v' for key '%v'", prefix, re.Node.Value, key)
-		// we've got the value, now we can set up a watcher
-		// that will detect changes
-		watcher := api.Watcher(key, &client.WatcherOptions{
-			AfterIndex: re.Node.ModifiedIndex,
-		})
-		ctx, closer := context.WithCancel(context.Background())
+		var watcher client.Watcher
+		var re *client.Response
+		var err error
+
+		ctx, closer := context.WithCancel(context.WithValue(context.Background(), "prefix", prefix))
 		go func() {
 			<-l.closeC
 			closer()
 		}()
+
+		backoff := &utils.FreebieExponentialBackOff{
+			InitialInterval:     500 * time.Millisecond,
+			RandomizationFactor: 0.5,
+			Multiplier:          1.5,
+			MaxInterval:         10 * time.Second,
+			MaxElapsedTime:      30 * time.Second,
+		}
+		ticker := ebackoff.NewTicker(backoff)
+
+		watcher, re, err = l.getWatchAtLatestIndex(ctx, api, key, retry)
+		if err != nil {
+			return
+		}
+
 		for {
-			re, err := watcher.Next(ctx)
+			re, err = watcher.Next(ctx)
 			if err == nil {
 				if re.Node.Value == "" {
 					log.Infof("watcher.Next for %v skipping empty value", key)
 					continue
 				}
 				log.Infof("watcher.Next for %v got %v", key, re.Node.Value)
+				backoff.Reset()
 			}
 			if err != nil {
+				select {
+				case b := <-ticker.C:
+					log.Infof("%v backoff %v", prefix, b)
+				}
+
 				if err == context.Canceled {
 					log.Infof("client is closing, return")
 					return
@@ -132,11 +159,27 @@ func (l *Client) AddWatch(key string, retry time.Duration, valuesC chan string) 
 					}
 					log.Infof("unexpected cluster error: %v (%v)", err, cerr.Detail())
 					continue
+				} else if cerr, ok := err.(client.Error); ok && cerr.Code == client.ErrorCodeEventIndexCleared {
+					log.Infof("watch index error, resetting watch index: %v", cerr)
+					watcher, re, err = l.getWatchAtLatestIndex(ctx, api, key, retry)
+					if err != nil {
+						continue
+					}
 				} else {
 					log.Infof("unexpected watch error: %v", err)
+					// try recreating the watch if we get repeated unknown errors
+					if backoff.CurrentTries() > 10 {
+						watcher, re, err = l.getWatchAtLatestIndex(ctx, api, key, retry)
+						if err != nil {
+							continue
+						}
+						backoff.Reset()
+					}
+
 					continue
 				}
 			}
+
 			select {
 			case valuesC <- re.Node.Value:
 			case <-l.closeC:

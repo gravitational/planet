@@ -2,7 +2,6 @@
 *.o
 *.a
 *.so
-.DS_Store
 
 # Folders
 _obj
@@ -21,16 +20,3 @@ _cgo_export.*
 _testmain.go
 
 *.exe
-*.test
-*.prof
-
-build
-.vagrant
-
-# Ev-specific, for cross-machine debugging (will remove later)
-run.sh
-stop.sh
-enter.sh
-make.sh
-
-*.swp

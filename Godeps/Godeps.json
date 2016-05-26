@@ -46,6 +46,11 @@
 			"Rev": "aea32c919a18e5ef4537bbd283ff29594b1b0165"
 		},
 		{
+			"ImportPath": "github.com/cenk/backoff",
+			"Comment": "v1.0.0-1-gc29158a",
+			"Rev": "c29158af31815ccc31ca29c86c121bc39e00d3d8"
+		},
+		{
 			"ImportPath": "github.com/cloudflare/cfssl/api",
 			"Comment": "1.2.0",
 			"Rev": "545f606c6fe02bd8490539bea1535ffaaf96f82e"
