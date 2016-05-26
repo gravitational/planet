@@ -10,6 +10,7 @@ import (
 	"github.com/gravitational/trace"
 
 	log "github.com/Sirupsen/logrus"
+	ebackoff "github.com/cenk/backoff"
 	"github.com/coreos/etcd/client"
 	"github.com/mailgun/timetools"
 	"golang.org/x/net/context"
@@ -86,50 +87,51 @@ func (l *Client) AddWatchCallback(key string, retry time.Duration, fn CallbackFn
 	}()
 }
 
+func (l *Client) getWatchAtLatestIndex(ctx context.Context, api client.KeysAPI, key string, retry time.Duration) (client.Watcher, *client.Response, error) {
+	re, err := l.getFirstValue(key, retry)
+	if err != nil {
+		return nil, nil, trace.Errorf("%v unexpected error: %v, returning", ctx.Value("prefix"), err)
+	} else if re == nil {
+		log.Infof("%v client is closing, return", ctx.Value("prefix"))
+		return nil, nil, nil
+	}
+	log.Infof("%v got current value '%v' for key '%v'", ctx.Value("prefix"), re.Node.Value, key)
+	watcher := api.Watcher(key, &client.WatcherOptions{
+		AfterIndex: re.Node.ModifiedIndex,
+	})
+	return watcher, re, nil
+}
+
 // AddWatch starts watching the key for changes and sending them
 // to the valuesC, the watch is stopped
 func (l *Client) AddWatch(key string, retry time.Duration, valuesC chan string) {
 	prefix := fmt.Sprintf("AddWatch(key=%v)", key)
 	api := client.NewKeysAPI(l.client)
-	go func() {
-		backoff := &utils.Backoff{
-			Initial: 50 * time.Millisecond,
-			Max:     10 * time.Second,
-		}
 
+	go func() {
 		var watcher client.Watcher
 		var re *client.Response
 		var err error
 
-		resetWatch := func() error {
-			// make sure we've sent the existing value first,
-			// so we can reliably detect the transitions
-			re, err = l.getFirstValue(key, retry)
-			if err != nil {
-				log.Errorf("%v unexpected error: %v, returning", prefix, err)
-				return err
-			} else if re == nil {
-				log.Infof("%v client is closing, return", prefix)
-				return err
-			}
-			log.Infof("%v got current value '%v' for key '%v'", prefix, re.Node.Value, key)
-			watcher = api.Watcher(key, &client.WatcherOptions{
-				AfterIndex: re.Node.ModifiedIndex,
-			})
-			log.Infof("%v reset watch at %v", prefix, re.Node.ModifiedIndex)
-			return nil
-		}
-
-		err = resetWatch()
-		if err != nil {
-			return
-		}
-
-		ctx, closer := context.WithCancel(context.Background())
+		ctx, closer := context.WithCancel(context.WithValue(context.Background(), "prefix", prefix))
 		go func() {
 			<-l.closeC
 			closer()
 		}()
+
+		backoff := &utils.FreebieExponentialBackOff{
+			InitialInterval:     500 * time.Millisecond,
+			RandomizationFactor: 0.5,
+			Multiplier:          1.5,
+			MaxInterval:         10 * time.Second,
+			MaxElapsedTime:      30 * time.Second,
+		}
+		ticker := ebackoff.NewTicker(backoff)
+
+		watcher, re, err = l.getWatchAtLatestIndex(ctx, api, key, retry)
+		if err != nil {
+			return
+		}
 
 		for {
 			re, err = watcher.Next(ctx)
@@ -142,10 +144,9 @@ func (l *Client) AddWatch(key string, retry time.Duration, valuesC chan string) 
 				backoff.Reset()
 			}
 			if err != nil {
-				duration := backoff.Delay()
-				if backoff.Tries > 1 {
-					log.Infof("backing off for %v", duration)
-					time.Sleep(duration)
+				select {
+				case b := <-ticker.C:
+					log.Infof("backoff %v", b)
 				}
 
 				if err == context.Canceled {
@@ -160,21 +161,28 @@ func (l *Client) AddWatch(key string, retry time.Duration, valuesC chan string) 
 					continue
 				} else if cerr, ok := err.(client.Error); ok && cerr.Code == client.ErrorCodeEventIndexCleared {
 					log.Infof("watch index error, resetting watch index: %v", cerr)
-					err = resetWatch()
+					watcher, re, err = l.getWatchAtLatestIndex(ctx, api, key, retry)
 					if err != nil {
 						continue
 					}
 				} else {
 					log.Infof("unexpected watch error: %v", err)
 					// try recreating the watch if we get repeated unknown errors
-					if backoff.Tries > 10 {
-						resetWatch()
+					if backoff.CurrentTries() > 10 {
+						watcher, re, err = l.getWatchAtLatestIndex(ctx, api, key, retry)
+						if err != nil {
+							continue
+						}
+						backoff.Reset()
 					}
+
 					continue
 				}
 			}
+
 			select {
 			case valuesC <- re.Node.Value:
+				log.Info("got value")
 			case <-l.closeC:
 				return
 			}

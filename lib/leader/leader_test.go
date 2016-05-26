@@ -121,6 +121,7 @@ func (s *LeaderSuite) TestLeaderExtendLease(c *C) {
 	c.Assert(expiresIn > maxTTL, Equals, true, Commentf("%v > %v", expiresIn, maxTTL))
 }
 
+// Make sure we can recover from getting an expired index from our watch
 func (s *LeaderSuite) TestHandleLostIndex(c *C) {
 	clt := s.newClient(c)
 	defer s.closeClient(c, clt)
