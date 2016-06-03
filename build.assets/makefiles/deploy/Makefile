@@ -7,7 +7,7 @@ TARGETS=master node
 # The artifacts are stored as s3://builds.gravitational.io/planet/$(BUILD_TAG)/planet-$(TARGET).tar.gz
 # with BUILD_TAG derived from `git describe`
 BUILD_BUCKET_URL=s3://builds.gravitational.io/planet
-BUILD_TAG=$(shell git describe)
+BUILD_TAG=$(shell git describe --tags)
 
 all: deploy
 
