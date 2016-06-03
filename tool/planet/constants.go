@@ -15,6 +15,10 @@ const (
 	EnvEtcdMemberName          = "ETCD_MEMBER_NAME"
 	EnvEtcdInitialCluster      = "ETCD_INITIAL_CLUSTER"
 	EnvEtcdInitialClusterState = "ETCD_INITIAL_CLUSTER_STATE"
+	EnvEtcdctlCertFile         = "ETCDCTL_CERT_FILE"
+	EnvEtcdctlKeyFile          = "ETCDCTL_KEY_FILE"
+	EnvEtcdctlCAFile           = "ETCDCTL_CA_FILE"
+	EnvEtcdctlPeers            = "ETCDCTL_PEERS"
 	EnvLeaderKey               = "KUBE_LEADER_KEY"
 	EnvRole                    = "PLANET_ROLE"
 	EnvClusterID               = "KUBE_CLUSTER_ID"
@@ -27,6 +31,11 @@ const (
 
 	DefaultLeaderTerm    = 10 * time.Second
 	DefaultEtcdEndpoints = "https://127.0.0.1:2379"
+
+	DefaultSecretsMountDir = "/var/state"
+	DefaultEtcdctlCertFile = DefaultSecretsMountDir + "/etcd.cert"
+	DefaultEtcdctlKeyFile  = DefaultSecretsMountDir + "/etcd.key"
+	DefaultEtcdctlCAFile   = DefaultSecretsMountDir + "/root.cert"
 
 	// APIServerDNSName defines the DNS entry name of the master node
 	APIServerDNSName = "apiserver"

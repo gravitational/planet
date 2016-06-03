@@ -463,7 +463,7 @@ func mountSecrets(config *Config) {
 	config.Mounts = append(config.Mounts, []box.Mount{
 		{
 			Src:      config.SecretsDir,
-			Dst:      "/var/state",
+			Dst:      DefaultSecretsMountDir,
 			Readonly: true,
 		},
 	}...)
