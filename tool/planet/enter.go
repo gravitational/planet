@@ -44,6 +44,10 @@ func enter(rootfs, socketPath string, cfg *box.ProcessConfig) error {
 	// tell bash to use environment we've created
 	cfg.Env.Upsert("ENV", ContainerEnvironmentFile)
 	cfg.Env.Upsert("BASH_ENV", ContainerEnvironmentFile)
+	cfg.Env.Upsert(EnvEtcdctlCertFile, DefaultEtcdctlCertFile)
+	cfg.Env.Upsert(EnvEtcdctlKeyFile, DefaultEtcdctlKeyFile)
+	cfg.Env.Upsert(EnvEtcdctlCAFile, DefaultEtcdctlCAFile)
+	cfg.Env.Upsert(EnvEtcdctlPeers, DefaultEtcdEndpoints)
 	s, err := box.Connect(&box.ClientConfig{
 		Rootfs:     rootfs,
 		SocketPath: socketPath,
