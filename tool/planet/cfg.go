@@ -30,6 +30,7 @@ type Config struct {
 	SecretsDir              string
 	StateDir                string
 	DockerBackend           string
+	DockerOptions           string
 	ServiceSubnet           CIDR
 	PODSubnet               CIDR
 	InitialCluster          kv.KeyVal
