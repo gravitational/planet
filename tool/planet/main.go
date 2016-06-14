@@ -84,7 +84,7 @@ func run() error {
 		cstartInitialCluster          = KeyValueList(cstart.Flag("initial-cluster", "Initial planet cluster configuration as a comma-separated list of peers").OverrideDefaultFromEnvar(EnvInitialCluster))
 		cstartNodeName                = cstart.Flag("node-name", "node name").OverrideDefaultFromEnvar("PLANET_NODE_NAME").String()
 		// Docker options
-		cstartDockerOptions = cstart.Flag("docker-options", "Additional options to pass to docker daemon").OverrideDefaultFromEnvar("PLANET_DOCKER_OPTS").String()
+		cstartDockerOptions = cstart.Flag("docker-options", "Additional options to pass to docker daemon").OverrideDefaultFromEnvar("PLANET_DOCKER_OPTIONS").String()
 		cstartDockerBackend = cstart.Flag("docker-backend", "Docker backend to use. If no backend has been specified, one is selected automatically.").OverrideDefaultFromEnvar("PLANET_DOCKER_BACKEND").String()
 
 		// start the planet agent

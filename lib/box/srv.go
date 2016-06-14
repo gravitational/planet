@@ -109,6 +109,25 @@ func Start(cfg Config) (*Box, error) {
 		}
 	}
 
+	// find all existing loop devices on a host and re-create them inside the container
+	devicemapper, err := filepath.Glob("/dev/dm-?")
+	if err != nil {
+		return nil, trace.Wrap(err)
+	}
+	volumes := make([]*configs.Device, len(devicemapper))
+	for i, volume := range devicemapper {
+		volumes[i] = &configs.Device{
+			Type:        'b',
+			Path:        volume, // fmt.Sprintf("/dev/dm-%v", i),
+			Major:       0xfd,
+			Minor:       int64(i),
+			Uid:         0,
+			Gid:         0,
+			Permissions: "rwm",
+			FileMode:    0660,
+		}
+	}
+
 	containerID := uuid.New()
 	hostname, err := os.Hostname()
 	if err != nil {
@@ -171,7 +190,7 @@ func Start(cfg Config) (*Box, error) {
 			},
 		},
 
-		Devices:  append(configs.DefaultAutoCreatedDevices, loopDevices...),
+		Devices:  append(configs.DefaultAutoCreatedDevices, append(loopDevices, volumes...)...),
 		Hostname: hostname,
 	}
 
