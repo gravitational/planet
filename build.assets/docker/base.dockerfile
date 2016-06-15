@@ -14,6 +14,7 @@ RUN apt-get update && apt-get install -q -y bridge-utils \
         dash \
         ca-certificates \
         aufs-tools \
+        xfsprogs \
         dbus; \
     apt-get -y autoclean; apt-get -y clean
 

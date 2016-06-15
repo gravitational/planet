@@ -147,6 +147,18 @@
                 "name": "nodename",
                 "env": "PLANET_NODE_NAME",
                 "cli": {"name": "node-name"}
+            },
+            {
+                "type": "String",
+                "name": "dockerbackend",
+                "env": "PLANET_DOCKER_BACKEND",
+                "cli": {"name": "docker-backend"}
+            },
+            {
+                "type": "String",
+                "name": "dockeroptions",
+                "env": "PLANET_DOCKER_OPTIONS",
+                "cli": {"name": "docker-options"}
             }
         ]
     }

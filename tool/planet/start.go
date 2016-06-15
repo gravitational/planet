@@ -92,10 +92,12 @@ func start(config *Config, monitorc chan<- bool) (*runtimeContext, error) {
 		}
 	}
 
-	// check supported storage back-ends for docker
-	config.DockerBackend, err = pickDockerStorageBackend()
-	if err != nil {
-		return nil, trace.Wrap(err)
+	if config.DockerBackend == "" {
+		// check supported storage back-ends for docker
+		config.DockerBackend, err = pickDockerStorageBackend()
+		if err != nil {
+			return nil, trace.Wrap(err)
+		}
 	}
 
 	// check/create user accounts and set permissions
@@ -358,6 +360,9 @@ func addInsecureRegistries(c *Config) {
 	}
 	opts := strings.Join(out, " ")
 	c.Env.Append("DOCKER_OPTS", opts, " ")
+	if c.DockerOptions != "" {
+		c.Env.Append("DOCKER_OPTS", c.DockerOptions, " ")
+	}
 }
 
 // pickDockerStorageBackend examines the filesystems this host supports and picks one
@@ -379,8 +384,8 @@ func pickDockerStorageBackend() (dockerBackend string, err error) {
 		}
 	}
 	// if we get here, it means no suitable FS has been found
-	err = trace.Errorf("none of the required filesystems are supported by this host: %s",
-		strings.Join(supportedBackends, ", "))
+	err = trace.Errorf("none of the required filesystems are supported by this host: %v",
+		supportedBackends)
 	return "", err
 }
 
@@ -510,17 +515,17 @@ func setupFlannel(config *Config) {
 }
 
 const (
-	EtcdWorkDir              = "/ext/etcd"
+	ETCDWorkDir              = "/ext/etcd"
 	DockerWorkDir            = "/ext/docker"
-	RegstrWorkDir            = "/ext/registry"
+	RegistryWorkDir          = "/ext/registry"
 	ContainerEnvironmentFile = "/etc/container-environment"
 )
 
 func checkRequiredMounts(cfg *Config) error {
 	expected := map[string]bool{
-		EtcdWorkDir:   false,
-		DockerWorkDir: false,
-		RegstrWorkDir: false,
+		ETCDWorkDir:     false,
+		DockerWorkDir:   false,
+		RegistryWorkDir: false,
 	}
 	uid := atoi(cfg.ServiceUser.Uid)
 	gid := atoi(cfg.ServiceUser.Gid)
@@ -529,16 +534,16 @@ func checkRequiredMounts(cfg *Config) error {
 		if _, ok := expected[dst]; ok {
 			expected[dst] = true
 		}
-		if dst == EtcdWorkDir {
+		if dst == ETCDWorkDir {
 			// chown <service user>:<service group> /ext/etcd -r
 			if err := chownDir(m.Src, uid, gid); err != nil {
 				return err
 			}
 		}
 		if dst == DockerWorkDir {
-			if ok, _ := check.IsBtrfsVolume(m.Src); ok == true {
+			if ok, _ := check.IsBtrfsVolume(m.Src); ok {
 				cfg.DockerBackend = "btrfs"
-				log.Warningf("Docker work dir is on btrfs volume: %v", m.Src)
+				log.Infof("docker working directory is on BTRFS volume `%v`", m.Src)
 			}
 		}
 	}

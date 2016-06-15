@@ -4,11 +4,11 @@ import (
 	"encoding/json"
 	"os"
 
+	"github.com/gravitational/go-udev"
 	"github.com/gravitational/planet/lib/box"
 	"github.com/gravitational/trace"
 
 	log "github.com/Sirupsen/logrus"
-	"github.com/jochenvg/go-udev"
 	"github.com/opencontainers/runc/libcontainer/configs"
 	"github.com/opencontainers/runc/libcontainer/devices"
 )

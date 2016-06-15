@@ -83,6 +83,9 @@ func run() error {
 		cstartEtcdInitialClusterState = cstart.Flag("etcd-initial-cluster-state", "Etcd initial cluster state: 'new' or 'existing'").OverrideDefaultFromEnvar("PLANET_ETCD_INITIAL_CLUSTER_STATE").String()
 		cstartInitialCluster          = KeyValueList(cstart.Flag("initial-cluster", "Initial planet cluster configuration as a comma-separated list of peers").OverrideDefaultFromEnvar(EnvInitialCluster))
 		cstartNodeName                = cstart.Flag("node-name", "node name").OverrideDefaultFromEnvar("PLANET_NODE_NAME").String()
+		// Docker options
+		cstartDockerOptions = cstart.Flag("docker-options", "Additional options to pass to docker daemon").OverrideDefaultFromEnvar("PLANET_DOCKER_OPTIONS").String()
+		cstartDockerBackend = cstart.Flag("docker-backend", "Docker backend to use. If no backend has been specified, one is selected automatically.").OverrideDefaultFromEnvar("PLANET_DOCKER_BACKEND").String()
 
 		// start the planet agent
 		cagent                 = app.Command("agent", "Start Planet Agent")
@@ -268,6 +271,8 @@ func run() error {
 			EtcdInitialCluster:      toEtcdPeerList(initialCluster),
 			EtcdInitialClusterState: *cstartEtcdInitialClusterState,
 			NodeName:                *cstartNodeName,
+			DockerBackend:           *cstartDockerBackend,
+			DockerOptions:           *cstartDockerOptions,
 		}
 		if *cstartSelfTest {
 			err = selfTest(config, *cstartTestKubeRepoPath, *cstartTestSpec, extraArgs)

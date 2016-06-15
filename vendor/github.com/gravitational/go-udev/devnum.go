@@ -7,7 +7,7 @@ package udev
   #include <libudev.h>
   #include <linux/types.h>
   #include <stdlib.h>
-	#include <linux/kdev_t.h>
+  #include <linux/kdev_t.h>
 
   int go_udev_major(dev_t d) {
     return MAJOR(d);
