@@ -515,17 +515,17 @@ func setupFlannel(config *Config) {
 }
 
 const (
-	EtcdWorkDir              = "/ext/etcd"
+	ETCDWorkDir              = "/ext/etcd"
 	DockerWorkDir            = "/ext/docker"
-	RegstryWorkDir           = "/ext/registry"
+	RegistryWorkDir          = "/ext/registry"
 	ContainerEnvironmentFile = "/etc/container-environment"
 )
 
 func checkRequiredMounts(cfg *Config) error {
 	expected := map[string]bool{
-		EtcdWorkDir:    false,
-		DockerWorkDir:  false,
-		RegstryWorkDir: false,
+		ETCDWorkDir:     false,
+		DockerWorkDir:   false,
+		RegistryWorkDir: false,
 	}
 	uid := atoi(cfg.ServiceUser.Uid)
 	gid := atoi(cfg.ServiceUser.Gid)
@@ -534,7 +534,7 @@ func checkRequiredMounts(cfg *Config) error {
 		if _, ok := expected[dst]; ok {
 			expected[dst] = true
 		}
-		if dst == EtcdWorkDir {
+		if dst == ETCDWorkDir {
 			// chown <service user>:<service group> /ext/etcd -r
 			if err := chownDir(m.Src, uid, gid); err != nil {
 				return err
