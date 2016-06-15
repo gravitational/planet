@@ -12,6 +12,7 @@ import (
 	"syscall"
 
 	log "github.com/Sirupsen/logrus"
+	"github.com/gravitational/go-udev"
 	"github.com/gravitational/trace"
 
 	"github.com/opencontainers/runc/libcontainer"
@@ -109,29 +110,35 @@ func Start(cfg Config) (*Box, error) {
 		}
 	}
 
-	// find all existing loop devices on a host and re-create them inside the container
-	devicemapper, err := filepath.Glob("/dev/dm-?")
-	if err != nil {
-		return nil, trace.Wrap(err)
-	}
-	volumes := make([]*configs.Device, len(devicemapper))
-	for i, volume := range devicemapper {
-		volumes[i] = &configs.Device{
-			Type:        'b',
-			Path:        volume, // fmt.Sprintf("/dev/dm-%v", i),
-			Major:       0xfd,
-			Minor:       int64(i),
-			Uid:         0,
-			Gid:         0,
-			Permissions: "rwm",
-			FileMode:    0660,
-		}
-	}
-
 	containerID := uuid.New()
 	hostname, err := os.Hostname()
 	if err != nil {
 		return nil, trace.Wrap(err, "failed to get hostname")
+	}
+
+	// Enumerate all known block devices of type disk/partition
+	udev := udev.Udev{}
+	enum := udev.NewEnumerate()
+
+	devices, err := enum.Devices()
+	if err != nil {
+		log.Fatalln(err)
+	}
+
+	var disks []*configs.Device
+	for _, device := range devices {
+		deviceType := device.Devtype()
+		if deviceType == "disk" || deviceType == "partition" {
+			devnum := device.Devnum()
+			disks = append(disks, &configs.Device{
+				Type:        'b',
+				Path:        device.Devnode(),
+				Major:       int64(devnum.Major()),
+				Minor:       int64(devnum.Minor()),
+				Permissions: "rwm",
+				FileMode:    0660,
+			})
+		}
 	}
 
 	config := &configs.Config{
@@ -157,8 +164,6 @@ func Start(cfg Config) (*Box, error) {
 				Destination: "/lib/modules",
 				Flags:       defaultMountFlags | syscall.MS_BIND,
 			},
-			// don't mount real dev, otherwise systemd will mess up with the host
-			// OS real badly
 			{
 				Source:      "tmpfs",
 				Destination: "/dev",
@@ -190,7 +195,7 @@ func Start(cfg Config) (*Box, error) {
 			},
 		},
 
-		Devices:  append(configs.DefaultAutoCreatedDevices, append(loopDevices, volumes...)...),
+		Devices:  append(configs.DefaultAutoCreatedDevices, append(loopDevices, disks...)...),
 		Hostname: hostname,
 	}
 
