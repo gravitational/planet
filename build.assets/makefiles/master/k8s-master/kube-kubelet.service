@@ -1,0 +1,24 @@
+[Unit]
+Description=Kubernetes Kubelet
+Documentation=https://github.com/kubernetes/kubernetes
+Requires=docker.service
+After=docker.service
+
+[Service]
+EnvironmentFile=/etc/container-environment
+ExecStart=/usr/bin/kubelet \
+        --address=0.0.0.0 \
+        --port=10250 \
+        --hostname_override=${KUBE_NODE_NAME} \
+        --api_servers=http://${KUBE_APISERVER}:8080 \
+        --allow_privileged=true \
+        --logtostderr=true \
+        --cadvisor_port=4194 \
+        --healthz_bind_address=0.0.0.0 \
+        --healthz_port=10248\
+        --configure-cbr0=false $KUBE_CLOUD_FLAGS \
+	--cluster-dns=${KUBE_CLUSTER_DNS_IP} \
+	--cluster-domain=cluster.local \
+	--pod-infra-container-image=${KUBE_APISERVER}:5000/pause:0.8.0
+Restart=always
+RestartSec=10
