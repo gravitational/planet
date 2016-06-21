@@ -49,7 +49,7 @@ func run() error {
 	args, extraArgs := cstrings.SplitAt(os.Args, "--")
 
 	var (
-		app        = kingpin.New("planet", "Planet is a Kubernetes delivered as an orbit container")
+		app        = kingpin.New("planet", "Planet is a Kubernetes delivered as RunC container")
 		debug      = app.Flag("debug", "Enable debug mode").Bool()
 		socketPath = app.Flag("socket-path", "Path to the socket file").Default("/var/run/planet.socket").String()
 		cversion   = app.Command("version", "Print version information")
