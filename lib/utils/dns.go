@@ -60,8 +60,6 @@ func (d *DNSConfig) UpsertServer(ip string) {
 	d.Servers = append([]string{ip}, d.Servers...)
 }
 
-func (d *DSN
-
 // String returns resolv.conf serialized version of config
 func (d *DNSConfig) String() string {
 	buf := &bytes.Buffer{}
