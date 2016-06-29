@@ -11,6 +11,7 @@ import (
 	log "github.com/Sirupsen/logrus"
 	"k8s.io/kubernetes/pkg/api"
 	kube "k8s.io/kubernetes/pkg/client/unversioned"
+	"k8s.io/kubernetes/pkg/util/intstr"
 	"k8s.io/kubernetes/pkg/util/wait"
 )
 
@@ -47,13 +48,15 @@ func (r *DNSBootstrapper) createService(client *kube.Client) (err error) {
 			ClusterIP: r.clusterIP,
 			Ports: []api.ServicePort{
 				{
-					Port:     53,
-					Protocol: "UDP",
-					Name:     "dns",
+					Port:       53,
+					TargetPort: intstr.FromString("dns"),
+					Protocol:   "UDP",
+					Name:       "dns",
 				}, {
-					Port:     53,
-					Protocol: "TCP",
-					Name:     "dns-tcp",
+					Port:       53,
+					Protocol:   "TCP",
+					Name:       "dns-tcp",
+					TargetPort: intstr.FromString("dns-tcp"),
 				}},
 			SessionAffinity: "None",
 		},
