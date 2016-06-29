@@ -6,6 +6,8 @@ Requires=network.target
 Type=forking
 PIDFile=/var/run/dnsmasq/dnsmasq.pid
 
+EnvironmentFile=/etc/container-environment
+
 # Set up DNS settings that are dynamic
 ExecStartPre=/usr/bin/scripts/dnsmasq.sh
 
