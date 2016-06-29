@@ -425,9 +425,9 @@ func addResolv(config *Config) error {
 	cfg.Ndots = DNSNdots
 	cfg.Timeout = DNSTimeout
 
-	resolv, err := ioutil.TempFile(
-		filepath.Join(config.Rootfs),
-		"resolv.conf",
+	resolv, err := os.OpenFile(
+		filepath.Join(config.Rootfs, "etc", "resolv.gravity.conf"),
+		os.O_RDWR|os.O_CREATE|os.O_TRUNC, 0644,
 	)
 	defer resolv.Close()
 	if err != nil {
