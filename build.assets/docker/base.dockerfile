@@ -16,6 +16,7 @@ RUN apt-get update && apt-get install -q -y bridge-utils \
         aufs-tools \
         xfsprogs \
         dbus \
+        dnsutils \
         dnsmasq ; \
     apt-get -y autoclean; apt-get -y clean
 
