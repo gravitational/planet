@@ -47,11 +47,11 @@ func (r *DNSBootstrapper) createService(client *kube.Client) (err error) {
 			ClusterIP: r.clusterIP,
 			Ports: []api.ServicePort{
 				{
-					Port:     3053,
+					Port:     53,
 					Protocol: "UDP",
 					Name:     "dns",
 				}, {
-					Port:     3053,
+					Port:     53,
 					Protocol: "TCP",
 					Name:     "dns-tcp",
 				}},
