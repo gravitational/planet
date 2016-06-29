@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"fmt"
 	"io"
+	"io/ioutil"
 	"os"
 	"path/filepath"
 	"sort"
@@ -410,8 +411,34 @@ func addResolv(config *Config) error {
 		}
 		return trace.Wrap(err)
 	}
+	f, err := os.Open(path)
+	if err != nil {
+		return trace.Wrap(err)
+	}
+	defer f.Close()
+	cfg, err := utils.DNSReadConfig(f)
+	if err != nil {
+		return trace.Wrap(err)
+	}
+	cfg.Search = append(cfg.Search, DNSSearchDomains...)
+	cfg.UpsertServer(LocalDNSIP)
+	cfg.Ndots = DNSNdots
+	cfg.Timeout = DNSTimeout
+
+	resolv, err := ioutil.TempFile(
+		filepath.Join(config.Rootfs),
+		"resolv.conf",
+	)
+	defer resolv.Close()
+	if err != nil {
+		return trace.Wrap(err)
+	}
+	_, err = io.WriteString(resolv, cfg.String())
+	if err != nil {
+		return trace.Wrap(err)
+	}
 	config.Mounts = append(config.Mounts, box.Mount{
-		Src:      path,
+		Src:      resolv.Name(),
 		Dst:      "/etc/resolv.conf",
 		Readonly: true,
 	})

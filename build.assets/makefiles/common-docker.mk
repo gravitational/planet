@@ -8,6 +8,7 @@ ASSETDIR := /assetdir
 .PHONY: all
 all: $(ASSETDIR)/planet $(ASSETDIR)/docker-import
 	make -C $(ASSETS)/makefiles/base/network -f network.mk
+	make -C $(ASSETS)/makefiles/base/dns -f dns.mk
 	make -C $(ASSETS)/makefiles/base/docker -f docker.mk 
 	make -C $(ASSETS)/makefiles/base/agent -f agent.mk
 	make -C $(ASSETS)/makefiles/kubernetes -f kubernetes.mk

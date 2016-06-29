@@ -43,4 +43,20 @@ const (
 	// CloudProviderAWS defines the name of the AWS cloud provider used to
 	// setup AWS integration in kubernetes
 	CloudProviderAWS = "aws"
+
+	// DNSNdots is the amount of NDOTS we set before doing initial global query
+	DNSNdots = 5
+	// DNSTimeout is the amount of seconds to wait
+	DNSTimeout = 1
+
+	// LocalDNSIP is the IP of the local DNS server
+	LocalDNSIP = "127.0.0.1"
 )
+
+// DNSSearchDomains is a DNS search list we are appending to local DNS
+var DNSSearchDomains = []string{
+	"kube-system.svc.cluster.local",
+	"default.svc.cluster.local",
+	"svc.cluster.local",
+	"cluster.local",
+}
