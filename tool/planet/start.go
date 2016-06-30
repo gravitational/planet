@@ -451,7 +451,7 @@ func setHosts(config *Config, entries []utils.HostEntry) error {
 	}
 	defer hosts.Close()
 	out := &bytes.Buffer{}
-	if err := utils.UpsertHostsLines(in, out, entries); err != nil {
+	if err := utils.UpsertHostsLines(hosts, out, entries); err != nil {
 		return trace.Wrap(err)
 	}
 	config.Files = append(config.Files, box.File{
