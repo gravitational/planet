@@ -445,7 +445,11 @@ func addResolv(config *Config) error {
 }
 
 func setHosts(config *Config, entries []utils.HostEntry) error {
-	in := &bytes.Buffer{}
+	hosts, err := os.Open("/etc/hosts")
+	if err != nil {
+		return trace.Wrap(err)
+	}
+	defer hosts.Close()
 	out := &bytes.Buffer{}
 	if err := utils.UpsertHostsLines(in, out, entries); err != nil {
 		return trace.Wrap(err)
