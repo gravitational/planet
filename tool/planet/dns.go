@@ -121,7 +121,7 @@ func createServiceNamespaceIfNeeded(client *kube.Client) error {
 // upsertService either creates a new service if the specified service does not exist,
 // or updates an existing one.
 func upsertService(client *kube.Client, service *api.Service) (err error) {
-	log.Infof("creating %s service", service.ObjectMeta.Name)
+	log.Infof("creating %s service with spec:\n%#v", service.ObjectMeta.Name, service)
 	serviceName := service.ObjectMeta.Name
 	services := client.Services(serviceNamespace)
 	var existing *api.Service
