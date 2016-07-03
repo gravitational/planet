@@ -6,7 +6,7 @@
 
 ARCH := x86_64
 OS := Linux
-VER := 1.8.2
+VER := 1.9.1
 BINARIES := $(ASSETDIR)/docker-$(VER)
 
 $(ROOTFS)/usr/bin/docker: $(BINARIES)

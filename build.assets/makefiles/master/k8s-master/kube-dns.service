@@ -1,0 +1,11 @@
+[Unit]
+Description=Kubernetes DNS service
+Documentation=https://github.com/kubernetes/kubernetes
+
+[Service]
+ExecStart=/usr/bin/kube-dns \
+	--domain=cluster.local \
+	--healthz-port=8081 \
+	--kube-master-url=http://${KUBE_APISERVER}:8080
+Restart=always
+RestartSec=10
