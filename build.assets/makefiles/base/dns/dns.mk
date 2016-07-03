@@ -10,4 +10,5 @@ all:
 	install -m 0755 ./dnsmasq.sh $(ROOTFS)/usr/bin/scripts
 
 # script that sets up /etc/hosts and symlinks resolv.conf
+	mkdir -p $(ROOTFS)/etc/dnsmasq.d
 	install -m 0755 ./k8s.conf $(ROOTFS)/etc/dnsmasq.d/k8s.conf
