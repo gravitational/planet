@@ -7,6 +7,7 @@ ROOTFS:=$(TARGETDIR)/rootfs
 CONTAINERNAME:=planet-base-$(TARGET)
 TARBALL:=$(TARGETDIR)/planet-$(TARGET).tar.gz
 export
+TMPFS_SIZE=700m
 
 .PHONY: all build clean planet-image
 
@@ -61,7 +62,7 @@ $(ROOTFS)/bin/bash: clean-rootfs
 	@mkdir -p $(ROOTFS)
 # if MEMROOTFS environment variable is set, create rootfs in RAM (to speed up interative development)
 	if [ ! -z $$MEMROOTFS ]; then \
-	  sudo mount -t tmpfs -o size=600m tmpfs $(ROOTFS) ;\
+	  sudo mount -t tmpfs -o size=$(TMPFS_SIZE) tmpfs $(ROOTFS) ;\
 	fi
 # populate Rootfs using docker image 'planet/base'
 	docker create --name=$(CONTAINERNAME) planet/base

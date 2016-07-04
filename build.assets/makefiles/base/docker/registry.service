@@ -4,7 +4,7 @@ Requires=docker.service
 After=docker.service
 
 [Service]
-ExecStart=/usr/bin/registry /etc/docker/registry/config.yml
+ExecStart=/usr/bin/registry serve /etc/docker/registry/config.yml
 Restart=always
 RestartSec=10
 User=planet
