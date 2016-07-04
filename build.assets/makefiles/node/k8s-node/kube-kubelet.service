@@ -19,6 +19,6 @@ ExecStart=/usr/bin/kubelet \
         --configure-cbr0=false $KUBE_CLOUD_FLAGS \
 	--cluster-dns=${KUBE_CLUSTER_DNS_IP} \
 	--cluster-domain=cluster.local \
-	--pod-infra-container-image=${KUBE_APISERVER}:5000/pause:0.8.0
+	--pod-infra-container-image=${KUBE_APISERVER}:5000/gcr.io/google_containers/pause:0.8.0
 Restart=always
 RestartSec=10

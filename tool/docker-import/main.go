@@ -129,7 +129,7 @@ func importWithRepo(repo Repo, path, registryAddr string) error {
 	if err != nil {
 		return trace.Wrap(err, "failed to load image into docker:\n%s", out)
 	}
-	repoTag := fmt.Sprintf("%v/%v", registryAddr, repo.Tag())
+	repoTag := fmt.Sprintf("%v/%v", registryAddr, repo.ImageURL())
 	out, err = dockerCommand("tag", "-f", repo.ImageURL(), repoTag)
 	if err != nil {
 		return trace.Wrap(err, "failed to tag image in registry:\n%s", out)
@@ -165,19 +165,6 @@ func (r Repo) ImageURL() string {
 		repoURL, imageName := filepath.Split(imagePath)
 		for version, _ := range details {
 			return filepath.Join(repoURL, imageTag(imageName, version))
-		}
-	}
-	return ""
-}
-
-// Tag builds a tag string for the specified image metadata:
-//
-// image_name:image_version
-func (r Repo) Tag() string {
-	for imagePath, details := range r {
-		_, imageName := filepath.Split(imagePath)
-		for version, _ := range details {
-			return imageTag(imageName, version)
 		}
 	}
 	return ""
