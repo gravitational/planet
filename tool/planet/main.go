@@ -219,7 +219,7 @@ func run() error {
 			KubeAddr:              *cagentKubeAddr,
 			ClusterDNS:            cagentClusterDNS.String(),
 			RegistryAddr:          fmt.Sprintf("http://%v", *cagentRegistryAddr),
-			NettestContainerImage: fmt.Sprintf("%v/nettest:1.8", *cagentRegistryAddr),
+			NettestContainerImage: fmt.Sprintf("%v/gcr.io/google_containers/nettest:1.8", *cagentRegistryAddr),
 			ETCDConfig:            etcdConf,
 			DisableInterPodCheck:  disableInterPodCheck,
 		}
