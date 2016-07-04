@@ -419,7 +419,7 @@ func addResolv(config *Config) error {
 	if err != nil {
 		return trace.Wrap(err)
 	}
-	cfg.UpsertServer(LocalDNSIP)
+	cfg.UpsertServer(config.PublicIP)
 	cfg.Ndots = DNSNdots
 	cfg.Timeout = DNSTimeout
 
