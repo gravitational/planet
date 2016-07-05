@@ -410,8 +410,33 @@ func addResolv(config *Config) error {
 		}
 		return trace.Wrap(err)
 	}
+	f, err := os.Open(path)
+	if err != nil {
+		return trace.Wrap(err)
+	}
+	defer f.Close()
+	cfg, err := utils.DNSReadConfig(f)
+	if err != nil {
+		return trace.Wrap(err)
+	}
+	cfg.UpsertServer(config.PublicIP)
+	cfg.Ndots = DNSNdots
+	cfg.Timeout = DNSTimeout
+
+	resolv, err := os.OpenFile(
+		filepath.Join(config.Rootfs, "etc", "resolv.gravity.conf"),
+		os.O_RDWR|os.O_CREATE|os.O_TRUNC, 0644,
+	)
+	if err != nil {
+		return trace.Wrap(err)
+	}
+	defer resolv.Close()
+	_, err = io.WriteString(resolv, cfg.String())
+	if err != nil {
+		return trace.Wrap(err)
+	}
 	config.Mounts = append(config.Mounts, box.Mount{
-		Src:      path,
+		Src:      resolv.Name(),
 		Dst:      "/etc/resolv.conf",
 		Readonly: true,
 	})
@@ -419,9 +444,13 @@ func addResolv(config *Config) error {
 }
 
 func setHosts(config *Config, entries []utils.HostEntry) error {
-	in := &bytes.Buffer{}
+	hosts, err := os.Open("/etc/hosts")
+	if err != nil {
+		return trace.Wrap(err)
+	}
+	defer hosts.Close()
 	out := &bytes.Buffer{}
-	if err := utils.UpsertHostsLines(in, out, entries); err != nil {
+	if err := utils.UpsertHostsLines(hosts, out, entries); err != nil {
 		return trace.Wrap(err)
 	}
 	config.Files = append(config.Files, box.File{

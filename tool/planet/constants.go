@@ -43,4 +43,12 @@ const (
 	// CloudProviderAWS defines the name of the AWS cloud provider used to
 	// setup AWS integration in kubernetes
 	CloudProviderAWS = "aws"
+
+	// DNSNdots is the amount of NDOTS we set before doing initial global query
+	DNSNdots = 2
+	// DNSTimeout is the amount of seconds to wait
+	DNSTimeout = 1
+
+	// LocalDNSIP is the IP of the local DNS server
+	LocalDNSIP = "127.0.0.1"
 )
