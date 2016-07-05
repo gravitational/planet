@@ -427,10 +427,10 @@ func addResolv(config *Config) error {
 		filepath.Join(config.Rootfs, "etc", "resolv.gravity.conf"),
 		os.O_RDWR|os.O_CREATE|os.O_TRUNC, 0644,
 	)
-	defer resolv.Close()
 	if err != nil {
 		return trace.Wrap(err)
 	}
+	defer resolv.Close()
 	_, err = io.WriteString(resolv, cfg.String())
 	if err != nil {
 		return trace.Wrap(err)
