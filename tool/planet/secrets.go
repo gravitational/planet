@@ -55,7 +55,7 @@ func initCA(hosts []string, dir string) (configCA *keyPairConfig, err error) {
 	if err != nil {
 		return nil, trace.Wrap(err)
 	}
-	w := &fileWriter{perms: 06444, dir: dir, baseName: CertificateAuthorityKeyPair}
+	w := &fileWriter{perms: 0644, dir: dir, baseName: CertificateAuthorityKeyPair}
 	w.write("cert", string(cert))
 	w.write("key", string(key))
 	configCA = &keyPairConfig{

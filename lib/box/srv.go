@@ -122,7 +122,7 @@ func Start(cfg Config) (*Box, error) {
 
 	devices, err := enum.Devices()
 	if err != nil {
-		log.Fatalln(err)
+		return nil, trace.Wrap(err, "failed to enumerate available devices")
 	}
 
 	var disks []*configs.Device
