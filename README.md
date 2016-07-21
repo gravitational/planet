@@ -1,6 +1,6 @@
 # Planet
 
-Planet is a containerized Kubernetes environment, it is a self-containerizing Ubuntu 15.04 image with
+Planet is a containerized Kubernetes environment, it is a self-containerizing Debian image with
 Kubernetes services running inside. 
 
 There are [official ways] to install and manager a Kubernetes cluster, but `planet` differs from those:
