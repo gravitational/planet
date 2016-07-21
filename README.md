@@ -148,7 +148,6 @@ execute `make enter`. You can then inspect running components with `ps -e`:
 
 To stop, hit `Ctrl+C` or run `make stop` in another terminal.
 
-
 [//]: # (Footnots and references)
 
 [official ways]: <http://kubernetes.io/v1.1/docs/getting-started-guides/README.html>
