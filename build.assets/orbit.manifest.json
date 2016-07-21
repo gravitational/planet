@@ -12,6 +12,16 @@
       {"name": "secrets-init", "args": ["rootfs/usr/bin/planet", "secrets", "init"]},
       {"name": "gen-cert", "args": ["rootfs/usr/bin/planet", "secrets", "gencert"]}
     ],
+    "service": {
+        "StartCommand": "start",
+        "User": "0",
+        "Type": "simple",
+        "Restart": "always",
+        "KillMode": "none",
+	    "StartPreCommand": "-/bin/rm /var/run/planet.socket",
+		"StartPostCommand": "-/bin/rm /var/run/planet.socket",
+		"StopCommand": "stop"
+    },
     "config": {
         "params": [
             {
