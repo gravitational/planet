@@ -84,6 +84,7 @@ quite a few dependencies:
 
 Subsequent builds are much faster because intermediate results are cached (in `build/assets` directory).
 To clear and rebuild from scratch, run one of the following (depending on the target):
+
  - `make node-clean`
  - `make master-clean`
  - `make dev-clean`
