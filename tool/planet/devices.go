@@ -25,7 +25,7 @@ func createDevice(device *configs.Device) error {
 func removeDevice(node string) (err error) {
 	if err = os.Remove(node); err != nil && os.IsNotExist(err) {
 		// Ignore `file not found` errors
-		err = nil
+		return nil
 	}
 	return trace.Wrap(err)
 }
