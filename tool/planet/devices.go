@@ -22,8 +22,12 @@ func createDevice(device *configs.Device) error {
 }
 
 // removeDevice removes the device specified with node path
-func removeDevice(node string) error {
-	return os.Remove(node)
+func removeDevice(node string) (err error) {
+	if err = os.Remove(node); err != nil && os.IsNotExist(err) {
+		// Ignore `file not found` errors
+		err = nil
+	}
+	return trace.Wrap(err)
 }
 
 // createDeviceNode creates the device node inside the container.
@@ -50,8 +54,8 @@ func mknodDevice(dest string, node *configs.Device) error {
 	default:
 		return trace.Errorf("%c is not a valid device type for device %s", node.Type, node.Path)
 	}
-	if err := syscall.Mknod(dest, uint32(fileMode), node.Mkdev()); err != nil {
-		return trace.Wrap(err)
+	if err := syscall.Mknod(dest, uint32(fileMode), node.Mkdev()); err != nil && !os.IsExist(err) {
+		return trace.Wrap(err, "failed to create node for %v (mode=%v)", dest, fileMode)
 	}
 	return syscall.Chown(dest, int(node.Uid), int(node.Gid))
 }
