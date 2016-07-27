@@ -12,19 +12,19 @@ import (
 	"syscall"
 	"time"
 
-	kv "github.com/gravitational/configure"
-	"github.com/gravitational/configure/cstrings"
-	etcdconf "github.com/gravitational/coordinate/config"
 	"github.com/gravitational/planet/lib/box"
 	"github.com/gravitational/planet/lib/monitoring"
 	"github.com/gravitational/planet/test/e2e"
+
+	log "github.com/Sirupsen/logrus"
+	kv "github.com/gravitational/configure"
+	"github.com/gravitational/configure/cstrings"
+	etcdconf "github.com/gravitational/coordinate/config"
 	"github.com/gravitational/satellite/agent"
 	"github.com/gravitational/satellite/agent/backend/sqlite"
 	"github.com/gravitational/satellite/agent/cache"
 	"github.com/gravitational/trace"
 	"github.com/gravitational/version"
-
-	log "github.com/Sirupsen/logrus"
 	"github.com/opencontainers/runc/libcontainer"
 	"github.com/opencontainers/runc/libcontainer/configs"
 	"gopkg.in/alecthomas/kingpin.v2"
@@ -36,7 +36,7 @@ func main() {
 
 	if err = run(); err != nil {
 		log.Errorf("Failed to run: '%v'\n", err)
-		if errExit, ok := err.(*box.ExitError); ok {
+		if errExit, ok := trace.Unwrap(err).(*box.ExitError); ok {
 			exitCode = errExit.Code
 		} else {
 			exitCode = 1
