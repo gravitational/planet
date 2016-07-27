@@ -10,8 +10,8 @@ import (
 	"syscall"
 	"time"
 
-	"github.com/gravitational/planet/lib/etcdconf"
-	"github.com/gravitational/planet/lib/leader"
+	etcdconf "github.com/gravitational/coordinate/config"
+	"github.com/gravitational/coordinate/leader"
 	"github.com/gravitational/planet/lib/monitoring"
 	"github.com/gravitational/planet/lib/utils"
 	"github.com/gravitational/satellite/agent"
@@ -59,7 +59,7 @@ func startLeaderClient(conf *LeaderConfig) (io.Closer, error) {
 	if err != nil {
 		return nil, trace.Wrap(err)
 	}
-	client, err := leader.NewClient(leader.Config{ETCD: conf.ETCD})
+	client, err := leader.NewClient(leader.Config{ETCD: &conf.ETCD})
 	if err != nil {
 		return nil, trace.Wrap(err)
 	}

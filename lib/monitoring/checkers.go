@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"io"
 
-	"github.com/gravitational/planet/lib/etcdconf"
+	etcdconf "github.com/gravitational/coordinate/config"
 	"github.com/gravitational/satellite/agent"
 	"github.com/gravitational/satellite/agent/health"
 	"github.com/gravitational/satellite/monitoring"

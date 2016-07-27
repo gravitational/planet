@@ -14,8 +14,8 @@ import (
 
 	kv "github.com/gravitational/configure"
 	"github.com/gravitational/configure/cstrings"
+	etcdconf "github.com/gravitational/coordinate/config"
 	"github.com/gravitational/planet/lib/box"
-	"github.com/gravitational/planet/lib/etcdconf"
 	"github.com/gravitational/planet/lib/monitoring"
 	"github.com/gravitational/planet/test/e2e"
 	"github.com/gravitational/satellite/agent"
