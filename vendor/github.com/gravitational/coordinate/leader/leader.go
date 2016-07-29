@@ -1,3 +1,19 @@
+/*
+Copyright 2016 Gravitational, Inc.
+
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+
+    http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
+*/
+
 package leader
 
 import (
@@ -5,27 +21,25 @@ import (
 	"sync/atomic"
 	"time"
 
-	"github.com/gravitational/planet/lib/etcdconf"
-	"github.com/gravitational/planet/lib/utils"
+	"github.com/gravitational/coordinate/config"
 	"github.com/gravitational/trace"
 
 	log "github.com/Sirupsen/logrus"
 	ebackoff "github.com/cenk/backoff"
 	"github.com/coreos/etcd/client"
-	"github.com/mailgun/timetools"
+	"github.com/jonboulle/clockwork"
 	"golang.org/x/net/context"
 )
 
-// defaultResponseTimeout specifies the default time limit to wait for response
-// header in a single request made by an etcd client
-const defaultResponseTimeout = 1 * time.Second
-
 // Config sets leader election configuration options
 type Config struct {
-	// ETCD defines etcd configuration
-	ETCD etcdconf.Config
+	// ETCD defines etcd configuration, client will be instantiated
+	// if passed
+	ETCD *config.Config
 	// Clock is a time provider
-	Clock timetools.TimeProvider
+	Clock clockwork.Clock
+	// Client is ETCD client will be used if passed
+	Client client.Client
 }
 
 // Client implements ETCD-backed leader election client
@@ -33,28 +47,31 @@ type Config struct {
 // monitors the changes to the leaders
 type Client struct {
 	client client.Client
-	clock  timetools.TimeProvider
+	clock  clockwork.Clock
 	closeC chan bool
 	closed uint32
 }
 
 // NewClient returns a new instance of leader election client
 func NewClient(cfg Config) (*Client, error) {
-	if len(cfg.ETCD.Endpoints) == 0 {
-		return nil, trace.Errorf("need at least one endpoint")
-	}
 	if cfg.Clock == nil {
-		cfg.Clock = &timetools.RealTime{}
+		cfg.Clock = clockwork.NewRealClock()
 	}
-	if cfg.ETCD.HeaderTimeoutPerRequest == 0 {
-		cfg.ETCD.HeaderTimeoutPerRequest = defaultResponseTimeout
+	var client client.Client
+	var err error
+	if cfg.ETCD != nil {
+		if err := cfg.ETCD.CheckAndSetDefaults(); err != nil {
+			return nil, trace.Wrap(err)
+		}
+		client, err = cfg.ETCD.NewClient()
+		if err != nil {
+			return nil, trace.Wrap(err)
+		}
+	} else if cfg.Client != nil {
+		client = cfg.Client
+	} else {
+		return nil, trace.BadParameter("either ETCD config or Client should be passed")
 	}
-
-	client, err := cfg.ETCD.NewClient()
-	if err != nil {
-		return nil, trace.Wrap(err)
-	}
-
 	return &Client{
 		client: client,
 		clock:  cfg.Clock,
@@ -119,7 +136,7 @@ func (l *Client) AddWatch(key string, retry time.Duration, valuesC chan string) 
 			closer()
 		}()
 
-		backoff := &utils.FreebieExponentialBackOff{
+		backoff := &FreebieExponentialBackOff{
 			InitialInterval:     500 * time.Millisecond,
 			RandomizationFactor: 0.5,
 			Multiplier:          1.5,
@@ -133,6 +150,7 @@ func (l *Client) AddWatch(key string, retry time.Duration, valuesC chan string) 
 			return
 		}
 
+		var sentAnything bool
 		for {
 			re, err = watcher.Next(ctx)
 			if err == nil {
@@ -179,9 +197,14 @@ func (l *Client) AddWatch(key string, retry time.Duration, valuesC chan string) 
 					continue
 				}
 			}
-
+			// if nothing has changed and we previously sent this subscriber this value,
+			// do not bother subscriber with extra notifications
+			if re.PrevNode != nil && re.PrevNode.Value == re.Node.Value && sentAnything {
+				continue
+			}
 			select {
 			case valuesC <- re.Node.Value:
+				sentAnything = true
 			case <-l.closeC:
 				return
 			}
@@ -272,7 +295,7 @@ func (l *Client) elect(key, value string, term time.Duration) error {
 		log.Infof("%v leader: is %v, try next time", candidate, resp.Node.Value)
 		return nil
 	}
-	if resp.Node.Expiration.Sub(l.clock.UtcNow()) > time.Duration(term/2) {
+	if resp.Node.Expiration.Sub(l.clock.Now().UTC()) > time.Duration(term/2) {
 		return nil
 	}
 

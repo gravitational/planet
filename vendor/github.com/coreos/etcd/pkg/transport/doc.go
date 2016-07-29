@@ -12,10 +12,6 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package client
-
-// Discoverer is an interface that wraps the Discover method.
-type Discoverer interface {
-	// Discover looks up the etcd servers for the domain.
-	Discover(domain string) ([]string, error)
-}
+// Package transport implements various HTTP transport utilities based on Go
+// net package.
+package transport

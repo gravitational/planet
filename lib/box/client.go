@@ -22,11 +22,8 @@ import (
 
 // ExitError is an error that describes the event of a process exiting with a non-zero value.
 type ExitError struct {
-	trace.Traces
 	Code int
 }
-
-var _ = trace.TraceSetter(&ExitError{})
 
 type client struct {
 	conn net.Conn
@@ -114,10 +111,6 @@ func (err ExitError) Error() string {
 	return "exit status " + strconv.FormatInt(int64(err.Code), 10)
 }
 
-func (err ExitError) OrigError() error {
-	return nil
-}
-
 func dial(socketPath string) (net.Conn, error) {
 	conn, err := net.Dial("unix", socketPath)
 	if err != nil {
@@ -128,13 +121,7 @@ func dial(socketPath string) (net.Conn, error) {
 }
 
 func checkError(err error) error {
-	var errOrig error
-	if e, ok := err.(*trace.TraceErr); ok {
-		errOrig = e.OrigError()
-	} else {
-		errOrig = err
-	}
-
+	errOrig := trace.Unwrap(err)
 	if os.IsNotExist(errOrig) {
 		return &ErrConnect{Err: err}
 	}

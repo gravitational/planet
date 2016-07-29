@@ -1,10 +1,10 @@
 {
 	"ImportPath": "github.com/gravitational/planet",
 	"GoVersion": "go1.5",
-	"GodepVersion": "v74",
+	"GodepVersion": "v62",
 	"Packages": [
-		"./tool/...",
-		"./lib/..."
+		"./lib/...",
+		"./tool/..."
 	],
 	"Deps": [
 		{
@@ -142,33 +142,33 @@
 		},
 		{
 			"ImportPath": "github.com/coreos/etcd/Godeps/_workspace/src/github.com/ugorji/go/codec",
-			"Comment": "v2.2.5",
-			"Rev": "bc9ddf260115d2680191c46977ae72b837785472"
+			"Comment": "v2.3.0-alpha.1-249-g0c41371",
+			"Rev": "0c41371064666ad159761e0fb12c7f240b3977cb"
 		},
 		{
 			"ImportPath": "github.com/coreos/etcd/Godeps/_workspace/src/golang.org/x/net/context",
-			"Comment": "v2.2.5",
-			"Rev": "bc9ddf260115d2680191c46977ae72b837785472"
+			"Comment": "v2.3.0-alpha.1-249-g0c41371",
+			"Rev": "0c41371064666ad159761e0fb12c7f240b3977cb"
 		},
 		{
 			"ImportPath": "github.com/coreos/etcd/client",
-			"Comment": "v2.2.5",
-			"Rev": "bc9ddf260115d2680191c46977ae72b837785472"
+			"Comment": "v2.3.0-alpha.1-249-g0c41371",
+			"Rev": "0c41371064666ad159761e0fb12c7f240b3977cb"
 		},
 		{
 			"ImportPath": "github.com/coreos/etcd/pkg/pathutil",
-			"Comment": "v2.2.5",
-			"Rev": "bc9ddf260115d2680191c46977ae72b837785472"
+			"Comment": "v2.3.0-alpha.1-249-g0c41371",
+			"Rev": "0c41371064666ad159761e0fb12c7f240b3977cb"
 		},
 		{
 			"ImportPath": "github.com/coreos/etcd/pkg/transport",
-			"Comment": "v2.2.5",
-			"Rev": "bc9ddf260115d2680191c46977ae72b837785472"
+			"Comment": "v2.3.0-alpha.1-249-g0c41371",
+			"Rev": "0c41371064666ad159761e0fb12c7f240b3977cb"
 		},
 		{
 			"ImportPath": "github.com/coreos/etcd/pkg/types",
-			"Comment": "v2.2.5",
-			"Rev": "bc9ddf260115d2680191c46977ae72b837785472"
+			"Comment": "v2.3.0-alpha.1-249-g0c41371",
+			"Rev": "0c41371064666ad159761e0fb12c7f240b3977cb"
 		},
 		{
 			"ImportPath": "github.com/coreos/go-oidc/http",
@@ -351,6 +351,14 @@
 			"Rev": "39e84362ca5d6d3152f7e13b889cc36e1f1b80cb"
 		},
 		{
+			"ImportPath": "github.com/gravitational/coordinate/config",
+			"Rev": "1b74154b705f9e860f579f86f229af1df3a99199"
+		},
+		{
+			"ImportPath": "github.com/gravitational/coordinate/leader",
+			"Rev": "1b74154b705f9e860f579f86f229af1df3a99199"
+		},
+		{
 			"ImportPath": "github.com/gravitational/go-udev",
 			"Rev": "4cc8baba3689adc2d4ec4cf0e8e6be7bb136a3d2"
 		},
@@ -390,7 +398,7 @@
 		},
 		{
 			"ImportPath": "github.com/gravitational/trace",
-			"Rev": "6218803b4afb5490afd43d14edcbaa502d568938"
+			"Rev": "3a57d2a585a6d721265df44bae173af5ff71628e"
 		},
 		{
 			"ImportPath": "github.com/gravitational/version",
@@ -435,10 +443,6 @@
 			"ImportPath": "github.com/julienschmidt/httprouter",
 			"Comment": "v1.1",
 			"Rev": "8c199fb6259ffc1af525cc3ad52ee60ba8359669"
-		},
-		{
-			"ImportPath": "github.com/mailgun/timetools",
-			"Rev": "fd192d755b00c968d312d23f521eb0cdc6f66bd0"
 		},
 		{
 			"ImportPath": "github.com/mattn/go-sqlite3",
@@ -728,11 +732,6 @@
 			"ImportPath": "gopkg.in/inf.v0",
 			"Comment": "v0.9.0",
 			"Rev": "3887ee99ecf07df5b447e9b00d9c0b2adaa9f3e4"
-		},
-		{
-			"ImportPath": "gopkg.in/mgo.v2/bson",
-			"Comment": "r2015.12.06",
-			"Rev": "e30de8ac9ae3b30df7065f766c71f88bba7d4e49"
 		},
 		{
 			"ImportPath": "gopkg.in/yaml.v2",
