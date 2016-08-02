@@ -1,6 +1,6 @@
 .PHONY: all install
 
-SRCDIR:=$(ASSETS)/makefiles/master/k8s-master/containers/
+override SRCDIR:=$(ASSETS)/makefiles/master/k8s-master/containers/
 export OUTDIR:=$(ROOTFS)/etc/docker/offline
 TARBALLS:=$(OUTDIR)/pause.tar.gz \
 		$(OUTDIR)/nettest.tar.gz
