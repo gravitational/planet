@@ -19,7 +19,7 @@
         "Restart": "always",
         "KillMode": "none",
         "StartPreCommand": "-/bin/rm /var/run/planet.socket",
-        "StartPostCommand": "-/bin/rm /var/run/planet.socket",
+        "StopPostCommand": "-/bin/rm /var/run/planet.socket",
         "StopCommand": "stop"
     },
     "config": {
