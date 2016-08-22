@@ -137,6 +137,7 @@ func start(config *Config, monitorc chan<- bool) (*runtimeContext, error) {
 		box.EnvPair{Name: EnvInitialCluster, Val: toKeyValueList(config.InitialCluster)},
 		box.EnvPair{Name: EnvClusterDNSIP, Val: config.ServiceSubnet.RelativeIP(3).String()},
 		box.EnvPair{Name: EnvAPIServerName, Val: APIServerDNSName},
+		box.EnvPair{Name: EnvEtcdProxy, Val: config.EtcdProxy},
 		box.EnvPair{Name: EnvEtcdMemberName, Val: config.EtcdMemberName},
 		box.EnvPair{Name: EnvEtcdInitialCluster, Val: config.EtcdInitialCluster},
 		box.EnvPair{Name: EnvEtcdInitialClusterState, Val: config.EtcdInitialClusterState},

@@ -12,6 +12,7 @@ const (
 	EnvPublicIP                = "PLANET_PUBLIC_IP"
 	EnvClusterDNSIP            = "KUBE_CLUSTER_DNS_IP"
 	EnvAPIServerName           = "KUBE_APISERVER"
+	EnvEtcdProxy               = "ETCD_PROXY"
 	EnvEtcdMemberName          = "ETCD_MEMBER_NAME"
 	EnvEtcdInitialCluster      = "ETCD_INITIAL_CLUSTER"
 	EnvEtcdInitialClusterState = "ETCD_INITIAL_CLUSTER_STATE"

@@ -78,6 +78,7 @@ func run() error {
 		cstartSelfTest                = cstart.Flag("self-test", "Run end-to-end tests on the started cluster").Bool()
 		cstartTestSpec                = cstart.Flag("test-spec", "Regexp of the test specs to run (self-test mode only)").Default("Networking|Pods").String()
 		cstartTestKubeRepoPath        = cstart.Flag("repo-path", "Path to either a k8s repository or a directory with test configuration files (self-test mode only)").String()
+		cstartEtcdProxy               = cstart.Flag("etcd-proxy", "Etcd proxy mode: 'off', 'on' or 'readonly'").Default("off").String()
 		cstartEtcdMemberName          = cstart.Flag("etcd-member-name", "Etcd member name").OverrideDefaultFromEnvar("PLANET_ETCD_MEMBER_NAME").String()
 		cstartEtcdInitialCluster      = KeyValueList(cstart.Flag("etcd-initial-cluster", "Initial etcd cluster configuration (list of peers)").OverrideDefaultFromEnvar("PLANET_ETCD_INITIAL_CLUSTER"))
 		cstartEtcdInitialClusterState = cstart.Flag("etcd-initial-cluster-state", "Etcd initial cluster state: 'new' or 'existing'").OverrideDefaultFromEnvar("PLANET_ETCD_INITIAL_CLUSTER_STATE").String()
@@ -267,6 +268,7 @@ func run() error {
 			InitialCluster:          *cstartInitialCluster,
 			ServiceUID:              *cstartServiceUID,
 			ServiceGID:              *cstartServiceGID,
+			EtcdProxy:               *cstartEtcdProxy,
 			EtcdMemberName:          *cstartEtcdMemberName,
 			EtcdInitialCluster:      toEtcdPeerList(initialCluster),
 			EtcdInitialClusterState: *cstartEtcdInitialClusterState,

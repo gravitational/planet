@@ -37,6 +37,7 @@ type Config struct {
 	ServiceUser             *user.User
 	ServiceUID              string
 	ServiceGID              string
+	EtcdProxy               string
 	EtcdMemberName          string
 	EtcdInitialCluster      string
 	EtcdInitialClusterState string
