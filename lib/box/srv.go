@@ -304,6 +304,8 @@ func writeFile(path string, fi File) error {
 	return nil
 }
 
+// WriteEnvironment writes provided environment variables to a file at the
+// specified path.
 func WriteEnvironment(path string, env EnvVars) error {
 	if err := os.MkdirAll(filepath.Dir(path), 0755); err != nil {
 		return trace.Wrap(err)
@@ -321,6 +323,8 @@ func WriteEnvironment(path string, env EnvVars) error {
 	return nil
 }
 
+// ReadEnvironments reads the file with environment variables at the
+// specified path.
 func ReadEnvironment(path string) (vars EnvVars, err error) {
 	env, err := ioutil.ReadFile(path)
 	if err != nil {

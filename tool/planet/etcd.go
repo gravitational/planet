@@ -9,6 +9,11 @@ import (
 	"github.com/gravitational/trace"
 )
 
+// etcdPromote promotes running etcd proxy to a full member; does nothing if
+// it's running running in proxy mode.
+//
+// Parameters name, initial cluster and state are ones produced by the 'member add'
+// command.
 func etcdPromote(name, initialCluster, initialClusterState string) error {
 	env, err := box.ReadEnvironment(ContainerEnvironmentFile)
 	if err != nil {
