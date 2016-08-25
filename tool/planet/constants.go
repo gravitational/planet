@@ -30,6 +30,9 @@ const (
 	EnvAWSAccessKey            = "AWS_ACCESS_KEY_ID"
 	EnvAWSSecretKey            = "AWS_SECRET_ACCESS_KEY"
 
+	EtcdProxyOn  = "on"
+	EtcdProxyOff = "off"
+
 	DefaultLeaderTerm    = 10 * time.Second
 	DefaultEtcdEndpoints = "https://127.0.0.1:2379"
 

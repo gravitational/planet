@@ -546,6 +546,7 @@ func setupFlannel(config *Config) {
 
 const (
 	ETCDWorkDir              = "/ext/etcd"
+	ETCDProxyDir             = "/ext/etcd/proxy"
 	DockerWorkDir            = "/ext/docker"
 	RegistryWorkDir          = "/ext/registry"
 	ContainerEnvironmentFile = "/etc/container-environment"
