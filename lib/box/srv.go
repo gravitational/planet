@@ -323,8 +323,8 @@ func WriteEnvironment(path string, env EnvVars) error {
 	return nil
 }
 
-// ReadEnvironments reads the file with environment variables at the
-// specified path.
+// ReadEnvironment returns a list of all environment variables read from the file
+// at the specified path.
 func ReadEnvironment(path string) (vars EnvVars, err error) {
 	env, err := ioutil.ReadFile(path)
 	if err != nil {

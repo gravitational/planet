@@ -14,6 +14,12 @@ import (
 //
 // Parameters name, initial cluster and state are ones produced by the 'member add'
 // command.
+//
+// Whether etcd is running in proxy mode is determined by ETCD_PROXY environment variable
+// normally set in /etc/container-environment inside planet.
+//
+// To promote proxy to a member we update ETCD_PROXY to disable proxy mode, wipe out
+// its state directory and restart the service, as suggested by etcd docs.
 func etcdPromote(name, initialCluster, initialClusterState string) error {
 	env, err := box.ReadEnvironment(ContainerEnvironmentFile)
 	if err != nil {
@@ -41,8 +47,9 @@ func etcdPromote(name, initialCluster, initialClusterState string) error {
 		return trace.Wrap(err)
 	}
 
-	log.Infof("stopping etcd proxy")
-	if err := exec.Command("/bin/systemctl", "stop", "etcd").Run(); err != nil {
+	out, err := exec.Command("/bin/systemctl", "stop", "etcd").CombinedOutput()
+	log.Infof("stopping etcd: %v", string(out))
+	if err != nil {
 		return trace.Wrap(err)
 	}
 
@@ -51,8 +58,9 @@ func etcdPromote(name, initialCluster, initialClusterState string) error {
 		return trace.Wrap(err)
 	}
 
-	log.Infof("starting etcd")
-	if err := exec.Command("/bin/systemctl", "start", "etcd").Run(); err != nil {
+	out, err = exec.Command("/bin/systemctl", "start", "etcd").CombinedOutput()
+	log.Infof("starting etcd: %v", string(out))
+	if err != nil {
 		return trace.Wrap(err)
 	}
 
