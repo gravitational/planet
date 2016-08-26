@@ -1,6 +1,8 @@
 package box
 
 import (
+	"bufio"
+	"bytes"
 	"fmt"
 	"io"
 	"io/ioutil"
@@ -9,6 +11,7 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"strings"
 	"syscall"
 
 	log "github.com/Sirupsen/logrus"
@@ -71,7 +74,7 @@ func Start(cfg Config) (*Box, error) {
 	if len(cfg.EnvFiles) != 0 {
 		for _, ef := range cfg.EnvFiles {
 			log.Infof("writing environment file: %v", ef.Env)
-			if err := writeEnvironment(filepath.Join(rootfs, ef.Path), ef.Env); err != nil {
+			if err := WriteEnvironment(filepath.Join(rootfs, ef.Path), ef.Env); err != nil {
 				return nil, err
 			}
 		}
@@ -301,7 +304,9 @@ func writeFile(path string, fi File) error {
 	return nil
 }
 
-func writeEnvironment(path string, env EnvVars) error {
+// WriteEnvironment writes provided environment variables to a file at the
+// specified path.
+func WriteEnvironment(path string, env EnvVars) error {
 	if err := os.MkdirAll(filepath.Dir(path), 0755); err != nil {
 		return trace.Wrap(err)
 	}
@@ -316,6 +321,27 @@ func writeEnvironment(path string, env EnvVars) error {
 		}
 	}
 	return nil
+}
+
+// ReadEnvironment returns a list of all environment variables read from the file
+// at the specified path.
+func ReadEnvironment(path string) (vars EnvVars, err error) {
+	env, err := ioutil.ReadFile(path)
+	if err != nil {
+		return nil, trace.Wrap(err)
+	}
+	scanner := bufio.NewScanner(bytes.NewReader(env))
+	for scanner.Scan() {
+		keyVal := strings.SplitN(scanner.Text(), "=", 2)
+		if len(keyVal) != 2 {
+			continue
+		}
+		vars.Upsert(keyVal[0], keyVal[1])
+	}
+	if err := scanner.Err(); err != nil {
+		return nil, trace.Wrap(err)
+	}
+	return vars, nil
 }
 
 func checkPath(p string, executable bool) (string, error) {

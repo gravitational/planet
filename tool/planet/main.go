@@ -78,6 +78,7 @@ func run() error {
 		cstartSelfTest                = cstart.Flag("self-test", "Run end-to-end tests on the started cluster").Bool()
 		cstartTestSpec                = cstart.Flag("test-spec", "Regexp of the test specs to run (self-test mode only)").Default("Networking|Pods").String()
 		cstartTestKubeRepoPath        = cstart.Flag("repo-path", "Path to either a k8s repository or a directory with test configuration files (self-test mode only)").String()
+		cstartEtcdProxy               = cstart.Flag("etcd-proxy", "Etcd proxy mode: 'off', 'on' or 'readonly'").OverrideDefaultFromEnvar("PLANET_ETCD_PROXY").String()
 		cstartEtcdMemberName          = cstart.Flag("etcd-member-name", "Etcd member name").OverrideDefaultFromEnvar("PLANET_ETCD_MEMBER_NAME").String()
 		cstartEtcdInitialCluster      = KeyValueList(cstart.Flag("etcd-initial-cluster", "Initial etcd cluster configuration (list of peers)").OverrideDefaultFromEnvar("PLANET_ETCD_INITIAL_CLUSTER"))
 		cstartEtcdInitialClusterState = cstart.Flag("etcd-initial-cluster-state", "Etcd initial cluster state: 'new' or 'existing'").OverrideDefaultFromEnvar("PLANET_ETCD_INITIAL_CLUSTER_STATE").String()
@@ -154,6 +155,14 @@ func run() error {
 
 		cdeviceRemove     = cdevice.Command("remove", "Remove device from container")
 		cdeviceRemoveNode = cdeviceRemove.Flag("node", "Device node to remove").Required().String()
+
+		// etcd related commands
+		cetcd = app.Command("etcd", "Commands related to etcd")
+
+		cetcdPromote                    = cetcd.Command("promote", "Promote etcd running in proxy mode to a full member")
+		cetcdPromoteName                = cetcdPromote.Flag("name", "Member name, as output by 'member add' command").Required().String()
+		cetcdPromoteInitialCluster      = cetcdPromote.Flag("initial-cluster", "Initial cluster, as output by 'member add' command").Required().String()
+		cetcdPromoteInitialClusterState = cetcdPromote.Flag("initial-cluster-state", "Initial cluster state, as output by 'member add' command").Required().String()
 	)
 
 	cmd, err := app.Parse(args[1:])
@@ -267,6 +276,7 @@ func run() error {
 			InitialCluster:          *cstartInitialCluster,
 			ServiceUID:              *cstartServiceUID,
 			ServiceGID:              *cstartServiceGID,
+			EtcdProxy:               *cstartEtcdProxy,
 			EtcdMemberName:          *cstartEtcdMemberName,
 			EtcdInitialCluster:      toEtcdPeerList(initialCluster),
 			EtcdInitialClusterState: *cstartEtcdInitialClusterState,
@@ -343,6 +353,9 @@ func run() error {
 
 	case cdeviceRemove.FullCommand():
 		err = removeDevice(*cdeviceRemoveNode)
+
+	case cetcdPromote.FullCommand():
+		err = etcdPromote(*cetcdPromoteName, *cetcdPromoteInitialCluster, *cetcdPromoteInitialClusterState)
 
 	default:
 		err = trace.Errorf("unsupported command: %v", cmd)
