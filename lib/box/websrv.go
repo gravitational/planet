@@ -85,7 +85,7 @@ func (s *webServer) enter(w http.ResponseWriter, r *http.Request, p httprouter.P
 		cfg.In = conn
 		cfg.Out = cmdOut
 		if err = StartProcess(s.container, *cfg); err != nil {
-			log.Errorf("StartProcess failed with %v", err)
+			log.Errorf("StartProcess(%v) failed with %v", cfg, trace.DebugReport(err))
 			if errTrace, ok := err.(*trace.TraceErr); ok {
 				if errExit, ok := errTrace.OrigError().(*exec.ExitError); ok {
 					if waitStatus, ok := errExit.ProcessState.Sys().(syscall.WaitStatus); ok {
@@ -94,7 +94,7 @@ func (s *webServer) enter(w http.ResponseWriter, r *http.Request, p httprouter.P
 				}
 			}
 		}
-		log.Infof("StartProcess (%v) completed!", cfg)
+		log.Infof("StartProcess(%v) completed!", cfg)
 	}
 	s.socketServer.ServeHTTP(w, r)
 	return nil
