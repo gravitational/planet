@@ -1,7 +1,7 @@
 {
 	"ImportPath": "github.com/gravitational/planet",
 	"GoVersion": "go1.5",
-	"GodepVersion": "v62",
+	"GodepVersion": "v74",
 	"Packages": [
 		"./lib/...",
 		"./tool/..."
@@ -352,11 +352,11 @@
 		},
 		{
 			"ImportPath": "github.com/gravitational/coordinate/config",
-			"Rev": "1b74154b705f9e860f579f86f229af1df3a99199"
+			"Rev": "0baa1a57ac36f334c80ceed2707709cdc5ecaa46"
 		},
 		{
 			"ImportPath": "github.com/gravitational/coordinate/leader",
-			"Rev": "1b74154b705f9e860f579f86f229af1df3a99199"
+			"Rev": "0baa1a57ac36f334c80ceed2707709cdc5ecaa46"
 		},
 		{
 			"ImportPath": "github.com/gravitational/go-udev",

@@ -18,6 +18,7 @@ package leader
 
 import (
 	"fmt"
+	"io"
 	"sync/atomic"
 	"time"
 
@@ -212,16 +213,19 @@ func (l *Client) AddWatch(key string, retry time.Duration, valuesC chan string) 
 	}()
 }
 
-// AddVoter adds a voter that tries to elect given value
-// by attempting to set the key to the value for a given term duration
-// it also attempts to hold the lease indefinitely
-func (l *Client) AddVoter(key, value string, term time.Duration) error {
+// AddVoter starts a goroutine that attempts to set the specified key to
+// to the given value with the time-to-live value specified with term.
+// The time-to-live value cannot be less than a second.
+// After successfully setting the key, it attempts to renew the lease for the specified
+// term indefinitely
+func (l *Client) AddVoter(key, value string, term time.Duration) (io.Closer, error) {
 	if value == "" {
-		return trace.Errorf("voter value for key can not be empty")
+		return nil, trace.Errorf("voter value for key cannot be empty")
 	}
 	if term < time.Second {
-		return trace.Errorf("term can not be < 1second")
+		return nil, trace.Errorf("term cannot be < 1s")
 	}
+	voter := &voter{doneC: make(chan struct{})}
 	go func() {
 		err := l.elect(key, value, term)
 		if err != nil {
@@ -239,9 +243,23 @@ func (l *Client) AddVoter(key, value string, term time.Duration) error {
 			case <-l.closeC:
 				log.Infof("client is closing, return")
 				return
+			case <-voter.doneC:
+				log.Infof("removing voter for %v", value)
+				return
 			}
 		}
 	}()
+	return voter, nil
+}
+
+// voter defines a handle to single voter process
+type voter struct {
+	doneC chan struct{}
+}
+
+// Close terminates the specified voter process
+func (r *voter) Close() error {
+	r.doneC <- struct{}{}
 	return nil
 }
 
@@ -292,7 +310,7 @@ func (l *Client) elect(key, value string, term time.Duration) error {
 		return nil
 	}
 	if resp.Node.Value != value {
-		log.Infof("%v leader: is %v, try next time", candidate, resp.Node.Value)
+		log.Infof("%v: leader is %v, try again", candidate, resp.Node.Value)
 		return nil
 	}
 	if resp.Node.Expiration.Sub(l.clock.Now().UTC()) > time.Duration(term/2) {

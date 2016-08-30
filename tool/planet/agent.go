@@ -7,6 +7,7 @@ import (
 	"os"
 	"os/exec"
 	"os/signal"
+	"strconv"
 	"syscall"
 	"time"
 
@@ -19,6 +20,7 @@ import (
 	"github.com/gravitational/trace"
 
 	log "github.com/Sirupsen/logrus"
+	etcdclient "github.com/coreos/etcd/client"
 	"golang.org/x/net/context"
 )
 
@@ -28,6 +30,9 @@ type LeaderConfig struct {
 	PublicIP string
 	// LeaderKey is the EtcdKey of the leader
 	LeaderKey string
+	// ElectionKey is the name of the key that lists all node IPs
+	// currently participating in leader election
+	ElectionKey string
 	// Role is the server role (e.g. node, or master)
 	Role string
 	// Term is the TTL of the lease before it expires if the server
@@ -63,25 +68,72 @@ func startLeaderClient(conf *LeaderConfig) (io.Closer, error) {
 	if err != nil {
 		return nil, trace.Wrap(err)
 	}
+
+	// TODO: move this elsewhere?
+	etcdClient, err := conf.ETCD.NewClient()
+	if err != nil {
+		return nil, trace.Wrap(err)
+	}
+	etcdapi := etcdclient.NewKeysAPI(etcdClient)
+	memberKey := fmt.Sprintf("%v/%v", conf.ElectionKey, conf.PublicIP)
+	_, err = etcdapi.Set(context.TODO(), memberKey, strconv.FormatBool(true), nil)
+	if err != nil {
+		return nil, trace.Wrap(err)
+	}
+
+	// Add a callback to watch for changes to the leader key.
+	// If this node becomes the leader, start a number of additional
+	// services as a master
+	client.AddWatchCallback(conf.LeaderKey, conf.Term/3, func(key, prevVal, newVal string) {
+		log.Infof("new leader: %v", newVal)
+		if newVal == conf.PublicIP {
+			if err := unitsCommand("start"); err != nil {
+				log.Infof("failed to start units: %v", err)
+			}
+			return
+		}
+		if prevVal == conf.PublicIP {
+			if err := unitsCommand("stop"); err != nil {
+				log.Infof("failed to stop units: %v", err)
+			}
+		}
+	})
+
+	var voter io.Closer
 	if conf.Role == RoleMaster {
-		if err := client.AddVoter(conf.LeaderKey, conf.PublicIP, conf.Term); err != nil {
+		voter, err = client.AddVoter(conf.LeaderKey, conf.PublicIP, conf.Term)
+		if err != nil {
 			return nil, trace.Wrap(err)
 		}
-		// certain units must work only if the node is a master
-		client.AddWatchCallback(conf.LeaderKey, conf.Term/3, func(key, prevVal, newVal string) {
-			if newVal == conf.PublicIP {
-				log.Infof("is a leader, start units")
-				if err := unitsCommand("start"); err != nil {
-					log.Infof("failed to execute: %v", err)
-				}
-			} else {
-				log.Infof("%v just became a new leader", newVal)
-				if err := unitsCommand("stop"); err != nil {
-					log.Infof("failed to execute: %v", err)
-				}
-			}
-		})
 	}
+	// watch the election mode status and start/stop participation
+	// depending on the value of the election mode key
+	client.AddWatchCallback(memberKey, conf.Term, func(key, prevVal, newVal string) {
+		var err error
+		enabled, _ := strconv.ParseBool(newVal)
+		switch enabled {
+		case true:
+			if voter != nil {
+				log.Infof("voter is already active")
+				return
+			}
+			// start election participation
+			voter, err = client.AddVoter(conf.LeaderKey, conf.PublicIP, conf.Term)
+			if err != nil {
+				log.Errorf("failed to add voter for %v: %v", conf.PublicIP, err)
+			}
+		case false:
+			if voter == nil {
+				log.Infof("no voter active")
+				return
+			}
+			// stop election participation
+			if err = voter.Close(); err != nil {
+				log.Errorf("failed to remove voter for %v: %v", conf.PublicIP, err)
+			}
+			voter = nil
+		}
+	})
 	// modify /etc/hosts with new entries
 	client.AddWatchCallback(conf.LeaderKey, conf.Term/3, func(key, prevVal, newVal string) {
 		log.Infof("about to set %v to %v in /etc/hosts", conf.LeaderKey, newVal)
@@ -160,6 +212,27 @@ func runAgent(conf *agent.Config, monitoringConf *monitoring.Config, leaderConf 
 	}
 
 	return nil
+}
+
+func leaderPause(publicIP, electionKey string, etcd *etcdconf.Config) error {
+	return enableElection(publicIP, electionKey, false, etcd)
+}
+
+func leaderResume(publicIP, electionKey string, etcd *etcdconf.Config) error {
+	return enableElection(publicIP, electionKey, true, etcd)
+}
+
+func enableElection(publicIP, electionKey string, enabled bool, conf *etcdconf.Config) error {
+	if err := conf.CheckAndSetDefaults(); err != nil {
+		return trace.Wrap(err)
+	}
+	client, err := conf.NewClient()
+	if err != nil {
+		return trace.Wrap(err)
+	}
+	api := etcdclient.NewKeysAPI(client)
+	_, err = api.Set(context.TODO(), electionKey, strconv.FormatBool(enabled), nil)
+	return trace.Wrap(err)
 }
 
 // statusTimeout is the maximum time status query is blocked.

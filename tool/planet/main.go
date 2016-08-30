@@ -92,10 +92,10 @@ func run() error {
 		cagent                 = app.Command("agent", "Start Planet Agent")
 		cagentPublicIP         = cagent.Flag("public-ip", "IP accessible by other nodes for inter-host communication").OverrideDefaultFromEnvar(EnvPublicIP).IP()
 		cagentLeaderKey        = cagent.Flag("leader-key", "Etcd key holding the new leader").Required().String()
+		cagentElectionKey      = cagent.Flag("election-key", "Etcd key to control if the current node is participating in leader election. Contains list of IPs of nodes currently participating in election. To have a node stop participating in election, remove its IP from this list.").Required().String()
 		cagentRole             = cagent.Flag("role", "Server role").OverrideDefaultFromEnvar(EnvRole).String()
 		cagentKubeAPIServerDNS = cagent.Flag("apiserver-dns", "Kubernetes API server DNS entry").OverrideDefaultFromEnvar(EnvAPIServerName).String()
 		cagentTerm             = cagent.Flag("term", "Leader lease duration").Default(DefaultLeaderTerm.String()).Duration()
-		cagentEtcdEndpoints    = List(cagent.Flag("etcd-endpoints", "Etcd endpoints").Default(DefaultEtcdEndpoints))
 		cagentRPCAddrs         = List(cagent.Flag("rpc-addr", "Address to bind the RPC listener to.  Can be specified multiple times").Default("127.0.0.1:7575"))
 		cagentKubeAddr         = cagent.Flag("kube-addr", "Address of the kubernetes API server.  Will default to apiserver-dns:8080").String()
 		cagentName             = cagent.Flag("name", "Agent name.  Must be the same as the name of the local serf node").OverrideDefaultFromEnvar(EnvAgentName).String()
@@ -105,9 +105,10 @@ func run() error {
 		cagentClusterDNS       = cagent.Flag("cluster-dns", "IP for a cluster DNS server.").OverrideDefaultFromEnvar(EnvClusterDNSIP).IP()
 		cagentRegistryAddr     = cagent.Flag("docker-registry-addr",
 			"Address of the private docker registry.  Will default to apiserver-dns:5000").String()
-		cagentEtcdCAFile   = cagent.Flag("etcd-cafile", "Certificate Authority file used to secure etcd communication").String()
-		cagentEtcdCertFile = cagent.Flag("etcd-certfile", "TLS certificate file used to secure etcd communication").String()
-		cagentEtcdKeyFile  = cagent.Flag("etcd-keyfile", "TLS key file used to secure etcd communication").String()
+		cagentEtcdEndpoints = List(cagent.Flag("etcd-endpoints", "Etcd endpoints").Default(DefaultEtcdEndpoints))
+		cagentEtcdCAFile    = cagent.Flag("etcd-cafile", "Certificate Authority file used to secure etcd communication").String()
+		cagentEtcdCertFile  = cagent.Flag("etcd-certfile", "TLS certificate file used to secure etcd communication").String()
+		cagentEtcdKeyFile   = cagent.Flag("etcd-keyfile", "TLS key file used to secure etcd communication").String()
 
 		// stop a running container
 		cstop = app.Command("stop", "Stop planet container")
@@ -163,6 +164,16 @@ func run() error {
 		cetcdPromoteName                = cetcdPromote.Flag("name", "Member name, as output by 'member add' command").Required().String()
 		cetcdPromoteInitialCluster      = cetcdPromote.Flag("initial-cluster", "Initial cluster, as output by 'member add' command").Required().String()
 		cetcdPromoteInitialClusterState = cetcdPromote.Flag("initial-cluster-state", "Initial cluster state, as output by 'member add' command").Required().String()
+
+		// leader election commands
+		cleader             = app.Command("leader", "Leader election control")
+		cleaderPublicIP     = cleader.Flag("public-ip", "IP accessible by other nodes for inter-host communication").OverrideDefaultFromEnvar(EnvPublicIP).IP()
+		cleaderElectionKey  = cleader.Flag("election-key", "Etcd key that defines the state of election participation for this node").String()
+		cleaderEtcdCAFile   = cleader.Flag("etcd-cafile", "Certificate Authority file used to secure etcd communication").String()
+		cleaderEtcdCertFile = cleader.Flag("etcd-certfile", "TLS certificate file used to secure etcd communication").String()
+		cleaderEtcdKeyFile  = cleader.Flag("etcd-keyfile", "TLS key file used to secure etcd communication").String()
+		cleaderPause        = cleader.Command("pause", "Pause leader election for this node")
+		cleaderResume       = cleader.Command("resume", "Resume leader election participation for this node")
 	)
 
 	cmd, err := app.Parse(args[1:])
@@ -239,8 +250,22 @@ func run() error {
 			Term:         *cagentTerm,
 			ETCD:         etcdConf,
 			APIServerDNS: *cagentKubeAPIServerDNS,
+			ElectionKey:  *cagentElectionKey,
 		}
 		err = runAgent(conf, monitoringConf, leaderConf, toAddrList(*cagentInitialCluster))
+
+	case cleaderPause.FullCommand(), cleaderResume.FullCommand():
+		etcdConf := &etcdconf.Config{
+			Endpoints: []string{DefaultEtcdEndpoints},
+			CAFile:    *cleaderEtcdCAFile,
+			CertFile:  *cleaderEtcdCertFile,
+			KeyFile:   *cleaderEtcdKeyFile,
+		}
+		if cmd == cleaderPause.FullCommand() {
+			err = leaderPause(cleaderPublicIP.String(), *cleaderElectionKey, etcdConf)
+		} else {
+			err = leaderResume(cleaderPublicIP.String(), *cleaderElectionKey, etcdConf)
+		}
 
 	// "start" command
 	case cstart.FullCommand():
