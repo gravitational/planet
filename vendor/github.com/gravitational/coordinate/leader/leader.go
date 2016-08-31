@@ -58,20 +58,19 @@ func NewClient(cfg Config) (*Client, error) {
 	if cfg.Clock == nil {
 		cfg.Clock = clockwork.NewRealClock()
 	}
-	var client client.Client
 	var err error
-	if cfg.ETCD != nil {
-		if err := cfg.ETCD.CheckAndSetDefaults(); err != nil {
+	client := cfg.Client
+	if client == nil {
+		if cfg.ETCD == nil {
+			return nil, trace.BadParameter("expected either ETCD config or Client")
+		}
+		if err = cfg.ETCD.CheckAndSetDefaults(); err != nil {
 			return nil, trace.Wrap(err)
 		}
 		client, err = cfg.ETCD.NewClient()
 		if err != nil {
 			return nil, trace.Wrap(err)
 		}
-	} else if cfg.Client != nil {
-		client = cfg.Client
-	} else {
-		return nil, trace.BadParameter("either ETCD config or Client should be passed")
 	}
 	return &Client{
 		client: client,
@@ -259,7 +258,7 @@ type voter struct {
 
 // Close terminates the specified voter process
 func (r *voter) Close() error {
-	r.doneC <- struct{}{}
+	close(r.doneC)
 	return nil
 }
 

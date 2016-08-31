@@ -144,6 +144,7 @@ func start(config *Config, monitorc chan<- bool) (*runtimeContext, error) {
 		box.EnvPair{Name: EnvRole, Val: config.Roles[0]},
 		box.EnvPair{Name: EnvClusterID, Val: config.ClusterID},
 		box.EnvPair{Name: EnvNodeName, Val: config.NodeName},
+		box.EnvPair{Name: EnvElectionEnabled, Val: strconv.FormatBool(config.ElectionEnabled)},
 	)
 
 	// Always trust local registry (for now)

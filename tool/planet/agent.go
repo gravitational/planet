@@ -20,19 +20,25 @@ import (
 	"github.com/gravitational/trace"
 
 	log "github.com/Sirupsen/logrus"
-	etcdclient "github.com/coreos/etcd/client"
+	etcd "github.com/coreos/etcd/client"
 	"golang.org/x/net/context"
 )
 
 // LeaderConfig represents configuration for the master election task
 type LeaderConfig struct {
-	// PublicIP is the ip as seen by other peers
+	// PublicIP is the IP used for inter-host communication
 	PublicIP string
 	// LeaderKey is the EtcdKey of the leader
 	LeaderKey string
-	// ElectionKey is the name of the key that lists all node IPs
-	// currently participating in leader election
+	// ElectionKey is the name of the key that controls if this node
+	// is participating in leader election. The value is a boolean with
+	// `true` meaning active participation.
+	// It is enough to update the value of this key to change the node
+	// participation mode.
 	ElectionKey string
+	// ElectionEnabled defines the initial state of election participation
+	// for this node (true == participation is on)
+	ElectionEnabled bool
 	// Role is the server role (e.g. node, or master)
 	Role string
 	// Term is the TTL of the lease before it expires if the server
@@ -58,28 +64,40 @@ func (conf LeaderConfig) String() string {
 // Otherwise, the services are stopped to avoid interfering with the active master instance.
 // Also, every time a new master is elected, the node modifies its /etc/hosts file
 // to reflect the change of the kubernetes API server.
-func startLeaderClient(conf *LeaderConfig) (io.Closer, error) {
+func startLeaderClient(conf *LeaderConfig) (leaderClient io.Closer, err error) {
 	log.Infof("%v start", conf)
-	hostname, err := os.Hostname()
-	if err != nil {
-		return nil, trace.Wrap(err)
-	}
-	client, err := leader.NewClient(leader.Config{ETCD: &conf.ETCD})
+	var hostname string
+	hostname, err = os.Hostname()
 	if err != nil {
 		return nil, trace.Wrap(err)
 	}
 
-	// TODO: move this elsewhere?
-	etcdClient, err := conf.ETCD.NewClient()
+	if err = conf.ETCD.CheckAndSetDefaults(); err != nil {
+		return nil, trace.Wrap(err)
+	}
+	var etcdClient etcd.Client
+	etcdClient, err = conf.ETCD.NewClient()
 	if err != nil {
 		return nil, trace.Wrap(err)
 	}
-	etcdapi := etcdclient.NewKeysAPI(etcdClient)
-	memberKey := fmt.Sprintf("%v/%v", conf.ElectionKey, conf.PublicIP)
-	_, err = etcdapi.Set(context.TODO(), memberKey, strconv.FormatBool(true), nil)
+
+	var etcdapi etcd.KeysAPI
+	etcdapi = etcd.NewKeysAPI(etcdClient)
+	_, err = etcdapi.Set(context.TODO(), conf.ElectionKey, strconv.FormatBool(conf.ElectionEnabled), nil)
 	if err != nil {
 		return nil, trace.Wrap(err)
 	}
+
+	client, err := leader.NewClient(leader.Config{Client: etcdClient})
+	if err != nil {
+		return nil, trace.Wrap(err)
+	}
+	defer func() {
+		if err != nil {
+			log.Infof("closing client: %v", err)
+			client.Close()
+		}
+	}()
 
 	// Add a callback to watch for changes to the leader key.
 	// If this node becomes the leader, start a number of additional
@@ -100,7 +118,7 @@ func startLeaderClient(conf *LeaderConfig) (io.Closer, error) {
 	})
 
 	var voter io.Closer
-	if conf.Role == RoleMaster {
+	if conf.Role == RoleMaster && conf.ElectionEnabled {
 		voter, err = client.AddVoter(conf.LeaderKey, conf.PublicIP, conf.Term)
 		if err != nil {
 			return nil, trace.Wrap(err)
@@ -108,7 +126,7 @@ func startLeaderClient(conf *LeaderConfig) (io.Closer, error) {
 	}
 	// watch the election mode status and start/stop participation
 	// depending on the value of the election mode key
-	client.AddWatchCallback(memberKey, conf.Term, func(key, prevVal, newVal string) {
+	client.AddWatchCallback(conf.ElectionKey, conf.Term, func(key, prevVal, newVal string) {
 		var err error
 		enabled, _ := strconv.ParseBool(newVal)
 		switch enabled {
@@ -215,10 +233,12 @@ func runAgent(conf *agent.Config, monitoringConf *monitoring.Config, leaderConf 
 }
 
 func leaderPause(publicIP, electionKey string, etcd *etcdconf.Config) error {
+	log.Infof("disable election participation for %v", publicIP)
 	return enableElection(publicIP, electionKey, false, etcd)
 }
 
 func leaderResume(publicIP, electionKey string, etcd *etcdconf.Config) error {
+	log.Infof("enable election participation for %v", publicIP)
 	return enableElection(publicIP, electionKey, true, etcd)
 }
 
@@ -230,8 +250,8 @@ func enableElection(publicIP, electionKey string, enabled bool, conf *etcdconf.C
 	if err != nil {
 		return trace.Wrap(err)
 	}
-	api := etcdclient.NewKeysAPI(client)
-	_, err = api.Set(context.TODO(), electionKey, strconv.FormatBool(enabled), nil)
+	etcdapi := etcd.NewKeysAPI(client)
+	_, err = etcdapi.Set(context.TODO(), electionKey, strconv.FormatBool(enabled), nil)
 	return trace.Wrap(err)
 }
 

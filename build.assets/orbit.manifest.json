@@ -175,6 +175,12 @@
                 "name": "dockeroptions",
                 "env": "PLANET_DOCKER_OPTIONS",
                 "cli": {"name": "docker-options"}
+            },
+            {
+                "type": "Bool",
+                "name": "electionenabled",
+                "env": "PLANET_ELECTION_ENABLED",
+                "cli": {"name": "election-enabled"}
             }
         ]
     }
