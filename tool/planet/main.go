@@ -175,7 +175,7 @@ func run() error {
 		cleaderEtcdCertFile  = cleader.Flag("etcd-certfile", "TLS certificate file used to secure etcd communication").String()
 		cleaderEtcdKeyFile   = cleader.Flag("etcd-keyfile", "TLS key file used to secure etcd communication").String()
 		cleaderEtcdEndpoints = List(cleader.Flag("etcd-endpoints", "List of comma-separated etcd endpoints").Default(DefaultEtcdEndpoints))
-		cleaderPause         = cleader.Command("pause", "Pause leader election for this node")
+		cleaderPause         = cleader.Command("pause", "Pause leader election participation for this node")
 		cleaderResume        = cleader.Command("resume", "Resume leader election participation for this node")
 	)
 

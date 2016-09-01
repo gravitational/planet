@@ -83,9 +83,13 @@ func startLeaderClient(conf *LeaderConfig) (leaderClient io.Closer, err error) {
 
 	var etcdapi etcd.KeysAPI
 	etcdapi = etcd.NewKeysAPI(etcdClient)
-	_, err = etcdapi.Set(context.TODO(), conf.ElectionKey, strconv.FormatBool(conf.ElectionEnabled), nil)
+	// Set initial value of election participation mode
+	_, err = etcdapi.Set(context.TODO(), conf.ElectionKey, strconv.FormatBool(conf.ElectionEnabled),
+		&etcd.SetOptions{PrevExist: etcd.PrevNoExist})
 	if err != nil {
-		return nil, trace.Wrap(err)
+		if err = convertError(err); !trace.IsAlreadyExists(err) {
+			return nil, trace.Wrap(err)
+		}
 	}
 
 	client, err := leader.NewClient(leader.Config{Client: etcdClient})
