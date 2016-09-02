@@ -5,6 +5,7 @@ import (
 	"os/exec"
 
 	log "github.com/Sirupsen/logrus"
+	etcd "github.com/coreos/etcd/client"
 	"github.com/gravitational/planet/lib/box"
 	"github.com/gravitational/trace"
 )
@@ -65,4 +66,26 @@ func etcdPromote(name, initialCluster, initialClusterState string) error {
 	}
 
 	return nil
+}
+
+func convertError(err error) error {
+	if err == nil {
+		return nil
+	}
+	switch err := err.(type) {
+	case *etcd.ClusterError:
+		return trace.Wrap(err, err.Detail())
+	case etcd.Error:
+		switch err.Code {
+		case etcd.ErrorCodeKeyNotFound:
+			return trace.NotFound(err.Error())
+		case etcd.ErrorCodeNotFile:
+			return trace.BadParameter(err.Error())
+		case etcd.ErrorCodeNodeExist:
+			return trace.AlreadyExists(err.Error())
+		case etcd.ErrorCodeTestFailed:
+			return trace.CompareFailed(err.Error())
+		}
+	}
+	return err
 }

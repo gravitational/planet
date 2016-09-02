@@ -22,6 +22,7 @@ const (
 	EnvEtcdctlPeers            = "ETCDCTL_PEERS"
 	EnvLeaderKey               = "KUBE_LEADER_KEY"
 	EnvRole                    = "PLANET_ROLE"
+	EnvElectionEnabled         = "PLANET_ELECTION_ENABLED"
 	EnvClusterID               = "KUBE_CLUSTER_ID"
 	EnvNodeName                = "KUBE_NODE_NAME"
 	EnvAgentName               = "PLANET_AGENT_NAME"

@@ -35,7 +35,7 @@ func main() {
 	var err error
 
 	if err = run(); err != nil {
-		log.Errorf("Failed to run: '%v'\n", err)
+		log.Errorf("Failed to run: '%v'\n", trace.DebugReport(err))
 		if errExit, ok := trace.Unwrap(err).(*box.ExitError); ok {
 			exitCode = errExit.Code
 		} else {
@@ -85,17 +85,18 @@ func run() error {
 		cstartInitialCluster          = KeyValueList(cstart.Flag("initial-cluster", "Initial planet cluster configuration as a comma-separated list of peers").OverrideDefaultFromEnvar(EnvInitialCluster))
 		cstartNodeName                = cstart.Flag("node-name", "node name").OverrideDefaultFromEnvar("PLANET_NODE_NAME").String()
 		// Docker options
-		cstartDockerOptions = cstart.Flag("docker-options", "Additional options to pass to docker daemon").OverrideDefaultFromEnvar("PLANET_DOCKER_OPTIONS").String()
-		cstartDockerBackend = cstart.Flag("docker-backend", "Docker backend to use. If no backend has been specified, one is selected automatically.").OverrideDefaultFromEnvar("PLANET_DOCKER_BACKEND").String()
+		cstartDockerOptions   = cstart.Flag("docker-options", "Additional options to pass to docker daemon").OverrideDefaultFromEnvar("PLANET_DOCKER_OPTIONS").String()
+		cstartDockerBackend   = cstart.Flag("docker-backend", "Docker backend to use. If no backend has been specified, one is selected automatically.").OverrideDefaultFromEnvar("PLANET_DOCKER_BACKEND").String()
+		cstartElectionEnabled = Bool(cstart.Flag("election-enabled", "Boolean flag to control if the agent initially starts with election participation on").OverrideDefaultFromEnvar(EnvElectionEnabled))
 
 		// start the planet agent
 		cagent                 = app.Command("agent", "Start Planet Agent")
 		cagentPublicIP         = cagent.Flag("public-ip", "IP accessible by other nodes for inter-host communication").OverrideDefaultFromEnvar(EnvPublicIP).IP()
 		cagentLeaderKey        = cagent.Flag("leader-key", "Etcd key holding the new leader").Required().String()
+		cagentElectionKey      = cagent.Flag("election-key", "Etcd key to control if the current node is participating in leader election. Contains list of IPs of nodes currently participating in election. To have a node stop participating in election, remove its IP from this list.").Required().String()
 		cagentRole             = cagent.Flag("role", "Server role").OverrideDefaultFromEnvar(EnvRole).String()
 		cagentKubeAPIServerDNS = cagent.Flag("apiserver-dns", "Kubernetes API server DNS entry").OverrideDefaultFromEnvar(EnvAPIServerName).String()
 		cagentTerm             = cagent.Flag("term", "Leader lease duration").Default(DefaultLeaderTerm.String()).Duration()
-		cagentEtcdEndpoints    = List(cagent.Flag("etcd-endpoints", "Etcd endpoints").Default(DefaultEtcdEndpoints))
 		cagentRPCAddrs         = List(cagent.Flag("rpc-addr", "Address to bind the RPC listener to.  Can be specified multiple times").Default("127.0.0.1:7575"))
 		cagentKubeAddr         = cagent.Flag("kube-addr", "Address of the kubernetes API server.  Will default to apiserver-dns:8080").String()
 		cagentName             = cagent.Flag("name", "Agent name.  Must be the same as the name of the local serf node").OverrideDefaultFromEnvar(EnvAgentName).String()
@@ -105,9 +106,11 @@ func run() error {
 		cagentClusterDNS       = cagent.Flag("cluster-dns", "IP for a cluster DNS server.").OverrideDefaultFromEnvar(EnvClusterDNSIP).IP()
 		cagentRegistryAddr     = cagent.Flag("docker-registry-addr",
 			"Address of the private docker registry.  Will default to apiserver-dns:5000").String()
-		cagentEtcdCAFile   = cagent.Flag("etcd-cafile", "Certificate Authority file used to secure etcd communication").String()
-		cagentEtcdCertFile = cagent.Flag("etcd-certfile", "TLS certificate file used to secure etcd communication").String()
-		cagentEtcdKeyFile  = cagent.Flag("etcd-keyfile", "TLS key file used to secure etcd communication").String()
+		cagentEtcdEndpoints   = List(cagent.Flag("etcd-endpoints", "List of comma-separated etcd endpoints").Default(DefaultEtcdEndpoints))
+		cagentEtcdCAFile      = cagent.Flag("etcd-cafile", "Certificate Authority file used to secure etcd communication").String()
+		cagentEtcdCertFile    = cagent.Flag("etcd-certfile", "TLS certificate file used to secure etcd communication").String()
+		cagentEtcdKeyFile     = cagent.Flag("etcd-keyfile", "TLS key file used to secure etcd communication").String()
+		cagentElectionEnabled = Bool(cagent.Flag("election-enabled", "Boolean flag to control if the agent initially starts with election participation on").OverrideDefaultFromEnvar(EnvElectionEnabled))
 
 		// stop a running container
 		cstop = app.Command("stop", "Stop planet container")
@@ -163,6 +166,17 @@ func run() error {
 		cetcdPromoteName                = cetcdPromote.Flag("name", "Member name, as output by 'member add' command").Required().String()
 		cetcdPromoteInitialCluster      = cetcdPromote.Flag("initial-cluster", "Initial cluster, as output by 'member add' command").Required().String()
 		cetcdPromoteInitialClusterState = cetcdPromote.Flag("initial-cluster-state", "Initial cluster state, as output by 'member add' command").Required().String()
+
+		// leader election commands
+		cleader              = app.Command("leader", "Leader election control")
+		cleaderPublicIP      = cleader.Flag("public-ip", "IP accessible by other nodes for inter-host communication").OverrideDefaultFromEnvar(EnvPublicIP).IP()
+		cleaderElectionKey   = cleader.Flag("election-key", "Etcd key that defines the state of election participation for this node").String()
+		cleaderEtcdCAFile    = cleader.Flag("etcd-cafile", "Certificate Authority file used to secure etcd communication").String()
+		cleaderEtcdCertFile  = cleader.Flag("etcd-certfile", "TLS certificate file used to secure etcd communication").String()
+		cleaderEtcdKeyFile   = cleader.Flag("etcd-keyfile", "TLS key file used to secure etcd communication").String()
+		cleaderEtcdEndpoints = List(cleader.Flag("etcd-endpoints", "List of comma-separated etcd endpoints").Default(DefaultEtcdEndpoints))
+		cleaderPause         = cleader.Command("pause", "Pause leader election participation for this node")
+		cleaderResume        = cleader.Command("resume", "Resume leader election participation for this node")
 	)
 
 	cmd, err := app.Parse(args[1:])
@@ -233,14 +247,30 @@ func run() error {
 			DisableInterPodCheck:  disableInterPodCheck,
 		}
 		leaderConf := &LeaderConfig{
-			PublicIP:     cagentPublicIP.String(),
-			LeaderKey:    *cagentLeaderKey,
-			Role:         *cagentRole,
-			Term:         *cagentTerm,
-			ETCD:         etcdConf,
-			APIServerDNS: *cagentKubeAPIServerDNS,
+			PublicIP:        cagentPublicIP.String(),
+			LeaderKey:       *cagentLeaderKey,
+			Role:            *cagentRole,
+			Term:            *cagentTerm,
+			ETCD:            etcdConf,
+			APIServerDNS:    *cagentKubeAPIServerDNS,
+			ElectionKey:     fmt.Sprintf("%v/%v", *cagentElectionKey, cagentPublicIP.String()),
+			ElectionEnabled: bool(*cagentElectionEnabled),
 		}
 		err = runAgent(conf, monitoringConf, leaderConf, toAddrList(*cagentInitialCluster))
+
+	case cleaderPause.FullCommand(), cleaderResume.FullCommand():
+		etcdConf := &etcdconf.Config{
+			Endpoints: *cleaderEtcdEndpoints,
+			CAFile:    *cleaderEtcdCAFile,
+			CertFile:  *cleaderEtcdCertFile,
+			KeyFile:   *cleaderEtcdKeyFile,
+		}
+		memberKey := fmt.Sprintf("%v/%v", *cleaderElectionKey, *cleaderPublicIP)
+		if cmd == cleaderPause.FullCommand() {
+			err = leaderPause(cleaderPublicIP.String(), memberKey, etcdConf)
+		} else {
+			err = leaderResume(cleaderPublicIP.String(), memberKey, etcdConf)
+		}
 
 	// "start" command
 	case cstart.FullCommand():
@@ -283,6 +313,7 @@ func run() error {
 			NodeName:                *cstartNodeName,
 			DockerBackend:           *cstartDockerBackend,
 			DockerOptions:           *cstartDockerOptions,
+			ElectionEnabled:         bool(*cstartElectionEnabled),
 		}
 		if *cstartSelfTest {
 			err = selfTest(config, *cstartTestKubeRepoPath, *cstartTestSpec, extraArgs)
@@ -416,6 +447,12 @@ func List(s kingpin.Settings) *list {
 	l := new(list)
 	s.SetValue(l)
 	return l
+}
+
+func Bool(s kingpin.Settings) *boolFlag {
+	f := new(boolFlag)
+	s.SetValue(f)
+	return f
 }
 
 func KeyValueList(s kingpin.Settings) *kv.KeyVal {

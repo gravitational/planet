@@ -41,6 +41,7 @@ type Config struct {
 	EtcdMemberName          string
 	EtcdInitialCluster      string
 	EtcdInitialClusterState string
+	ElectionEnabled         bool
 	NodeName                string
 }
 
@@ -153,4 +154,26 @@ func toKeyValueList(kv kv.KeyVal) string {
 		result = append(result, fmt.Sprintf("%v:%v", key, value))
 	}
 	return strings.Join(result, ",")
+}
+
+// boolFlag defines a boolean command line flag.
+// The behavioral difference to the kingpin's built-in Bool() modifier
+// is that it supports the long form:
+// 	--flag=true|false
+// as opposed to built-in's only short form:
+//	--flag	(true, if specified, false - otherwise)
+// The long form is required when populating the flag from the environment.
+type boolFlag bool
+
+func (r *boolFlag) Set(input string) error {
+	if input == "" {
+		input = "true"
+	}
+	value, err := strconv.ParseBool(input)
+	*r = boolFlag(value)
+	return err
+}
+
+func (r boolFlag) String() string {
+	return strconv.FormatBool(bool(r))
 }

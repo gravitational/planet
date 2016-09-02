@@ -17,6 +17,7 @@ limitations under the License.
 package leader
 
 import (
+	"context"
 	"fmt"
 	"sync/atomic"
 	"time"
@@ -28,7 +29,6 @@ import (
 	ebackoff "github.com/cenk/backoff"
 	"github.com/coreos/etcd/client"
 	"github.com/jonboulle/clockwork"
-	"golang.org/x/net/context"
 )
 
 // Config sets leader election configuration options
@@ -57,20 +57,19 @@ func NewClient(cfg Config) (*Client, error) {
 	if cfg.Clock == nil {
 		cfg.Clock = clockwork.NewRealClock()
 	}
-	var client client.Client
 	var err error
-	if cfg.ETCD != nil {
-		if err := cfg.ETCD.CheckAndSetDefaults(); err != nil {
+	client := cfg.Client
+	if client == nil {
+		if cfg.ETCD == nil {
+			return nil, trace.BadParameter("expected either ETCD config or Client")
+		}
+		if err = cfg.ETCD.CheckAndSetDefaults(); err != nil {
 			return nil, trace.Wrap(err)
 		}
 		client, err = cfg.ETCD.NewClient()
 		if err != nil {
 			return nil, trace.Wrap(err)
 		}
-	} else if cfg.Client != nil {
-		client = cfg.Client
-	} else {
-		return nil, trace.BadParameter("either ETCD config or Client should be passed")
 	}
 	return &Client{
 		client: client,
@@ -107,7 +106,7 @@ func (l *Client) AddWatchCallback(key string, retry time.Duration, fn CallbackFn
 func (l *Client) getWatchAtLatestIndex(ctx context.Context, api client.KeysAPI, key string, retry time.Duration) (client.Watcher, *client.Response, error) {
 	re, err := l.getFirstValue(key, retry)
 	if err != nil {
-		return nil, nil, trace.Errorf("%v unexpected error: %v, returning", ctx.Value("prefix"), err)
+		return nil, nil, trace.BadParameter("%v unexpected error: %v", ctx.Value("prefix"), err)
 	} else if re == nil {
 		log.Infof("%v client is closing, return", ctx.Value("prefix"))
 		return nil, nil, nil
@@ -212,15 +211,17 @@ func (l *Client) AddWatch(key string, retry time.Duration, valuesC chan string) 
 	}()
 }
 
-// AddVoter adds a voter that tries to elect given value
-// by attempting to set the key to the value for a given term duration
-// it also attempts to hold the lease indefinitely
-func (l *Client) AddVoter(key, value string, term time.Duration) error {
+// AddVoter starts a goroutine that attempts to set the specified key to
+// to the given value with the time-to-live value specified with term.
+// The time-to-live value cannot be less than a second.
+// After successfully setting the key, it attempts to renew the lease for the specified
+// term indefinitely
+func (l *Client) AddVoter(context context.Context, key, value string, term time.Duration) error {
 	if value == "" {
-		return trace.Errorf("voter value for key can not be empty")
+		return trace.BadParameter("voter value for key cannot be empty")
 	}
 	if term < time.Second {
-		return trace.Errorf("term can not be < 1second")
+		return trace.BadParameter("term cannot be < 1s")
 	}
 	go func() {
 		err := l.elect(key, value, term)
@@ -238,6 +239,9 @@ func (l *Client) AddVoter(key, value string, term time.Duration) error {
 				}
 			case <-l.closeC:
 				log.Infof("client is closing, return")
+				return
+			case <-context.Done():
+				log.Infof("removing voter for %v", value)
 				return
 			}
 		}
@@ -292,7 +296,7 @@ func (l *Client) elect(key, value string, term time.Duration) error {
 		return nil
 	}
 	if resp.Node.Value != value {
-		log.Infof("%v leader: is %v, try next time", candidate, resp.Node.Value)
+		log.Infof("%v: leader is %v, try again", candidate, resp.Node.Value)
 		return nil
 	}
 	if resp.Node.Expiration.Sub(l.clock.Now().UTC()) > time.Duration(term/2) {
