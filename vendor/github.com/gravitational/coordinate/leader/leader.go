@@ -17,8 +17,8 @@ limitations under the License.
 package leader
 
 import (
+	"context"
 	"fmt"
-	"io"
 	"sync/atomic"
 	"time"
 
@@ -29,7 +29,6 @@ import (
 	ebackoff "github.com/cenk/backoff"
 	"github.com/coreos/etcd/client"
 	"github.com/jonboulle/clockwork"
-	"golang.org/x/net/context"
 )
 
 // Config sets leader election configuration options
@@ -107,7 +106,7 @@ func (l *Client) AddWatchCallback(key string, retry time.Duration, fn CallbackFn
 func (l *Client) getWatchAtLatestIndex(ctx context.Context, api client.KeysAPI, key string, retry time.Duration) (client.Watcher, *client.Response, error) {
 	re, err := l.getFirstValue(key, retry)
 	if err != nil {
-		return nil, nil, trace.Errorf("%v unexpected error: %v, returning", ctx.Value("prefix"), err)
+		return nil, nil, trace.BadParameter("%v unexpected error: %v", ctx.Value("prefix"), err)
 	} else if re == nil {
 		log.Infof("%v client is closing, return", ctx.Value("prefix"))
 		return nil, nil, nil
@@ -217,14 +216,13 @@ func (l *Client) AddWatch(key string, retry time.Duration, valuesC chan string) 
 // The time-to-live value cannot be less than a second.
 // After successfully setting the key, it attempts to renew the lease for the specified
 // term indefinitely
-func (l *Client) AddVoter(key, value string, term time.Duration) (io.Closer, error) {
+func (l *Client) AddVoter(context context.Context, key, value string, term time.Duration) error {
 	if value == "" {
-		return nil, trace.Errorf("voter value for key cannot be empty")
+		return trace.BadParameter("voter value for key cannot be empty")
 	}
 	if term < time.Second {
-		return nil, trace.Errorf("term cannot be < 1s")
+		return trace.BadParameter("term cannot be < 1s")
 	}
-	voter := &voter{doneC: make(chan struct{})}
 	go func() {
 		err := l.elect(key, value, term)
 		if err != nil {
@@ -242,23 +240,12 @@ func (l *Client) AddVoter(key, value string, term time.Duration) (io.Closer, err
 			case <-l.closeC:
 				log.Infof("client is closing, return")
 				return
-			case <-voter.doneC:
+			case <-context.Done():
 				log.Infof("removing voter for %v", value)
 				return
 			}
 		}
 	}()
-	return voter, nil
-}
-
-// voter defines a handle to single voter process
-type voter struct {
-	doneC chan struct{}
-}
-
-// Close terminates the specified voter process
-func (r *voter) Close() error {
-	close(r.doneC)
 	return nil
 }
 

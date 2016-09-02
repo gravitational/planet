@@ -1,6 +1,7 @@
 package main
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 	"io"
@@ -21,7 +22,6 @@ import (
 
 	log "github.com/Sirupsen/logrus"
 	etcd "github.com/coreos/etcd/client"
-	"golang.org/x/net/context"
 )
 
 // LeaderConfig represents configuration for the master election task
@@ -81,14 +81,16 @@ func startLeaderClient(conf *LeaderConfig) (leaderClient io.Closer, err error) {
 		return nil, trace.Wrap(err)
 	}
 
-	var etcdapi etcd.KeysAPI
-	etcdapi = etcd.NewKeysAPI(etcdClient)
-	// Set initial value of election participation mode
-	_, err = etcdapi.Set(context.TODO(), conf.ElectionKey, strconv.FormatBool(conf.ElectionEnabled),
-		&etcd.SetOptions{PrevExist: etcd.PrevNoExist})
-	if err != nil {
-		if err = convertError(err); !trace.IsAlreadyExists(err) {
-			return nil, trace.Wrap(err)
+	if conf.Role == RoleMaster {
+		var etcdapi etcd.KeysAPI
+		etcdapi = etcd.NewKeysAPI(etcdClient)
+		// Set initial value of election participation mode
+		_, err = etcdapi.Set(context.TODO(), conf.ElectionKey, strconv.FormatBool(conf.ElectionEnabled),
+			&etcd.SetOptions{PrevExist: etcd.PrevNoExist})
+		if err != nil {
+			if err = convertError(err); !trace.IsAlreadyExists(err) {
+				return nil, trace.Wrap(err)
+			}
 		}
 	}
 
@@ -121,10 +123,11 @@ func startLeaderClient(conf *LeaderConfig) (leaderClient io.Closer, err error) {
 		}
 	})
 
-	var voter io.Closer
+	var cancelVoter context.CancelFunc
+	var ctx context.Context
 	if conf.Role == RoleMaster && conf.ElectionEnabled {
-		voter, err = client.AddVoter(conf.LeaderKey, conf.PublicIP, conf.Term)
-		if err != nil {
+		ctx, cancelVoter = context.WithCancel(context.TODO())
+		if err = client.AddVoter(ctx, conf.LeaderKey, conf.PublicIP, conf.Term); err != nil {
 			return nil, trace.Wrap(err)
 		}
 	}
@@ -135,25 +138,23 @@ func startLeaderClient(conf *LeaderConfig) (leaderClient io.Closer, err error) {
 		enabled, _ := strconv.ParseBool(newVal)
 		switch enabled {
 		case true:
-			if voter != nil {
+			if cancelVoter != nil {
 				log.Infof("voter is already active")
 				return
 			}
 			// start election participation
-			voter, err = client.AddVoter(conf.LeaderKey, conf.PublicIP, conf.Term)
-			if err != nil {
+			ctx, cancelVoter = context.WithCancel(context.TODO())
+			if err = client.AddVoter(ctx, conf.LeaderKey, conf.PublicIP, conf.Term); err != nil {
 				log.Errorf("failed to add voter for %v: %v", conf.PublicIP, err)
 			}
 		case false:
-			if voter == nil {
+			if cancelVoter == nil {
 				log.Infof("no voter active")
 				return
 			}
 			// stop election participation
-			if err = voter.Close(); err != nil {
-				log.Errorf("failed to remove voter for %v: %v", conf.PublicIP, err)
-			}
-			voter = nil
+			cancelVoter()
+			cancelVoter = nil
 		}
 	})
 	// modify /etc/hosts with new entries
