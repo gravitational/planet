@@ -174,15 +174,15 @@ func startLeaderClient(conf *LeaderConfig) (leaderClient io.Closer, err error) {
 	return client, nil
 }
 
-var electedUnits = []string{"kube-controller-manager", "kube-scheduler"}
+var electedUnits = []string{"kube-controller-manager.service", "kube-scheduler.service", "registry.service"}
 
 func unitsCommand(command string) error {
-	log.Infof("about to execute %v on %v", command, electedUnits)
+	log.Infof("executing %v on %v", command, electedUnits)
 	for _, unit := range electedUnits {
-		cmd := exec.Command("/bin/systemctl", command, fmt.Sprintf("%v.service", unit))
-		log.Infof("about to execute command: %v", cmd)
+		cmd := exec.Command("/bin/systemctl", command, unit)
+		log.Infof("executing %v", cmd)
 		if err := cmd.Run(); err != nil {
-			return trace.Wrap(err, "error %v", cmd)
+			return trace.Wrap(err, "failed to execute %v", cmd)
 		}
 	}
 	return nil
