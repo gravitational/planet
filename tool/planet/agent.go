@@ -255,17 +255,38 @@ func leaderResume(publicIP, electionKey string, etcd *etcdconf.Config) error {
 	return enableElection(publicIP, electionKey, true, etcd)
 }
 
-func enableElection(publicIP, electionKey string, enabled bool, conf *etcdconf.Config) error {
-	if err := conf.CheckAndSetDefaults(); err != nil {
-		return trace.Wrap(err)
-	}
-	client, err := conf.NewClient()
+func leaderView(leaderKey string, etcd *etcdconf.Config) error {
+	client, err := getEtcdClient(etcd)
 	if err != nil {
 		return trace.Wrap(err)
 	}
-	etcdapi := etcd.NewKeysAPI(client)
-	_, err = etcdapi.Set(context.TODO(), electionKey, strconv.FormatBool(enabled), nil)
+	resp, err := client.Get(context.TODO(), leaderKey, nil)
+	if err != nil {
+		return trace.Wrap(err)
+	}
+	fmt.Println(resp.Node.Value)
+	return nil
+}
+
+func enableElection(publicIP, electionKey string, enabled bool, etcd *etcdconf.Config) error {
+	client, err := getEtcdClient(etcd)
+	if err != nil {
+		return trace.Wrap(err)
+	}
+	_, err = client.Set(context.TODO(), electionKey, strconv.FormatBool(enabled), nil)
 	return trace.Wrap(err)
+}
+
+func getEtcdClient(conf *etcdconf.Config) (etcd.KeysAPI, error) {
+	if err := conf.CheckAndSetDefaults(); err != nil {
+		return nil, trace.Wrap(err)
+	}
+	client, err := conf.NewClient()
+	if err != nil {
+		return nil, trace.Wrap(err)
+	}
+	etcdapi := etcd.NewKeysAPI(client)
+	return etcdapi, nil
 }
 
 // statusTimeout is the maximum time status query is blocked.

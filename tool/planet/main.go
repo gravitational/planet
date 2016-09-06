@@ -177,6 +177,8 @@ func run() error {
 		cleaderEtcdEndpoints = List(cleader.Flag("etcd-endpoints", "List of comma-separated etcd endpoints").Default(DefaultEtcdEndpoints))
 		cleaderPause         = cleader.Command("pause", "Pause leader election participation for this node")
 		cleaderResume        = cleader.Command("resume", "Resume leader election participation for this node")
+		cleaderView          = cleader.Command("view", "Dislpay the IP address of the active master")
+		cleaderViewKey       = cleaderView.Flag("leader-key", "Etcd key holding the new leader").Required().String()
 	)
 
 	cmd, err := app.Parse(args[1:])
@@ -271,6 +273,14 @@ func run() error {
 		} else {
 			err = leaderResume(cleaderPublicIP.String(), memberKey, etcdConf)
 		}
+	case cleaderView.FullCommand():
+		etcdConf := &etcdconf.Config{
+			Endpoints: *cleaderEtcdEndpoints,
+			CAFile:    *cleaderEtcdCAFile,
+			CertFile:  *cleaderEtcdCertFile,
+			KeyFile:   *cleaderEtcdKeyFile,
+		}
+		err = leaderView(*cleaderViewKey, etcdConf)
 
 	// "start" command
 	case cstart.FullCommand():
