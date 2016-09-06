@@ -173,7 +173,6 @@ func start(config *Config, monitorc chan<- bool) (*runtimeContext, error) {
 	if err = setHosts(config, []utils.HostEntry{
 		{IP: "127.0.0.1", Hostnames: "localhost localhost.localdomain localhost4 localhost4.localdomain4"},
 		{IP: "::1", Hostnames: "localhost localhost.localdomain localhost6 localhost6.localdomain6"},
-		{IP: config.MasterIP, Hostnames: APIServerDNSName},
 	}); err != nil {
 		return nil, trace.Wrap(err)
 	}

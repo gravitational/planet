@@ -165,14 +165,14 @@ func startLeaderClient(conf *LeaderConfig) (leaderClient io.Closer, err error) {
 			cancelVoter = nil
 		}
 	})
-	// modify /etc/hosts with new entries
+	// modify /etc/hosts upon election of a new leader node
 	client.AddWatchCallback(conf.LeaderKey, conf.Term/3, func(key, prevVal, newVal string) {
-		log.Infof("about to set %v to %v in /etc/hosts", conf.LeaderKey, newVal)
+		log.Infof("setting %v to %v in /etc/hosts", conf.APIServerDNS, newVal)
 		entries := []utils.HostEntry{
-			{Hostnames: conf.APIServerDNS, IP: newVal},
+			{IP: newVal, Hostnames: conf.APIServerDNS},
 			// Resolve hostname to our public IP, useful for
 			// containers that use host networking
-			{Hostnames: hostname, IP: conf.PublicIP},
+			{IP: conf.PublicIP, Hostnames: hostname},
 		}
 		if err := utils.UpsertHostsFile(entries, ""); err != nil {
 			log.Errorf("failed to set hosts file: %v", err)
