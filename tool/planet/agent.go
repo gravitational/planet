@@ -125,10 +125,18 @@ func startLeaderClient(conf *LeaderConfig) (leaderClient io.Closer, err error) {
 
 	var cancelVoter context.CancelFunc
 	var ctx context.Context
-	if conf.Role == RoleMaster && conf.ElectionEnabled {
-		ctx, cancelVoter = context.WithCancel(context.TODO())
-		if err = client.AddVoter(ctx, conf.LeaderKey, conf.PublicIP, conf.Term); err != nil {
-			return nil, trace.Wrap(err)
+	if conf.Role == RoleMaster {
+		switch conf.ElectionEnabled {
+		case true:
+			ctx, cancelVoter = context.WithCancel(context.TODO())
+			if err = client.AddVoter(ctx, conf.LeaderKey, conf.PublicIP, conf.Term); err != nil {
+				return nil, trace.Wrap(err)
+			}
+		case false:
+			// Shut down services at startup if running as master
+			if err := unitsCommand("stop"); err != nil {
+				log.Infof("failed to stop units: %v", err)
+			}
 		}
 	}
 	// watch the election mode status and start/stop participation
