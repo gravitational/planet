@@ -22,24 +22,31 @@ func (s *UtilsSuite) TestHosts(c *C) {
 	tcs := []struct {
 		input    string
 		expected string
+		comment  string
 		entries  []HostEntry
 	}{
 		{
 			input:    "",
 			expected: "127.0.0.1 example.com\n",
 			entries:  []HostEntry{{Hostnames: "example.com", IP: "127.0.0.1"}},
+			comment:  "Inserts new entry",
 		},
 		{
 			input:    "",
 			expected: "127.0.0.1 example.com\n127.0.0.2 localhost.localdomain\n",
 			entries: []HostEntry{
 				{Hostnames: "example.com", IP: "127.0.0.1"},
-				{Hostnames: "localhost.localdomain", IP: "127.0.0.2"}},
+				{Hostnames: "localhost.localdomain", IP: "127.0.0.2"},
+			},
+			comment: "Inserts multiple new entries",
 		},
 		{
 			input:    "127.0.0.2 example.com",
 			expected: "127.0.0.1 example.com\n",
-			entries:  []HostEntry{{Hostnames: "example.com", IP: "127.0.0.1"}},
+			entries: []HostEntry{
+				{Hostnames: "example.com", IP: "127.0.0.1"},
+			},
+			comment: "Updates an existing entry",
 		},
 		{
 			input: `# The following lines are desirable for IPv4 capable hosts
@@ -50,9 +57,11 @@ func (s *UtilsSuite) TestHosts(c *C) {
 			expected: `# The following lines are desirable for IPv4 capable hosts
 127.0.0.1       localhost
 146.82.138.7    master.debian.org      master
-127.0.0.1 example.com example
+127.0.3.4       example.com example
+127.0.0.1 example.com
 `,
 			entries: []HostEntry{{Hostnames: "example.com", IP: "127.0.0.1"}},
+			comment: "Does not update entries if Hostnames does not match existing entry entirely",
 		},
 
 		{
@@ -67,19 +76,32 @@ func (s *UtilsSuite) TestHosts(c *C) {
 127.0.0.1 example.com example
 `,
 			entries: []HostEntry{
-				{Hostnames: "example.com", IP: "127.0.0.1"},
-				{Hostnames: "master.debian.org", IP: "127.0.0.5"},
+				{Hostnames: "example.com example", IP: "127.0.0.1"},
+				{Hostnames: "master master.debian.org", IP: "127.0.0.5"},
 			},
+			comment: "Updates an existing entry (IP) based on Hostnames",
+		},
+		{
+			input: `127.0.0.1   localhost localhost.localdomain localhost4 localhost4.localdomain4
+::1         localhost localhost.localdomain localhost6 localhost6.localdomain6
+192.168.122.1 opscenter.localhost.localdomain`,
+			expected: `127.0.0.1 localhost localhost.localdomain localhost4 localhost4.localdomain4
+::1 localhost localhost.localdomain localhost6 localhost6.localdomain6
+192.168.122.1 opscenter.localhost.localdomain
+`,
+			entries: []HostEntry{
+				{Hostnames: "localhost localhost.localdomain localhost4 localhost4.localdomain4", IP: "127.0.0.1"},
+				{Hostnames: "localhost localhost.localdomain localhost6 localhost6.localdomain6", IP: "::1"},
+			},
+			comment: "Does not duplicate when Hostnames is a list of entries",
 		},
 	}
 	tempDir := c.MkDir()
 	for i, tc := range tcs {
 		// test file
-		comment := Commentf("test #%d (%v)", i+1)
 		buf := &bytes.Buffer{}
 		err := UpsertHostsLines(strings.NewReader(tc.input), buf, tc.entries)
-		c.Assert(err, IsNil, comment)
-		c.Assert(buf.String(), Equals, tc.expected, comment)
+		c.Assert(buf.String(), Equals, tc.expected, Commentf(tc.comment))
 
 		// test file
 		testFile := filepath.Join(tempDir, fmt.Sprintf("test_case_%v", i+1))
@@ -90,7 +112,7 @@ func (s *UtilsSuite) TestHosts(c *C) {
 		c.Assert(err, IsNil)
 		out, err := ioutil.ReadFile(testFile)
 		c.Assert(err, IsNil)
-		c.Assert(string(out), Equals, tc.expected, comment)
+		c.Assert(string(out), Equals, tc.expected, Commentf(tc.comment))
 	}
 }
 

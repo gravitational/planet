@@ -7,13 +7,15 @@ import (
 	"io"
 	"io/ioutil"
 	"os"
+	"reflect"
+	"sort"
 	"strings"
 
 	"github.com/gravitational/trace"
 )
 
-// UpsertHostsLines updates the existing hosts entry or inserts a new
-// entry with hostnames and ips
+// UpsertHostsLines either updates an existing hosts entry or inserts a new
+// entry with provided hostnames and IPs
 func UpsertHostsLines(reader io.Reader, writer io.Writer, entries []HostEntry) error {
 	remainingEntries := make([]HostEntry, len(entries))
 	copy(remainingEntries, entries)
@@ -81,11 +83,22 @@ func replaceLine(line string, entries []HostEntry) (string, []HostEntry) {
 		return line, entries
 	}
 	for i, e := range entries {
-		if fields[1] == e.Hostnames {
+		hostnames := strings.Fields(e.Hostnames)
+		sourceHostnames := append([]string{}, fields[1:]...)
+		if compareStringSlices(sourceHostnames, hostnames) {
 			fields[0] = e.IP
 			return strings.Join(fields, " "), append(entries[:i], entries[i+1:]...)
 		}
 	}
 
 	return line, entries
+}
+
+func compareStringSlices(a, b []string) bool {
+	if len(a) != len(b) {
+		return false
+	}
+	sort.Sort(sort.StringSlice(a))
+	sort.Sort(sort.StringSlice(b))
+	return reflect.DeepEqual(a, b)
 }
