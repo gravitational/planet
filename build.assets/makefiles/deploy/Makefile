@@ -4,9 +4,9 @@
 
 TARGETS=master node
 # Prefix used to place build artifacts on Amazon S3
-# The artifacts are stored as s3://builds.gravitational.io/planet/$(BUILD_TAG)/planet-$(TARGET).tar.gz
+# The artifacts are stored $BUILD_BUCKET_URL/planet/$(BUILD_TAG)/planet-$(TARGET).tar.gz
 # with BUILD_TAG derived from `git describe`
-BUILD_BUCKET_URL=s3://builds.gravitational.io/planet
+BUILD_BUCKET_URL=s3://clientbuilds.gravitational.io/planet
 BUILD_TAG=$(shell git describe --tags)
 
 all: deploy
