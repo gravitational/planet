@@ -116,10 +116,8 @@ func startLeaderClient(conf *LeaderConfig) (leaderClient io.Closer, err error) {
 			}
 			return
 		}
-		if prevVal == conf.PublicIP {
-			if err := unitsCommand("stop"); err != nil {
-				log.Infof("failed to stop units: %v", err)
-			}
+		if err := unitsCommand("stop"); err != nil {
+			log.Infof("failed to stop units: %v", err)
 		}
 	})
 
@@ -128,11 +126,13 @@ func startLeaderClient(conf *LeaderConfig) (leaderClient io.Closer, err error) {
 	if conf.Role == RoleMaster {
 		switch conf.ElectionEnabled {
 		case true:
+			log.Infof("adding voter for IP %v", conf.PublicIP)
 			ctx, cancelVoter = context.WithCancel(context.TODO())
 			if err = client.AddVoter(ctx, conf.LeaderKey, conf.PublicIP, conf.Term); err != nil {
 				return nil, trace.Wrap(err)
 			}
 		case false:
+			log.Infof("shutting down services until election has been re-enabled")
 			// Shut down services at startup if running as master
 			if err := unitsCommand("stop"); err != nil {
 				log.Infof("failed to stop units: %v", err)
