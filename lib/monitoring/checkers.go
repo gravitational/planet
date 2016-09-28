@@ -61,6 +61,7 @@ func addToMaster(node agent.Agent, config *Config, etcdConfig *monitoring.ETCDCo
 	if !config.DisableInterPodCheck {
 		node.AddChecker(monitoring.InterPodCommunication(config.KubeAddr, config.NettestContainerImage))
 	}
+	node.AddChecker(NewVersionCollector())
 	return nil
 }
 
@@ -73,6 +74,7 @@ func addToNode(node agent.Agent, config *Config, etcdConfig *monitoring.ETCDConf
 	node.AddChecker(monitoring.DockerHealth("/var/run/docker.sock"))
 	node.AddChecker(etcdChecker)
 	node.AddChecker(monitoring.SystemdHealth())
+	node.AddChecker(NewVersionCollector())
 	return nil
 }
 
