@@ -219,10 +219,6 @@ func Start(cfg Config) (*Box, error) {
 		config.Mounts = append(config.Mounts, mnt)
 	}
 
-	if hostname, err := os.Hostname(); err == nil {
-		config.Hostname = hostname + "-planet"
-	}
-
 	container, err := root.Create(containerID, config)
 	if err != nil {
 		return nil, trace.Wrap(err)
