@@ -44,7 +44,7 @@ type infoChecker struct {
 var infoCheckers = []infoChecker{
 	{command: []string{"/bin/uname", "-a"}, component: "system-version"},
 	{command: []string{"/bin/systemd", "--version"}, component: "systemd-version"},
-	{command: []string{"/usr/bin/docker", "version"}, component: "docker-version"},
+	{command: []string{"/usr/bin/docker", "info"}, component: "docker-version"},
 	{command: []string{"/usr/bin/etcd", "--version"}, component: "etcd-version"},
 	{command: []string{"/usr/bin/kubelet", "--version"}, component: "kubelet-version"},
 	{command: []string{"/usr/sbin/dnsmasq", "--version"}, component: "dnsmasq-version"},
