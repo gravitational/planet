@@ -59,7 +59,13 @@ func etcdPromote(name, initialCluster, initialClusterState string) error {
 		return trace.Wrap(err)
 	}
 
-	out, err = exec.Command("/bin/systemctl", "start", "etcd").CombinedOutput()
+	out, err = exec.Command("/bin/systemctl", "start", ETCDServiceName).CombinedOutput()
+	log.Infof("starting etcd: %v", string(out))
+	if err != nil {
+		return trace.Wrap(err)
+	}
+
+	out, err = exec.Command("/bin/systemctl", "start", APIServerServiceName).CombinedOutput()
 	log.Infof("starting etcd: %v", string(out))
 	if err != nil {
 		return trace.Wrap(err)
