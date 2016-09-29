@@ -652,7 +652,6 @@ var masterUnits = []string{
 	"docker",
 	"kube-apiserver",
 	"kube-controller-manager",
-	"kube-scheduler",
 }
 
 var nodeUnits = []string{

@@ -56,4 +56,9 @@ const (
 
 	// LocalDNSIP is the IP of the local DNS server
 	LocalDNSIP = "127.0.0.1"
+
+	// ETCDServiceName names the service unit for etcd
+	ETCDServiceName = "etcd.service"
+	// APIServerServiceName names the service unit for k8s apiserver
+	APIServerServiceName = "kube-apiserver.service"
 )
