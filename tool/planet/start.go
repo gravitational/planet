@@ -20,6 +20,8 @@ import (
 	"github.com/opencontainers/runc/libcontainer"
 )
 
+const DefaultSearchDomain = "cluster.local"
+
 const MinKernelVersion = 310
 const (
 	CheckKernel          = true
@@ -422,6 +424,7 @@ func addResolv(config *Config) error {
 		return trace.Wrap(err)
 	}
 	cfg.UpsertServer(config.PublicIP)
+	cfg.UpsertSearchDomain(DefaultSearchDomain)
 	cfg.Ndots = DNSNdots
 	cfg.Timeout = DNSTimeout
 
@@ -652,7 +655,6 @@ var masterUnits = []string{
 	"docker",
 	"kube-apiserver",
 	"kube-controller-manager",
-	"kube-scheduler",
 }
 
 var nodeUnits = []string{
