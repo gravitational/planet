@@ -60,6 +60,16 @@ func (d *DNSConfig) UpsertServer(ip string) {
 	d.Servers = append([]string{ip}, d.Servers...)
 }
 
+// UpsertSearchDomain adds a search domain suffix to search list
+func (d *DNSConfig) UpsertSearchDomain(domain string) {
+	for _, name := range d.Search {
+		if name == domain {
+			return
+		}
+	}
+	d.Search = append(d.Search, domain)
+}
+
 // String returns resolv.conf serialized version of config
 func (d *DNSConfig) String() string {
 	buf := &bytes.Buffer{}
