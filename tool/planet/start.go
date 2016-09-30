@@ -468,7 +468,7 @@ const (
 	// file (with .cert extension) that is used to sign APIserver
 	// certificates and secret keys
 	CertificateAuthorityKeyPair = "root"
-	// APIServerKeyPair is the name
+	// APIServerKeyPair is the name of the apiserver keypair
 	APIServerKeyPair = "apiserver"
 	// RoleMaster sets up node as a K8s master server
 	RoleMaster = "master"
