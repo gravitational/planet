@@ -133,23 +133,6 @@ func run() error {
 		ctestKubeRepoPath = ctest.Flag("kube-repo", "Path to a kubernetes repository").String()
 		ctestAssetPath    = ctest.Flag("asset-dir", "Path to test executables and data files").String()
 
-		// secrets subsystem helps to manage master secrets
-		csecrets = app.Command("secrets", "Subsystem to control TLS keys and certificates for kubernetes and etcd")
-
-		// csecretsInit will create directory with secrets
-		csecretsInit              = csecrets.Command("init", "initialize directory with secrets")
-		csecretsInitDir           = csecretsInit.Arg("dir", "directory where secrets will be placed").Required().String()
-		csecretsInitDomain        = csecretsInit.Flag("domain", "domain name for the certificate").Required().String()
-		csecretsInitServiceSubnet = CIDRFlag(csecretsInit.Flag("service-subnet", "subnet dedicated to the services in cluster").Default(DefaultServiceSubnet))
-
-		csecretsGencert         = csecrets.Command("gencert", "generate a new key and certificate from CSR")
-		csecretsGencertCA       = csecretsGencert.Arg("ca", "Path to CA certificate file").Required().String()
-		csecretsGencertCAKey    = csecretsGencert.Arg("ca-key", "Path to CA key file").Required().String()
-		csecretsGencertDir      = csecretsGencert.Arg("dir", "directory where secrets will be placed").Required().String()
-		csecretsGencertDomain   = csecretsGencert.Flag("domain", "domain name for the certificate").Required().String()
-		csecretsGencertIPs      = List(csecretsGencert.Flag("ip", "IP address for the certificate. Can be specified multiple times"))
-		csecretsGencertBasename = csecretsGencert.Flag("base-name", "Base name of the ceriticate/key pair").String()
-
 		// device management
 		cdevice = app.Command("device", "Manage devices in container")
 
@@ -368,22 +351,6 @@ func run() error {
 			AssetDir:       *ctestAssetPath,
 		}
 		err = e2e.RunTests(config, extraArgs)
-
-	case csecretsInit.FullCommand():
-		hosts := append([]string{*csecretsInitDomain}, csecretsInitServiceSubnet.FirstIP().String())
-		err = initSecrets(hosts, *csecretsInitDir)
-
-	case csecretsGencert.FullCommand():
-		config := &certConfig{
-			CA: keyPairConfig{
-				certPath: *csecretsGencertCA,
-				keyPath:  *csecretsGencertCAKey,
-			},
-			CN:    *csecretsGencertBasename,
-			Hosts: []string{*csecretsGencertDomain},
-		}
-		config.Hosts = append(config.Hosts, *csecretsGencertIPs...)
-		err = generateCert(config, *csecretsGencertDir, *csecretsGencertBasename)
 
 	case cdeviceAdd.FullCommand():
 		var device configs.Device
