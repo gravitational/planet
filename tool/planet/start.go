@@ -165,13 +165,7 @@ func start(config *Config, monitorc chan<- bool) (*runtimeContext, error) {
 	if err = addResolv(config); err != nil {
 		return nil, trace.Wrap(err)
 	}
-	if config.hasRole(RoleMaster) {
-		if err = mountMasterSecrets(config); err != nil {
-			return nil, trace.Wrap(err)
-		}
-	} else {
-		mountSecrets(config)
-	}
+	mountSecrets(config)
 	if err = setHosts(config, []utils.HostEntry{
 		{IP: "127.0.0.1", Hostnames: "localhost localhost.localdomain localhost4 localhost4.localdomain4"},
 		{IP: "::1", Hostnames: "localhost localhost.localdomain localhost6 localhost6.localdomain6"},
@@ -478,23 +472,6 @@ const (
 	// RoleNode sets up planet as K8s node server
 	RoleNode = "node"
 )
-
-// mountMasterSecrets mounts k8s secrets directory
-func mountMasterSecrets(config *Config) error {
-	names := []string{CertificateAuthorityKeyPair, APIServerKeyPair}
-	for _, name := range names {
-		exists, err := validateKeyPair(config.SecretsDir, name)
-		if err != nil {
-			return trace.Wrap(err)
-		}
-		if !exists {
-			return trace.Errorf("expected %v.cert file", name)
-		}
-	}
-
-	mountSecrets(config)
-	return nil
-}
 
 // mountSecrets mounts files in secret directory under the specified
 // location inside container

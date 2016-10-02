@@ -216,7 +216,7 @@ func run() error {
 			break
 		}
 		if *cagentKubeAddr == "" {
-			*cagentKubeAddr = fmt.Sprintf("%v:8080", *cagentKubeAPIServerDNS)
+			*cagentKubeAddr = "127.0.0.1:8080"
 		}
 		if *cagentRegistryAddr == "" {
 			*cagentRegistryAddr = fmt.Sprintf("%v:5000", *cagentKubeAPIServerDNS)
