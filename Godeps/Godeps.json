@@ -344,11 +344,11 @@
 		},
 		{
 			"ImportPath": "github.com/gravitational/configure",
-			"Rev": "24ae7449b3edfac124836b9289f2dc75210dc391"
+			"Rev": "4e0f2df8846ee9557b5c88307a769ff2f85e89cd"
 		},
 		{
 			"ImportPath": "github.com/gravitational/configure/cstrings",
-			"Rev": "24ae7449b3edfac124836b9289f2dc75210dc391"
+			"Rev": "4e0f2df8846ee9557b5c88307a769ff2f85e89cd"
 		},
 		{
 			"ImportPath": "github.com/gravitational/coordinate/config",
