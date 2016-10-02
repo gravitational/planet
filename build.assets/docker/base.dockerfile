@@ -18,6 +18,16 @@ RUN apt-get update && apt-get install -q -y bridge-utils \
         dbus \
         dnsutils \
         ethtool \
+        sysstat \
+        nano \
+        iotop \
+        htop \
+        ifstat \
+        iftop \
+        traceroute \
+        tcpdump \
+        coreutils \
+        lsof \
         dnsmasq ; \
     apt-get -y autoclean; apt-get -y clean
 
