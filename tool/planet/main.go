@@ -71,8 +71,8 @@ func run() error {
 		cstartInsecureRegistries      = List(cstart.Flag("insecure-registry", "Optional insecure registries").OverrideDefaultFromEnvar("PLANET_INSECURE_REGISTRY"))
 		cstartSecretsDir              = cstart.Flag("secrets-dir", "Directory with master secrets - certificate authority and certificates").OverrideDefaultFromEnvar("PLANET_SECRETS_DIR").ExistingDir()
 		cstartStateDir                = cstart.Flag("state-dir", "Directory where Planet will store state").OverrideDefaultFromEnvar("PLANET_STATE_DIR").String()
-		cstartServiceSubnet           = CIDRFlag(cstart.Flag("service-subnet", "subnet dedicated to the services in cluster").Default(DefaultServiceSubnet).OverrideDefaultFromEnvar("PLANET_SERVICE_SUBNET"))
-		cstartPODSubnet               = CIDRFlag(cstart.Flag("pod-subnet", "subnet dedicated to the pods in the cluster").Default(DefaultPODSubnet).OverrideDefaultFromEnvar("PLANET_POD_SUBNET"))
+		cstartServiceSubnet           = kv.CIDRFlag(cstart.Flag("service-subnet", "subnet dedicated to the services in cluster").Default(DefaultServiceSubnet).OverrideDefaultFromEnvar("PLANET_SERVICE_SUBNET"))
+		cstartPODSubnet               = kv.CIDRFlag(cstart.Flag("pod-subnet", "subnet dedicated to the pods in the cluster").Default(DefaultPODSubnet).OverrideDefaultFromEnvar("PLANET_POD_SUBNET"))
 		cstartServiceUID              = cstart.Flag("service-uid", "uid to use for services").Default("1000").String()
 		cstartServiceGID              = cstart.Flag("service-gid", "gid to use for services (defaults to service-uid)").String()
 		cstartSelfTest                = cstart.Flag("self-test", "Run end-to-end tests on the started cluster").Bool()
@@ -199,7 +199,7 @@ func run() error {
 			break
 		}
 		if *cagentKubeAddr == "" {
-			*cagentKubeAddr = fmt.Sprintf("%v:8080", *cagentKubeAPIServerDNS)
+			*cagentKubeAddr = "127.0.0.1:8080"
 		}
 		if *cagentRegistryAddr == "" {
 			*cagentRegistryAddr = fmt.Sprintf("%v:5000", *cagentKubeAPIServerDNS)

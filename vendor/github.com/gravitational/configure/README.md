@@ -38,6 +38,6 @@ Then you can query the environment and populate that structure from environment 
 	   // parse YAML
 	   err = configure.ParseYAML(&cfg)
 	   // parse command line arguments
-	   err = configure.ParseCommandLine(&cfg, os.Ars[1:])
+	   err = configure.ParseCommandLine(&cfg, os.Args[1:])
 	}
 ```

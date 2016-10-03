@@ -5,7 +5,7 @@ Requires=kube-apiserver.service
 After=kube-apiserver.service
 
 [Service]
-ExecStart=/usr/bin/kube-scheduler --master=127.0.0.1:8080
+ExecStart=/usr/bin/kube-scheduler --master=https://apiserver:6443 --kubeconfig=/etc/kubernetes/scheduler.kubeconfig
 Restart=always
 RestartSec=10
 User=planet
