@@ -46,6 +46,6 @@ install: registry.mk $(BINARIES)
 	cp $(ASSETS)/docker/registry/config.yml $(ROOTFS)/etc/docker/registry/
 # that's a directory with client and server certs
 	mkdir -p $(ROOTFS)/etc/docker/certs.d/$(REGISTRY)
-	ln -sf /var/state/root.cert $(ROOTFS)/etc/docker/certs.d/$(REGISTRY)/$(REGISTRY).crt
+	ln -sf /var/state/root.cert $(ROOTFS)/etc/docker/certs.d/$(REGISTRY)/$(REGISTRY).cert
 	ln -sf /var/state/kubelet.cert $(ROOTFS)/etc/docker/certs.d/$(REGISTRY)/client.cert
 	ln -sf /var/state/kubelet.key $(ROOTFS)/etc/docker/certs.d/$(REGISTRY)/client.key
