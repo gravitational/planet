@@ -2,7 +2,6 @@
 Description=Kubernetes Controller Manager
 Documentation=https://github.com/GoogleCloudPlatform/kubernetes
 Requires=kube-apiserver.service
-After=kube-apiserver.service
 
 [Service]
 EnvironmentFile=/etc/container-environment
