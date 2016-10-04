@@ -329,6 +329,7 @@ func (l *Client) Close() error {
 	return nil
 }
 
+// IsNotFound determines if the specified error identifies a node not found event
 func IsNotFound(err error) bool {
 	e, ok := err.(client.Error)
 	if !ok {
@@ -337,6 +338,7 @@ func IsNotFound(err error) bool {
 	return e.Code == client.ErrorCodeKeyNotFound
 }
 
+// IsAlreadyExist determines if the specified error identifies a duplicate node event
 func IsAlreadyExist(err error) bool {
 	e, ok := err.(client.Error)
 	if !ok {
@@ -345,6 +347,7 @@ func IsAlreadyExist(err error) bool {
 	return e.Code == client.ErrorCodeNodeExist
 }
 
+// IsWatchExpired determins if the specified error identifies an expired watch event
 func IsWatchExpired(err error) bool {
 	switch clientErr := err.(type) {
 	case client.Error:
