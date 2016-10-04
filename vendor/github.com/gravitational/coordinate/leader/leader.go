@@ -104,18 +104,21 @@ func (l *Client) AddWatchCallback(key string, retry time.Duration, fn CallbackFn
 }
 
 func (l *Client) getWatchAtLatestIndex(ctx context.Context, api client.KeysAPI, key string, retry time.Duration) (client.Watcher, *client.Response, error) {
-	re, err := l.getFirstValue(key, retry)
+	resp, err := l.getFirstValue(key, retry)
 	if err != nil {
 		return nil, nil, trace.BadParameter("%v unexpected error: %v", ctx.Value("prefix"), err)
-	} else if re == nil {
+	} else if resp == nil {
 		log.Infof("%v client is closing, return", ctx.Value("prefix"))
 		return nil, nil, nil
 	}
-	log.Infof("%v got current value '%v' for key '%v'", ctx.Value("prefix"), re.Node.Value, key)
+	log.Infof("%v got current value '%v' for key '%v'", ctx.Value("prefix"), resp.Node.Value, key)
 	watcher := api.Watcher(key, &client.WatcherOptions{
-		AfterIndex: re.Node.ModifiedIndex,
+		// Response.Index corresponds to X-Etcd-Index response header field
+		// and is the recommended starting point after a history miss of over
+		// 1000 events
+		AfterIndex: resp.Index,
 	})
-	return watcher, re, nil
+	return watcher, resp, nil
 }
 
 // AddWatch starts watching the key for changes and sending them
@@ -126,7 +129,7 @@ func (l *Client) AddWatch(key string, retry time.Duration, valuesC chan string) 
 
 	go func() {
 		var watcher client.Watcher
-		var re *client.Response
+		var resp *client.Response
 		var err error
 
 		ctx, closer := context.WithCancel(context.WithValue(context.Background(), "prefix", prefix))
@@ -144,20 +147,20 @@ func (l *Client) AddWatch(key string, retry time.Duration, valuesC chan string) 
 		}
 		ticker := ebackoff.NewTicker(backoff)
 
-		watcher, re, err = l.getWatchAtLatestIndex(ctx, api, key, retry)
+		watcher, resp, err = l.getWatchAtLatestIndex(ctx, api, key, retry)
 		if err != nil {
 			return
 		}
 
 		var sentAnything bool
 		for {
-			re, err = watcher.Next(ctx)
+			resp, err = watcher.Next(ctx)
 			if err == nil {
-				if re.Node.Value == "" {
+				if resp.Node.Value == "" {
 					log.Infof("watcher.Next for %v skipping empty value", key)
 					continue
 				}
-				log.Infof("watcher.Next for %v got %v", key, re.Node.Value)
+				log.Infof("watcher.Next for %v got %v", key, resp.Node.Value)
 				backoff.Reset()
 			}
 			if err != nil {
@@ -176,9 +179,9 @@ func (l *Client) AddWatch(key string, retry time.Duration, valuesC chan string) 
 					}
 					log.Infof("unexpected cluster error: %v (%v)", err, cerr.Detail())
 					continue
-				} else if cerr, ok := err.(client.Error); ok && cerr.Code == client.ErrorCodeEventIndexCleared {
-					log.Infof("watch index error, resetting watch index: %v", cerr)
-					watcher, re, err = l.getWatchAtLatestIndex(ctx, api, key, retry)
+				} else if IsWatchExpired(err) {
+					log.Infof("watch index error, resetting watch index: %v", err)
+					watcher, resp, err = l.getWatchAtLatestIndex(ctx, api, key, retry)
 					if err != nil {
 						continue
 					}
@@ -186,7 +189,7 @@ func (l *Client) AddWatch(key string, retry time.Duration, valuesC chan string) 
 					log.Infof("unexpected watch error: %v", err)
 					// try recreating the watch if we get repeated unknown errors
 					if backoff.CurrentTries() > 10 {
-						watcher, re, err = l.getWatchAtLatestIndex(ctx, api, key, retry)
+						watcher, resp, err = l.getWatchAtLatestIndex(ctx, api, key, retry)
 						if err != nil {
 							continue
 						}
@@ -198,11 +201,11 @@ func (l *Client) AddWatch(key string, retry time.Duration, valuesC chan string) 
 			}
 			// if nothing has changed and we previously sent this subscriber this value,
 			// do not bother subscriber with extra notifications
-			if re.PrevNode != nil && re.PrevNode.Value == re.Node.Value && sentAnything {
+			if resp.PrevNode != nil && resp.PrevNode.Value == resp.Node.Value && sentAnything {
 				continue
 			}
 			select {
-			case valuesC <- re.Node.Value:
+			case valuesC <- resp.Node.Value:
 				sentAnything = true
 			case <-l.closeC:
 				return
@@ -256,9 +259,9 @@ func (l *Client) getFirstValue(key string, retryPeriod time.Duration) (*client.R
 	tick := time.NewTicker(retryPeriod)
 	defer tick.Stop()
 	for {
-		re, err := api.Get(context.TODO(), key, nil)
+		resp, err := api.Get(context.TODO(), key, nil)
 		if err == nil {
-			return re, nil
+			return resp, nil
 		} else if !IsNotFound(err) {
 			log.Infof("unexpected watcher error: %v", err)
 		}
@@ -326,6 +329,7 @@ func (l *Client) Close() error {
 	return nil
 }
 
+// IsNotFound determines if the specified error identifies a node not found event
 func IsNotFound(err error) bool {
 	e, ok := err.(client.Error)
 	if !ok {
@@ -334,10 +338,20 @@ func IsNotFound(err error) bool {
 	return e.Code == client.ErrorCodeKeyNotFound
 }
 
+// IsAlreadyExist determines if the specified error identifies a duplicate node event
 func IsAlreadyExist(err error) bool {
 	e, ok := err.(client.Error)
 	if !ok {
 		return false
 	}
 	return e.Code == client.ErrorCodeNodeExist
+}
+
+// IsWatchExpired determins if the specified error identifies an expired watch event
+func IsWatchExpired(err error) bool {
+	switch clientErr := err.(type) {
+	case client.Error:
+		return clientErr.Code == client.ErrorCodeEventIndexCleared
+	}
+	return false
 }

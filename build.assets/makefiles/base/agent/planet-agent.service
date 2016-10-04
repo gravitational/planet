@@ -1,8 +1,8 @@
 [Unit]
 Description=Planet Agent service
 Documentation=https://github.com/gravitational/planet
-After=etcd.service,serf.service
-Requires=etcd.service,serf.service
+After=etcd.service serf.service
+Requires=etcd.service serf.service
 
 [Service]
 Restart=always
