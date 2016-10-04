@@ -9,6 +9,8 @@ OS := Linux
 VER := 1.9.1
 BINARIES := $(ASSETDIR)/docker-$(VER)
 
+REGISTRY := apiserver:5000
+
 $(ROOTFS)/usr/bin/docker: $(BINARIES)
 # install socket-activated metadata service
 	@echo "\n---> Installing Docker to be used with Kubernetes:\n"
@@ -24,6 +26,14 @@ $(ROOTFS)/usr/bin/docker: $(BINARIES)
 # copy docker from the build dir into rootfs:
 	mkdir -p $(ROOTFS)/usr/bin
 	cp $(BINARIES) $(ROOTFS)/usr/bin/docker
+
+# that's a directory with client and server certs
+	mkdir -p $(ROOTFS)/etc/docker/certs.d/$(REGISTRY)
+# notice .crt for roots, and .cert for certificates, this is not a typo, but docker expected format
+	ln -sf /var/state/root.cert $(ROOTFS)/etc/docker/certs.d/$(REGISTRY)/$(REGISTRY).crt
+	ln -sf /var/state/kubelet.cert $(ROOTFS)/etc/docker/certs.d/$(REGISTRY)/client.cert
+	ln -sf /var/state/kubelet.key $(ROOTFS)/etc/docker/certs.d/$(REGISTRY)/client.key
+
 
 $(BINARIES):
 # download release
