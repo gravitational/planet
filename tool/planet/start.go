@@ -127,6 +127,11 @@ func start(config *Config, monitorc chan<- bool) (*runtimeContext, error) {
 		return nil, trace.Wrap(err)
 	}
 
+	// make sure there is a directory where journald keeps its persistent logs
+	if err = ensureJournalDir(config); err != nil {
+		return nil, trace.Wrap(err)
+	}
+
 	config.Env = append(config.Env,
 		box.EnvPair{Name: EnvMasterIP, Val: config.MasterIP},
 		box.EnvPair{Name: EnvCloudProvider, Val: config.CloudProvider},
@@ -574,6 +579,15 @@ func ensureStateDir(config *Config) error {
 	gid := atoi(config.ServiceGID)
 	if err := os.Chown(path, uid, gid); err != nil {
 		return trace.Wrap(err, "failed to chown state dir for service user/group")
+	}
+	return nil
+}
+
+// ensureJournalDir makes sure the directory with persistent journald logs exists
+func ensureJournalDir(config *Config) error {
+	path := filepath.Join(config.Rootfs, JournalDir)
+	if err := os.MkdirAll(path, 0755); err != nil {
+		return trace.Wrap(err, "failed to create journal dir")
 	}
 	return nil
 }

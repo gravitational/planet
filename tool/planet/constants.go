@@ -61,4 +61,7 @@ const (
 	ETCDServiceName = "etcd.service"
 	// APIServerServiceName names the service unit for k8s apiserver
 	APIServerServiceName = "kube-apiserver.service"
+
+	// JournalDir is the directory where journald persists its logs
+	JournalDir = "/var/log/journal"
 )
