@@ -11,8 +11,13 @@ http:
     addr: :5000
     headers:
         X-Content-Type-Options: [nosniff]
+    tls:
+        certificate: /var/state/apiserver.cert
+        key: /var/state/apiserver.key
+        clientcas:
+            - /var/state/root.cert
 health:
-  storagedriver:
-    enabled: true
-    interval: 10s
-    threshold: 3
+   storagedriver:
+       enabled: true
+       interval: 10s
+       threshold: 3

@@ -24,6 +24,7 @@ export VERSION_PACKAGE
 BINARIES:=$(ASSETDIR)/registry-$(VER)
 GO_LDFLAGS=-ldflags "-X `go list ./version`.Version=$(VER) -w"
 
+
 all: $(BINARIES) install
 
 $(BINARIES):
