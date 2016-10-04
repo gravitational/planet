@@ -485,38 +485,6 @@ func mountSecrets(config *Config) {
 	}...)
 }
 
-// validateKeyPair validates existence of certificate/key pair in dir
-// using baseName as a base name for files
-func validateKeyPair(dir, baseName string) (exists bool, err error) {
-	path := func(fileType string) string {
-		return filepath.Join(dir, fmt.Sprintf("%v.%v", baseName, fileType))
-	}
-	validatePath := func(path string) bool {
-		if _, err = os.Stat(path); err != nil {
-			err = trace.Wrap(err)
-			return false
-		}
-		return true
-	}
-	keyPath := path("key")
-	certPath := path("cert")
-	haveKey := validatePath(keyPath)
-	haveCert := validatePath(certPath)
-
-	if err != nil {
-		return false, trace.Wrap(err)
-	}
-
-	if !haveCert && haveKey {
-		return false, trace.Errorf("cert `%v` is missing", certPath)
-	}
-	if haveCert && !haveKey {
-		return false, trace.Errorf("key `%v` is missing", keyPath)
-	}
-
-	return haveCert && haveKey, nil
-}
-
 func setupFlannel(config *Config) {
 	if config.CloudProvider == CloudProviderAWS {
 		config.Env.Upsert("FLANNEL_BACKEND", "aws-vpc")
@@ -659,31 +627,32 @@ func monitorUnits(c libcontainer.Container, units []string, monitorc chan<- bool
 		defer close(monitorc)
 	}
 
-	us := make(map[string]string, len(units))
-	for _, u := range units {
-		us[u] = ""
+	unitState := make(map[string]string, len(units))
+	for _, unit := range units {
+		unitState[unit] = ""
 	}
 	start := time.Now()
 	for i := 0; i < 30; i++ {
-		for _, u := range units {
-			status, err := getStatus(c, u)
+		for _, unit := range units {
+			status, err := getStatus(c, unit)
 			if err != nil {
 				log.Infof("error getting status: %v", err)
 			}
-			us[u] = status
+			unitState[unit] = status
 		}
 
 		out := &bytes.Buffer{}
 		fmt.Fprintf(out, "%v", time.Now().Sub(start))
-		for _, u := range units {
-			if us[u] != "" {
-				fmt.Fprintf(out, " %v \x1b[32m[OK]\x1b[0m", u)
+		for _, unit := range units {
+			if unitState[unit] != "" {
+				fmt.Fprintf(out, " %v \x1b[32m[OK]\x1b[0m", unit)
 			} else {
-				fmt.Fprintf(out, " %v[  ]", u)
+				fmt.Fprintf(out, " %v[  ]", unit)
 			}
 		}
 		fmt.Printf("\r %v", out.String())
-		if allUp(us) {
+		inactiveUnits := inactiveUnits(unitState)
+		if len(inactiveUnits) == 0 {
 			if monitorc != nil {
 				monitorc <- true
 			}
@@ -693,22 +662,22 @@ func monitorUnits(c libcontainer.Container, units []string, monitorc chan<- bool
 		time.Sleep(time.Second)
 	}
 
-	fmt.Printf("\nsome units have not started.\n Run `planet enter` and check journalctl for details\n")
+	fmt.Printf("\nsome units have not started: %v.\n Run `planet enter` and check journalctl for details\n", inactiveUnits)
 }
 
-func allUp(us map[string]string) bool {
-	for _, v := range us {
-		if v == "" {
-			return false
+func inactiveUnits(units map[string]string) (inactive []string) {
+	for name, state := range units {
+		if state == "" {
+			inactive = append(inactive, name)
 		}
 	}
-	return true
+	return inactive
 }
 
 func unitNames(units map[string]string) []string {
 	out := []string{}
-	for u := range units {
-		out = append(out, u)
+	for unit := range units {
+		out = append(out, unit)
 	}
 	sort.StringSlice(out).Sort()
 	return out
