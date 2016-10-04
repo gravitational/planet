@@ -24,6 +24,8 @@ export VERSION_PACKAGE
 BINARIES:=$(ASSETDIR)/registry-$(VER)
 GO_LDFLAGS=-ldflags "-X `go list ./version`.Version=$(VER) -w"
 
+REGISTRY := apiserver:5000
+
 all: $(BINARIES) install
 
 $(BINARIES):
@@ -42,3 +44,8 @@ install: registry.mk $(BINARIES)
 	cp $(BINARIES) $(ROOTFS)/usr/bin/registry
 	mkdir -p $(ROOTFS)/etc/docker/registry
 	cp $(ASSETS)/docker/registry/config.yml $(ROOTFS)/etc/docker/registry/
+# that's a directory with client and server certs
+	mkdir -p $(ROOTFS)/etc/docker/certs.d/$(REGISTRY)
+	ln -sf /var/state/root.cert $(ROOTFS)/etc/docker/certs.d/$(REGISTRY)/$(REGISTRY).crt
+	ln -sf /var/state/kubelet.cert $(ROOTFS)/etc/docker/certs.d/$(REGISTRY)/client.cert
+	ln -sf /var/state/kubelet.key $(ROOTFS)/etc/docker/certs.d/$(REGISTRY)/client.key

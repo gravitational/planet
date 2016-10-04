@@ -149,13 +149,6 @@ func start(config *Config, monitorc chan<- bool) (*runtimeContext, error) {
 		box.EnvPair{Name: EnvElectionEnabled, Val: strconv.FormatBool(config.ElectionEnabled)},
 	)
 
-	// Always trust local registry (for now)
-	config.InsecureRegistries = append(
-		config.InsecureRegistries,
-		fmt.Sprintf("%v:5000", config.MasterIP),
-		fmt.Sprintf("%v:5000", APIServerDNSName),
-	)
-
 	addInsecureRegistries(config)
 	addDockerOptions(config)
 	setupFlannel(config)

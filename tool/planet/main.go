@@ -226,7 +226,7 @@ func run() error {
 			Role:                  agent.Role(*cagentRole),
 			KubeAddr:              *cagentKubeAddr,
 			ClusterDNS:            cagentClusterDNS.String(),
-			RegistryAddr:          fmt.Sprintf("http://%v", *cagentRegistryAddr),
+			RegistryAddr:          fmt.Sprintf("https://%v", *cagentRegistryAddr),
 			NettestContainerImage: fmt.Sprintf("%v/gcr.io/google_containers/nettest:1.8", *cagentRegistryAddr),
 			ETCDConfig:            etcdConf,
 			DisableInterPodCheck:  disableInterPodCheck,
