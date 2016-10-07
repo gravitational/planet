@@ -398,8 +398,8 @@ func addResolv(config *Config) error {
 		return trace.Wrap(err)
 	}
 
-	resolvKubelet := filepath.Join(config.Rootfs, "etc", "resolv.kubelet.conf")
-	if err := copyResolvFile(resolvKubelet, nil); err != nil {
+	kubeletResolv := filepath.Join(config.Rootfs, "etc", "resolv.kubelet.conf")
+	if err := copyResolvFile(kubeletResolv, nil); err != nil {
 		return trace.Wrap(err)
 	}
 
