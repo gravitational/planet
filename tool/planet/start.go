@@ -394,7 +394,7 @@ func addDockerOptions(config *Config) {
 
 func addResolv(config *Config) error {
 	planetResolv := filepath.Join(config.Rootfs, "etc", PlanetResolv)
-	if err := copyResolvFile(planetResolv, []string{config.PublicIP}); err != nil {
+	if err := copyResolvFile(planetResolv, []string{"127.0.0.1"}); err != nil {
 		return trace.Wrap(err)
 	}
 
