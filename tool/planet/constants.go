@@ -61,4 +61,11 @@ const (
 	ETCDServiceName = "etcd.service"
 	// APIServerServiceName names the service unit for k8s apiserver
 	APIServerServiceName = "kube-apiserver.service"
+
+	// PlanetResolv is planet local resolver
+	PlanetResolv = "resolv.gravity.conf"
+	// KubeletResolv is kubelet local resolver
+	KubeletResolv = "resolv.kubelet.conf"
+	// SharedFileMask is file mask for shared file
+	SharedFileMask = 0644
 )

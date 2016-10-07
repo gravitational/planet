@@ -393,12 +393,12 @@ func addDockerOptions(config *Config) {
 }
 
 func addResolv(config *Config) error {
-	planetResolv := filepath.Join(config.Rootfs, "etc", "resolv.gravity.conf")
+	planetResolv := filepath.Join(config.Rootfs, "etc", PlanetResolv)
 	if err := copyResolvFile(planetResolv, []string{config.PublicIP}); err != nil {
 		return trace.Wrap(err)
 	}
 
-	kubeletResolv := filepath.Join(config.Rootfs, "etc", "resolv.kubelet.conf")
+	kubeletResolv := filepath.Join(config.Rootfs, "etc", KubeletResolv)
 	if err := copyResolvFile(kubeletResolv, nil); err != nil {
 		return trace.Wrap(err)
 	}
@@ -439,7 +439,7 @@ func copyResolvFile(destination string, nameservers []string) error {
 
 	resolv, err := os.OpenFile(
 		destination,
-		os.O_RDWR|os.O_CREATE|os.O_TRUNC, 0644,
+		os.O_RDWR|os.O_CREATE|os.O_TRUNC, SharedFileMask,
 	)
 	if err != nil {
 		return trace.Wrap(err)
