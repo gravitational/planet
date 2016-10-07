@@ -23,7 +23,8 @@ ExecStart=/usr/bin/kubelet \
         --read-only-port=10255 \
         --tls-cert-file=/var/state/apiserver.cert \
         --tls-private-key-file=/var/state/apiserver.key \
-        --kubeconfig=/etc/kubernetes/kubelet.kubeconfig
+        --kubeconfig=/etc/kubernetes/kubelet.kubeconfig \
+        --resolv-conf=/etc/resolv.kubelet.conf
 
 Restart=always
 RestartSec=10
