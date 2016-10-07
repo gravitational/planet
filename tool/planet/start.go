@@ -392,8 +392,28 @@ func addDockerOptions(config *Config) {
 	config.Env.Append("DOCKER_OPTS", "--exec-opt native.cgroupdriver=cgroupfs", " ")
 }
 
-// addResolv adds resolv conf from the host's /etc/resolv.conf
 func addResolv(config *Config) error {
+	planetResolv := filepath.Join(config.Rootfs, "etc", PlanetResolv)
+	if err := copyResolvFile(planetResolv, []string{config.PublicIP}); err != nil {
+		return trace.Wrap(err)
+	}
+
+	kubeletResolv := filepath.Join(config.Rootfs, "etc", KubeletResolv)
+	if err := copyResolvFile(kubeletResolv, nil); err != nil {
+		return trace.Wrap(err)
+	}
+
+	config.Mounts = append(config.Mounts, box.Mount{
+		Src:      planetResolv,
+		Dst:      "/etc/resolv.conf",
+		Readonly: true,
+	})
+
+	return nil
+}
+
+// copyResolvFile adds resolv conf from the host's /etc/resolv.conf
+func copyResolvFile(destination string, nameservers []string) error {
 	path, err := filepath.EvalSymlinks("/etc/resolv.conf")
 	if err != nil {
 		if os.IsNotExist(err) {
@@ -410,14 +430,16 @@ func addResolv(config *Config) error {
 	if err != nil {
 		return trace.Wrap(err)
 	}
-	cfg.UpsertServer(config.PublicIP)
+	for _, nameserver := range nameservers {
+		cfg.UpsertServer(nameserver)
+	}
 	cfg.UpsertSearchDomain(DefaultSearchDomain)
 	cfg.Ndots = DNSNdots
 	cfg.Timeout = DNSTimeout
 
 	resolv, err := os.OpenFile(
-		filepath.Join(config.Rootfs, "etc", "resolv.gravity.conf"),
-		os.O_RDWR|os.O_CREATE|os.O_TRUNC, 0644,
+		destination,
+		os.O_RDWR|os.O_CREATE|os.O_TRUNC, SharedFileMask,
 	)
 	if err != nil {
 		return trace.Wrap(err)
@@ -427,11 +449,7 @@ func addResolv(config *Config) error {
 	if err != nil {
 		return trace.Wrap(err)
 	}
-	config.Mounts = append(config.Mounts, box.Mount{
-		Src:      resolv.Name(),
-		Dst:      "/etc/resolv.conf",
-		Readonly: true,
-	})
+
 	return nil
 }
 
