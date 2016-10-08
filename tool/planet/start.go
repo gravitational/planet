@@ -355,9 +355,6 @@ func addInsecureRegistries(c *Config) {
 	}
 	opts := strings.Join(out, " ")
 	c.Env.Append("DOCKER_OPTS", opts, " ")
-	if c.DockerOptions != "" {
-		c.Env.Append("DOCKER_OPTS", c.DockerOptions, " ")
-	}
 }
 
 // pickDockerStorageBackend examines the filesystems this host supports and picks one
@@ -394,6 +391,9 @@ func addDockerOptions(config *Config) {
 	// use cgroups native driver, because of this:
 	// https://github.com/docker/docker/issues/16256
 	config.Env.Append("DOCKER_OPTS", "--exec-opt native.cgroupdriver=cgroupfs", " ")
+	if config.DockerOptions != "" {
+		config.Env.Append("DOCKER_OPTS", config.DockerOptions, " ")
+	}
 }
 
 func setDNSMasq(config *Config) error {
