@@ -1,6 +1,6 @@
 .PHONY: all
 
-VER := v2.2.5
+VER := v2.3.7
 ARCH := amd64
 TARGET := etcd-$(VER)-linux-$(ARCH)
 TARGET_TARBALL := $(TARGET).tar.gz
