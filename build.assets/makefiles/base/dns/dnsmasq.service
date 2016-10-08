@@ -8,9 +8,6 @@ PIDFile=/var/run/dnsmasq/dnsmasq.pid
 
 EnvironmentFile=/etc/container-environment
 
-# Set up DNS settings that are dynamic
-ExecStartPre=/usr/bin/scripts/dnsmasq.sh
-
 # Test the config file and refuse starting if it is not valid.
 ExecStartPre=/usr/sbin/dnsmasq --test
 

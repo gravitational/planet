@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"fmt"
 	"io"
+	"io/ioutil"
 	"os"
 	"path/filepath"
 	"sort"
@@ -137,7 +138,7 @@ func start(config *Config, monitorc chan<- bool) (*runtimeContext, error) {
 		// Default agent name to the name of the etcd member
 		box.EnvPair{Name: EnvAgentName, Val: config.EtcdMemberName},
 		box.EnvPair{Name: EnvInitialCluster, Val: toKeyValueList(config.InitialCluster)},
-		box.EnvPair{Name: EnvClusterDNSIP, Val: config.ServiceSubnet.RelativeIP(3).String()},
+		box.EnvPair{Name: EnvClusterDNSIP, Val: config.SkyDNSResolverIP()},
 		box.EnvPair{Name: EnvAPIServerName, Val: APIServerDNSName},
 		box.EnvPair{Name: EnvEtcdProxy, Val: config.EtcdProxy},
 		box.EnvPair{Name: EnvEtcdMemberName, Val: config.EtcdMemberName},
@@ -156,6 +157,9 @@ func start(config *Config, monitorc chan<- bool) (*runtimeContext, error) {
 		return nil, trace.Wrap(err)
 	}
 	if err = addResolv(config); err != nil {
+		return nil, trace.Wrap(err)
+	}
+	if err := setDNSMasq(config); err != nil {
 		return nil, trace.Wrap(err)
 	}
 	mountSecrets(config)
@@ -392,9 +396,42 @@ func addDockerOptions(config *Config) {
 	config.Env.Append("DOCKER_OPTS", "--exec-opt native.cgroupdriver=cgroupfs", " ")
 }
 
+func setDNSMasq(config *Config) error {
+	resolv, err := readHostResolv()
+	if err != nil {
+		return trace.Wrap(err)
+	}
+	out := &bytes.Buffer{}
+	// Do not use local resolver
+	fmt.Fprintf(out, "no-resolv\n")
+	// Listen on local interfaces, it's important to set those,
+	// otherwise you hit this bug:
+	// https://bugs.launchpad.net/ubuntu/+source/dnsmasq/+bug/1414887
+	fmt.Fprintf(out, "listen-address=127.0.0.1\n")
+	fmt.Fprintf(out, "listen-address=%v\n", config.PublicIP)
+	// Use SkyDNS K8s resolver for cluster local stuff
+	for _, searchDomain := range K8sSearchDomains {
+		fmt.Fprintf(out, "server=/%v/%v\n", searchDomain, config.SkyDNSResolverIP())
+	}
+	// Use host DNS for everyting else
+	for _, hostNameserver := range resolv.Servers {
+		fmt.Fprintf(out, "server=%v\n", hostNameserver)
+	}
+
+	err = ioutil.WriteFile(filepath.Join(config.Rootfs, DNSMasqK8sConf), out.Bytes(), SharedFileMask)
+	if err != nil {
+		return trace.Wrap(err)
+	}
+
+	return nil
+}
+
 func addResolv(config *Config) error {
 	planetResolv := filepath.Join(config.Rootfs, "etc", PlanetResolv)
-	if err := copyResolvFile(planetResolv, []string{"127.0.0.1"}); err != nil {
+	// it's important to set 127.0.0.1 first, so local queries will be going to local dnsmasq
+	// howerver it is filtered out by docker in host networkign mode, so we trick it
+	// by adding this internal ip of the host
+	if err := copyResolvFile(planetResolv, []string{"127.0.0.1", config.PublicIP}); err != nil {
 		return trace.Wrap(err)
 	}
 
@@ -412,27 +449,38 @@ func addResolv(config *Config) error {
 	return nil
 }
 
-// copyResolvFile adds resolv conf from the host's /etc/resolv.conf
-func copyResolvFile(destination string, nameservers []string) error {
+func readHostResolv() (*utils.DNSConfig, error) {
 	path, err := filepath.EvalSymlinks("/etc/resolv.conf")
 	if err != nil {
 		if os.IsNotExist(err) {
-			return nil
+			return &utils.DNSConfig{}, nil
 		}
-		return trace.Wrap(err)
+		return nil, trace.Wrap(err)
 	}
 	f, err := os.Open(path)
 	if err != nil {
-		return trace.Wrap(err)
+		return nil, trace.Wrap(err)
 	}
 	defer f.Close()
 	cfg, err := utils.DNSReadConfig(f)
 	if err != nil {
+		return nil, trace.Wrap(err)
+	}
+	return cfg, nil
+}
+
+// copyResolvFile adds resolv conf from the host's /etc/resolv.conf
+func copyResolvFile(destination string, nameservers []string) error {
+	cfg, err := readHostResolv()
+	if err != nil {
 		return trace.Wrap(err)
 	}
-	for _, nameserver := range nameservers {
-		cfg.UpsertServer(nameserver)
-	}
+	// Make sure external nameservers go first in the order supplied by caller
+	var outNameservers []string
+	outNameservers = append(outNameservers, nameservers...)
+	outNameservers = append(outNameservers, cfg.Servers...)
+	cfg.Servers = outNameservers
+
 	cfg.UpsertSearchDomain(DefaultSearchDomain)
 	cfg.Ndots = DNSNdots
 	cfg.Timeout = DNSTimeout

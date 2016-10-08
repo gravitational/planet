@@ -44,6 +44,10 @@ type Config struct {
 	NodeName                string
 }
 
+func (cfg *Config) SkyDNSResolverIP() string {
+	return cfg.ServiceSubnet.RelativeIP(3).String()
+}
+
 func (cfg *Config) hasRole(r string) bool {
 	for _, rs := range cfg.Roles {
 		if rs == r {
