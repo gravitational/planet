@@ -68,4 +68,14 @@ const (
 	KubeletResolv = "resolv.kubelet.conf"
 	// SharedFileMask is file mask for shared file
 	SharedFileMask = 0644
+
+	// DNSMasqK8sConf is DNSMasq DNS server K8s config
+	DNSMasqK8sConf = "/etc/dnsmasq.d/k8s.conf"
 )
+
+// K8sSearchDomains are default k8s search domain settings
+var K8sSearchDomains = []string{
+	"svc.cluster.local",
+	"default.svc.cluster.local",
+	"kube-system.svc.cluster.local",
+}
