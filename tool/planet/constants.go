@@ -71,6 +71,9 @@ const (
 
 	// DNSMasqK8sConf is DNSMasq DNS server K8s config
 	DNSMasqK8sConf = "/etc/dnsmasq.d/k8s.conf"
+
+	// DNSMasqAPIServerConf is the dnsmasq configuration file for apiserver
+	DNSMasqAPIServerConf = "/etc/dnsmasq.d/apiserver.conf"
 )
 
 // K8sSearchDomains are default k8s search domain settings
