@@ -152,6 +152,15 @@ func (l *Client) AddWatch(key string, retry time.Duration, valuesC chan string) 
 			return
 		}
 
+		// make sure we always send the first actual value
+		if resp != nil && resp.Node != nil {
+			select {
+			case valuesC <- resp.Node.Value:
+			case <-l.closeC:
+				return
+			}
+		}
+
 		var sentAnything bool
 		for {
 			resp, err = watcher.Next(ctx)
