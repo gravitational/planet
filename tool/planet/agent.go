@@ -65,7 +65,7 @@ func (conf LeaderConfig) String() string {
 // Otherwise, the services are stopped to avoid interfering with the active master instance.
 // Also, every time a new master is elected, the node modifies its /etc/hosts file
 // to reflect the change of the kubernetes API server.
-func startLeaderClient(conf *LeaderConfig) (leaderClient io.Closer, err error) {
+func startLeaderClient(conf *LeaderConfig, errorC chan error) (leaderClient io.Closer, err error) {
 	log.Infof("%v start", conf)
 	var hostname string
 	hostname, err = os.Hostname()
@@ -154,7 +154,8 @@ func startLeaderClient(conf *LeaderConfig) (leaderClient io.Closer, err error) {
 			// start election participation
 			ctx, cancelVoter = context.WithCancel(context.TODO())
 			if err = client.AddVoter(ctx, conf.LeaderKey, conf.PublicIP, conf.Term); err != nil {
-				log.Errorf("failed to add voter for %v: %v", conf.PublicIP, err)
+				log.Errorf("failed to add voter for %v: %v", conf.PublicIP, trace.DebugReport(err))
+				errorC <- err
 			}
 		case false:
 			if cancelVoter == nil {
@@ -245,7 +246,8 @@ func runAgent(conf *agent.Config, monitoringConf *monitoring.Config, leaderConf 
 		}
 	}
 
-	client, err := startLeaderClient(leaderConf)
+	errorC := make(chan error, 10)
+	client, err := startLeaderClient(leaderConf, errorC)
 	if err != nil {
 		return trace.Wrap(err)
 	}
@@ -265,8 +267,9 @@ func runAgent(conf *agent.Config, monitoringConf *monitoring.Config, leaderConf 
 
 	select {
 	case <-signalc:
+	case err := <-errorC:
+		return trace.Wrap(err)
 	}
-
 	return nil
 }
 
