@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
+	"io/ioutil"
 	"os"
 	"os/exec"
 	"os/signal"
@@ -167,19 +168,39 @@ func startLeaderClient(conf *LeaderConfig) (leaderClient io.Closer, err error) {
 	})
 	// modify /etc/hosts upon election of a new leader node
 	client.AddWatchCallback(conf.LeaderKey, conf.Term/3, func(key, prevVal, newVal string) {
-		log.Infof("setting %v to %v in /etc/hosts", conf.APIServerDNS, newVal)
-		entries := []utils.HostEntry{
-			{IP: newVal, Hostnames: conf.APIServerDNS},
-			// Resolve hostname to our public IP, useful for
-			// containers that use host networking
-			{IP: conf.PublicIP, Hostnames: hostname},
-		}
-		if err := utils.UpsertHostsFile(entries, ""); err != nil {
-			log.Errorf("failed to set hosts file: %v", err)
+		if err := updateDNS(conf, hostname, newVal); err != nil {
+			log.Error(trace.DebugReport(err))
 		}
 	})
 
 	return client, nil
+}
+
+func updateDNS(conf *LeaderConfig, hostname string, newMasterIP string) error {
+	log.Infof("setting %v to %v in %v", conf.APIServerDNS, newMasterIP, DNSMasqAPIServerConf)
+	err := ioutil.WriteFile(
+		DNSMasqAPIServerConf,
+		[]byte(fmt.Sprintf(`address=/apiserver/%v`, newMasterIP)),
+		SharedFileMask,
+	)
+	if err != nil {
+		return trace.Wrap(err)
+	}
+	entries := []utils.HostEntry{
+		// Resolve hostname to our public IP, useful for
+		// containers that use host networking
+		{IP: conf.PublicIP, Hostnames: hostname},
+	}
+	if err := utils.UpsertHostsFile(entries, ""); err != nil {
+		log.Errorf("failed to set hosts file: %v", err)
+	}
+	log.Infof("restarting dnsmasq")
+	cmd := exec.Command("/bin/systemctl", "restart", "dnsmasq")
+	log.Infof("executing %v", cmd)
+	if err := cmd.Run(); err != nil {
+		return trace.Wrap(err, "failed to execute %v", cmd)
+	}
+	return nil
 }
 
 var electedUnits = []string{"kube-controller-manager.service", "kube-scheduler.service", "registry.service"}
