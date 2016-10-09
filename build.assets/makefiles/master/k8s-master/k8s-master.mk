@@ -12,7 +12,6 @@ all: k8s-master.mk
 	cp -af ./kube-kubelet.service $(ROOTFS)/lib/systemd/system
 	cp -af ./kube-proxy.service $(ROOTFS)/lib/systemd/system
 	ln -sf /lib/systemd/system/kube-apiserver.service  $(ROOTFS)/lib/systemd/system/multi-user.target.wants/
-	ln -sf /lib/systemd/system/kube-controller-manager.service  $(ROOTFS)/lib/systemd/system/multi-user.target.wants/
 	ln -sf /lib/systemd/system/kube-kubelet.service  $(ROOTFS)/lib/systemd/system/multi-user.target.wants/
 	ln -sf /lib/systemd/system/kube-proxy.service  $(ROOTFS)/lib/systemd/system/multi-user.target.wants/
 	install -m 0755 $(BINDIR)/kube-apiserver $(ROOTFS)/usr/bin
