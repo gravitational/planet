@@ -176,13 +176,18 @@ func startLeaderClient(conf *LeaderConfig) (leaderClient io.Closer, err error) {
 	return client, nil
 }
 
-func updateDNS(conf *LeaderConfig, hostname string, newMasterIP string) error {
-	log.Infof("setting %v to %v in %v", conf.APIServerDNS, newMasterIP, DNSMasqAPIServerConf)
+func writeAPIServer(target string, masterIP string) error {
 	err := ioutil.WriteFile(
-		DNSMasqAPIServerConf,
-		[]byte(fmt.Sprintf(`address=/apiserver/%v`, newMasterIP)),
+		target,
+		[]byte(fmt.Sprintf(`address=/apiserver/%v`, masterIP)),
 		SharedFileMask,
 	)
+	return trace.Wrap(err)
+}
+
+func updateDNS(conf *LeaderConfig, hostname string, newMasterIP string) error {
+	log.Infof("setting %v to %v in %v", conf.APIServerDNS, newMasterIP, DNSMasqAPIServerConf)
+	err := writeAPIServer(DNSMasqAPIServerConf, newMasterIP)
 	if err != nil {
 		return trace.Wrap(err)
 	}

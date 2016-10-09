@@ -421,8 +421,8 @@ func setDNSMasq(config *Config) error {
 	if err != nil {
 		return trace.Wrap(err)
 	}
-
-	return nil
+	err = writeAPIServer(filepath.Join(config.Rootfs, DNSMasqAPIServerConf), config.MasterIP)
+	return trace.Wrap(err)
 }
 
 func addResolv(config *Config) error {
