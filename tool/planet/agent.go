@@ -194,7 +194,6 @@ func updateDNS(conf *LeaderConfig, hostname string, newMasterIP string) error {
 	if err := utils.UpsertHostsFile(entries, ""); err != nil {
 		log.Errorf("failed to set hosts file: %v", err)
 	}
-	log.Infof("restarting dnsmasq")
 	cmd := exec.Command("/bin/systemctl", "restart", "dnsmasq")
 	log.Infof("executing %v", cmd)
 	if err := cmd.Run(); err != nil {
