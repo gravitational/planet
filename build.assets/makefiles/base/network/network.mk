@@ -1,6 +1,6 @@
 .PHONY: all
 
-VER := v0.5.5
+VER := v0.6.2
 ARCH := amd64
 NAME := flannel
 TARGET := $(NAME)-$(VER)

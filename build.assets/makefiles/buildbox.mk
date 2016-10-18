@@ -7,7 +7,7 @@ ROOTFS:=$(TARGETDIR)/rootfs
 CONTAINERNAME:=planet-base-$(TARGET)
 TARBALL:=$(TARGETDIR)/planet-$(TARGET).tar.gz
 export
-TMPFS_SIZE=750m
+TMPFS_SIZE=900m
 
 .PHONY: all build clean planet-image
 
