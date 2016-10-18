@@ -8,7 +8,9 @@ ENV DEBIAN_FRONTEND noninteractive
 # Locales
 ADD locale.gen /etc/locale.gen
 ADD profile /etc/profile
-RUN echo 'deb http://ftp.debian.org/debian jessie-backports main' >>/etc/apt/sources.list
+RUN echo 'deb http://ftp.debian.org/debian jessie-backports main' >> /etc/apt/sources.list && \
+	echo 'deb http://httpredir.debian.org/debian/ jessie main contrib non-free' >> /etc/apt/sources.list && \
+	echo 'deb http://httpredir.debian.org/debian/ jessie-updates main contrib non-free' >> /etc/apt/sources.list
 RUN (apt-get clean \
     && apt-key update \
 	&& apt-get -q -y update --fix-missing \
