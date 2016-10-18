@@ -1,6 +1,6 @@
 .PHONY: all
 
-VER := v0.7.0
+VER := v0.8.0
 REPODIR := $(GOPATH)/src/github.com/hashicorp/serf
 OUT := $(ASSETDIR)/serf-$(VER)
 BINARIES := $(ROOTFS)/usr/bin/serf
@@ -13,7 +13,7 @@ $(OUT):
 	cd $(GOPATH)/src/github.com/hashicorp && git clone https://github.com/hashicorp/serf -b $(VER) --depth 1 
 	cd $(REPODIR) && \
 	go get -t -d ./... && \
-	GOOS=linux GOARCH=amd64 CGO_ENABLED=0 go build -o $@ .
+	GOOS=linux GOARCH=amd64 CGO_ENABLED=0 go build -o $@ ./cmd/serf
 
 $(BINARIES): serf.service planet-agent.service
 	@echo "\n---> Installing services for Serf/Planet agent:\n"

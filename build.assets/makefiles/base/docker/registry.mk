@@ -1,7 +1,7 @@
 .PHONY: all
 
 REPODIR=$(GOPATH)/src/github.com/docker/
-VER=v2.4.1
+VER=v2.5.1
 
 # VERSION_PACKAGE defines contents of a `version.go` file which is part of docker
 # registry source code distribution responsible for defining a registry's Version

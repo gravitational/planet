@@ -9,7 +9,7 @@ do
       --ca-file=/var/state/root.cert \
       --timeout="5s" \
       --total-timeout="30s" \
-      --peers https://${KUBE_MASTER_IP}:4001 cluster-health && exit 0
+      --peers https://127.0.0.1:4001 cluster-health && exit 0
     n=$[$n+1]
     echo "Failed to set variable reconnecting to the cluster"
     sleep 1
