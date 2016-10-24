@@ -1,7 +1,7 @@
 [Unit]
 Description=Flannel
 Documentation=https://github.com/coreos/flannel
-After=etcd.service
+Wants=etcd.service
 
 [Service]
 Restart=always
@@ -20,6 +20,7 @@ ExecStartPre=/usr/bin/etcdctl \
     --key-file=/var/state/etcd.key \
     --ca-file=/var/state/root.cert \
     --peers https://127.0.0.1:4001 set /coreos.com/network/config '{"Network":"${KUBE_POD_SUBNET}", "Backend": {"Type": "${FLANNEL_BACKEND}"}}'
+ExecStartPre=/bin/systemctl is-active etcd.service
 ExecStart=/usr/bin/flanneld \
     --ip-masq=true \
     --etcd-endpoints https://127.0.0.1:4001,https://127.0.0.1:2379 \

@@ -1,9 +1,9 @@
 [Unit]
 Description=Local Docker Registry
-Requires=docker.service
-After=docker.service
+Wants=docker.service
 
 [Service]
+ExecStartPre=/bin/systemctl is-active docker.service
 ExecStart=/usr/bin/registry serve /etc/docker/registry/config.yml
 Restart=always
 RestartSec=10

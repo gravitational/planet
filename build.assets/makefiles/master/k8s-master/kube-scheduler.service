@@ -1,9 +1,10 @@
 [Unit]
 Description=Kubernetes Scheduler
 Documentation=https://github.com/GoogleCloudPlatform/kubernetes
-Requires=kube-apiserver.service
+Wants=kube-apiserver.service
 
 [Service]
+ExecStartPre=/bin/systemctl is-active kube-apiserver.service
 ExecStart=/usr/bin/kube-scheduler --master=https://apiserver:6443 --kubeconfig=/etc/kubernetes/scheduler.kubeconfig
 Restart=always
 RestartSec=10

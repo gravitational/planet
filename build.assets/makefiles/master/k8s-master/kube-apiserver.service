@@ -1,12 +1,12 @@
 [Unit]
 Description=Kubernetes API Server
 Documentation=https://github.com/GoogleCloudPlatform/kubernetes
-Requires=etcd.service
-After=etcd.service
+Wants=etcd.service
 
 [Service]
 EnvironmentFile=/etc/container-environment
 ExecStartPre=/usr/bin/scripts/wait-for-etcd.sh
+ExecStartPre=/bin/systemctl is-active etcd.service
 ExecStart=/usr/bin/kube-apiserver \
         --insecure-bind-address=127.0.0.1 \
         --insecure-port=8080 \

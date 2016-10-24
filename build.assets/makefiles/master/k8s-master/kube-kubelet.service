@@ -1,11 +1,11 @@
 [Unit]
 Description=Kubernetes Kubelet
 Documentation=https://github.com/kubernetes/kubernetes
-Requires=docker.service
-After=docker.service
+Wants=docker.service
 
 [Service]
 EnvironmentFile=/etc/container-environment
+ExecStartPre=/bin/systemctl is-active docker.service
 ExecStart=/usr/bin/kubelet \
         --address=0.0.0.0 \
         --port=10250 \
