@@ -1,10 +1,12 @@
 [Unit]
 Description=Prepackaged Kubernetes container images
-Requires=docker.service
+Wants=docker.service
 
 [Service]
 EnvironmentFile=/etc/container-environment
 Restart=on-failure
+RestartSec=5
+ExecStartPre=/bin/systemctl is-active docker.service
 ExecStart=/usr/bin/docker-import --dir=/etc/docker/offline/ --registry-addr=${KUBE_APISERVER}:5000
 
 [Install]
