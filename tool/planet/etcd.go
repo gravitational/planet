@@ -66,9 +66,11 @@ func etcdPromote(name, initialCluster, initialClusterState string) error {
 	}
 
 	out, err = exec.Command("/bin/systemctl", "start", APIServerServiceName).CombinedOutput()
-	log.Infof("starting etcd: %v", string(out))
+	log.Infof("starting kube-apiserver: %v", string(out))
 	if err != nil {
-		return trace.Wrap(err)
+		// kube-apiserver service might not exist in some cases (e.g. if this is not a master node)
+		// so do not fail the whole promote operation because it has actually succeeded at this point
+		log.Warningf("failed to start kube-apiserver: %v %v", trace.DebugReport(err), string(out))
 	}
 
 	return nil
