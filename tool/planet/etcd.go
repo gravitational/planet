@@ -1,6 +1,7 @@
 package main
 
 import (
+	"fmt"
 	"os"
 	"os/exec"
 
@@ -51,7 +52,7 @@ func etcdPromote(name, initialCluster, initialClusterState string) error {
 	out, err := exec.Command("/bin/systemctl", "stop", "etcd").CombinedOutput()
 	log.Infof("stopping etcd: %v", string(out))
 	if err != nil {
-		return trace.Wrap(err)
+		return trace.Wrap(err, fmt.Sprintf("failed to stop etcd: %v", string(out)))
 	}
 
 	log.Infof("removing %v", ETCDProxyDir)
@@ -62,13 +63,15 @@ func etcdPromote(name, initialCluster, initialClusterState string) error {
 	out, err = exec.Command("/bin/systemctl", "start", ETCDServiceName).CombinedOutput()
 	log.Infof("starting etcd: %v", string(out))
 	if err != nil {
-		return trace.Wrap(err)
+		return trace.Wrap(err, fmt.Sprintf("failed to start etcd: %v", string(out)))
 	}
 
-	out, err = exec.Command("/bin/systemctl", "start", APIServerServiceName).CombinedOutput()
-	log.Infof("starting etcd: %v", string(out))
-	if err != nil {
-		return trace.Wrap(err)
+	if env.Get(EnvRole) == PlanetRoleMaster {
+		out, err = exec.Command("/bin/systemctl", "start", APIServerServiceName).CombinedOutput()
+		log.Infof("starting kube-apiserver: %v", string(out))
+		if err != nil {
+			return trace.Wrap(err, fmt.Sprintf("failed to start kube-apiserver: %v", string(out)))
+		}
 	}
 
 	return nil
