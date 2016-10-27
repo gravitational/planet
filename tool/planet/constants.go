@@ -31,6 +31,8 @@ const (
 	EnvAWSAccessKey            = "AWS_ACCESS_KEY_ID"
 	EnvAWSSecretKey            = "AWS_SECRET_ACCESS_KEY"
 
+	PlanetRoleMaster = "master"
+
 	EtcdProxyOn  = "on"
 	EtcdProxyOff = "off"
 
