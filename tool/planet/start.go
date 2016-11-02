@@ -390,6 +390,9 @@ func addDockerOptions(config *Config) {
 	// use cgroups native driver, because of this:
 	// https://github.com/docker/docker/issues/16256
 	config.Env.Append("DOCKER_OPTS", "--exec-opt native.cgroupdriver=cgroupfs", " ")
+	// Add sensible size limits to logging driver
+	config.Env.Append("DOCKER_OPTS", "--log-opt max-size=50m", " ")
+	config.Env.Append("DOCKER_OPTS", "--log-opt max-file=9", " ")
 	if config.DockerOptions != "" {
 		config.Env.Append("DOCKER_OPTS", config.DockerOptions, " ")
 	}
