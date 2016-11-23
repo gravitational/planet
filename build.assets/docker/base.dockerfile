@@ -20,6 +20,7 @@ RUN apt-get update && apt-get install -q -y bridge-utils \
         ethtool \
         sysstat \
         nano \
+        vim \
         iotop \
         htop \
         ifstat \
