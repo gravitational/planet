@@ -411,7 +411,7 @@ func addKubeConfig(config *Config) error {
 	if err != nil {
 		return trace.Wrap(err)
 	}
-	err = ioutil.WriteFile(KubeConfigPath, kubeConfig, SharedFileMask)
+	err = ioutil.WriteFile(filepath.Join(config.Rootfs, KubeConfigPath), kubeConfig, SharedFileMask)
 	if err != nil {
 		return trace.Wrap(err)
 	}
