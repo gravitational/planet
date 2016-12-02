@@ -80,7 +80,7 @@ const (
 	DNSMasqAPIServerConf = "/etc/dnsmasq.d/apiserver.conf"
 
 	// KubeConfigPath is the path to kubectl configuration file
-	KubeConfigPath = "/root/.kube/config"
+	KubeConfigPath = "/etc/kubernetes/kubectl.kubeconfig"
 )
 
 // K8sSearchDomains are default k8s search domain settings
