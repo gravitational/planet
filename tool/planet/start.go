@@ -407,11 +407,12 @@ func addKubeConfig(config *Config) error {
 	if err != nil {
 		return trace.Wrap(err)
 	}
-	err = os.MkdirAll(filepath.Dir(KubeConfigPath), SharedDirMask)
+	path := filepath.Join(config.Rootfs, KubeConfigPath)
+	err = os.MkdirAll(filepath.Dir(path), SharedDirMask)
 	if err != nil {
 		return trace.Wrap(err)
 	}
-	err = ioutil.WriteFile(filepath.Join(config.Rootfs, KubeConfigPath), kubeConfig, SharedFileMask)
+	err = ioutil.WriteFile(path, kubeConfig, SharedFileMask)
 	if err != nil {
 		return trace.Wrap(err)
 	}
