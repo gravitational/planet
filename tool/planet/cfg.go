@@ -1,13 +1,16 @@
 package main
 
 import (
+	"bytes"
 	"fmt"
 	"net"
 	"os/user"
 	"strconv"
 	"strings"
+	"text/template"
 
 	"github.com/gravitational/planet/lib/box"
+	"github.com/gravitational/trace"
 
 	kv "github.com/gravitational/configure"
 	"github.com/gravitational/configure/cstrings"
@@ -46,6 +49,12 @@ type Config struct {
 
 func (cfg *Config) SkyDNSResolverIP() string {
 	return cfg.ServiceSubnet.RelativeIP(3).String()
+}
+
+// APIServerIP returns the IP of the "kubernetes" service which is the first IP
+// of the configured service subnet
+func (cfg *Config) APIServerIP() net.IP {
+	return cfg.ServiceSubnet.FirstIP()
 }
 
 func (cfg *Config) hasRole(r string) bool {
@@ -124,3 +133,36 @@ func (r *boolFlag) Set(input string) error {
 func (r boolFlag) String() string {
 	return strconv.FormatBool(bool(r))
 }
+
+// NewKubeConfig returns a kubectl config that works with the provided
+// kubernetes API server IP
+func NewKubeConfig(ip net.IP) ([]byte, error) {
+	var b bytes.Buffer
+	err := kubeConfig.Execute(&b, map[string]string{"ip": ip.String()})
+	if err != nil {
+		return nil, trace.Wrap(err)
+	}
+	return b.Bytes(), nil
+}
+
+// kubeConfig is a template of a configuration file for kubectl with only one
+// variable: IP address of a kubernetes API server
+var kubeConfig = template.Must(template.New("kubeConfig").Parse(`apiVersion: v1
+kind: Config
+current-context: default
+clusters:
+- name: default
+  cluster:
+    certificate-authority: /var/lib/gravity/secrets/root.cert
+    server: https://{{.ip}}
+users:
+- name: default
+  user:
+    client-certificate: /var/lib/gravity/secrets/kubelet.cert
+    client-key: /var/lib/gravity/secrets/kubelet.key
+contexts:
+- name: default
+  context:
+    cluster: default
+    user: default
+    namespace: default`))

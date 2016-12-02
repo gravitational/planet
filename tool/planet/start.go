@@ -159,7 +159,10 @@ func start(config *Config, monitorc chan<- bool) (*runtimeContext, error) {
 	if err = addResolv(config); err != nil {
 		return nil, trace.Wrap(err)
 	}
-	if err := setDNSMasq(config); err != nil {
+	if err = setDNSMasq(config); err != nil {
+		return nil, trace.Wrap(err)
+	}
+	if err = addKubeConfig(config); err != nil {
 		return nil, trace.Wrap(err)
 	}
 	mountSecrets(config)
@@ -396,6 +399,23 @@ func addDockerOptions(config *Config) {
 	if config.DockerOptions != "" {
 		config.Env.Append("DOCKER_OPTS", config.DockerOptions, " ")
 	}
+}
+
+// addKubeConfig writes a kubectl config file
+func addKubeConfig(config *Config) error {
+	kubeConfig, err := NewKubeConfig(config.APIServerIP())
+	if err != nil {
+		return trace.Wrap(err)
+	}
+	err = os.MkdirAll(filepath.Dir(KubeConfigPath), SharedDirMask)
+	if err != nil {
+		return trace.Wrap(err)
+	}
+	err = ioutil.WriteFile(KubeConfigPath, kubeConfig, SharedFileMask)
+	if err != nil {
+		return trace.Wrap(err)
+	}
+	return nil
 }
 
 func setDNSMasq(config *Config) error {

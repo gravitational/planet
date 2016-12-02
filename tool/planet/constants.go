@@ -70,12 +70,17 @@ const (
 	KubeletResolv = "resolv.kubelet.conf"
 	// SharedFileMask is file mask for shared file
 	SharedFileMask = 0644
+	// SharedDirMask is a permissions mask for a shared directory
+	SharedDirMask = 0755
 
 	// DNSMasqK8sConf is DNSMasq DNS server K8s config
 	DNSMasqK8sConf = "/etc/dnsmasq.d/k8s.conf"
 
 	// DNSMasqAPIServerConf is the dnsmasq configuration file for apiserver
 	DNSMasqAPIServerConf = "/etc/dnsmasq.d/apiserver.conf"
+
+	// KubeConfigPath is the path to kubectl configuration file
+	KubeConfigPath = "/root/.kube/config"
 )
 
 // K8sSearchDomains are default k8s search domain settings
