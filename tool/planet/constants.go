@@ -30,6 +30,7 @@ const (
 	EnvStateDir                = "PLANET_STATE_DIR"
 	EnvAWSAccessKey            = "AWS_ACCESS_KEY_ID"
 	EnvAWSSecretKey            = "AWS_SECRET_ACCESS_KEY"
+	EnvKubeConfig              = "KUBECONFIG"
 
 	PlanetRoleMaster = "master"
 
