@@ -134,8 +134,7 @@ func (r boolFlag) String() string {
 	return strconv.FormatBool(bool(r))
 }
 
-// NewKubeConfig returns a kubectl config that works with the provided
-// kubernetes API server IP
+// NewKubeConfig returns a kubectl config for the specified kubernetes API server IP
 func NewKubeConfig(ip net.IP) ([]byte, error) {
 	var b bytes.Buffer
 	err := kubeConfig.Execute(&b, map[string]string{"ip": ip.String()})
@@ -145,8 +144,7 @@ func NewKubeConfig(ip net.IP) ([]byte, error) {
 	return b.Bytes(), nil
 }
 
-// kubeConfig is a template of a configuration file for kubectl with only one
-// variable: IP address of a kubernetes API server
+// kubeConfig is a template of a configuration file for kubectl
 var kubeConfig = template.Must(template.New("kubeConfig").Parse(`apiVersion: v1
 kind: Config
 current-context: default
