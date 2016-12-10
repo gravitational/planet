@@ -275,7 +275,7 @@ func run() error {
 		if err != nil {
 			break
 		}
-		setupSignalHanlders(rootfs, *socketPath)
+		setupSignalHandlers(rootfs, *socketPath)
 		initialCluster := *cstartEtcdInitialCluster
 		if initialCluster == nil {
 			initialCluster = *cstartInitialCluster
@@ -478,19 +478,24 @@ func findRootfs() (string, error) {
 	return rootfsAbs, nil
 }
 
-// setupSignalHanlders sets up a handler to interrupt SIGTERM and SIGINT
+// setupSignalHandlers sets up a handler to interrupt SIGTERM and SIGINT
 // allowing for a graceful shutdown via executing "stop" command
-func setupSignalHanlders(rootfs, socketPath string) {
+func setupSignalHandlers(rootfs, socketPath string) {
 	c := make(chan os.Signal, 1)
 	go func() {
 		sig := <-c
-		log.Infof("received a signal %v. stopping...\n", sig)
-		err := stop(rootfs, socketPath)
-		if err != nil {
-			log.Errorf("error: %v", err)
+		switch sig {
+		case syscall.SIGPIPE:
+			log.Debug("received a SIGPIPE signal, ignoring")
+		default:
+			log.Infof("received a signal %v; stopping...", sig)
+			err := stop(rootfs, socketPath)
+			if err != nil {
+				log.Errorf("error: %v", err)
+			}
 		}
 	}()
-	signal.Notify(c, os.Interrupt, os.Kill, syscall.SIGTERM)
+	signal.Notify(c, os.Interrupt, syscall.SIGTERM, syscall.SIGQUIT, syscall.SIGPIPE)
 }
 
 func emptyIP(addr *net.IP) bool {
