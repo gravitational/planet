@@ -32,6 +32,7 @@ const (
 	EnvAWSSecretKey            = "AWS_SECRET_ACCESS_KEY"
 	EnvKubeConfig              = "KUBECONFIG"
 	EnvDNSOverrides            = "PLANET_DNS_OVERRIDES"
+	EnvHostname                = "PLANET_HOSTNAME"
 
 	PlanetRoleMaster = "master"
 

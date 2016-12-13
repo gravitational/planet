@@ -175,11 +175,11 @@ func start(config *Config, monitorc chan<- bool) (*runtimeContext, error) {
 		return nil, trace.Wrap(err)
 	}
 
-	if config.NodeName != "" {
+	if config.Hostname != "" {
 		// Set hostname
 		config.Files = append(config.Files, box.File{
 			Path:     HostnameFile,
-			Contents: strings.NewReader(config.NodeName),
+			Contents: strings.NewReader(config.Hostname),
 			Mode:     SharedReadWriteMask,
 		})
 	}

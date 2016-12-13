@@ -187,6 +187,12 @@
                 "name": "dnsoverrides",
                 "env": "PLANET_DNS_OVERRIDES",
                 "cli": {"name": "dns-overrides"}
+            },
+            {
+                "type": "String",
+                "name": "hostname",
+                "env": "PLANET_HOSTNAME",
+                "cli": {"name": "hostname"}
             }
         ]
     }
