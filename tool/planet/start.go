@@ -166,11 +166,22 @@ func start(config *Config, monitorc chan<- bool) (*runtimeContext, error) {
 		return nil, trace.Wrap(err)
 	}
 	mountSecrets(config)
-	if err = setHosts(config, []utils.HostEntry{
+
+	err = setHosts(config, []utils.HostEntry{
 		{IP: "127.0.0.1", Hostnames: "localhost localhost.localdomain localhost4 localhost4.localdomain4"},
 		{IP: "::1", Hostnames: "localhost localhost.localdomain localhost6 localhost6.localdomain6"},
-	}); err != nil {
+	})
+	if err != nil {
 		return nil, trace.Wrap(err)
+	}
+
+	if config.NodeName != "" {
+		// Set hostname
+		config.Files = append(config.Files, box.File{
+			Path:     HostnameFile,
+			Contents: strings.NewReader(config.NodeName),
+			Mode:     SharedReadWriteMask,
+		})
 	}
 
 	cfg := box.Config{
@@ -436,7 +447,10 @@ func setDNSMasq(config *Config) error {
 	for _, searchDomain := range K8sSearchDomains {
 		fmt.Fprintf(out, "server=/%v/%v\n", searchDomain, config.SkyDNSResolverIP())
 	}
-	// Use host DNS for everyting else
+	for domainName, addrIP := range config.DNSOverrides {
+		fmt.Fprintf(out, "address=/%v/%v\n", domainName, addrIP)
+	}
+	// Use host DNS for everything else
 	for _, hostNameserver := range resolv.Servers {
 		fmt.Fprintf(out, "server=%v\n", hostNameserver)
 	}
@@ -492,7 +506,7 @@ func readHostResolv() (*utils.DNSConfig, error) {
 	return cfg, nil
 }
 
-// copyResolvFile adds resolv conf from the host's /etc/resolv.conf
+// copyResolvFile adds DNS resolver configuration from the host's /etc/resolv.conf
 func copyResolvFile(destination string, nameservers []string) error {
 	cfg, err := readHostResolv()
 	if err != nil {
@@ -525,19 +539,14 @@ func copyResolvFile(destination string, nameservers []string) error {
 }
 
 func setHosts(config *Config, entries []utils.HostEntry) error {
-	hosts, err := os.Open("/etc/hosts")
-	if err != nil {
-		return trace.Wrap(err)
-	}
-	defer hosts.Close()
 	out := &bytes.Buffer{}
-	if err := utils.UpsertHostsLines(hosts, out, entries); err != nil {
+	if err := utils.WriteHosts(out, entries); err != nil {
 		return trace.Wrap(err)
 	}
 	config.Files = append(config.Files, box.File{
-		Path:     "/etc/hosts",
+		Path:     HostsFile,
 		Contents: out,
-		Mode:     0666,
+		Mode:     SharedReadWriteMask,
 	})
 	return nil
 }

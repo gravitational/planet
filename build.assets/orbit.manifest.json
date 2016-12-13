@@ -181,6 +181,12 @@
                 "name": "electionenabled",
                 "env": "PLANET_ELECTION_ENABLED",
                 "cli": {"name": "election-enabled"}
+            },
+            {
+                "type": "String",
+                "name": "dnsoverrides",
+                "env": "PLANET_DNS_OVERRIDES",
+                "cli": {"name": "dns-overrides"}
             }
         ]
     }

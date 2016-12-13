@@ -16,7 +16,6 @@ import (
 	etcdconf "github.com/gravitational/coordinate/config"
 	"github.com/gravitational/coordinate/leader"
 	"github.com/gravitational/planet/lib/monitoring"
-	"github.com/gravitational/planet/lib/utils"
 	"github.com/gravitational/satellite/agent"
 	pb "github.com/gravitational/satellite/agent/proto/agentpb"
 	"github.com/gravitational/trace"
@@ -168,8 +167,8 @@ func startLeaderClient(conf *LeaderConfig, errorC chan error) (leaderClient io.C
 		}
 	})
 	// modify /etc/hosts upon election of a new leader node
-	client.AddWatchCallback(conf.LeaderKey, conf.Term/3, func(key, prevVal, newVal string) {
-		if err := updateDNS(conf, hostname, newVal); err != nil {
+	client.AddWatchCallback(conf.LeaderKey, conf.Term/3, func(key, prevVal, newLeaderIP string) {
+		if err := updateDNS(conf, hostname, newLeaderIP); err != nil {
 			log.Error(trace.DebugReport(err))
 		}
 	})
@@ -191,14 +190,6 @@ func updateDNS(conf *LeaderConfig, hostname string, newMasterIP string) error {
 	err := writeAPIServer(DNSMasqAPIServerConf, newMasterIP)
 	if err != nil {
 		return trace.Wrap(err)
-	}
-	entries := []utils.HostEntry{
-		// Resolve hostname to our public IP, useful for
-		// containers that use host networking
-		{IP: conf.PublicIP, Hostnames: hostname},
-	}
-	if err := utils.UpsertHostsFile(entries, ""); err != nil {
-		log.Errorf("failed to set hosts file: %v", err)
 	}
 	cmd := exec.Command("/bin/systemctl", "restart", "dnsmasq")
 	log.Infof("executing %v", cmd)
