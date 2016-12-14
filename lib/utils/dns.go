@@ -109,9 +109,6 @@ func DNSReadConfig(rdr io.Reader) (*DNSConfig, error) {
 	scanner := bufio.NewScanner(rdr)
 
 	for scanner.Scan() {
-		if err := scanner.Err(); err != nil {
-			return nil, err
-		}
 		line := scanner.Text()
 
 		if len(line) > 0 && (line[0] == ';' || line[0] == '#') {
@@ -177,6 +174,9 @@ func DNSReadConfig(rdr io.Reader) (*DNSConfig, error) {
 		default:
 			conf.UnknownOpt = true
 		}
+	}
+	if err := scanner.Err(); err != nil {
+		return nil, err
 	}
 
 	if len(conf.Servers) == 0 {

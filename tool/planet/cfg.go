@@ -45,6 +45,8 @@ type Config struct {
 	EtcdInitialClusterState string
 	ElectionEnabled         bool
 	NodeName                string
+	Hostname                string
+	DNSOverrides            kv.KeyVal
 }
 
 func (cfg *Config) SkyDNSResolverIP() string {

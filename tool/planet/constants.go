@@ -31,6 +31,8 @@ const (
 	EnvAWSAccessKey            = "AWS_ACCESS_KEY_ID"
 	EnvAWSSecretKey            = "AWS_SECRET_ACCESS_KEY"
 	EnvKubeConfig              = "KUBECONFIG"
+	EnvDNSOverrides            = "PLANET_DNS_OVERRIDES"
+	EnvHostname                = "PLANET_HOSTNAME"
 
 	PlanetRoleMaster = "master"
 
@@ -69,10 +71,15 @@ const (
 	PlanetResolv = "resolv.gravity.conf"
 	// KubeletResolv is kubelet local resolver
 	KubeletResolv = "resolv.kubelet.conf"
+
 	// SharedFileMask is file mask for shared file
 	SharedFileMask = 0644
+
 	// SharedDirMask is a permissions mask for a shared directory
 	SharedDirMask = 0755
+
+	// SharedReadWriteMask is a mask for a shared file with read/write access for everyone
+	SharedReadWriteMask = 0666
 
 	// DNSMasqK8sConf is DNSMasq DNS server K8s config
 	DNSMasqK8sConf = "/etc/dnsmasq.d/k8s.conf"
@@ -82,6 +89,12 @@ const (
 
 	// KubeConfigPath is the path to kubectl configuration file
 	KubeConfigPath = "/etc/kubernetes/kubectl.kubeconfig"
+
+	// HostsFile specifies the location of the hosts configuration file
+	HostsFile = "/etc/hosts"
+
+	// HostnameFile specifies the location of the hostname configuration file
+	HostnameFile = "/etc/hostname"
 )
 
 // K8sSearchDomains are default k8s search domain settings
