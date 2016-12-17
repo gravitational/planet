@@ -19,6 +19,7 @@ RUN (apt-get clean \
 	&& apt-get install -q -y less \
 	&& apt-get install -q -y locales \
 	&& apt-get -t jessie-backports install -q -y systemd)
+ADD bashrc /etc/bash.bashrc
 
 # Set locale to en_US.UTF-8
 RUN (locale-gen \
