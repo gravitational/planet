@@ -1,6 +1,7 @@
 FROM planet/os
 
 RUN apt-get update && apt-get install -q -y bridge-utils \
+        bash-completion \
         kmod \
         iptables \
         libdevmapper1.02.1 \
