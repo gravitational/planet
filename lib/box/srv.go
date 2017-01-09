@@ -62,7 +62,7 @@ func (b *Box) Wait() (*os.ProcessState, error) {
 }
 
 func Start(cfg Config) (*Box, error) {
-	log.Infof("starting with config: %v", cfg)
+	log.Infof("[BOX] starting with config: %#v", cfg)
 
 	rootfs, err := checkPath(cfg.Rootfs, false)
 	if err != nil {
@@ -224,12 +224,6 @@ func Start(cfg Config) (*Box, error) {
 		return nil, trace.Wrap(err)
 	}
 
-	st, err := container.Status()
-	if err != nil {
-		return nil, trace.Wrap(err)
-	}
-	log.Infof("container status: %v %v", st, err)
-
 	// start the API webserver (the sooner the better, so if it can't start we can
 	// fail sooner)
 	socketPath := serverSockPath(cfg.Rootfs, cfg.SocketPath)
@@ -259,6 +253,12 @@ func Start(cfg Config) (*Box, error) {
 		listener.Close()
 		return nil, trace.Wrap(err)
 	}
+
+	status, err := container.Status()
+	if err != nil {
+		return nil, trace.Wrap(err)
+	}
+	log.Infof("container status: %v (err=%v)", status, err)
 
 	return &Box{
 		Process:     process,

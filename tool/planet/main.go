@@ -500,15 +500,17 @@ func setupSignalHandlers(rootfs, socketPath string) {
 	var terminals = []os.Signal{os.Interrupt, syscall.SIGTERM, syscall.SIGQUIT}
 	c := make(chan os.Signal, 1)
 	go func() {
-		sig := <-c
-		switch {
-		case oneOf(ignores, sig):
-			log.Debug("received a %s signal, ignoring...", sig)
-		default:
-			log.Infof("received a %s signal, stopping...", sig)
-			err := stop(rootfs, socketPath)
-			if err != nil {
-				log.Errorf("error: %v", err)
+		for sig := range c {
+			switch {
+			case oneOf(ignores, sig):
+				log.Debugf("received a %s signal, ignoring...", sig)
+			default:
+				log.Infof("received a %s signal, stopping...", sig)
+				err := stop(rootfs, socketPath)
+				if err != nil {
+					log.Errorf("error: %v", err)
+				}
+				return
 			}
 		}
 	}()

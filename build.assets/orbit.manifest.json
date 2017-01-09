@@ -17,7 +17,8 @@
         "User": "0",
         "Type": "simple",
         "Restart": "always",
-        "KillMode": "none",
+        "KillMode": "mixed",
+        "KillSignal": "SIGRTMIN+13",
         "StartPreCommand": "-/bin/rm /var/run/planet.socket",
         "StopPostCommand": "-/bin/rm /var/run/planet.socket",
         "StopCommand": "stop"
