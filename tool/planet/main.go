@@ -275,7 +275,7 @@ func run() error {
 		if err != nil {
 			break
 		}
-		setupSignalHanlders(rootfs, *socketPath)
+		setupSignalHandlers(rootfs, *socketPath)
 		initialCluster := *cstartEtcdInitialCluster
 		if initialCluster == nil {
 			initialCluster = *cstartInitialCluster
@@ -478,19 +478,39 @@ func findRootfs() (string, error) {
 	return rootfsAbs, nil
 }
 
-// setupSignalHanlders sets up a handler to interrupt SIGTERM and SIGINT
-// allowing for a graceful shutdown via executing "stop" command
-func setupSignalHanlders(rootfs, socketPath string) {
+// setupSignalHandlers sets up a handler to handle common unix process signal traps.
+// Some signals are handled to avoid the default handling which might be termination (SIGPIPE, SIGHUP, etc)
+// The rest are considered as termination signals and the handler initiates shutdown upon receiving
+// such a signal.
+func setupSignalHandlers(rootfs, socketPath string) {
+	oneOf := func(list []os.Signal, sig os.Signal) bool {
+		for _, signal := range list {
+			if signal == sig {
+				return true
+			}
+		}
+		return false
+	}
+
+	var ignores = []os.Signal{syscall.SIGPIPE, syscall.SIGHUP, syscall.SIGUSR1, syscall.SIGUSR2, syscall.SIGALRM}
+	var terminals = []os.Signal{os.Interrupt, syscall.SIGTERM, syscall.SIGQUIT}
 	c := make(chan os.Signal, 1)
 	go func() {
-		sig := <-c
-		log.Infof("received a signal %v. stopping...\n", sig)
-		err := stop(rootfs, socketPath)
-		if err != nil {
-			log.Errorf("error: %v", err)
+		for sig := range c {
+			switch {
+			case oneOf(ignores, sig):
+				log.Debugf("received a %s signal, ignoring...", sig)
+			default:
+				log.Infof("received a %s signal, stopping...", sig)
+				err := stop(rootfs, socketPath)
+				if err != nil {
+					log.Errorf("error: %v", err)
+				}
+				return
+			}
 		}
 	}()
-	signal.Notify(c, os.Interrupt, os.Kill, syscall.SIGTERM)
+	signal.Notify(c, append(ignores, terminals...)...)
 }
 
 func emptyIP(addr *net.IP) bool {

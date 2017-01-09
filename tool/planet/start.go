@@ -415,7 +415,7 @@ func setDNSMasq(config *Config) error {
 	for _, searchDomain := range K8sSearchDomains {
 		fmt.Fprintf(out, "server=/%v/%v\n", searchDomain, config.SkyDNSResolverIP())
 	}
-	// Use host DNS for everyting else
+	// Use host DNS for everything else
 	for _, hostNameserver := range resolv.Servers {
 		fmt.Fprintf(out, "server=%v\n", hostNameserver)
 	}
@@ -693,6 +693,7 @@ func monitorUnits(c libcontainer.Container, units []string, monitorc chan<- bool
 		unitState[unit] = ""
 	}
 	start := time.Now()
+	var inactiveUnits []string
 	for i := 0; i < 30; i++ {
 		for _, unit := range units {
 			status, err := getStatus(c, unit)
@@ -712,7 +713,7 @@ func monitorUnits(c libcontainer.Container, units []string, monitorc chan<- bool
 			}
 		}
 		fmt.Printf("\r %v", out.String())
-		inactiveUnits := inactiveUnits(unitState)
+		inactiveUnits = getInactiveUnits(unitState)
 		if len(inactiveUnits) == 0 {
 			if monitorc != nil {
 				monitorc <- true
@@ -723,10 +724,10 @@ func monitorUnits(c libcontainer.Container, units []string, monitorc chan<- bool
 		time.Sleep(time.Second)
 	}
 
-	fmt.Printf("\nsome units have not started: %v.\n Run `planet enter` and check journalctl for details\n", inactiveUnits)
+	fmt.Printf("\nsome units have not started: %q.\n Run `planet enter` and check journalctl for details\n", inactiveUnits)
 }
 
-func inactiveUnits(units map[string]string) (inactive []string) {
+func getInactiveUnits(units map[string]string) (inactive []string) {
 	for name, state := range units {
 		if state == "" {
 			inactive = append(inactive, name)
