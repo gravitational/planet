@@ -31,6 +31,8 @@ RUN apt-get update && apt-get install -q -y bridge-utils \
         coreutils \
         lsof \
         socat \
+        nmap \
+        netcat \
         dnsmasq ; \
     apt-get -y autoclean; apt-get -y clean
 
