@@ -30,6 +30,7 @@ RUN apt-get update && apt-get install -q -y bridge-utils \
         tcpdump \
         coreutils \
         lsof \
+        socat \
         dnsmasq ; \
     apt-get -y autoclean; apt-get -y clean
 
