@@ -221,7 +221,7 @@ func run() error {
 			KeyFile:   *cagentEtcdKeyFile,
 		}
 		disableInterPodCheck := true
-		if *cstartInitialCluster != nil && len(*cstartInitialCluster) > 2 {
+		if *cagentInitialCluster != nil && len(*cagentInitialCluster) > 2 {
 			disableInterPodCheck = false
 		}
 		monitoringConf := &monitoring.Config{
