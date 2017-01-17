@@ -1,5 +1,5 @@
 
-CNI_VER := v0.3.0
+CNI_VER := v0.4.0
 
 CNI_TARBALL := cni-$(CNI_VER).tgz
 CNI_TARGET := $(ASSETDIR)/$(CNI_TARBALL)
