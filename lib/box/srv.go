@@ -333,7 +333,8 @@ func ReadEnvironment(path string) (vars EnvVars, err error) {
 		if len(keyVal) != 2 {
 			continue
 		}
-		vars.Upsert(keyVal[0], keyVal[1][1:len(keyVal[1])-1]) // strip quotes from value
+		vars.Upsert(keyVal[0], strings.TrimSuffix(strings.TrimPrefix(
+			keyVal[1], `"`), `"`)) // strip quotes from value
 	}
 	if err := scanner.Err(); err != nil {
 		return nil, trace.Wrap(err)
