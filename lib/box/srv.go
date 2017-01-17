@@ -312,7 +312,8 @@ func WriteEnvironment(path string, env EnvVars) error {
 	}
 	defer f.Close()
 	for _, v := range env {
-		if _, err := fmt.Fprintf(f, "%v=%v\n", v.Name, v.Val); err != nil {
+		// quote value as it may contain spaces
+		if _, err := fmt.Fprintf(f, "%v=%q\n", v.Name, v.Val); err != nil {
 			return trace.Wrap(err)
 		}
 	}
@@ -332,7 +333,7 @@ func ReadEnvironment(path string) (vars EnvVars, err error) {
 		if len(keyVal) != 2 {
 			continue
 		}
-		vars.Upsert(keyVal[0], keyVal[1])
+		vars.Upsert(keyVal[0], keyVal[1][1:len(keyVal[1])-1]) // strip quotes from value
 	}
 	if err := scanner.Err(); err != nil {
 		return nil, trace.Wrap(err)
