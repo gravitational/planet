@@ -6,7 +6,7 @@
 
 ARCH := x86_64
 OS := Linux
-VER := 1.10.3
+VER := 1.12.6
 BINARIES := $(ASSETDIR)/docker-$(VER)
 
 REGISTRY := apiserver:5000
