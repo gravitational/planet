@@ -1,7 +1,7 @@
 .PHONY: all
 
 REPODIR=$(GOPATH)/src/github.com/docker/
-VER=v2.5.1
+VER=v2.6.0
 
 # VERSION_PACKAGE defines contents of a `version.go` file which is part of docker
 # registry source code distribution responsible for defining a registry's Version
@@ -33,7 +33,7 @@ $(BINARIES):
 	cd $(REPODIR) && git clone https://github.com/docker/distribution -b $(VER) --depth 1
 	cd $(REPODIR)/distribution && \
 	echo "$$VERSION_PACKAGE" > version/version.go && \
-	GOPATH=$(GOPATH):$(GOPATH)/src/github.com/docker/distribution/Godeps/_workspace GOOS=linux GOARCH=amd64 CGO_ENABLED=0 go build -tags "$(DOCKER_BUILDTAGS)" -a -installsuffix cgo -o $@ $(GO_LDFLAGS) ./cmd/registry
+	GOOS=linux GOARCH=amd64 CGO_ENABLED=0 go build -tags "$(DOCKER_BUILDTAGS)" -a -installsuffix cgo -o $@ $(GO_LDFLAGS) ./cmd/registry
 
 install: registry.mk $(BINARIES)
 	@echo "\n---> Installing docker registry:\n"

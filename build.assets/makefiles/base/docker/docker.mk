@@ -7,7 +7,16 @@
 ARCH := x86_64
 OS := Linux
 VER := 1.12.6
-BINARIES := $(ASSETDIR)/docker-$(VER)
+override DIR := $(ASSETDIR)/docker-$(VER)
+BINARIES := \
+	$(DIR)/docker \
+	$(DIR)/docker-containerd \
+	$(DIR)/docker-containerd-ctr \
+	$(DIR)/docker-containerd-shim \
+	$(DIR)/dockerd \
+	$(DIR)/docker-proxy \
+	$(DIR)/docker-runc
+TARBALL := $(DIR)/docker.tgz
 
 REGISTRY := apiserver:5000
 
@@ -36,6 +45,10 @@ $(ROOTFS)/usr/bin/docker: $(BINARIES)
 
 
 $(BINARIES):
+	tar --strip-components=1 -xvzf $(TARBALL) -C $(DIR)
+	rm $(TARBALL)
+
+$(TARBALL):
 # download release
-	curl -L https://get.docker.com/builds/$(OS)/$(ARCH)/docker-$(VER) -o $@
-	chmod +x $@
+	mkdir -p $(DIR)
+	curl -L https://get.docker.com/builds/$(OS)/$(ARCH)/docker-$(VER).tgz -o $@
