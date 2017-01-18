@@ -29,6 +29,10 @@ func (s *SrvSuite) TestWriteReadEnvironment(c *check.C) {
 			Name: "EMPTY_VAR",
 			Val:  "",
 		},
+		{
+			Name: "WITH_QUOTES",
+			Val:  `blah "blah" blah`,
+		},
 	})
 	c.Assert(err, check.IsNil)
 
@@ -38,4 +42,5 @@ func (s *SrvSuite) TestWriteReadEnvironment(c *check.C) {
 	c.Assert(env.Get("DOCKER_OPTS"), check.Equals,
 		"--storage-driver=devicemapper --exec-opt native.cgroupdriver=cgroupfs")
 	c.Assert(env.Get("EMPTY_VAR"), check.Equals, "")
+	c.Assert(env.Get("WITH_QUOTES"), check.Equals, `blah "blah" blah`)
 }

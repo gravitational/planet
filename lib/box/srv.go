@@ -11,6 +11,7 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"strconv"
 	"strings"
 	"syscall"
 
@@ -333,8 +334,13 @@ func ReadEnvironment(path string) (vars EnvVars, err error) {
 		if len(keyVal) != 2 {
 			continue
 		}
-		vars.Upsert(keyVal[0], strings.TrimSuffix(strings.TrimPrefix(
-			keyVal[1], `"`), `"`)) // strip quotes from value
+		// the value may be quoted (if the file was previously written by WriteEnvironment above)
+		val, err := strconv.Unquote(keyVal[1])
+		if err != nil {
+			vars.Upsert(keyVal[0], keyVal[1])
+		} else {
+			vars.Upsert(keyVal[0], val)
+		}
 	}
 	if err := scanner.Err(); err != nil {
 		return nil, trace.Wrap(err)
