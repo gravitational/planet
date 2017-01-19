@@ -389,7 +389,7 @@ func pickDockerStorageBackend() (dockerBackend string, err error) {
 		}
 	}
 	// if we get here, it means no suitable FS has been found
-	err = trace.Errorf("none of the required filesystems are supported by this host: %v",
+	err = trace.Errorf("none of the required filesystems are supported by this host: %q",
 		supportedBackends)
 	return "", err
 }
