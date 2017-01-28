@@ -221,9 +221,22 @@ func run() error {
 			KeyFile:   *cagentEtcdKeyFile,
 		}
 		disableInterPodCheck := true
-		if *cagentInitialCluster != nil && len(*cagentInitialCluster) > 2 {
-			disableInterPodCheck = false
-		}
+		// Leave the inter-pod communication test disabled.
+		// Planet uses a custom networking plugin (with calico implementating the plugin).
+		// The configuration is two-fold:
+		//  * kubelet command line that specifies the use of custom networking plugin / static
+		//    configuration files and additional binaries
+		//  * daemonset with calico node support tools
+		//  * one-time configuration job
+		// When updating from non-networking environment to version with custom networking plugin,
+		// the plugin is enabled by default. If the other configuration (in kubernetes environment)
+		// has not happened yet, the system will be in crippled state for as long as network configuration
+		// is not complete. Running networking tests at this time will only make matters worse.
+		// TODO: find a way to disable the testing initially and be able to resume if need be.
+		//
+		// if *cagentInitialCluster != nil && len(*cagentInitialCluster) > 2 {
+		// 	disableInterPodCheck = false
+		// }
 		monitoringConf := &monitoring.Config{
 			Role:                  agent.Role(*cagentRole),
 			KubeAddr:              *cagentKubeAddr,
