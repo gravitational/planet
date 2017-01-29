@@ -32,7 +32,7 @@ ifeq ($(TARGET),master)
 	$(MAKE) -C $(ASSETS)/makefiles/master/k8s-master -e -f containers.mk
 endif
 
-planet-image: 
+planet-image:
 	cp $(ASSETS)/orbit.manifest.json $(TARGETDIR)
 	cp $(ASSETDIR)/planet $(ROOTFS)/usr/bin/
 	cp $(ASSETDIR)/docker-import $(ROOTFS)/usr/bin/
@@ -40,7 +40,10 @@ planet-image:
 	@rm -f $(BUILDDIR)/current
 	@cd $(BUILDDIR) && ln -fs $(TARGET) $(BUILDDIR)/current
 	@echo -e "\n---> Creating Planet image...\n"
-	cd $(TARGETDIR) && tar -czf $(TARBALL) orbit.manifest.json rootfs
+	cd $(TARGETDIR) && fakeroot -- sh -c ' \
+		chown -R 1000:1000 . ; \
+		chown -R root:root rootfs/sbin/mount.* ; \
+		tar -czf $(TARBALL) orbit.manifest.json rootfs'
 	@echo -e "\nDone --> $(TARBALL)"
 
 enter_buildbox:
