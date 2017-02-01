@@ -1,6 +1,9 @@
 FROM planet/os
 
-RUN apt-get update && apt-get install -q -y bridge-utils \
+ARG DOCKER_VER
+
+RUN apt-get install -q -y bridge-utils \
+	docker-engine=$DOCKER_VER \
         bash-completion \
         kmod \
         iptables \

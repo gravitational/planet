@@ -8,13 +8,18 @@ ENV DEBIAN_FRONTEND noninteractive
 # Locales
 ADD locale.gen /etc/locale.gen
 ADD profile /etc/profile
-RUN echo 'deb http://ftp.debian.org/debian jessie-backports main' >> /etc/apt/sources.list && \
-	echo 'deb http://httpredir.debian.org/debian/ jessie main contrib non-free' >> /etc/apt/sources.list && \
-	echo 'deb http://httpredir.debian.org/debian/ jessie-updates main contrib non-free' >> /etc/apt/sources.list
+# dockerproject debian repo key
+RUN (apt-get update && \
+	apt-get -q -y install apt-transport-https && \
+	apt-key adv --keyserver hkp://p80.pool.sks-keyservers.net:80 --recv-keys 58118E89F3A912897C070ADBF76221572C52609D)
+RUN (echo 'deb http://ftp.debian.org/debian jessie-backports main' >> /etc/apt/sources.list && \
+	echo 'deb http://httpredir.debian.org/debian/ jessie contrib non-free' >> /etc/apt/sources.list && \
+	echo 'deb http://httpredir.debian.org/debian/ jessie-updates contrib non-free' >> /etc/apt/sources.list && \
+	echo 'deb https://apt.dockerproject.org/repo debian-jessie main' >> /etc/apt/sources.list)
 RUN (apt-get clean \
-    && apt-key update \
+	&& apt-key update \
 	&& apt-get -q -y update --fix-missing \
-    && apt-get -q -y update \
+	&& apt-get -q -y update \
 	&& apt-get install -q -y apt-utils \
 	&& apt-get install -q -y less \
 	&& apt-get install -q -y locales \
