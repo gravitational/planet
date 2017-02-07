@@ -8,9 +8,7 @@ import (
 	"io/ioutil"
 	"os"
 	"os/exec"
-	"os/signal"
 	"strconv"
-	"syscall"
 	"time"
 
 	etcdconf "github.com/gravitational/coordinate/config"
@@ -262,18 +260,9 @@ func runAgent(conf *agent.Config, monitoringConf *monitoring.Config, leaderConf 
 		go dns.create(errCh)
 	}
 
-	signalc := make(chan os.Signal, 2)
-	signal.Ignore()
-	signal.Notify(signalc, os.Interrupt, syscall.SIGTERM)
-
-	select {
-	case <-signalc:
-	case err := <-errCh:
-		if err != nil {
-			return trace.Wrap(err)
-		}
-	}
-	return nil
+	return utils.HandleSignals(func() error {
+		return nil
+	})
 }
 
 func leaderPause(publicIP, electionKey string, etcd *etcdconf.Config) error {
