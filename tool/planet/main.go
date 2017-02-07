@@ -170,11 +170,10 @@ func run() error {
 		return err
 	}
 
+	log.SetOutput(os.Stderr)
 	if *debug == true {
-		log.SetOutput(os.Stderr)
-		log.SetLevel(log.InfoLevel)
+		log.SetLevel(log.DebugLevel)
 	} else {
-		log.SetOutput(os.Stderr)
 		log.SetLevel(log.WarnLevel)
 	}
 

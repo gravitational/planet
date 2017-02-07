@@ -246,8 +246,8 @@ func runAgent(conf *agent.Config, monitoringConf *monitoring.Config, leaderConf 
 		}
 	}
 
-	errorC := make(chan error, 10)
-	client, err := startLeaderClient(leaderConf, errorC)
+	errCh := make(chan error, 10)
+	client, err := startLeaderClient(leaderConf, errCh)
 	if err != nil {
 		return trace.Wrap(err)
 	}
@@ -259,16 +259,19 @@ func runAgent(conf *agent.Config, monitoringConf *monitoring.Config, leaderConf 
 			kubeAddr:  monitoringConf.KubeAddr,
 			agent:     monitoringAgent,
 		}
-		go dns.create()
+		go dns.create(errCh)
 	}
 
 	signalc := make(chan os.Signal, 2)
+	signal.Ignore()
 	signal.Notify(signalc, os.Interrupt, syscall.SIGTERM)
 
 	select {
 	case <-signalc:
-	case err := <-errorC:
-		return trace.Wrap(err)
+	case err := <-errCh:
+		if err != nil {
+			return trace.Wrap(err)
+		}
 	}
 	return nil
 }
