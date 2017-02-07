@@ -32,11 +32,6 @@ func KubeletHealth(addr string) health.Checker {
 	return NewHTTPHealthzChecker("kubelet", fmt.Sprintf("%v/healthz", addr), kubeHealthz)
 }
 
-// ComponentStatusHealth creates a checker of the kubernetes component statuses
-func ComponentStatusHealth(kubeAddr string) health.Checker {
-	return NewComponentStatusChecker(kubeAddr)
-}
-
 // EtcdHealth creates a checker that checks health of etcd
 func EtcdHealth(config *ETCDConfig) (health.Checker, error) {
 	const name = "etcd-healthz"
