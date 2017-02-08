@@ -403,6 +403,7 @@ func setDNSMasq(config *Config) error {
 	if err != nil {
 		return trace.Wrap(err)
 	}
+
 	out := &bytes.Buffer{}
 	// Do not use local resolver
 	fmt.Fprintf(out, "no-resolv\n")
@@ -415,8 +416,14 @@ func setDNSMasq(config *Config) error {
 	for _, searchDomain := range K8sSearchDomains {
 		fmt.Fprintf(out, "server=/%v/%v\n", searchDomain, config.SkyDNSResolverIP())
 	}
+
 	// Use host DNS for everything else
 	for _, hostNameserver := range resolv.Servers {
+		switch hostNameserver {
+		case "127.0.0.1", "::1":
+			// Avoid pointing dnsmasq to itself
+			continue
+		}
 		fmt.Fprintf(out, "server=%v\n", hostNameserver)
 	}
 
@@ -424,6 +431,7 @@ func setDNSMasq(config *Config) error {
 	if err != nil {
 		return trace.Wrap(err)
 	}
+
 	err = writeAPIServer(filepath.Join(config.Rootfs, DNSMasqAPIServerConf), config.MasterIP)
 	return trace.Wrap(err)
 }
