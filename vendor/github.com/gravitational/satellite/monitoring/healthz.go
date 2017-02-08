@@ -16,6 +16,7 @@ limitations under the License.
 package monitoring
 
 import (
+	"context"
 	"io"
 	"net"
 	"net/http"
@@ -45,8 +46,14 @@ type HTTPHealthzChecker struct {
 func (r *HTTPHealthzChecker) Name() string { return r.name }
 
 // Check runs an HTTP check and reports errors to the specified Reporter
-func (r *HTTPHealthzChecker) Check(reporter health.Reporter) {
-	resp, err := r.client.Get(r.URL)
+func (r *HTTPHealthzChecker) Check(ctx context.Context, reporter health.Reporter) {
+	req, err := http.NewRequest("GET", r.URL, nil)
+	if err != nil {
+		reporter.Add(NewProbeFromErr(r.name, trace.Errorf("failed to create request: %v", err)))
+		return
+	}
+	req = req.WithContext(ctx)
+	resp, err := r.client.Do(req)
 	if err != nil {
 		reporter.Add(NewProbeFromErr(r.name, trace.Errorf("healthz check failed: %v", err)))
 		return
