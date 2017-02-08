@@ -210,33 +210,33 @@
 		},
 		{
 			"ImportPath": "github.com/gravitational/satellite/agent",
-			"Comment": "v0.0.3-7-g9331120",
-			"Rev": "933112095848de240cd9b53f6989b2432e380d27"
+			"Comment": "v0.0.3-29-gd614859",
+			"Rev": "d614859d1cf6830860e47def4bbc4f12e19a03b2"
 		},
 		{
 			"ImportPath": "github.com/gravitational/satellite/agent/backend/sqlite",
-			"Comment": "v0.0.3-7-g9331120",
-			"Rev": "933112095848de240cd9b53f6989b2432e380d27"
+			"Comment": "v0.0.3-29-gd614859",
+			"Rev": "d614859d1cf6830860e47def4bbc4f12e19a03b2"
 		},
 		{
 			"ImportPath": "github.com/gravitational/satellite/agent/cache",
-			"Comment": "v0.0.3-7-g9331120",
-			"Rev": "933112095848de240cd9b53f6989b2432e380d27"
+			"Comment": "v0.0.3-29-gd614859",
+			"Rev": "d614859d1cf6830860e47def4bbc4f12e19a03b2"
 		},
 		{
 			"ImportPath": "github.com/gravitational/satellite/agent/health",
-			"Comment": "v0.0.3-7-g9331120",
-			"Rev": "933112095848de240cd9b53f6989b2432e380d27"
+			"Comment": "v0.0.3-29-gd614859",
+			"Rev": "d614859d1cf6830860e47def4bbc4f12e19a03b2"
 		},
 		{
 			"ImportPath": "github.com/gravitational/satellite/agent/proto/agentpb",
-			"Comment": "v0.0.3-7-g9331120",
-			"Rev": "933112095848de240cd9b53f6989b2432e380d27"
+			"Comment": "v0.0.3-29-gd614859",
+			"Rev": "d614859d1cf6830860e47def4bbc4f12e19a03b2"
 		},
 		{
 			"ImportPath": "github.com/gravitational/satellite/monitoring",
-			"Comment": "v0.0.3-7-g9331120",
-			"Rev": "933112095848de240cd9b53f6989b2432e380d27"
+			"Comment": "v0.0.3-29-gd614859",
+			"Rev": "d614859d1cf6830860e47def4bbc4f12e19a03b2"
 		},
 		{
 			"ImportPath": "github.com/gravitational/trace",
