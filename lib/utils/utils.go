@@ -7,11 +7,15 @@ import (
 	"io"
 	"io/ioutil"
 	"os"
+	"os/signal"
 	"reflect"
 	"sort"
 	"strings"
+	"syscall"
 
 	"github.com/gravitational/trace"
+
+	log "github.com/Sirupsen/logrus"
 )
 
 // UpsertHostsLines either updates an existing hosts entry or inserts a new
@@ -92,6 +96,39 @@ func replaceLine(line string, entries []HostEntry) (string, []HostEntry) {
 	}
 
 	return line, entries
+}
+
+// HandleSignals configures signal handling for the process.
+// It configures two groups of signals: ignored and terminal.
+// Upon receiving any of the terminal signals, it invokes the
+// provided function prior to exit.
+func HandleSignals(fn func() error) error {
+	c := SetupSignalHandler()
+	select {
+	case sig := <-c:
+		log.Infof("received a %s signal, stopping...", sig)
+		err := fn()
+		if err != nil {
+			log.Errorf("handler failed: %v", err)
+		}
+		return trace.Wrap(err)
+	}
+	return nil
+}
+
+// SetupSignalHandler configures a set of ignored and termination signals.
+// Returns a channel to receive notifications about termination signals.
+func SetupSignalHandler() (recvCh <-chan os.Signal) {
+	var ignores = []os.Signal{
+		syscall.SIGPIPE, syscall.SIGHUP,
+		syscall.SIGUSR1, syscall.SIGUSR2,
+		syscall.SIGALRM,
+	}
+	var terminals = []os.Signal{os.Interrupt, syscall.SIGTERM, syscall.SIGQUIT}
+	signalCh := make(chan os.Signal, 1)
+	signal.Ignore(ignores...)
+	signal.Notify(signalCh, terminals...)
+	return signalCh
 }
 
 func compareStringSlices(a, b []string) bool {

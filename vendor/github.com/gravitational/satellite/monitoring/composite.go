@@ -13,9 +13,12 @@ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 See the License for the specific language governing permissions and
 limitations under the License.
 */
+
 package monitoring
 
 import (
+	"context"
+
 	"github.com/gravitational/satellite/agent/health"
 )
 
@@ -31,8 +34,8 @@ func (r *compositeChecker) Name() string { return r.name }
 
 // Check runs an health check over the list of encapsulated checkers
 // and reports errors to the specified Reporter
-func (r *compositeChecker) Check(reporter health.Reporter) {
+func (r *compositeChecker) Check(ctx context.Context, reporter health.Reporter) {
 	for _, checker := range r.checkers {
-		checker.Check(reporter)
+		checker.Check(ctx, reporter)
 	}
 }

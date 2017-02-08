@@ -17,7 +17,7 @@ import (
 	"github.com/gravitational/trace"
 
 	"gopkg.in/alecthomas/kingpin.v2"
-	"k8s.io/kubernetes/pkg/util/wait"
+	"k8s.io/client-go/1.4/pkg/util/wait"
 )
 
 func main() {

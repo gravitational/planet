@@ -5,26 +5,25 @@ import (
 	"fmt"
 	"net"
 	"os"
-	"os/signal"
 	"path/filepath"
 	"runtime"
 	"strings"
-	"syscall"
 	"time"
 
-	"github.com/gravitational/planet/lib/box"
-	"github.com/gravitational/planet/lib/monitoring"
-	"github.com/gravitational/planet/test/e2e"
-
-	log "github.com/Sirupsen/logrus"
 	kv "github.com/gravitational/configure"
 	"github.com/gravitational/configure/cstrings"
 	etcdconf "github.com/gravitational/coordinate/config"
+	"github.com/gravitational/planet/lib/box"
+	"github.com/gravitational/planet/lib/monitoring"
+	"github.com/gravitational/planet/lib/utils"
+	"github.com/gravitational/planet/test/e2e"
 	"github.com/gravitational/satellite/agent"
 	"github.com/gravitational/satellite/agent/backend/sqlite"
 	"github.com/gravitational/satellite/agent/cache"
 	"github.com/gravitational/trace"
 	"github.com/gravitational/version"
+
+	log "github.com/Sirupsen/logrus"
 	"github.com/opencontainers/runc/libcontainer"
 	"github.com/opencontainers/runc/libcontainer/configs"
 	"gopkg.in/alecthomas/kingpin.v2"
@@ -170,11 +169,10 @@ func run() error {
 		return err
 	}
 
+	log.SetOutput(os.Stderr)
 	if *debug == true {
-		log.SetOutput(os.Stderr)
-		log.SetLevel(log.InfoLevel)
+		log.SetLevel(log.DebugLevel)
 	} else {
-		log.SetOutput(os.Stderr)
 		log.SetLevel(log.WarnLevel)
 	}
 
@@ -483,34 +481,10 @@ func findRootfs() (string, error) {
 // The rest are considered as termination signals and the handler initiates shutdown upon receiving
 // such a signal.
 func setupSignalHandlers(rootfs, socketPath string) {
-	oneOf := func(list []os.Signal, sig os.Signal) bool {
-		for _, signal := range list {
-			if signal == sig {
-				return true
-			}
-		}
-		return false
-	}
-
-	var ignores = []os.Signal{syscall.SIGPIPE, syscall.SIGHUP, syscall.SIGUSR1, syscall.SIGUSR2, syscall.SIGALRM}
-	var terminals = []os.Signal{os.Interrupt, syscall.SIGTERM, syscall.SIGQUIT}
-	c := make(chan os.Signal, 1)
-	go func() {
-		for sig := range c {
-			switch {
-			case oneOf(ignores, sig):
-				log.Debugf("received a %s signal, ignoring...", sig)
-			default:
-				log.Infof("received a %s signal, stopping...", sig)
-				err := stop(rootfs, socketPath)
-				if err != nil {
-					log.Errorf("error: %v", err)
-				}
-				return
-			}
-		}
-	}()
-	signal.Notify(c, append(ignores, terminals...)...)
+	go utils.HandleSignals(func() error {
+		err := stop(rootfs, socketPath)
+		return trace.Wrap(err, "failed to stop planet")
+	})
 }
 
 func emptyIP(addr *net.IP) bool {
