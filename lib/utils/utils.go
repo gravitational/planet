@@ -103,15 +103,7 @@ func replaceLine(line string, entries []HostEntry) (string, []HostEntry) {
 // Upon receiving any of the terminal signals, it invokes the
 // provided function prior to exit.
 func HandleSignals(fn func() error) error {
-	var ignores = []os.Signal{
-		syscall.SIGPIPE, syscall.SIGHUP,
-		syscall.SIGUSR1, syscall.SIGUSR2,
-		syscall.SIGALRM,
-	}
-	var terminals = []os.Signal{os.Interrupt, syscall.SIGTERM, syscall.SIGQUIT}
-	c := make(chan os.Signal, 1)
-	signal.Ignore(ignores...)
-	signal.Notify(c, terminals...)
+	c := SetupSignalHandler()
 	select {
 	case sig := <-c:
 		log.Infof("received a %s signal, stopping...", sig)
@@ -122,6 +114,21 @@ func HandleSignals(fn func() error) error {
 		return trace.Wrap(err)
 	}
 	return nil
+}
+
+// SetupSignalHandler configures a set of ignored and termination signals.
+// Returns a channel to receive notifications about termination signals.
+func SetupSignalHandler() (recvCh <-chan os.Signal) {
+	var ignores = []os.Signal{
+		syscall.SIGPIPE, syscall.SIGHUP,
+		syscall.SIGUSR1, syscall.SIGUSR2,
+		syscall.SIGALRM,
+	}
+	var terminals = []os.Signal{os.Interrupt, syscall.SIGTERM, syscall.SIGQUIT}
+	recvCh = make(chan os.Signal, 1)
+	signal.Ignore(ignores...)
+	signal.Notify(recvCh, terminals...)
+	return recvCh
 }
 
 func compareStringSlices(a, b []string) bool {

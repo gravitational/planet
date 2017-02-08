@@ -260,9 +260,16 @@ func runAgent(conf *agent.Config, monitoringConf *monitoring.Config, leaderConf 
 		go dns.create(errCh)
 	}
 
-	return utils.HandleSignals(func() error {
-		return nil
-	})
+	signalCh := utils.SetupSignalHandler()
+	select {
+	case sig := <-signalCh:
+		log.Infof("received a %s signal, stopping...", sig)
+	case err := <-errCh:
+		if err != nil {
+			return trace.Wrap(err)
+		}
+	}
+	return nil
 }
 
 func leaderPause(publicIP, electionKey string, etcd *etcdconf.Config) error {
