@@ -125,10 +125,10 @@ func SetupSignalHandler() (recvCh <-chan os.Signal) {
 		syscall.SIGALRM,
 	}
 	var terminals = []os.Signal{os.Interrupt, syscall.SIGTERM, syscall.SIGQUIT}
-	recvCh = make(chan os.Signal, 1)
+	signalCh := make(chan os.Signal, 1)
 	signal.Ignore(ignores...)
-	signal.Notify(recvCh, terminals...)
-	return recvCh
+	signal.Notify(signalCh, terminals...)
+	return signalCh
 }
 
 func compareStringSlices(a, b []string) bool {
