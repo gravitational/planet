@@ -110,31 +110,18 @@ func HandleSignals(fn func() error) error {
 	}
 	var terminals = []os.Signal{os.Interrupt, syscall.SIGTERM, syscall.SIGQUIT}
 	c := make(chan os.Signal, 1)
-	signal.Notify(c, append(ignores, terminals...)...)
-	for sig := range c {
-		switch {
-		case SignalInList(ignores, sig):
-			log.Debugf("received a %s signal, ignoring...", sig)
-		default:
-			log.Infof("received a %s signal, stopping...", sig)
-			err := fn()
-			if err != nil {
-				log.Errorf("handler failed: %v", err)
-			}
-			return trace.Wrap(err)
+	signal.Ignore(ignores...)
+	signal.Notify(c, terminals...)
+	select {
+	case sig := <-c:
+		log.Infof("received a %s signal, stopping...", sig)
+		err := fn()
+		if err != nil {
+			log.Errorf("handler failed: %v", err)
 		}
+		return trace.Wrap(err)
 	}
 	return nil
-}
-
-// SignalInList determines if the signal specified with sig is in the given list
-func SignalInList(list []os.Signal, sig os.Signal) bool {
-	for _, signal := range list {
-		if signal == sig {
-			return true
-		}
-	}
-	return false
 }
 
 func compareStringSlices(a, b []string) bool {
