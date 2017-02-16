@@ -158,7 +158,7 @@ clusters:
 users:
 - name: default
   user:
-    client-certificate: /var/lib/gravity/secrets/kubelet.cert
+    client-certificate: /var/lib/gravity/secrets/scheduler.cert
     client-key: /var/lib/gravity/secrets/kubelet.key
 contexts:
 - name: default
