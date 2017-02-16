@@ -3,7 +3,7 @@ FROM planet/os
 ARG DOCKER_VER
 
 RUN apt-get install -q -y bridge-utils \
-	docker-engine=$DOCKER_VER \
+        docker-engine=$DOCKER_VER \
         bash-completion \
         kmod \
         iptables \
