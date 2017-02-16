@@ -1,20 +1,28 @@
 [Unit]
-Description=Docker
+Description=Docker Application Container Engine
 Documentation=https://docs.docker.com
-Wants=docker.socket
+After=network.target
 
 [Service]
-Type=notify
-NotifyAccess=all
-LimitNOFILE=1000000
 EnvironmentFile=/etc/container-environment
-Environment="DOCKER_NOFILE=1000000"
-Environment="DOCKER_PIDFILE=/var/run/docker.pid"
+Type=notify
+# the default is not to use systemd for cgroups because the delegate issues still
+# exists and systemd currently does not support the cgroup feature set required
+# for containers run by docker
 ExecStartPre=-/bin/rm -f /var/run/docker.pid
-ExecStartPre=/bin/systemctl is-active docker.socket
-ExecStart=/usr/bin/docker daemon -H fd:// --iptables=false --ip-masq=false --graph=/ext/docker $DOCKER_OPTS
+ExecStart=/usr/bin/dockerd --iptables=false --ip-masq=false --graph=/ext/docker $DOCKER_OPTS
+ExecReload=/bin/kill -s HUP $MAINPID
+# Having non-zero Limit*s causes performance problems due to accounting overhead
+# in the kernel. We recommend using cgroups to do container-local accounting.
+#LimitNOFILE=infinity
+LimitNOFILE=1000000
+LimitNPROC=infinity
+LimitCORE=infinity
+# systemd >= 226
+TasksMax=infinity
+TimeoutStartSec=0
+# configure systemd to not reset the cgroups of docker containers
+Delegate=yes
+KillMode=process
 Restart=always
 RestartSec=5
-
-[Install]
-Also=docker.socket

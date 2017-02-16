@@ -130,7 +130,7 @@ func importWithRepo(repo Repo, path, registryAddr string) error {
 		return trace.Wrap(err, "failed to load image into docker:\n%s", out)
 	}
 	repoTag := fmt.Sprintf("%v/%v", registryAddr, repo.ImageURL())
-	out, err = dockerCommand("tag", "-f", repo.ImageURL(), repoTag)
+	out, err = dockerCommand("tag", repo.ImageURL(), repoTag)
 	if err != nil {
 		return trace.Wrap(err, "failed to tag image in registry:\n%s", out)
 	}

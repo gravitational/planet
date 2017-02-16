@@ -42,8 +42,9 @@ ASSETS := $(PWD)/build.assets
 BUILD_ASSETS := $(PWD)/build/assets
 BUILDDIR ?= $(PWD)/build
 BUILDDIR := $(shell realpath $(BUILDDIR))
-KUBE_VER:=v1.4.6
-PUBLIC_IP:=127.0.0.1
+KUBE_VER := v1.5.2
+DOCKER_VER := 1.12.6-0~debian-jessie
+PUBLIC_IP := 127.0.0.1
 export
 PLANET_PACKAGE_PATH=$(PWD)
 PLANET_PACKAGE=github.com/gravitational/planet
@@ -160,7 +161,7 @@ os:
 # needs (like bridge-utils or kmod)
 base: os
 	@echo -e "\n---> Making Planet/Base Docker image based on Planet/OS...\n"
-	$(MAKE) -e BUILDIMAGE=planet/base DOCKERFILE=base.dockerfile make-docker-image
+	$(MAKE) -e BUILDIMAGE=planet/base DOCKERFILE=base.dockerfile EXTRA_ARGS="--build-arg DOCKER_VER=$(DOCKER_VER)" make-docker-image
 
 # Builds a "buildbox" docker image. Actual building is done inside of Docker, and this
 # image is used as a build box. It contains dev tools (Golang, make, git, vi, etc)
@@ -186,7 +187,7 @@ master-clean:
 
 # internal use:
 make-docker-image:
-	cd $(ASSETS)/docker; docker build -t $(BUILDIMAGE) -f $(DOCKERFILE) . ;\
+	cd $(ASSETS)/docker; docker build $(EXTRA_ARGS) -t $(BUILDIMAGE) -f $(DOCKERFILE) . ;\
 
 remove-godeps:
 	rm -rf Godeps/

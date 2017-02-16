@@ -6,7 +6,7 @@ CNI_TARGET := $(ASSETDIR)/$(CNI_TARBALL)
 
 .PHONY: all
 all: network.mk cni-install
-	@echo "\\n---> Installing Flannel and preparing network stack for Kubernetes:\\n"
+	@echo "\\n---> Setting up network stack for Kubernetes:\\n"
 	mkdir -p $(ASSETDIR)
 # script that allows waiting for etcd to come up
 	mkdir -p $(ROOTFS)/usr/bin/scripts
