@@ -230,11 +230,16 @@ func runAgent(conf *agent.Config, monitoringConf *monitoring.Config, leaderConf 
 	if err != nil {
 		return trace.Wrap(err)
 	}
-	if len(peers) > 0 {
+
+	// only join to the initial seed list if not member already,
+	// as the initial peer could be gone
+	if !monitoringAgent.IsMember() {
 		err = monitoringAgent.Join(peers)
 		if err != nil {
 			return trace.Wrap(err, "failed to join serf cluster")
 		}
+	} else {
+		log.Debugf("this agent is already member of the cluster")
 	}
 
 	errorC := make(chan error, 10)
