@@ -1,6 +1,7 @@
 package monitoring
 
 import (
+	"context"
 	"os/exec"
 
 	"github.com/gravitational/satellite/agent/health"
@@ -21,7 +22,7 @@ type VersionCollector struct {
 func (r *VersionCollector) Name() string { return "versions" }
 
 // Check collects versions of all components and adds information to reporter
-func (r *VersionCollector) Check(reporter health.Reporter) {
+func (r *VersionCollector) Check(ctx context.Context, reporter health.Reporter) {
 	for _, checker := range infoCheckers {
 		output, err := exec.Command(checker.command[0], checker.command[1:]...).CombinedOutput()
 		out := string(output)

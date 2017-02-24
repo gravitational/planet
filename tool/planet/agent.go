@@ -239,7 +239,7 @@ func runAgent(conf *agent.Config, monitoringConf *monitoring.Config, leaderConf 
 			return trace.Wrap(err, "failed to join serf cluster")
 		}
 	} else {
-		log.Debugf("this agent is already member of the cluster")
+		log.Debug("this agent is already member of the cluster")
 	}
 
 	errorC := make(chan error, 10)
