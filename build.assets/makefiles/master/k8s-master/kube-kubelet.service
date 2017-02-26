@@ -28,4 +28,6 @@ ExecStart=/usr/bin/kubelet \
         --resolv-conf=/etc/resolv.kubelet.conf $KUBE_CLOUD_FLAGS
 
 Restart=always
-RestartSec=10
+RestartSec=5
+StartLimitInterval=3600
+StartLimitBurst=720

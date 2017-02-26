@@ -7,6 +7,7 @@ import (
 	log "github.com/Sirupsen/logrus"
 	"github.com/docker/docker/pkg/term"
 	"github.com/gravitational/planet/lib/box"
+	"github.com/gravitational/planet/lib/constants"
 	"github.com/gravitational/trace"
 )
 
@@ -48,7 +49,7 @@ func enter(rootfs, socketPath string, cfg *box.ProcessConfig) error {
 	cfg.Env.Upsert(EnvEtcdctlKeyFile, DefaultEtcdctlKeyFile)
 	cfg.Env.Upsert(EnvEtcdctlCAFile, DefaultEtcdctlCAFile)
 	cfg.Env.Upsert(EnvEtcdctlPeers, DefaultEtcdEndpoints)
-	cfg.Env.Upsert(EnvKubeConfig, KubeConfigPath)
+	cfg.Env.Upsert(EnvKubeConfig, constants.KubeConfigPath)
 	s, err := box.Connect(&box.ClientConfig{
 		Rootfs:     rootfs,
 		SocketPath: socketPath,

@@ -12,6 +12,8 @@ import (
 	"strings"
 	"time"
 
+	"github.com/gravitational/planet/lib/constants"
+
 	log "github.com/Sirupsen/logrus"
 	"github.com/gravitational/planet/lib/box"
 	"github.com/gravitational/planet/lib/check"
@@ -418,7 +420,7 @@ func addKubeConfig(config *Config) error {
 	if err != nil {
 		return trace.Wrap(err)
 	}
-	path := filepath.Join(config.Rootfs, KubeConfigPath)
+	path := filepath.Join(config.Rootfs, constants.KubectlConfigPath)
 	err = os.MkdirAll(filepath.Dir(path), SharedDirMask)
 	if err != nil {
 		return trace.Wrap(err)

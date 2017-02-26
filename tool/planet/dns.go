@@ -4,6 +4,7 @@ import (
 	"context"
 	"time"
 
+	"github.com/gravitational/planet/lib/constants"
 	"github.com/gravitational/planet/lib/utils"
 	"github.com/gravitational/satellite/agent"
 	pb "github.com/gravitational/satellite/agent/proto/agentpb"
@@ -88,7 +89,7 @@ func (r *DNSBootstrapper) create() {
 		// kube client is also a part of the retry loop as the kubernetes
 		// API server might not be available at first connect
 		if client == nil {
-			client, err = monitoring.ConnectToKube(r.kubeAddr)
+			client, err = monitoring.ConnectToKube(r.kubeAddr, constants.KubeConfigPath)
 			if err != nil {
 				return trace.ConnectionProblem(err, "failed to connect to kubernetes")
 			}
