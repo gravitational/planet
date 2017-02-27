@@ -82,8 +82,6 @@ func addToMaster(node agent.Agent, config *Config, etcdConfig *monitoring.ETCDCo
 		return trace.Wrap(err)
 	}
 	node.AddChecker(monitoring.KubeAPIServerHealth(config.KubeAddr, constants.KubeConfigPath))
-	// See: https://github.com/kubernetes/kubernetes/issues/17737
-	// node.AddChecker(monitoring.ComponentSgtatusHealth(config.KubeAddr))
 	node.AddChecker(monitoring.DockerHealth("/var/run/docker.sock"))
 	node.AddChecker(dockerRegistryHealth(config.RegistryAddr, localTransport))
 	node.AddChecker(etcdChecker)
