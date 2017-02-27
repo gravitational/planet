@@ -2,6 +2,7 @@ package main
 
 import (
 	"archive/tar"
+	"context"
 	"encoding/json"
 	"fmt"
 	"io"
@@ -14,10 +15,10 @@ import (
 	"time"
 
 	log "github.com/Sirupsen/logrus"
+	"github.com/gravitational/planet/lib/utils"
 	"github.com/gravitational/trace"
 
 	"gopkg.in/alecthomas/kingpin.v2"
-	"k8s.io/kubernetes/pkg/util/wait"
 )
 
 func main() {
@@ -84,7 +85,7 @@ func bulkImport(dir, registryAddr string) error {
 // path refers to the same archive file and used for `docker load`.
 func importImageFromTarball(input io.Reader, path, registryAddr string) error {
 	const interval = 5 * time.Second
-	const timeout = 30 * time.Second
+	const attempts = 6
 
 	log.Infof("importing from tarball %s", path)
 	r := tar.NewReader(input)
@@ -107,12 +108,11 @@ func importImageFromTarball(input io.Reader, path, registryAddr string) error {
 			if err = json.Unmarshal(data, &repo); err != nil {
 				return trace.Wrap(err)
 			}
-			if err = wait.Poll(interval, timeout, func() (ready bool, err error) {
+			if err = utils.Retry(context.TODO(), attempts, interval, func() error {
 				if err := importWithRepo(repo, path, registryAddr); err != nil {
-					log.Infof("failed to import %v into docker: %v, will retry", path, err)
-					return false, nil
+					return trace.Wrap(err, "failed to import %v into docker: %v, will retry", path, err)
 				}
-				return true, nil
+				return nil
 			}); err != nil {
 				return trace.Wrap(err)
 			}

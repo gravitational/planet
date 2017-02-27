@@ -3,7 +3,9 @@ Description=Etcd Service
 
 [Service]
 Restart=always
-RestartSec=10
+RestartSec=5
+StartLimitInterval=3600
+StartLimitBurst=720
 Type=notify
 TimeoutStartSec=0
 EnvironmentFile=/etc/container-environment

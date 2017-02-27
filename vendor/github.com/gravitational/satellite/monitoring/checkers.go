@@ -13,18 +13,40 @@ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 See the License for the specific language governing permissions and
 limitations under the License.
 */
+
 package monitoring
 
 import (
+	"context"
 	"fmt"
 
 	"github.com/gravitational/satellite/agent/health"
 	"github.com/gravitational/trace"
+	kube "k8s.io/client-go/1.4/kubernetes"
 )
 
+// healthzChecker is secure healthz checker
+type healthzChecker struct {
+	*KubeChecker
+}
+
 // KubeAPIServerHealth creates a checker for the kubernetes API server
-func KubeAPIServerHealth(kubeAddr string) health.Checker {
-	return NewHTTPHealthzChecker("kube-apiserver", fmt.Sprintf("%v/healthz", kubeAddr), kubeHealthz)
+func KubeAPIServerHealth(kubeAddr string, config string) health.Checker {
+	checker := &healthzChecker{}
+	kubeChecker := &KubeChecker{
+		name:       "kube-apiserver",
+		masterURL:  kubeAddr,
+		checker:    checker.testHealthz,
+		configPath: config,
+	}
+	checker.KubeChecker = kubeChecker
+	return kubeChecker
+}
+
+// testInterPodCommunication implements the inter-pod communication test.
+func (h *healthzChecker) testHealthz(ctx context.Context, client *kube.Clientset) error {
+	_, err := client.Core().ComponentStatuses().Get("scheduler")
+	return err
 }
 
 // KubeletHealth creates a checker for the kubernetes kubelet component
@@ -32,9 +54,9 @@ func KubeletHealth(addr string) health.Checker {
 	return NewHTTPHealthzChecker("kubelet", fmt.Sprintf("%v/healthz", addr), kubeHealthz)
 }
 
-// ComponentStatusHealth creates a checker of the kubernetes component statuses
-func ComponentStatusHealth(kubeAddr string) health.Checker {
-	return NewComponentStatusChecker(kubeAddr)
+// NodesStatusHealth creates a checker that reports a number of ready kubernetes nodes
+func NodesStatusHealth(kubeAddr string, nodesReadyThreshold int) health.Checker {
+	return NewNodesStatusChecker(kubeAddr, nodesReadyThreshold)
 }
 
 // EtcdHealth creates a checker that checks health of etcd

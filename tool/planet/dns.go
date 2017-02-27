@@ -1,18 +1,20 @@
 package main
 
 import (
+	"context"
 	"time"
 
+	"github.com/gravitational/planet/lib/constants"
+	"github.com/gravitational/planet/lib/utils"
 	"github.com/gravitational/satellite/agent"
 	pb "github.com/gravitational/satellite/agent/proto/agentpb"
 	"github.com/gravitational/satellite/monitoring"
 	"github.com/gravitational/trace"
 
 	log "github.com/Sirupsen/logrus"
-	"k8s.io/kubernetes/pkg/api"
-	kube "k8s.io/kubernetes/pkg/client/unversioned"
-	"k8s.io/kubernetes/pkg/util/intstr"
-	"k8s.io/kubernetes/pkg/util/wait"
+	kube "k8s.io/client-go/1.4/kubernetes"
+	"k8s.io/client-go/1.4/pkg/api/v1"
+	"k8s.io/client-go/1.4/pkg/util/intstr"
 )
 
 const serviceNamespace = "kube-system"
@@ -26,14 +28,14 @@ type DNSBootstrapper struct {
 
 // createKubeDNSService creates or updates the `kube-dns` kubernetes service.
 // It will set the service's cluster IP to the value specified by clusterIP.
-func (r *DNSBootstrapper) createService(client *kube.Client) (err error) {
+func (r *DNSBootstrapper) createService(client *kube.Clientset) (err error) {
 	const service = "kube-dns"
 	err = createServiceNamespaceIfNeeded(client)
 	if err != nil {
 		return trace.Wrap(err)
 	}
-	dnsService := &api.Service{
-		ObjectMeta: api.ObjectMeta{
+	dnsService := &v1.Service{
+		ObjectMeta: v1.ObjectMeta{
 			Name: service,
 			Labels: map[string]string{
 				"k8s-app":                       "kube-dns",
@@ -41,12 +43,12 @@ func (r *DNSBootstrapper) createService(client *kube.Client) (err error) {
 				"kubernetes.io/name":            "KubeDNS",
 			},
 		},
-		Spec: api.ServiceSpec{
+		Spec: v1.ServiceSpec{
 			Selector: map[string]string{
 				"k8s-app": "kube-dns",
 			},
 			ClusterIP: r.clusterIP,
-			Ports: []api.ServicePort{
+			Ports: []v1.ServicePort{
 				{
 					Port:       53,
 					TargetPort: intstr.FromString("dns"),
@@ -73,44 +75,43 @@ func (r *DNSBootstrapper) createService(client *kube.Client) (err error) {
 // gets created or a specified number of attempts have been made.
 func (r *DNSBootstrapper) create() {
 	const retryPeriod = 5 * time.Second
-	const retryTimeout = 240 * time.Second
-	var client *kube.Client
+	const retryAttempts = 50
+	var client *kube.Clientset
+	var err error
 
-	if err := wait.Poll(retryPeriod, retryTimeout, func() (done bool, err error) {
+	err = utils.Retry(context.TODO(), retryAttempts, retryPeriod, func() error {
 		var status *pb.NodeStatus
 		status = r.agent.LocalStatus()
 		if status.Status != pb.NodeStatus_Running {
-			log.Infof("node unhealthy, retrying")
-			return false, nil
+			return trace.ConnectionProblem(nil, "node unhealthy: %v retrying", status.Status)
 		}
 
 		// kube client is also a part of the retry loop as the kubernetes
 		// API server might not be available at first connect
 		if client == nil {
-			client, err = monitoring.ConnectToKube(r.kubeAddr)
+			client, err = monitoring.ConnectToKube(r.kubeAddr, constants.KubeConfigPath)
 			if err != nil {
-				log.Infof("failed to connect to kubernetes: %v", err)
-				return false, nil
+				return trace.ConnectionProblem(err, "failed to connect to kubernetes")
 			}
 		}
 		err = r.createService(client)
 		if err != nil {
-			log.Infof("failed to create kube-dns service: %v", err)
-			return false, nil
+			return trace.Wrap(err, "failed to create kube-dns service")
 		}
 		log.Infof("created kube-dns service")
-		return true, nil
-	}); err != nil {
-		log.Infof("giving up on creating kube-dns: %v", err)
+		return nil
+	})
+	if err != nil {
+		log.Errorf("giving up on creating kube-dns: %v", trace.DebugReport(err))
 	}
 }
 
 // createServiceNamespaceIfNeeded creates a service namespace if one does not exist yet.
-func createServiceNamespaceIfNeeded(client *kube.Client) error {
+func createServiceNamespaceIfNeeded(client *kube.Clientset) error {
 	log.Infof("creating %s namespace", serviceNamespace)
 	if _, err := client.Namespaces().Get(serviceNamespace); err != nil {
 		log.Infof("%s namespace not found: %v", serviceNamespace, err)
-		_, err = client.Namespaces().Create(&api.Namespace{ObjectMeta: api.ObjectMeta{Name: serviceNamespace}})
+		_, err = client.Namespaces().Create(&v1.Namespace{ObjectMeta: v1.ObjectMeta{Name: serviceNamespace}})
 		if err != nil {
 			return trace.Wrap(err)
 		}
@@ -120,11 +121,11 @@ func createServiceNamespaceIfNeeded(client *kube.Client) error {
 
 // upsertService either creates a new service if the specified service does not exist,
 // or updates an existing one.
-func upsertService(client *kube.Client, service *api.Service) (err error) {
+func upsertService(client *kube.Clientset, service *v1.Service) (err error) {
 	log.Infof("creating %s service with spec:\n%#v", service.ObjectMeta.Name, service)
 	serviceName := service.ObjectMeta.Name
 	services := client.Services(serviceNamespace)
-	var existing *api.Service
+	var existing *v1.Service
 	if existing, err = services.Get(serviceName); err != nil {
 		log.Infof("%s service not found: %v", service.ObjectMeta.Name, err)
 		_, err = services.Create(service)

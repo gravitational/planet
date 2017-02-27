@@ -24,6 +24,8 @@ ExecStop=/etc/init.d/dnsmasq systemd-stop-resolvconf
 ExecReload=/bin/kill -HUP $MAINPID
 Restart=always
 RestartSec=5
+StartLimitInterval=3600
+StartLimitBurst=720
 
 [Install]
 WantedBy=multi-user.target

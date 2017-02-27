@@ -26,3 +26,5 @@ Delegate=yes
 KillMode=process
 Restart=always
 RestartSec=5
+StartLimitInterval=3600
+StartLimitBurst=720

@@ -199,7 +199,7 @@ func updateDNS(conf *LeaderConfig, hostname string, newMasterIP string) error {
 	return nil
 }
 
-var electedUnits = []string{"kube-controller-manager.service", "kube-scheduler.service", "registry.service"}
+var electedUnits = []string{"kube-controller-manager.service", "kube-scheduler.service", "registry.service", "kube-apiserver.service"}
 
 func unitsCommand(command string) error {
 	log.Infof("executing %v on %v", command, electedUnits)
@@ -230,11 +230,16 @@ func runAgent(conf *agent.Config, monitoringConf *monitoring.Config, leaderConf 
 	if err != nil {
 		return trace.Wrap(err)
 	}
-	if len(peers) > 0 {
+
+	// only join to the initial seed list if not member already,
+	// as the initial peer could be gone
+	if !monitoringAgent.IsMember() && len(peers) > 0 {
 		err = monitoringAgent.Join(peers)
 		if err != nil {
 			return trace.Wrap(err, "failed to join serf cluster")
 		}
+	} else {
+		log.Debug("this agent is already member of the cluster")
 	}
 
 	errorC := make(chan error, 10)
