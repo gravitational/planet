@@ -54,9 +54,13 @@ const (
 	// setup AWS integration in kubernetes
 	CloudProviderAWS = "aws"
 
-	// DNSNdots is the amount of NDOTS we set before doing initial global query
+	// See resolv.conf(5) on a Linux machine
+	//
+	// DNSNdots defines the threshold for amount of dots that must appear in a name
+	// before an initial absolute query will be made
 	DNSNdots = 2
-	// DNSTimeout is the amount of seconds to wait
+	// DNSTimeout is the amount time resolver will wait for response before retrying
+	// the query with a different name server. Measured in seconds
 	DNSTimeout = 1
 
 	// LocalDNSIP is the IP of the local DNS server
