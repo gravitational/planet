@@ -467,9 +467,9 @@ func setDNSMasq(config *Config) error {
 
 func addResolv(config *Config) error {
 	planetResolv := filepath.Join(config.Rootfs, "etc", PlanetResolv)
-	// it's important to set 127.0.0.1 first, so local queries will be going to local dnsmasq
-	// howerver it is filtered out by docker in host networkign mode, so we trick it
-	// by adding this internal ip of the host
+	// it's important to set 127.0.0.1 first, so local queries are going to local dnsmasq
+	// however it is filtered out by docker in host networking mode - work around this behavior
+	// by adding this internal IP of the host
 	if err := copyResolvFile(planetResolv, []string{"127.0.0.1", config.PublicIP}); err != nil {
 		return trace.Wrap(err)
 	}
@@ -515,12 +515,12 @@ func copyResolvFile(destination string, nameservers []string) error {
 		return trace.Wrap(err)
 	}
 	// Make sure external nameservers go first in the order supplied by caller
-	var outNameservers []string
-	outNameservers = append(outNameservers, nameservers...)
+	outNameservers := append([]string{}, nameservers...)
 	outNameservers = append(outNameservers, cfg.Servers...)
-	cfg.Servers = outNameservers
 
-	cfg.UpsertSearchDomain(DefaultSearchDomain)
+	cfg.Servers = outNameservers
+	// Limit search to local cluster domain
+	cfg.Search = []string{DefaultSearchDomain}
 	cfg.Ndots = DNSNdots
 	cfg.Timeout = DNSTimeout
 
