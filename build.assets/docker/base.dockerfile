@@ -36,6 +36,7 @@ RUN apt-get install -q -y bridge-utils \
         socat \
         nmap \
         netcat \
+        nfs-common \
         dnsmasq ; \
     apt-get -y autoclean; apt-get -y clean
 
