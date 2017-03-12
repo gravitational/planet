@@ -5,9 +5,8 @@ FROM debian:jessie-backports
 
 ENV DEBIAN_FRONTEND noninteractive
 
-# Locales
-ADD locale.gen /etc/locale.gen
-ADD profile /etc/profile
+ADD os-rootfs/ /
+
 # dockerproject debian repo key
 RUN (apt-get update && \
 	apt-get -q -y install apt-transport-https && \
@@ -20,11 +19,8 @@ RUN (apt-get clean \
 	&& apt-key update \
 	&& apt-get -q -y update --fix-missing \
 	&& apt-get -q -y update \
-	&& apt-get install -q -y apt-utils \
-	&& apt-get install -q -y less \
-	&& apt-get install -q -y locales \
+	&& apt-get install -q -y apt-utils less locales \
 	&& apt-get -t jessie-backports install -q -y systemd)
-ADD bashrc /etc/bash.bashrc
 
 # Set locale to en_US.UTF-8
 RUN (locale-gen \
