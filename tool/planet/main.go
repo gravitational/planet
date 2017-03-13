@@ -223,6 +223,7 @@ func run() error {
 		monitoringConf := &monitoring.Config{
 			Role:                  agent.Role(*cagentRole),
 			KubeAddr:              *cagentKubeAddr,
+			KubeConfigPath:        KubeConfigPath,
 			ClusterDNS:            cagentClusterDNS.String(),
 			RegistryAddr:          fmt.Sprintf("https://%v", *cagentRegistryAddr),
 			NettestContainerImage: fmt.Sprintf("%v/gcr.io/google_containers/nettest:1.8", *cagentRegistryAddr),
