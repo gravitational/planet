@@ -159,7 +159,7 @@ func run() error {
 		cleaderEtcdEndpoints = List(cleader.Flag("etcd-endpoints", "List of comma-separated etcd endpoints").Default(DefaultEtcdEndpoints))
 		cleaderPause         = cleader.Command("pause", "Pause leader election participation for this node")
 		cleaderResume        = cleader.Command("resume", "Resume leader election participation for this node")
-		cleaderView          = cleader.Command("view", "Dislpay the IP address of the active master")
+		cleaderView          = cleader.Command("view", "Display the IP address of the active master")
 		cleaderViewKey       = cleaderView.Flag("leader-key", "Etcd key holding the new leader").Required().String()
 	)
 
