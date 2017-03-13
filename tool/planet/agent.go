@@ -166,8 +166,8 @@ func startLeaderClient(conf *LeaderConfig, errorC chan error) (leaderClient io.C
 		}
 	})
 	// modify /etc/hosts upon election of a new leader node
-	client.AddWatchCallback(conf.LeaderKey, conf.Term/3, func(key, prevVal, newVal string) {
-		if err := updateDNS(conf, hostname, newVal); err != nil {
+	client.AddWatchCallback(conf.LeaderKey, conf.Term/3, func(key, prevVal, newLeaderIP string) {
+		if err := updateDNS(conf, hostname, newLeaderIP); err != nil {
 			log.Error(trace.DebugReport(err))
 		}
 	})
@@ -206,7 +206,7 @@ func updateDNS(conf *LeaderConfig, hostname string, newMasterIP string) error {
 	return nil
 }
 
-var electedUnits = []string{"kube-controller-manager.service", "kube-scheduler.service", "registry.service"}
+var electedUnits = []string{"kube-controller-manager.service", "kube-scheduler.service", "registry.service", "kube-apiserver.service"}
 
 func unitsCommand(command string) error {
 	log.Infof("executing %v on %v", command, electedUnits)
@@ -253,9 +253,10 @@ func runAgent(conf *agent.Config, monitoringConf *monitoring.Config, leaderConf 
 
 	if monitoringConf.Role == agent.RoleMaster {
 		dns := &DNSBootstrapper{
-			clusterIP: monitoringConf.ClusterDNS,
-			kubeAddr:  monitoringConf.KubeAddr,
-			agent:     monitoringAgent,
+			clusterIP:      monitoringConf.ClusterDNS,
+			kubeAddr:       monitoringConf.KubeAddr,
+			kubeConfigPath: KubeConfigPath,
+			agent:          monitoringAgent,
 		}
 		go dns.create(errCh)
 	}

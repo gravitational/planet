@@ -22,6 +22,8 @@ type Config struct {
 	Role agent.Role
 	// KubeAddr is the address of the kubernetes API server
 	KubeAddr string
+	// KubeConfigPath is the path to the kube config file
+	KubeConfigPath string
 	// ClusterDNS is the IP of the kubernetes DNS service
 	ClusterDNS string
 	// RegistryAddr is the address of the private docker registry
@@ -79,7 +81,7 @@ func addToMaster(node agent.Agent, config *Config, etcdConfig *monitoring.ETCDCo
 	if err != nil {
 		return trace.Wrap(err)
 	}
-	node.AddChecker(monitoring.KubeAPIServerHealth(config.KubeAddr))
+	node.AddChecker(monitoring.KubeAPIServerHealth(config.KubeAddr, config.KubeConfigPath))
 	node.AddChecker(monitoring.DockerHealth("/var/run/docker.sock"))
 	node.AddChecker(dockerRegistryHealth(config.RegistryAddr, localTransport))
 	node.AddChecker(etcdChecker)

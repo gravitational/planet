@@ -19,9 +19,10 @@ const serviceNamespace = "kube-system"
 
 // DNSBootstrapper represents the process of creating a kubernetes service for DNS.
 type DNSBootstrapper struct {
-	clusterIP string
-	kubeAddr  string
-	agent     agent.Agent
+	clusterIP      string
+	kubeAddr       string
+	kubeConfigPath string
+	agent          agent.Agent
 }
 
 // createKubeDNSService creates or updates the `kube-dns` kubernetes service.
@@ -87,7 +88,7 @@ func (r *DNSBootstrapper) create(errCh chan<- error) {
 		// kube client is also a part of the retry loop as the kubernetes
 		// API server might not be available at first connect
 		if client == nil {
-			client, err = monitoring.ConnectToKube(r.kubeAddr)
+			client, err = monitoring.ConnectToKube(r.kubeAddr, r.kubeConfigPath)
 			if err != nil {
 				log.Warningf("failed to connect to kubernetes: %v", err)
 				return false, nil

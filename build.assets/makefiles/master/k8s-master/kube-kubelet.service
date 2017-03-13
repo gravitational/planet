@@ -27,4 +27,6 @@ ExecStart=/usr/bin/kubelet \
         --resolv-conf=/etc/resolv.kubelet.conf
 
 Restart=always
-RestartSec=10
+RestartSec=5
+StartLimitInterval=3600
+StartLimitBurst=720
