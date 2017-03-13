@@ -7,7 +7,9 @@ Wants=kube-apiserver.service
 ExecStartPre=/bin/systemctl is-active kube-apiserver.service
 ExecStart=/usr/bin/kube-scheduler --master=https://apiserver:6443 --kubeconfig=/etc/kubernetes/scheduler.kubeconfig
 Restart=always
-RestartSec=10
+RestartSec=5
+StartLimitInterval=3600
+StartLimitBurst=720
 User=planet
 Group=planet
 SuccessExitStatus=2
