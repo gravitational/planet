@@ -209,15 +209,19 @@ func updateDNS(conf *LeaderConfig, hostname string, newMasterIP string) error {
 var electedUnits = []string{"kube-controller-manager.service", "kube-scheduler.service", "registry.service", "kube-apiserver.service"}
 
 func unitsCommand(command string) error {
-	log.Infof("executing %v on %v", command, electedUnits)
+	log.Debugf("executing %v on %v", command, electedUnits)
+	var errors []error
 	for _, unit := range electedUnits {
 		cmd := exec.Command("/bin/systemctl", command, unit)
-		log.Infof("executing %v", cmd)
-		if err := cmd.Run(); err != nil {
-			return trace.Wrap(err, "failed to execute %v", cmd)
+		log.Debugf("executing %v", cmd)
+		out, err := cmd.CombinedOutput()
+		if err != nil {
+			errors = append(errors, err)
+			// Instead of failing immediately, complete start of other units
+			log.Warningf("failed to execute %v: %s\n%v", cmd, out, trace.DebugReport(err))
 		}
 	}
-	return nil
+	return trace.NewAggregate(errors...)
 }
 
 // runAgent starts the master election / health check loops in background and
