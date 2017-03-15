@@ -491,9 +491,13 @@ func copyResolvFile(destination string, nameservers []string) error {
 	outNameservers = append(outNameservers, cfg.Servers...)
 	cfg.Servers = outNameservers
 
-	cfg.UpsertSearchDomain(DefaultSearchDomain)
+	// Limit search to local cluster domain
+	cfg.Search = []string{DefaultSearchDomain}
 	cfg.Ndots = DNSNdots
 	cfg.Timeout = DNSTimeout
+	// See: https://github.com/gravitational/gravity/issues/1861
+	// Do not use rotate to allow proper cluster-local name resolution.
+	cfg.Rotate = false
 
 	resolv, err := os.OpenFile(
 		destination,

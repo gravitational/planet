@@ -50,26 +50,6 @@ func (d *DNSConfig) rotate() string {
 	return ""
 }
 
-// UpsertServer adds server if it's not here, adds it to the begining
-func (d *DNSConfig) UpsertServer(ip string) {
-	for _, server := range d.Servers {
-		if server == ip {
-			return
-		}
-	}
-	d.Servers = append([]string{ip}, d.Servers...)
-}
-
-// UpsertSearchDomain adds a search domain suffix to search list
-func (d *DNSConfig) UpsertSearchDomain(domain string) {
-	for _, name := range d.Search {
-		if name == domain {
-			return
-		}
-	}
-	d.Search = append(d.Search, domain)
-}
-
 // String returns resolv.conf serialized version of config
 func (d *DNSConfig) String() string {
 	buf := &bytes.Buffer{}
