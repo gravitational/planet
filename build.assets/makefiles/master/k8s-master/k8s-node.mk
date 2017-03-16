@@ -6,7 +6,6 @@ all: k8s-node.mk
 	@echo "\n---> Building Kubernetes node components\n"
 	mkdir -p $(ROOTFS)/etc/kubernetes
 	cp -TRv -p rootfs/etc/kubernetes $(ROOTFS)/etc/kubernetes
-	cp -TRv -p rootfs/root $(ROOTFS)/root
 	cp -af ./kube-kubelet.service $(ROOTFS)/lib/systemd/system
 	cp -af ./kube-proxy.service $(ROOTFS)/lib/systemd/system
 	ln -sf /lib/systemd/system/kube-kubelet.service  $(ROOTFS)/lib/systemd/system/multi-user.target.wants/

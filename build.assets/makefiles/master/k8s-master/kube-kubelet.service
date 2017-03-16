@@ -16,7 +16,7 @@ ExecStart=/usr/bin/kubelet \
         --cadvisor-port=4194 \
         --healthz-bind-address=0.0.0.0 \
         --healthz-port=10248 \
-        --configure-cbr0=false $KUBE_CLOUD_FLAGS \
+        --configure-cbr0=false \
         --cluster-dns=${KUBE_CLUSTER_DNS_IP} \
         --cluster-domain=cluster.local \
         --pod-infra-container-image=${KUBE_APISERVER}:5000/gcr.io/google_containers/pause:0.8.0 \
@@ -24,7 +24,7 @@ ExecStart=/usr/bin/kubelet \
         --tls-cert-file=/var/state/apiserver.cert \
         --tls-private-key-file=/var/state/apiserver.key \
         --kubeconfig=/etc/kubernetes/kubelet.kubeconfig \
-        --resolv-conf=/etc/resolv.kubelet.conf
+        --resolv-conf=/etc/resolv.kubelet.conf $KUBE_CLOUD_FLAGS
 
 Restart=always
 RestartSec=5
