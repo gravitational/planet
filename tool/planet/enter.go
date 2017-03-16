@@ -48,6 +48,7 @@ func enter(rootfs, socketPath string, cfg *box.ProcessConfig) error {
 	cfg.Env.Upsert(EnvEtcdctlKeyFile, DefaultEtcdctlKeyFile)
 	cfg.Env.Upsert(EnvEtcdctlCAFile, DefaultEtcdctlCAFile)
 	cfg.Env.Upsert(EnvEtcdctlPeers, DefaultEtcdEndpoints)
+	cfg.Env.Upsert(EnvKubeConfig, KubeConfigPath)
 	s, err := box.Connect(&box.ClientConfig{
 		Rootfs:     rootfs,
 		SocketPath: socketPath,

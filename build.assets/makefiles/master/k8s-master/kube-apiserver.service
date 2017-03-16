@@ -17,6 +17,7 @@ ExecStart=/usr/bin/kube-apiserver \
         --authorization-policy-file=/etc/kubernetes/policy.jsonl \
         --runtime-config=api/v1,extensions/v1beta1 \
         --allow-privileged=true \
+        --apiserver-count=1 \
         --tls-cert-file=/var/state/apiserver.cert \
         --tls-private-key-file=/var/state/apiserver.key \
         --kubelet-https=true \
