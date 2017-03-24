@@ -21,8 +21,7 @@ import (
 	"github.com/gravitational/configure/cstrings"
 	etcdconf "github.com/gravitational/coordinate/config"
 	"github.com/gravitational/satellite/agent"
-	"github.com/gravitational/satellite/agent/backend/sqlite"
-	"github.com/gravitational/satellite/agent/cache"
+	"github.com/gravitational/satellite/agent/backend/inmemory"
 	"github.com/gravitational/trace"
 	"github.com/gravitational/version"
 	"github.com/opencontainers/runc/libcontainer"
@@ -104,7 +103,6 @@ func run() error {
 		cagentName             = cagent.Flag("name", "Agent name.  Must be the same as the name of the local serf node").OverrideDefaultFromEnvar(EnvAgentName).String()
 		cagentSerfRPCAddr      = cagent.Flag("serf-rpc-addr", "RPC address of the local serf node").Default("127.0.0.1:7373").String()
 		cagentInitialCluster   = KeyValueList(cagent.Flag("initial-cluster", "Initial planet cluster configuration as a comma-separated list of peers").OverrideDefaultFromEnvar(EnvInitialCluster))
-		cagentStateDir         = cagent.Flag("state-dir", "Directory where agent-specific state like health stats is stored").Default("/var/planet/agent").String()
 		cagentClusterDNS       = cagent.Flag("cluster-dns", "IP for a cluster DNS server.").OverrideDefaultFromEnvar(EnvClusterDNSIP).IP()
 		cagentRegistryAddr     = cagent.Flag("docker-registry-addr",
 			"Address of the private docker registry.  Will default to apiserver-dns:5000").String()
@@ -193,13 +191,7 @@ func run() error {
 
 	// "agent" command
 	case cagent.FullCommand():
-		path := filepath.Join(*cagentStateDir, monitoringDbFile)
-		var cache cache.Cache
-		cache, err = sqlite.New(path)
-		if err != nil {
-			err = trace.Wrap(err, "failed to create cache")
-			break
-		}
+		cache := inmemory.New()
 		if *cagentKubeAddr == "" {
 			*cagentKubeAddr = "127.0.0.1:8080"
 		}
