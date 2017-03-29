@@ -79,7 +79,7 @@ const (
 	DNSMasqAPIServerConf = "/etc/dnsmasq.d/apiserver.conf"
 
 	// KubeConfigPath defines a path to a privileged kube config file
-	KubeConfigPath = "/etc/kubernetes/scheduler.kubeconfig"
+	KubeConfigPath = "/etc/kubernetes/kubelet.kubeconfig"
 )
 
 // K8sSearchDomains are default k8s search domain settings
