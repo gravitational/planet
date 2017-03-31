@@ -3,6 +3,7 @@ package main
 import (
 	"bytes"
 	"os"
+	"path"
 
 	log "github.com/Sirupsen/logrus"
 	"github.com/docker/docker/pkg/term"
@@ -41,6 +42,12 @@ func enter(rootfs, socketPath string, cfg *box.ProcessConfig) error {
 		}
 		defer term.RestoreTerminal(os.Stdin.Fd(), oldState)
 	}
+
+	master, err := determineIfMaster(rootfs)
+	if err != nil {
+		return trace.Wrap(err)
+	}
+
 	// tell bash to use environment we've created
 	cfg.Env.Upsert("ENV", ContainerEnvironmentFile)
 	cfg.Env.Upsert("BASH_ENV", ContainerEnvironmentFile)
@@ -48,7 +55,13 @@ func enter(rootfs, socketPath string, cfg *box.ProcessConfig) error {
 	cfg.Env.Upsert(EnvEtcdctlKeyFile, DefaultEtcdctlKeyFile)
 	cfg.Env.Upsert(EnvEtcdctlCAFile, DefaultEtcdctlCAFile)
 	cfg.Env.Upsert(EnvEtcdctlPeers, DefaultEtcdEndpoints)
-	cfg.Env.Upsert(EnvKubeConfig, KubeConfigPath)
+
+	if master {
+		cfg.Env.Upsert(EnvKubeConfig, KubeConfigPath)
+	} else {
+		cfg.Env.Upsert(EnvKubeConfig, UnprivilegedKubeConfigPath)
+	}
+
 	s, err := box.Connect(&box.ClientConfig{
 		Rootfs:     rootfs,
 		SocketPath: socketPath,
@@ -58,6 +71,23 @@ func enter(rootfs, socketPath string, cfg *box.ProcessConfig) error {
 	}
 
 	return s.Enter(*cfg)
+}
+
+// determineIfMaster determines if this planet node is a master
+func determineIfMaster(rootfs string) (bool, error) {
+	env, err := box.ReadEnvironment(path.Join(rootfs, ContainerEnvironmentFile))
+	if err != nil {
+		return false, trace.Wrap(err)
+	}
+
+	for _, v := range env {
+		if v.Name == EnvRole {
+			if v.Val == PlanetRoleMaster {
+				return true, nil
+			}
+		}
+	}
+	return false, nil
 }
 
 // stop interacts with systemctl's halt feature

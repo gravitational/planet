@@ -80,6 +80,9 @@ const (
 
 	// KubeConfigPath defines a path to a privileged kube config file
 	KubeConfigPath = "/etc/kubernetes/scheduler.kubeconfig"
+
+	// UnprivilegedKubeConfigPath defines a path to an unprivileged kube config file
+	UnprivilegedKubeConfigPath = "/etc/kubernetes/kubelet.kubeconfig"
 )
 
 // K8sSearchDomains are default k8s search domain settings
