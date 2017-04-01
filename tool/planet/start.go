@@ -126,9 +126,6 @@ func start(config *Config, monitorc chan<- bool) (*runtimeContext, error) {
 	if !config.hasRole(RoleMaster) && !config.hasRole(RoleNode) {
 		return nil, trace.Errorf("--role parameter must be set")
 	}
-	if err = ensureStateDir(config); err != nil {
-		return nil, trace.Wrap(err)
-	}
 
 	config.Env = append(config.Env,
 		box.EnvPair{Name: EnvMasterIP, Val: config.MasterIP},
@@ -136,7 +133,6 @@ func start(config *Config, monitorc chan<- bool) (*runtimeContext, error) {
 		box.EnvPair{Name: EnvServiceSubnet, Val: config.ServiceSubnet.String()},
 		box.EnvPair{Name: EnvPODSubnet, Val: config.PODSubnet.String()},
 		box.EnvPair{Name: EnvPublicIP, Val: config.PublicIP},
-		box.EnvPair{Name: EnvStateDir, Val: config.StateDir},
 		// Default agent name to the name of the etcd member
 		box.EnvPair{Name: EnvAgentName, Val: config.EtcdMemberName},
 		box.EnvPair{Name: EnvInitialCluster, Val: toKeyValueList(config.InitialCluster)},
@@ -654,20 +650,6 @@ func configureMonitrcPermissions(rootfs string) error {
 		return trace.Wrap(err)
 	}
 
-	return nil
-}
-
-// ensureStateDir creates the directory for agent state
-func ensureStateDir(config *Config) error {
-	path := filepath.Join(config.Rootfs, config.StateDir)
-	if err := os.MkdirAll(path, 0755); err != nil {
-		return trace.Wrap(err, "failed to create state dir")
-	}
-	uid := atoi(config.ServiceUID)
-	gid := atoi(config.ServiceGID)
-	if err := os.Chown(path, uid, gid); err != nil {
-		return trace.Wrap(err, "failed to chown state dir for service user/group")
-	}
 	return nil
 }
 

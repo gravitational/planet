@@ -69,7 +69,6 @@ func run() error {
 		cstartRoles                   = List(cstart.Flag("role", "Roles such as 'master' or 'node'").OverrideDefaultFromEnvar("PLANET_ROLE"))
 		cstartInsecureRegistries      = List(cstart.Flag("insecure-registry", "Optional insecure registries").OverrideDefaultFromEnvar("PLANET_INSECURE_REGISTRY"))
 		cstartSecretsDir              = cstart.Flag("secrets-dir", "Directory with master secrets - certificate authority and certificates").OverrideDefaultFromEnvar("PLANET_SECRETS_DIR").ExistingDir()
-		cstartStateDir                = cstart.Flag("state-dir", "Directory where Planet will store state").OverrideDefaultFromEnvar("PLANET_STATE_DIR").String()
 		cstartServiceSubnet           = kv.CIDRFlag(cstart.Flag("service-subnet", "subnet dedicated to the services in cluster").Default(DefaultServiceSubnet).OverrideDefaultFromEnvar("PLANET_SERVICE_SUBNET"))
 		cstartPODSubnet               = kv.CIDRFlag(cstart.Flag("pod-subnet", "subnet dedicated to the pods in the cluster").Default(DefaultPODSubnet).OverrideDefaultFromEnvar("PLANET_POD_SUBNET"))
 		cstartServiceUID              = cstart.Flag("service-uid", "uid to use for services").Default("1000").String()
@@ -300,7 +299,6 @@ func run() error {
 			CloudProvider:           *cstartCloudProvider,
 			ClusterID:               *cstartClusterID,
 			SecretsDir:              *cstartSecretsDir,
-			StateDir:                *cstartStateDir,
 			ServiceSubnet:           *cstartServiceSubnet,
 			PODSubnet:               *cstartPODSubnet,
 			InitialCluster:          *cstartInitialCluster,
