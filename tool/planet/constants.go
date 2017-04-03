@@ -27,7 +27,6 @@ const (
 	EnvNodeName                = "KUBE_NODE_NAME"
 	EnvAgentName               = "PLANET_AGENT_NAME"
 	EnvInitialCluster          = "PLANET_INITIAL_CLUSTER"
-	EnvStateDir                = "PLANET_STATE_DIR"
 	EnvAWSAccessKey            = "AWS_ACCESS_KEY_ID"
 	EnvAWSSecretKey            = "AWS_SECRET_ACCESS_KEY"
 	EnvKubeConfig              = "KUBECONFIG"

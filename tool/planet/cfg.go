@@ -30,7 +30,6 @@ type Config struct {
 	Files                   []box.File
 	IgnoreChecks            bool
 	SecretsDir              string
-	StateDir                string
 	DockerBackend           string
 	DockerOptions           string
 	ServiceSubnet           kv.CIDR

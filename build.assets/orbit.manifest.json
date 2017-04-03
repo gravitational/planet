@@ -149,12 +149,6 @@
             },
             {
                 "type": "String",
-                "name": "statedir",
-                "env": "PLANET_STATE_DIR",
-                "cli": {"name": "state-dir"}
-            },
-            {
-                "type": "String",
                 "name": "initialcluster",
                 "env": "PLANET_INITIAL_CLUSTER",
                 "cli": {"name": "initial-cluster"}
