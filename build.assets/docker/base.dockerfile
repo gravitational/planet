@@ -37,6 +37,8 @@ RUN apt-get install -q -y bridge-utils \
         nmap \
         netcat \
         nfs-common \
+        lvm2 \
+        jq \
         dnsmasq ; \
     apt-get -y autoclean; apt-get -y clean
 
