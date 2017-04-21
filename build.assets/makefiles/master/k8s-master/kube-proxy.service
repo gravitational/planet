@@ -11,6 +11,7 @@ ExecStart=/usr/bin/kube-proxy \
 	--conntrack-max=0 \
 	--conntrack-tcp-timeout-established=0 \
 	--kubeconfig=/etc/kubernetes/proxy.kubeconfig
+Restart=always
 RestartSec=5
 StartLimitInterval=3600
 StartLimitBurst=720
