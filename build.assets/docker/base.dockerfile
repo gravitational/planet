@@ -39,6 +39,7 @@ RUN apt-get install -q -y bridge-utils \
         nfs-common \
         lvm2 \
         jq \
+        conntrack \
         dnsmasq ; \
     apt-get -y autoclean; apt-get -y clean
 
