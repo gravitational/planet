@@ -10,6 +10,7 @@ import (
 	"os/exec"
 	"os/signal"
 	"strconv"
+	"strings"
 	"syscall"
 	"time"
 
@@ -176,18 +177,22 @@ func startLeaderClient(conf *LeaderConfig, errorC chan error) (leaderClient io.C
 	return client, nil
 }
 
-func writeAPIServer(target string, masterIP string) error {
+func writeLocalLeader(target string, masterIP string) error {
+	contents := strings.Join([]string{
+		fmt.Sprintf(`address=/%v/%v`, APIServerDNSName, masterIP),
+		fmt.Sprintf(`address=/%v/%v`, LeaderDNSName, masterIP),
+	}, "\n")
 	err := ioutil.WriteFile(
 		target,
-		[]byte(fmt.Sprintf(`address=/apiserver/%v`, masterIP)),
+		[]byte(contents+"\n"),
 		SharedFileMask,
 	)
 	return trace.Wrap(err)
 }
 
 func updateDNS(conf *LeaderConfig, hostname string, newMasterIP string) error {
-	log.Infof("setting %v to %v in %v", conf.APIServerDNS, newMasterIP, DNSMasqAPIServerConf)
-	err := writeAPIServer(DNSMasqAPIServerConf, newMasterIP)
+	log.Debugf("setting %v to %v in %v", conf.APIServerDNS, newMasterIP, DNSMasqAPIServerConf)
+	err := writeLocalLeader(DNSMasqAPIServerConf, newMasterIP)
 	if err != nil {
 		return trace.Wrap(err)
 	}
