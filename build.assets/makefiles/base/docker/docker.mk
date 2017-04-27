@@ -31,6 +31,7 @@ certs:
 	ln -sf /var/state/kubelet.cert $(ROOTFS)/etc/docker/certs.d/$(REGISTRY)/client.cert
 	ln -sf /var/state/kubelet.key $(ROOTFS)/etc/docker/certs.d/$(REGISTRY)/client.key
 # notice .crt for roots, and .cert for certificates, this is not a typo, but docker expected format
+	mkdir -p $(ROOTFS)/etc/docker/certs.d/$(LEGACY_REGISTRY)
 	ln -sf /var/state/root.cert $(ROOTFS)/etc/docker/certs.d/$(LEGACY_REGISTRY)/$(LEGACY_REGISTRY).crt
 	ln -sf /var/state/kubelet.cert $(ROOTFS)/etc/docker/certs.d/$(LEGACY_REGISTRY)/client.cert
 	ln -sf /var/state/kubelet.key $(ROOTFS)/etc/docker/certs.d/$(LEGACY_REGISTRY)/client.key
