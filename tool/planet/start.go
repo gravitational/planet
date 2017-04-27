@@ -436,6 +436,8 @@ func setDNSMasq(config *Config) error {
 	out := &bytes.Buffer{}
 	// Do not use local resolver
 	fmt.Fprintf(out, "no-resolv\n")
+	// Never forward plain names (without a dot or domain part)
+	fmt.Fprintf(out, "domain-needed\n")
 	// Listen on local interfaces, it's important to set those,
 	// otherwise you hit this bug:
 	// https://bugs.launchpad.net/ubuntu/+source/dnsmasq/+bug/1414887
@@ -457,7 +459,7 @@ func setDNSMasq(config *Config) error {
 	if err != nil {
 		return trace.Wrap(err)
 	}
-	err = writeAPIServer(filepath.Join(config.Rootfs, DNSMasqAPIServerConf), config.MasterIP)
+	err = writeLocalLeader(filepath.Join(config.Rootfs, DNSMasqAPIServerConf), config.MasterIP)
 	return trace.Wrap(err)
 }
 

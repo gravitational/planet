@@ -3,7 +3,8 @@
 # 
 # This makefile is executed inside the docker's buildbox image.
 
-REGISTRY := apiserver:5000
+LEGACY_REGISTRY := apiserver:5000
+REGISTRY := leader.telekube.local:5000
 
 .PHONY: all
 all: service scripts certs
@@ -29,3 +30,7 @@ certs:
 	ln -sf /var/state/root.cert $(ROOTFS)/etc/docker/certs.d/$(REGISTRY)/$(REGISTRY).crt
 	ln -sf /var/state/kubelet.cert $(ROOTFS)/etc/docker/certs.d/$(REGISTRY)/client.cert
 	ln -sf /var/state/kubelet.key $(ROOTFS)/etc/docker/certs.d/$(REGISTRY)/client.key
+# notice .crt for roots, and .cert for certificates, this is not a typo, but docker expected format
+	ln -sf /var/state/root.cert $(ROOTFS)/etc/docker/certs.d/$(LEGACY_REGISTRY)/$(LEGACY_REGISTRY).crt
+	ln -sf /var/state/kubelet.cert $(ROOTFS)/etc/docker/certs.d/$(LEGACY_REGISTRY)/client.cert
+	ln -sf /var/state/kubelet.key $(ROOTFS)/etc/docker/certs.d/$(LEGACY_REGISTRY)/client.key
