@@ -37,7 +37,6 @@ RUN apt-get install -q -y bridge-utils \
         nmap \
         netcat \
         nfs-common \
-        lvm2 \
         jq \
         conntrack \
         dnsmasq ; \
