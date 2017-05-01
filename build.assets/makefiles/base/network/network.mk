@@ -1,11 +1,10 @@
 .PHONY: all
 
-VER := v0.7.0
 ARCH := amd64
 NAME := flannel
-TARGET := $(NAME)-$(VER)
+TARGET := $(NAME)-$(FLANNEL_VER)
 TARGET_TAR := $(TARGET)-linux-$(ARCH).tar.gz
-BINARIES := $(ASSETDIR)/flanneld-$(VER)
+BINARIES := $(ASSETDIR)/flanneld-$(FLANNEL_VER)
 
 all: $(BINARIES) network.mk
 	@echo "\\n---> Installing Flannel and preparing network stack for Kubernetes:\\n"
@@ -26,7 +25,7 @@ $(BINARIES): DIR := $(shell mktemp -d)
 $(BINARIES): GOPATH := $(DIR)
 $(BINARIES):
 	mkdir -p $(DIR)/src/github.com/coreos
-	cd $(DIR)/src/github.com/coreos && git clone https://github.com/coreos/flannel -b $(VER) --depth 1
+	cd $(DIR)/src/github.com/coreos && git clone https://github.com/coreos/flannel -b $(FLANNEL_VER) --depth 1
 	cd $(DIR)/src/github.com/coreos/flannel && go build -o flanneld .
 	cp $(DIR)/src/github.com/coreos/flannel/flanneld $@
 	rm -rf $(DIR)

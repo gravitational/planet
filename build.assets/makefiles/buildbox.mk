@@ -27,7 +27,10 @@ build:
 		--env="TARGETDIR=/targetdir" \
 		--env="ASSETDIR=/assetdir" \
 		planet/buildbox:latest \
-		make -e KUBE_VER=$(KUBE_VER) -C /assets/makefiles -f $(TARGET)-docker.mk
+		make -e \
+			KUBE_VER=$(KUBE_VER) \
+			FLANNEL_VER=$(FLANNEL_VER) \
+			-C /assets/makefiles -f $(TARGET)-docker.mk
 ifeq ($(TARGET),master)
 	$(MAKE) -C $(ASSETS)/makefiles/master/k8s-master -e -f containers.mk
 endif

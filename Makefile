@@ -42,8 +42,9 @@ ASSETS := $(PWD)/build.assets
 BUILD_ASSETS := $(PWD)/build/assets
 BUILDDIR ?= $(PWD)/build
 BUILDDIR := $(shell realpath $(BUILDDIR))
-KUBE_VER := v1.5.3
+KUBE_VER := v1.5.7
 DOCKER_VER := 1.12.6-0~debian-jessie
+FLANNEL_VER := v0.7.1
 PUBLIC_IP := 127.0.0.1
 export
 PLANET_PACKAGE_PATH=$(PWD)
