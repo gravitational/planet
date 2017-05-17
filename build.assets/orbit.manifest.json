@@ -21,7 +21,11 @@
         "KillSignal": "SIGRTMIN+13",
         "StartPreCommand": "-/bin/rm /var/run/planet.socket",
         "StopPostCommand": "-/bin/rm /var/run/planet.socket",
-        "StopCommand": "stop"
+        "StopCommand": "stop",
+        "Dependencies": {
+            "Requires": "network-online.target",
+            "After": "network.target network-online.target"
+        }
     },
     "config": {
         "params": [
