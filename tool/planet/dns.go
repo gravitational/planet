@@ -12,9 +12,9 @@ import (
 	"github.com/gravitational/trace"
 
 	log "github.com/Sirupsen/logrus"
-	kube "k8s.io/client-go/1.4/kubernetes"
-	"k8s.io/client-go/1.4/pkg/api/v1"
-	"k8s.io/client-go/1.4/pkg/util/intstr"
+	"k8s.io/client-go/kubernetes"
+	"k8s.io/client-go/pkg/api/v1"
+	"k8s.io/client-go/pkg/util/intstr"
 )
 
 const serviceNamespace = "kube-system"
@@ -28,7 +28,7 @@ type DNSBootstrapper struct {
 
 // createKubeDNSService creates or updates the `kube-dns` kubernetes service.
 // It will set the service's cluster IP to the value specified by clusterIP.
-func (r *DNSBootstrapper) createService(client *kube.Clientset) (err error) {
+func (r *DNSBootstrapper) createService(client *kubernetes.Clientset) (err error) {
 	const service = "kube-dns"
 	err = createServiceNamespaceIfNeeded(client)
 	if err != nil {
@@ -76,7 +76,7 @@ func (r *DNSBootstrapper) createService(client *kube.Clientset) (err error) {
 func (r *DNSBootstrapper) create() {
 	const retryPeriod = 5 * time.Second
 	const retryAttempts = 50
-	var client *kube.Clientset
+	var client *kubernetes.Clientset
 	var err error
 
 	err = utils.Retry(context.TODO(), retryAttempts, retryPeriod, func() error {
@@ -107,7 +107,7 @@ func (r *DNSBootstrapper) create() {
 }
 
 // createServiceNamespaceIfNeeded creates a service namespace if one does not exist yet.
-func createServiceNamespaceIfNeeded(client *kube.Clientset) error {
+func createServiceNamespaceIfNeeded(client *kubernetes.Clientset) error {
 	log.Infof("creating %s namespace", serviceNamespace)
 	if _, err := client.Namespaces().Get(serviceNamespace); err != nil {
 		log.Infof("%s namespace not found: %v", serviceNamespace, err)
@@ -121,7 +121,7 @@ func createServiceNamespaceIfNeeded(client *kube.Clientset) error {
 
 // upsertService either creates a new service if the specified service does not exist,
 // or updates an existing one.
-func upsertService(client *kube.Clientset, service *v1.Service) (err error) {
+func upsertService(client *kubernetes.Clientset, service *v1.Service) (err error) {
 	log.Infof("creating %s service with spec:\n%#v", service.ObjectMeta.Name, service)
 	serviceName := service.ObjectMeta.Name
 	services := client.Services(serviceNamespace)
