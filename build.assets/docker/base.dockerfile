@@ -38,10 +38,10 @@ RUN apt-get install -q -y bridge-utils \
         nmap \
         netcat \
         nfs-common \
-        lvm2 \
         jq \
         conntrack \
         dnsmasq ; \
+    apt-get -t testing install -y lvm2; \
     apt-get -y autoclean; apt-get -y clean
 
 # do not install docker from Debian repositories but rather download static binaries for seccomp support
