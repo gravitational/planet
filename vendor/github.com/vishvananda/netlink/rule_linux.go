@@ -11,26 +11,14 @@ import (
 // RuleAdd adds a rule to the system.
 // Equivalent to: ip rule add
 func RuleAdd(rule *Rule) error {
-	return pkgHandle.RuleAdd(rule)
-}
-
-// RuleAdd adds a rule to the system.
-// Equivalent to: ip rule add
-func (h *Handle) RuleAdd(rule *Rule) error {
-	req := h.newNetlinkRequest(syscall.RTM_NEWRULE, syscall.NLM_F_CREATE|syscall.NLM_F_EXCL|syscall.NLM_F_ACK)
+	req := nl.NewNetlinkRequest(syscall.RTM_NEWRULE, syscall.NLM_F_CREATE|syscall.NLM_F_EXCL|syscall.NLM_F_ACK)
 	return ruleHandle(rule, req)
 }
 
 // RuleDel deletes a rule from the system.
 // Equivalent to: ip rule del
 func RuleDel(rule *Rule) error {
-	return pkgHandle.RuleDel(rule)
-}
-
-// RuleDel deletes a rule from the system.
-// Equivalent to: ip rule del
-func (h *Handle) RuleDel(rule *Rule) error {
-	req := h.newNetlinkRequest(syscall.RTM_DELRULE, syscall.NLM_F_CREATE|syscall.NLM_F_EXCL|syscall.NLM_F_ACK)
+	req := nl.NewNetlinkRequest(syscall.RTM_DELRULE, syscall.NLM_F_CREATE|syscall.NLM_F_EXCL|syscall.NLM_F_ACK)
 	return ruleHandle(rule, req)
 }
 
@@ -82,46 +70,41 @@ func ruleHandle(rule *Rule, req *nl.NetlinkRequest) error {
 		req.AddData(rtAttrs[i])
 	}
 
-	native := nl.NativeEndian()
+	var (
+		b      = make([]byte, 4)
+		native = nl.NativeEndian()
+	)
 
 	if rule.Priority >= 0 {
-		b := make([]byte, 4)
 		native.PutUint32(b, uint32(rule.Priority))
 		req.AddData(nl.NewRtAttr(nl.FRA_PRIORITY, b))
 	}
 	if rule.Mark >= 0 {
-		b := make([]byte, 4)
 		native.PutUint32(b, uint32(rule.Mark))
 		req.AddData(nl.NewRtAttr(nl.FRA_FWMARK, b))
 	}
 	if rule.Mask >= 0 {
-		b := make([]byte, 4)
 		native.PutUint32(b, uint32(rule.Mask))
 		req.AddData(nl.NewRtAttr(nl.FRA_FWMASK, b))
 	}
 	if rule.Flow >= 0 {
-		b := make([]byte, 4)
 		native.PutUint32(b, uint32(rule.Flow))
 		req.AddData(nl.NewRtAttr(nl.FRA_FLOW, b))
 	}
 	if rule.TunID > 0 {
-		b := make([]byte, 4)
 		native.PutUint32(b, uint32(rule.TunID))
 		req.AddData(nl.NewRtAttr(nl.FRA_TUN_ID, b))
 	}
 	if rule.Table >= 256 {
-		b := make([]byte, 4)
 		native.PutUint32(b, uint32(rule.Table))
 		req.AddData(nl.NewRtAttr(nl.FRA_TABLE, b))
 	}
 	if msg.Table > 0 {
 		if rule.SuppressPrefixlen >= 0 {
-			b := make([]byte, 4)
 			native.PutUint32(b, uint32(rule.SuppressPrefixlen))
 			req.AddData(nl.NewRtAttr(nl.FRA_SUPPRESS_PREFIXLEN, b))
 		}
 		if rule.SuppressIfgroup >= 0 {
-			b := make([]byte, 4)
 			native.PutUint32(b, uint32(rule.SuppressIfgroup))
 			req.AddData(nl.NewRtAttr(nl.FRA_SUPPRESS_IFGROUP, b))
 		}
@@ -134,7 +117,6 @@ func ruleHandle(rule *Rule, req *nl.NetlinkRequest) error {
 	}
 	if rule.Goto >= 0 {
 		msg.Type = nl.FR_ACT_NOP
-		b := make([]byte, 4)
 		native.PutUint32(b, uint32(rule.Goto))
 		req.AddData(nl.NewRtAttr(nl.FRA_GOTO, b))
 	}
@@ -146,13 +128,7 @@ func ruleHandle(rule *Rule, req *nl.NetlinkRequest) error {
 // RuleList lists rules in the system.
 // Equivalent to: ip rule list
 func RuleList(family int) ([]Rule, error) {
-	return pkgHandle.RuleList(family)
-}
-
-// RuleList lists rules in the system.
-// Equivalent to: ip rule list
-func (h *Handle) RuleList(family int) ([]Rule, error) {
-	req := h.newNetlinkRequest(syscall.RTM_GETRULE, syscall.NLM_F_DUMP|syscall.NLM_F_REQUEST)
+	req := nl.NewNetlinkRequest(syscall.RTM_GETRULE, syscall.NLM_F_DUMP|syscall.NLM_F_REQUEST)
 	msg := nl.NewIfInfomsg(family)
 	req.AddData(msg)
 
@@ -171,6 +147,7 @@ func (h *Handle) RuleList(family int) ([]Rule, error) {
 		}
 
 		rule := NewRule()
+		rule.RtMsg = msg
 
 		for j := range attrs {
 			switch attrs[j].Attr.Type {

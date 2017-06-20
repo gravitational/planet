@@ -36,12 +36,6 @@ type User struct {
 	Revoke   []string `json:"revoke,omitempty"`
 }
 
-// userListEntry is the user representation given by the server for ListUsers
-type userListEntry struct {
-	User  string `json:"user"`
-	Roles []Role `json:"roles"`
-}
-
 type UserRoles struct {
 	User  string `json:"user"`
 	Roles []Role `json:"roles"`
@@ -204,7 +198,7 @@ func (u *httpAuthUserAPI) ListUsers(ctx context.Context) ([]string, error) {
 	}
 
 	var userList struct {
-		Users []userListEntry `json:"users"`
+		Users []User `json:"users"`
 	}
 
 	if err = json.Unmarshal(body, &userList); err != nil {

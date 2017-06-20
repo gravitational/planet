@@ -82,12 +82,10 @@ func addToMaster(node agent.Agent, config *Config, etcdConfig *monitoring.ETCDCo
 		return trace.Wrap(err)
 	}
 	node.AddChecker(monitoring.KubeAPIServerHealth(config.KubeAddr, constants.KubeConfigPath))
-	node.AddChecker(monitoring.DockerHealth("unix:///var/run/docker.sock"))
+	node.AddChecker(monitoring.DockerHealth("/var/run/docker.sock"))
 	node.AddChecker(dockerRegistryHealth(config.RegistryAddr, localTransport))
 	node.AddChecker(etcdChecker)
 	node.AddChecker(monitoring.SystemdHealth())
-	node.AddChecker(monitoring.KubeMasterProcessesHealth())
-	node.AddChecker(monitoring.KubeMasterSocketsHealth())
 	if !config.DisableInterPodCheck {
 		node.AddChecker(monitoring.InterPodCommunication(config.KubeAddr, config.NettestContainerImage))
 	}
@@ -101,12 +99,10 @@ func addToNode(node agent.Agent, config *Config, etcdConfig *monitoring.ETCDConf
 		return trace.Wrap(err)
 	}
 	node.AddChecker(monitoring.KubeletHealth("http://127.0.0.1:10248"))
-	node.AddChecker(monitoring.DockerHealth("unix:///var/run/docker.sock"))
+	node.AddChecker(monitoring.DockerHealth("/var/run/docker.sock"))
 	node.AddChecker(etcdChecker)
 	node.AddChecker(monitoring.SystemdHealth())
 	node.AddChecker(NewVersionCollector())
-	node.AddChecker(monitoring.KubeNodeProcessesHealth())
-	node.AddChecker(monitoring.KubeNodeSocketsHealth())
 	return nil
 }
 

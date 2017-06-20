@@ -28,7 +28,6 @@ import (
 	"fmt"
 	"hash"
 	"io"
-	"path"
 	"strings"
 )
 
@@ -147,7 +146,7 @@ var (
 	}
 )
 
-// DefaultTHash is default TarSum hashing algorithm - "sha256".
+// TarSum default is "sha256"
 var DefaultTHash = NewTHash("sha256", sha256.New)
 
 type simpleTHash struct {
@@ -236,7 +235,7 @@ func (ts *tarSum) Read(buf []byte) (int, error) {
 				}
 				return n, err
 			}
-			ts.currentFile = path.Clean(currentHeader.Name)
+			ts.currentFile = strings.TrimSuffix(strings.TrimPrefix(currentHeader.Name, "./"), "/")
 			if err := ts.encodeHeader(currentHeader); err != nil {
 				return 0, err
 			}
@@ -262,7 +261,7 @@ func (ts *tarSum) Read(buf []byte) (int, error) {
 		return 0, err
 	}
 
-	// Filling the tar writer
+	// Filling the tar writter
 	if _, err = ts.tarW.Write(buf2[:n]); err != nil {
 		return 0, err
 	}

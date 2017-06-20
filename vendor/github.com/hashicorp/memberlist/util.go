@@ -9,12 +9,9 @@ import (
 	"math"
 	"math/rand"
 	"net"
-	"strconv"
-	"strings"
 	"time"
 
 	"github.com/hashicorp/go-msgpack/codec"
-	"github.com/sean-/seed"
 )
 
 // pushPullScale is the minimum number of nodes
@@ -24,13 +21,50 @@ import (
 // while the 65th will triple it.
 const pushPullScaleThreshold = 32
 
+/*
+ * Contains an entry for each private block:
+ * 10.0.0.0/8
+ * 172.16.0.0/12
+ * 192.168/16
+ */
+var privateBlocks []*net.IPNet
+
+var loopbackBlock *net.IPNet
+
 const (
 	// Constant litWidth 2-8
 	lzwLitWidth = 8
 )
 
 func init() {
-	seed.Init()
+	// Seed the random number generator
+	rand.Seed(time.Now().UnixNano())
+
+	// Add each private block
+	privateBlocks = make([]*net.IPNet, 3)
+	_, block, err := net.ParseCIDR("10.0.0.0/8")
+	if err != nil {
+		panic(fmt.Sprintf("Bad cidr. Got %v", err))
+	}
+	privateBlocks[0] = block
+
+	_, block, err = net.ParseCIDR("172.16.0.0/12")
+	if err != nil {
+		panic(fmt.Sprintf("Bad cidr. Got %v", err))
+	}
+	privateBlocks[1] = block
+
+	_, block, err = net.ParseCIDR("192.168.0.0/16")
+	if err != nil {
+		panic(fmt.Sprintf("Bad cidr. Got %v", err))
+	}
+	privateBlocks[2] = block
+
+	_, block, err = net.ParseCIDR("127.0.0.0/8")
+	if err != nil {
+		panic(fmt.Sprintf("Bad cidr. Got %v", err))
+	}
+	loopbackBlock = block
 }
 
 // Decode reverses the encode operation on a byte slice input
@@ -62,9 +96,8 @@ func randomOffset(n int) int {
 // suspicionTimeout computes the timeout that should be used when
 // a node is suspected
 func suspicionTimeout(suspicionMult, n int, interval time.Duration) time.Duration {
-	nodeScale := math.Max(1.0, math.Log10(math.Max(1.0, float64(n))))
-	// multiply by 1000 to keep some precision because time.Duration is an int64 type
-	timeout := time.Duration(suspicionMult) * time.Duration(nodeScale*1000) * interval / 1000
+	nodeScale := math.Ceil(math.Log10(float64(n + 1)))
+	timeout := time.Duration(suspicionMult) * time.Duration(nodeScale) * interval
 	return timeout
 }
 
@@ -97,18 +130,13 @@ func pushPullScale(interval time.Duration, n int) time.Duration {
 	return time.Duration(multiplier) * interval
 }
 
-// moveDeadNodes moves nodes that are dead and beyond the gossip to the dead interval
-// to the end of the slice and returns the index of the first moved node.
-func moveDeadNodes(nodes []*nodeState, gossipToTheDeadTime time.Duration) int {
+// moveDeadNodes moves all the nodes in the dead state
+// to the end of the slice and returns the index of the first dead node.
+func moveDeadNodes(nodes []*nodeState) int {
 	numDead := 0
 	n := len(nodes)
 	for i := 0; i < n-numDead; i++ {
 		if nodes[i].State != stateDead {
-			continue
-		}
-
-		// Respect the gossip to the dead interval
-		if time.Since(nodes[i].StateChange) <= gossipToTheDeadTime {
 			continue
 		}
 
@@ -120,10 +148,9 @@ func moveDeadNodes(nodes []*nodeState, gossipToTheDeadTime time.Duration) int {
 	return n - numDead
 }
 
-// kRandomNodes is used to select up to k random nodes, excluding any nodes where
-// the filter function returns true. It is possible that less than k nodes are
-// returned.
-func kRandomNodes(k int, nodes []*nodeState, filterFn func(*nodeState) bool) []*nodeState {
+// kRandomNodes is used to select up to k random nodes, excluding a given
+// node and any non-alive nodes. It is possible that less than k nodes are returned.
+func kRandomNodes(k int, excludes []string, nodes []*nodeState) []*nodeState {
 	n := len(nodes)
 	kNodes := make([]*nodeState, 0, k)
 OUTER:
@@ -135,9 +162,16 @@ OUTER:
 		idx := randomOffset(n)
 		node := nodes[idx]
 
-		// Give the filter a shot at it.
-		if filterFn != nil && filterFn(node) {
-			continue OUTER
+		// Exclude node if match
+		for _, exclude := range excludes {
+			if node.Name == exclude {
+				continue OUTER
+			}
+		}
+
+		// Exclude if not alive
+		if node.State != stateAlive {
+			continue
 		}
 
 		// Check if we have this node already
@@ -217,18 +251,21 @@ func decodeCompoundMessage(buf []byte) (trunc int, parts [][]byte, err error) {
 	return
 }
 
-// Given a string of the form "host", "host:port",
-// "ipv6::addr" or "[ipv6::address]:port",
-// return true if the string includes a port.
-func hasPort(s string) bool {
-	last := strings.LastIndex(s, ":")
-	if last == -1 {
-		return false
+// Returns if the given IP is in a private block
+func isPrivateIP(ip_str string) bool {
+	ip := net.ParseIP(ip_str)
+	for _, priv := range privateBlocks {
+		if priv.Contains(ip) {
+			return true
+		}
 	}
-	if s[0] == '[' {
-		return s[last-1] == ']'
-	}
-	return strings.Index(s, ":") == last
+	return false
+}
+
+// Returns if the given IP is in a loopback block
+func isLoopbackIP(ip_str string) bool {
+	ip := net.ParseIP(ip_str)
+	return loopbackBlock.Contains(ip)
 }
 
 // compressPayload takes an opaque input buffer, compresses it
@@ -287,10 +324,4 @@ func decompressBuffer(c *compress) ([]byte, error) {
 
 	// Return the uncompressed bytes
 	return b.Bytes(), nil
-}
-
-// joinHostPort returns the host:port form of an address, for use with a
-// transport.
-func joinHostPort(host string, port uint16) string {
-	return net.JoinHostPort(host, strconv.Itoa(int(port)))
 }
