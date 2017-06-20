@@ -35,40 +35,40 @@
 // The interface is EXPERIMENTAL and may be suject to change.
 package naming
 
-// Operation defines the corresponding operations for a name resolution change.
-type Operation uint8
+// OP defines the corresponding operations for a name resolution change.
+type OP uint8
 
 const (
 	// Add indicates a new address is added.
-	Add Operation = iota
+	Add = iota
 	// Delete indicates an exisiting address is deleted.
 	Delete
 )
 
-// Update defines a name resolution update. Notice that it is not valid having both
-// empty string Addr and nil Metadata in an Update.
+type ServiceConfig interface{}
+
+// Update defines a name resolution change.
 type Update struct {
 	// Op indicates the operation of the update.
-	Op Operation
-	// Addr is the updated address. It is empty string if there is no address update.
-	Addr string
-	// Metadata is the updated metadata. It is nil if there is no metadata update.
-	// Metadata is not required for a custom naming implementation.
-	Metadata interface{}
+	Op     OP
+	Addr   string
+	Config ServiceConfig
 }
 
-// Resolver creates a Watcher for a target to track its resolution changes.
+// Resolver does one-shot name resolution and creates a Watcher to
+// watch the future updates.
 type Resolver interface {
-	// Resolve creates a Watcher for target.
-	Resolve(target string) (Watcher, error)
+	// Resolve returns the name resolution results.
+	Resolve(target string) ([]*Update, error)
+	// NewWatcher creates a Watcher to watch the changes on target.
+	NewWatcher(target string) Watcher
 }
 
-// Watcher watches for the updates on the specified target.
+// Watcher watches the updates for a particular target.
 type Watcher interface {
 	// Next blocks until an update or error happens. It may return one or more
-	// updates. The first call should get the full set of the results. It should
-	// return an error if and only if Watcher cannot recover.
+	// updates.
 	Next() ([]*Update, error)
-	// Close closes the Watcher.
-	Close()
+	// Stop stops the Watcher.
+	Stop()
 }
