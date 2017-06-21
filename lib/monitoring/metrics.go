@@ -8,7 +8,7 @@ import (
 	"github.com/prometheus/client_golang/prometheus"
 )
 
-// AddMetrics add exporters for exposing data with Prometheus
+// AddMetrics exposes specific metrics to Prometheus
 func AddMetrics(config *Config) error {
 	etcdConfig := &monitoring.ETCDConfig{
 		Endpoints: config.ETCDConfig.Endpoints,
@@ -16,19 +16,23 @@ func AddMetrics(config *Config) error {
 		CertFile:  config.ETCDConfig.CertFile,
 		KeyFile:   config.ETCDConfig.KeyFile,
 	}
+
+	var metrics []prometheus.Collector
+	var err error
 	switch config.Role {
 	case agent.RoleMaster:
-		mc, err := addMetricsToMaster(etcdConfig)
-		if err != nil {
-			return trace.Wrap(err)
-		}
-		prometheus.MustRegister(mc...)
+		metrics, err = addMetricsToMaster(etcdConfig)
 	case agent.RoleNode:
-		mc, err := addMetricsToNode(etcdConfig)
-		if err != nil {
+		metrics, err = addMetricsToNode(etcdConfig)
+	}
+	if err != nil {
+		return trace.Wrap(err)
+	}
+
+	for _, metric := range metrics {
+		if err = prometheus.Register(metric); err != nil {
 			return trace.Wrap(err)
 		}
-		prometheus.MustRegister(mc...)
 	}
 	return nil
 }
