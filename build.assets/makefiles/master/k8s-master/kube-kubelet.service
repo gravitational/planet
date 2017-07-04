@@ -28,7 +28,6 @@ ExecStart=/usr/bin/kubelet \
         --resolv-conf=/etc/resolv.kubelet.conf $KUBE_CLOUD_FLAGS \
         --anonymous-auth=false \
         --streaming-connection-idle-timeout=5m \
-        --protect-kernel-defaults=true \
         --event-qps=0
 
 Restart=always
