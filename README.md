@@ -59,7 +59,7 @@ Commands:
 
 ### Building (installing from source)
 
-Pprerequisites for planet development are:
+Prerequisites for planet development are:
  - [docker] version >= 1.8.2 is required. For development, you need to be
    inside docker group and have the docker daemon running so the typical docker commands like `docker run`
    do not require sudo permissions. Here's official [docker configuration] reference.
