@@ -99,6 +99,11 @@ const (
 
 	// HostnameFile specifies the location of the hostname configuration file
 	HostnameFile = "/etc/hostname"
+
+	// RootUID is id of the root user
+	RootUID = 0
+	// RootGID is id of the root group
+	RootGID = 0
 )
 
 // K8sSearchDomains are default k8s search domain settings
