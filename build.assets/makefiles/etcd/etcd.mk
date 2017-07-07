@@ -1,8 +1,7 @@
 .PHONY: all
 
-VER := v2.3.7
 ARCH := amd64
-TARGET := etcd-$(VER)-linux-$(ARCH)
+TARGET := etcd-$(ETCD_VER)-linux-$(ARCH)
 TARGET_TARBALL := $(TARGET).tar.gz
 
 DOWNLOAD:=$(ASSETDIR)/$(TARGET_TARBALL)
@@ -17,4 +16,4 @@ all: $(DOWNLOAD)
 	ln -sf /lib/systemd/system/etcd.service  $(ROOTFS)/lib/systemd/system/multi-user.target.wants/
 
 $(DOWNLOAD):
-	curl -L https://github.com/coreos/etcd/releases/download/$(VER)/$(TARGET_TARBALL) -o $(DOWNLOAD)
+	curl -L https://github.com/coreos/etcd/releases/download/$(ETCD_VER)/$(TARGET_TARBALL) -o $(DOWNLOAD)
