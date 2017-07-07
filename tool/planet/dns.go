@@ -89,7 +89,7 @@ func (r *DNSBootstrapper) create() {
 		// kube client is also a part of the retry loop as the kubernetes
 		// API server might not be available at first connect
 		if client == nil {
-			client, err = monitoring.ConnectToKube(r.kubeAddr, constants.KubeConfigPath)
+			client, err = monitoring.ConnectToKube(r.kubeAddr, constants.SchedulerConfigPath)
 			if err != nil {
 				return trace.ConnectionProblem(err, "failed to connect to kubernetes")
 			}
