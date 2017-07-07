@@ -26,7 +26,6 @@ ExecStart=/usr/bin/kubelet \
         --tls-private-key-file=/var/state/apiserver.key \
         --kubeconfig=/etc/kubernetes/kubelet.kubeconfig \
         --resolv-conf=/etc/resolv.kubelet.conf $KUBE_CLOUD_FLAGS \
-        --anonymous-auth=false \
         --streaming-connection-idle-timeout=5m \
         --event-qps=0
 

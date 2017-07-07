@@ -433,13 +433,14 @@ func addKubeConfig(config *Config) error {
 
 // setKubeConfigOwnership adjusts ownership of k8s config files to root:root
 func setKubeConfigOwnership(config *Config) error {
+	var errors []error
 	for _, c := range []string{constants.SchedulerConfigPath, constants.ProxyConfigPath, constants.KubeletConfigPath} {
 		err := os.Chown(filepath.Join(config.Rootfs, c), RootUID, RootGID)
 		if err != nil {
-			return trace.Wrap(err)
+			errors = append(errors, trace.ConvertSystemError(err))
 		}
 	}
-	return nil
+	return trace.NewAggregate(errors...)
 }
 
 func setDNSMasq(config *Config) error {

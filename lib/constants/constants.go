@@ -7,6 +7,6 @@ const (
 	SchedulerConfigPath = "/etc/kubernetes/scheduler.kubeconfig"
 	// ProxyConfigPath is the path to kube-proxy configuration file
 	ProxyConfigPath = "/etc/kubernetes/proxy.kubeconfig"
-	// KubeletConfigPath is the path to kube-kubelet configuration file
+	// KubeletConfigPath is the path to kubelet configuration file
 	KubeletConfigPath = "/etc/kubernetes/kubelet.kubeconfig"
 )
