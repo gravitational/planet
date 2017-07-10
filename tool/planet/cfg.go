@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"net"
 	"os/user"
+	"path/filepath"
 	"strconv"
 	"strings"
 	"text/template"
@@ -65,6 +66,10 @@ func (cfg *Config) hasRole(r string) bool {
 		}
 	}
 	return false
+}
+
+func (cfg *Config) inRootfs(paths ...string) string {
+	return filepath.Join(append([]string{cfg.Rootfs}, paths...)...)
 }
 
 type list []string

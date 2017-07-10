@@ -1,8 +1,6 @@
 package main
 
-import (
-	"time"
-)
+import "time"
 
 const (
 	EnvMasterIP                = "KUBE_MASTER_IP"
@@ -76,7 +74,8 @@ const (
 
 	// PlanetResolv is planet local resolver
 	PlanetResolv = "resolv.gravity.conf"
-	// KubeletResolv is kubelet local resolver
+	// KubeletResolv specifies the name of the file to contain custom DNS resolver configuration
+	// for kubelet. This is used to correct hos DNS configuration inside kubedns Pods
 	KubeletResolv = "resolv.kubelet.conf"
 
 	// SharedFileMask is file mask for shared file
@@ -104,6 +103,9 @@ const (
 	RootUID = 0
 	// RootGID is id of the root group
 	RootGID = 0
+
+	// kubeDNSConfigMap specifies the kube-dns configmap file
+	kubeDNSConfigMap = "kubedns.yaml"
 )
 
 // K8sSearchDomains are default k8s search domain settings

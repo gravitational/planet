@@ -2,6 +2,7 @@ package main
 
 import (
 	"bytes"
+	"encoding/json"
 	"fmt"
 	"io"
 	"io/ioutil"
@@ -481,18 +482,25 @@ func setDNSMasq(config *Config) error {
 }
 
 func addResolv(config *Config) error {
-	planetResolv := filepath.Join(config.Rootfs, "etc", PlanetResolv)
-	// it's important to set 127.0.0.1 first, so local queries are going to local dnsmasq
-	// however it is filtered out by docker in host networking mode - work around this behavior
-	// by adding this internal IP of the host
-	if err := copyResolvFile(planetResolv, []string{"127.0.0.1", config.PublicIP}); err != nil {
+	cfg, err := readHostResolv()
+	if err != nil {
 		return trace.Wrap(err)
 	}
 
-	kubeletResolv := filepath.Join(config.Rootfs, "etc", KubeletResolv)
-	if err := copyResolvFile(kubeletResolv, nil); err != nil {
+	planetResolv := config.inRootfs("etc", PlanetResolv)
+	if err := copyResolvFile(*cfg, planetResolv, []string{"127.0.0.1"}); err != nil {
 		return trace.Wrap(err)
 	}
+
+	kubeletResolv := config.inRootfs("etc", KubeletResolv)
+	if err := copyResolvFile(*cfg, kubeletResolv, nil); err != nil {
+		return trace.Wrap(err)
+	}
+
+	// err = writeKubeDNSConfig(*config, *cfg)
+	// if err != nil {
+	// 	return trace.Wrap(err)
+	// }
 
 	config.Mounts = append(config.Mounts, box.Mount{
 		Src:      planetResolv,
@@ -524,16 +532,12 @@ func readHostResolv() (*utils.DNSConfig, error) {
 }
 
 // copyResolvFile adds DNS resolver configuration from the host's /etc/resolv.conf
-func copyResolvFile(destination string, nameservers []string) error {
-	cfg, err := readHostResolv()
-	if err != nil {
-		return trace.Wrap(err)
-	}
-	// Make sure external nameservers go first in the order supplied by caller
-	outNameservers := append([]string{}, nameservers...)
-	outNameservers = append(outNameservers, cfg.Servers...)
+func copyResolvFile(cfg utils.DNSConfig, destination string, upstreamNameservers []string) error {
+	// Make sure upstream nameservers go first in the order supplied by caller
+	nameservers := append([]string{}, upstreamNameservers...)
+	nameservers = append(nameservers, cfg.Servers...)
 
-	cfg.Servers = outNameservers
+	cfg.Servers = nameservers
 	// Limit search to local cluster domain
 	cfg.Search = []string{DefaultSearchDomain}
 	cfg.Ndots = DNSNdots
@@ -547,11 +551,38 @@ func copyResolvFile(destination string, nameservers []string) error {
 		return trace.Wrap(err)
 	}
 	defer resolv.Close()
+
 	_, err = io.WriteString(resolv, cfg.String())
 	if err != nil {
 		return trace.Wrap(err)
 	}
 
+	return nil
+}
+
+func writeKubeDNSConfig(config Config, dnsConfig utils.DNSConfig) error {
+	f, err := os.OpenFile(
+		config.inRootfs("etc", "kubernetes", kubeDNSConfigMap),
+		os.O_RDWR|os.O_CREATE|os.O_TRUNC, SharedFileMask,
+	)
+	if err != nil {
+		return trace.Wrap(err)
+	}
+	defer f.Close()
+
+	enc := json.NewEncoder(f)
+	err = enc.Encode(struct {
+		StubDomains map[string][]string `json:"stubDomains"`
+		Nameservers []string            `json:"upstreamNameservers"`
+	}{
+		StubDomains: map[string][]string{
+			"cluster.local": []string{"127.0.0.1#10053"},
+		},
+		Nameservers: dnsConfig.Servers,
+	})
+	if err != nil {
+		return trace.Wrap(err)
+	}
 	return nil
 }
 
