@@ -11,7 +11,7 @@ ExecStart=/usr/bin/kubelet \
         --port=10250 \
         --hostname_override=${KUBE_NODE_NAME} \
         --api-servers=https://${KUBE_APISERVER}:6443 \
-        --allow-privileged=true \
+        --allow-privileged=false \
         --logtostderr=true \
         --cadvisor-port=4194 \
         --healthz-bind-address=0.0.0.0 \
@@ -28,7 +28,6 @@ ExecStart=/usr/bin/kubelet \
         --resolv-conf=/etc/resolv.kubelet.conf $KUBE_CLOUD_FLAGS \
         --streaming-connection-idle-timeout=5m \
         --event-qps=0
-
 Restart=always
 RestartSec=5
 StartLimitInterval=3600
