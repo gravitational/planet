@@ -43,7 +43,8 @@ BUILD_ASSETS := $(PWD)/build/assets
 BUILDDIR ?= $(PWD)/build
 BUILDDIR := $(shell realpath $(BUILDDIR))
 KUBE_VER := v1.5.7
-DOCKER_VER := 1.12.6-0~debian-jessie
+SECCOMP_VER := 2.2.3-3~bpo8+1
+DOCKER_VER := 1.12.6
 FLANNEL_VER := amed/awsvpc-multi-routing-table-backend
 PUBLIC_IP := 127.0.0.1
 export
@@ -162,7 +163,7 @@ os:
 # needs (like bridge-utils or kmod)
 base: os
 	@echo -e "\n---> Making Planet/Base Docker image based on Planet/OS...\n"
-	$(MAKE) -e BUILDIMAGE=planet/base DOCKERFILE=base.dockerfile EXTRA_ARGS="--build-arg DOCKER_VER=$(DOCKER_VER)" make-docker-image
+	$(MAKE) -e BUILDIMAGE=planet/base DOCKERFILE=base.dockerfile EXTRA_ARGS="--build-arg SECCOMP_VER=$(SECCOMP_VER) --build-arg DOCKER_VER=$(DOCKER_VER)" make-docker-image
 
 # Builds a "buildbox" docker image. Actual building is done inside of Docker, and this
 # image is used as a build box. It contains dev tools (Golang, make, git, vi, etc)
