@@ -1,9 +1,10 @@
 FROM planet/os
 
+ARG SECCOMP_VER
 ARG DOCKER_VER
 
 RUN apt-get install -q -y bridge-utils \
-        docker-engine=$DOCKER_VER \
+        seccomp=$SECCOMP_VER \
         bash-completion \
         kmod \
         iptables \
@@ -42,6 +43,12 @@ RUN apt-get install -q -y bridge-utils \
         conntrack \
         dnsmasq ; \
     apt-get -y autoclean; apt-get -y clean
+
+# do not install docker from Debian repositories but rather download static binaries for seccomp support
+RUN curl https://get.docker.com/builds/Linux/x86_64/docker-$DOCKER_VER.tgz -o /tmp/docker-$DOCKER_VER.tgz && \
+    tar -xvzf /tmp/docker-$DOCKER_VER.tgz -C /tmp && \
+    cp /tmp/docker/* /usr/bin && \
+    rm -rf /tmp/docker*
 
 RUN groupadd --system --non-unique --gid 1000 planet ;\
     useradd --system --non-unique --no-create-home -g 1000 -u 1000 planet
