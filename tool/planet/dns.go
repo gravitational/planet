@@ -94,11 +94,19 @@ func (r *DNSBootstrapper) create() {
 				return trace.ConnectionProblem(err, "failed to connect to kubernetes")
 			}
 		}
+
 		err = r.createService(client)
 		if err != nil {
 			return trace.Wrap(err, "failed to create kube-dns service")
 		}
-		log.Infof("created kube-dns service")
+		log.Info("created kube-dns service")
+
+		err = r.createConfigmap(client)
+		if err != nil {
+			return trace.Wrap(err, "failed to create kube-dns configuration")
+		}
+		log.Info("created kube-dns configuration")
+
 		return nil
 	})
 	if err != nil {
