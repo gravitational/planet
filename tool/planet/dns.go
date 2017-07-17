@@ -26,26 +26,70 @@ type DNSBootstrapper struct {
 	agent     agent.Agent
 }
 
-// createKubeDNSService creates or updates the `kube-dns` kubernetes service.
+// create runs a loop to creates/update the `kube-dns` kubernetes service.
+// The loop continues until the master node has become healthy and the service
+// gets created or a specified number of attempts have been made.
+func (r *DNSBootstrapper) create() {
+	const name = "kube-dns"
+	const retryPeriod = 5 * time.Second
+	const retryAttempts = 50
+	var client *kube.Clientset
+	var err error
+
+	err = utils.Retry(context.TODO(), retryAttempts, retryPeriod, func() error {
+		var status *pb.NodeStatus
+		status = r.agent.LocalStatus()
+		if status.Status != pb.NodeStatus_Running {
+			return trace.ConnectionProblem(nil, "node unhealthy: %v retrying", status.Status)
+		}
+
+		// kube client is also a part of the retry loop as the kubernetes
+		// API server might not be available at first connect
+		if client == nil {
+			client, err = monitoring.ConnectToKube(r.kubeAddr, constants.SchedulerConfigPath)
+			if err != nil {
+				return trace.ConnectionProblem(err, "failed to connect to kubernetes")
+			}
+		}
+
+		err = r.createService(client, name)
+		if err != nil {
+			return trace.Wrap(err, "failed to create kube-dns service")
+		}
+		log.Info("created kube-dns service")
+
+		err = r.createConfigmap(client, name)
+		if err != nil {
+			return trace.Wrap(err, "failed to create kube-dns configuration")
+		}
+		log.Info("created kube-dns configuration")
+
+		return nil
+	})
+	if err != nil {
+		log.Errorf("giving up on creating kube-dns: %v", trace.DebugReport(err))
+	}
+}
+
+// createService creates or updates the `kube-dns` kubernetes service.
 // It will set the service's cluster IP to the value specified by clusterIP.
-func (r *DNSBootstrapper) createService(client *kube.Clientset) (err error) {
-	const service = "kube-dns"
+func (r *DNSBootstrapper) createService(client *kube.Clientset, name string) (err error) {
 	err = createServiceNamespaceIfNeeded(client)
 	if err != nil {
 		return trace.Wrap(err)
 	}
-	dnsService := &v1.Service{
+	service := &v1.Service{
 		ObjectMeta: v1.ObjectMeta{
-			Name: service,
+			Name: name,
 			Labels: map[string]string{
-				"k8s-app":                       "kube-dns",
+				"k8s-app":                       name,
 				"kubernetes.io/cluster-service": "true",
 				"kubernetes.io/name":            "KubeDNS",
 			},
 		},
 		Spec: v1.ServiceSpec{
 			Selector: map[string]string{
-				"k8s-app": "kube-dns",
+				"k8s-app": name,
 			},
 			ClusterIP: r.clusterIP,
 			Ports: []v1.ServicePort{
@@ -70,48 +114,24 @@ func (r *DNSBootstrapper) createService(client *kube.Clientset) (err error) {
 	return nil
 }
 
-// create runs a loop to creates/update the `kube-dns` kubernetes service.
-// The loop continues until the master node has become healthy and the service
-// gets created or a specified number of attempts have been made.
-func (r *DNSBootstrapper) create() {
-	const retryPeriod = 5 * time.Second
-	const retryAttempts = 50
-	var client *kube.Clientset
-	var err error
-
-	err = utils.Retry(context.TODO(), retryAttempts, retryPeriod, func() error {
-		var status *pb.NodeStatus
-		status = r.agent.LocalStatus()
-		if status.Status != pb.NodeStatus_Running {
-			return trace.ConnectionProblem(nil, "node unhealthy: %v retrying", status.Status)
-		}
-
-		// kube client is also a part of the retry loop as the kubernetes
-		// API server might not be available at first connect
-		if client == nil {
-			client, err = monitoring.ConnectToKube(r.kubeAddr, constants.SchedulerConfigPath)
-			if err != nil {
-				return trace.ConnectionProblem(err, "failed to connect to kubernetes")
-			}
-		}
-
-		err = r.createService(client)
-		if err != nil {
-			return trace.Wrap(err, "failed to create kube-dns service")
-		}
-		log.Info("created kube-dns service")
-
-		err = r.createConfigmap(client)
-		if err != nil {
-			return trace.Wrap(err, "failed to create kube-dns configuration")
-		}
-		log.Info("created kube-dns configuration")
-
-		return nil
-	})
-	if err != nil {
-		log.Errorf("giving up on creating kube-dns: %v", trace.DebugReport(err))
+func (r *DNSBootstrapper) createConfigmap(client *kube.Clientset, namespace, name string) (err error) {
+	configMap := &v1.ConfigMap{
+		TypeMeta: unversioned.TypeMeta{
+			Kind:       constants.KindConfigMap,
+			APIVersion: constants.ConfigMapAPIVersion,
+		},
+		ObjectMeta: v1.ObjectMeta{
+			Name:              name,
+			Namespace:         namespace,
+			CreationTimestamp: unversioned.Now(),
+		},
+		Data: map[string]string{},
 	}
+	err = upsertConfigMap(client, configMap)
+	if err != nil {
+		return trace.Wrap(err, "failed to create DNS configmap")
+	}
+	return nil
 }
 
 // createServiceNamespaceIfNeeded creates a service namespace if one does not exist yet.
