@@ -4,6 +4,8 @@ import (
 	"encoding/json"
 	"fmt"
 	"net"
+	"net/http"
+	_ "net/http/pprof"
 	"os"
 	"os/signal"
 	"path/filepath"
@@ -48,10 +50,13 @@ func run() error {
 	args, extraArgs := cstrings.SplitAt(os.Args, "--")
 
 	var (
-		app        = kingpin.New("planet", "Planet is a Kubernetes delivered as RunC container")
-		debug      = app.Flag("debug", "Enable debug mode").Bool()
-		socketPath = app.Flag("socket-path", "Path to the socket file").Default("/var/run/planet.socket").String()
-		cversion   = app.Command("version", "Print version information")
+		app             = kingpin.New("planet", "Planet is a Kubernetes delivered as RunC container")
+		debug           = app.Flag("debug", "Enable debug mode").Bool()
+		socketPath      = app.Flag("socket-path", "Path to the socket file").Default("/var/run/planet.socket").String()
+		profileEndpoint = app.Flag("httpprofile", "enable profiling endpoint on specified host/port i.e. localhost:7070").Hidden().String()
+
+		// commands
+		cversion = app.Command("version", "Print version information")
 
 		// internal init command used by libcontainer
 		cinit = app.Command("init", "Internal init command").Hidden()
@@ -170,12 +175,18 @@ func run() error {
 		return err
 	}
 
-	if *debug == true {
+	if *debug {
 		log.SetOutput(os.Stderr)
-		log.SetLevel(log.InfoLevel)
+		log.SetLevel(log.DebugLevel)
 	} else {
 		log.SetOutput(os.Stderr)
 		log.SetLevel(log.WarnLevel)
+	}
+
+	if *profileEndpoint != "" {
+		go func() {
+			log.Error(http.ListenAndServe(*profileEndpoint, nil))
+		}()
 	}
 
 	if emptyIP(cstartMasterIP) {

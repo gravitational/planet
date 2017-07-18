@@ -42,11 +42,6 @@
 			"Rev": "aea32c919a18e5ef4537bbd283ff29594b1b0165"
 		},
 		{
-			"ImportPath": "github.com/cenk/backoff",
-			"Comment": "v1.0.0-1-gc29158a",
-			"Rev": "c29158af31815ccc31ca29c86c121bc39e00d3d8"
-		},
-		{
 			"ImportPath": "github.com/coreos/etcd/Godeps/_workspace/src/github.com/ugorji/go/codec",
 			"Comment": "v2.3.0-alpha.1-249-g0c41371",
 			"Rev": "0c41371064666ad159761e0fb12c7f240b3977cb"
@@ -198,11 +193,11 @@
 		},
 		{
 			"ImportPath": "github.com/gravitational/coordinate/config",
-			"Rev": "19eb5792cfb46f415a7bd8c27e3cbe33a1fa1bcb"
+			"Rev": "41ee16a8540aac940365c84e696cb2f18953c4bc"
 		},
 		{
 			"ImportPath": "github.com/gravitational/coordinate/leader",
-			"Rev": "19eb5792cfb46f415a7bd8c27e3cbe33a1fa1bcb"
+			"Rev": "41ee16a8540aac940365c84e696cb2f18953c4bc"
 		},
 		{
 			"ImportPath": "github.com/gravitational/go-udev",
@@ -242,7 +237,7 @@
 			"Comment": "v0.0.4-55-gf28bfd7",
 			"Rev": "f28bfd7128483dcda162d7015ad883a033e620e5"
 		},
-    	{
+		{
 			"ImportPath": "github.com/gravitational/satellite/monitoring/etcd",
 			"Comment": "v0.0.4-55-gf28bfd7",
 			"Rev": "f28bfd7128483dcda162d7015ad883a033e620e5"
@@ -1056,6 +1051,11 @@
 			"ImportPath": "k8s.io/client-go/1.4/transport",
 			"Comment": "v1.4.0",
 			"Rev": "3a5b96cfd3d3ff1d53d979b4297c4f3b869aab09"
+		},
+		{
+			"ImportPath": "github.com/cenkalti/backoff",
+			"Comment": "v1.0.0-23-g61153c7",
+			"Rev": "61153c768f31ee5f130071d08fc82b85208528de"
 		}
 	]
 }

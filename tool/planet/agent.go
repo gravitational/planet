@@ -86,7 +86,8 @@ func startLeaderClient(conf *LeaderConfig, errorC chan error) (leaderClient io.C
 		var etcdapi etcd.KeysAPI
 		etcdapi = etcd.NewKeysAPI(etcdClient)
 		// Set initial value of election participation mode
-		_, err = etcdapi.Set(context.TODO(), conf.ElectionKey, strconv.FormatBool(conf.ElectionEnabled),
+		_, err = etcdapi.Set(context.TODO(), conf.ElectionKey,
+			strconv.FormatBool(conf.ElectionEnabled),
 			&etcd.SetOptions{PrevExist: etcd.PrevNoExist})
 		if err != nil {
 			if err = convertError(err); !trace.IsAlreadyExists(err) {
@@ -159,7 +160,7 @@ func startLeaderClient(conf *LeaderConfig, errorC chan error) (leaderClient io.C
 			}
 		case false:
 			if cancelVoter == nil {
-				log.Infof("no voter active")
+				log.Info("no voter active")
 				return
 			}
 			// stop election participation
