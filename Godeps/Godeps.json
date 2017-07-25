@@ -193,11 +193,11 @@
 		},
 		{
 			"ImportPath": "github.com/gravitational/coordinate/config",
-			"Rev": "41ee16a8540aac940365c84e696cb2f18953c4bc"
+			"Rev": "a989b56d6191d8516cdff46bf8890b86540348a0"
 		},
 		{
 			"ImportPath": "github.com/gravitational/coordinate/leader",
-			"Rev": "41ee16a8540aac940365c84e696cb2f18953c4bc"
+			"Rev": "a989b56d6191d8516cdff46bf8890b86540348a0"
 		},
 		{
 			"ImportPath": "github.com/gravitational/go-udev",

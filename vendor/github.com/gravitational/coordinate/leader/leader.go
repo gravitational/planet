@@ -141,7 +141,6 @@ func (l *Client) AddWatch(key string, retry time.Duration, valuesC chan string) 
 		}()
 
 		backoff := NewUnlimitedExponentialBackOff()
-		backoff.MaxInterval = 10 * time.Second
 		ticker := ebackoff.NewTicker(backoff)
 		var steps int
 
