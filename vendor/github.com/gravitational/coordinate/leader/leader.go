@@ -160,13 +160,21 @@ func (l *Client) AddWatch(key string, retry time.Duration, valuesC chan string) 
 
 		var sentAnything bool
 		for {
-			resp, err = watcher.Next(ctx)
-			if err == nil {
-				if resp.Node.Value == "" {
-					continue
-				}
-				backoff.Reset()
+
+			if watcher == nil {
+				watcher, resp, err = l.getWatchAtLatestIndex(ctx, api, key, retry)
 			}
+
+			if watcher != nil {
+				resp, err = watcher.Next(ctx)
+				if err == nil {
+					if resp.Node.Value == "" {
+						continue
+					}
+					backoff.Reset()
+				}
+			}
+
 			if err != nil {
 				select {
 				case <-ticker.C:
