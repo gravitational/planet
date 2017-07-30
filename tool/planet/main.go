@@ -18,7 +18,6 @@ import (
 	"github.com/gravitational/planet/lib/monitoring"
 	"github.com/gravitational/planet/test/e2e"
 
-	log "github.com/Sirupsen/logrus"
 	kv "github.com/gravitational/configure"
 	"github.com/gravitational/configure/cstrings"
 	etcdconf "github.com/gravitational/coordinate/config"
@@ -28,6 +27,7 @@ import (
 	"github.com/gravitational/version"
 	"github.com/opencontainers/runc/libcontainer"
 	"github.com/opencontainers/runc/libcontainer/configs"
+	log "github.com/sirupsen/logrus"
 	"gopkg.in/alecthomas/kingpin.v2"
 )
 

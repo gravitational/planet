@@ -18,9 +18,9 @@ limitations under the License.
 package trace
 
 import (
-	"strings"
+	"regexp"
 
-	log "github.com/Sirupsen/logrus"
+	log "github.com/sirupsen/logrus"
 
 	"runtime"
 )
@@ -48,6 +48,7 @@ func (tf *TextFormatter) Format(e *log.Entry) ([]byte, error) {
 	if frameNo := findFrame(); frameNo != -1 {
 		t := newTrace(frameNo, nil)
 		new := e.WithFields(log.Fields{FileField: t.Loc(), FunctionField: t.FuncName()})
+		new.Time = e.Time
 		new.Level = e.Level
 		new.Message = e.Message
 		e = new
@@ -76,13 +77,15 @@ func (j *JSONFormatter) Format(e *log.Entry) ([]byte, error) {
 	return (&j.JSONFormatter).Format(e)
 }
 
+var r = regexp.MustCompile(`github\.com/(S|s)irupsen/logrus`)
+
 func findFrame() int {
 	for i := 3; i < 10; i++ {
 		_, file, _, ok := runtime.Caller(i)
 		if !ok {
 			return -1
 		}
-		if !strings.Contains(file, "Sirupsen/logrus") {
+		if !r.MatchString(file) {
 			return i
 		}
 	}

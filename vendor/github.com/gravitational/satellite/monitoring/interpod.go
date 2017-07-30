@@ -26,8 +26,8 @@ import (
 	"github.com/gravitational/satellite/agent/health"
 	"github.com/gravitational/trace"
 
-	log "github.com/Sirupsen/logrus"
 	"github.com/blang/semver"
+	log "github.com/sirupsen/logrus"
 	"k8s.io/client-go/1.4/discovery"
 	kube "k8s.io/client-go/1.4/kubernetes"
 	"k8s.io/client-go/1.4/pkg/api"

@@ -30,9 +30,9 @@ import (
 	"github.com/gravitational/trace"
 	"github.com/prometheus/client_golang/prometheus"
 
-	log "github.com/Sirupsen/logrus"
 	serf "github.com/hashicorp/serf/client"
 	"github.com/jonboulle/clockwork"
+	log "github.com/sirupsen/logrus"
 	"golang.org/x/net/context"
 )
 

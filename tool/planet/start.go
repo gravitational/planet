@@ -14,13 +14,13 @@ import (
 
 	"github.com/gravitational/planet/lib/constants"
 
-	log "github.com/Sirupsen/logrus"
 	"github.com/gravitational/planet/lib/box"
 	"github.com/gravitational/planet/lib/check"
 	"github.com/gravitational/planet/lib/user"
 	"github.com/gravitational/planet/lib/utils"
 	"github.com/gravitational/trace"
 	"github.com/opencontainers/runc/libcontainer"
+	log "github.com/sirupsen/logrus"
 )
 
 const DefaultSearchDomain = "cluster.local"

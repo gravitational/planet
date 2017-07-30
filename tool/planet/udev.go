@@ -8,9 +8,9 @@ import (
 	"github.com/gravitational/planet/lib/box"
 	"github.com/gravitational/trace"
 
-	log "github.com/Sirupsen/logrus"
 	"github.com/opencontainers/runc/libcontainer/configs"
 	"github.com/opencontainers/runc/libcontainer/devices"
+	log "github.com/sirupsen/logrus"
 )
 
 // newUdevListener creates a new udev event listener listening

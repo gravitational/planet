@@ -9,9 +9,9 @@ import (
 	"strings"
 	"syscall"
 
-	log "github.com/Sirupsen/logrus"
 	"github.com/gravitational/planet/lib/check"
 	"github.com/gravitational/trace"
+	log "github.com/sirupsen/logrus"
 )
 
 // planet won't start without these groups enabled in the kernel

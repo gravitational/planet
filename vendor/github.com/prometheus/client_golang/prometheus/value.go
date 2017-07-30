@@ -19,7 +19,6 @@ import (
 	"math"
 	"sort"
 	"sync/atomic"
-	"time"
 
 	dto "github.com/prometheus/client_model/go"
 
@@ -44,12 +43,12 @@ var errInconsistentCardinality = errors.New("inconsistent label cardinality")
 // ValueType. This is a low-level building block used by the library to back the
 // implementations of Counter, Gauge, and Untyped.
 type value struct {
-	// valBits contains the bits of the represented float64 value. It has
+	// valBits containst the bits of the represented float64 value. It has
 	// to go first in the struct to guarantee alignment for atomic
 	// operations.  http://golang.org/pkg/sync/atomic/#pkg-note-BUG
 	valBits uint64
 
-	selfCollector
+	SelfCollector
 
 	desc       *Desc
 	valType    ValueType
@@ -69,7 +68,7 @@ func newValue(desc *Desc, valueType ValueType, val float64, labelValues ...strin
 		valBits:    math.Float64bits(val),
 		labelPairs: makeLabelPairs(desc, labelValues),
 	}
-	result.init(result)
+	result.Init(result)
 	return result
 }
 
@@ -79,10 +78,6 @@ func (v *value) Desc() *Desc {
 
 func (v *value) Set(val float64) {
 	atomic.StoreUint64(&v.valBits, math.Float64bits(val))
-}
-
-func (v *value) SetToCurrentTime() {
-	v.Set(float64(time.Now().UnixNano()) / 1e9)
 }
 
 func (v *value) Inc() {
@@ -118,7 +113,7 @@ func (v *value) Write(out *dto.Metric) error {
 // library to back the implementations of CounterFunc, GaugeFunc, and
 // UntypedFunc.
 type valueFunc struct {
-	selfCollector
+	SelfCollector
 
 	desc       *Desc
 	valType    ValueType
@@ -139,7 +134,7 @@ func newValueFunc(desc *Desc, valueType ValueType, function func() float64) *val
 		function:   function,
 		labelPairs: makeLabelPairs(desc, nil),
 	}
-	result.init(result)
+	result.Init(result)
 	return result
 }
 

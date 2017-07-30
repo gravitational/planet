@@ -1,7 +1,7 @@
 {
 	"ImportPath": "github.com/gravitational/planet",
 	"GoVersion": "go1.5",
-	"GodepVersion": "v79",
+	"GodepVersion": "v74",
 	"Packages": [
 		"./lib/...",
 		"./tool/..."
@@ -9,16 +9,11 @@
 	"Deps": [
 		{
 			"ImportPath": "github.com/Azure/go-ansiterm",
-			"Rev": "70b2c90b260171e829f1ebd7c17f600c11858dbe"
+			"Rev": "19f72df4d05d31cbe1c56bfc8045c96babff6c7e"
 		},
 		{
 			"ImportPath": "github.com/Azure/go-ansiterm/winterm",
-			"Rev": "70b2c90b260171e829f1ebd7c17f600c11858dbe"
-		},
-		{
-			"ImportPath": "github.com/Sirupsen/logrus",
-			"Comment": "v0.8.3-3-g07d998d",
-			"Rev": "07d998d174c4e2dc90e2f1989a20724220bca1ff"
+			"Rev": "19f72df4d05d31cbe1c56bfc8045c96babff6c7e"
 		},
 		{
 			"ImportPath": "github.com/alecthomas/template",
@@ -37,9 +32,18 @@
 			"Rev": "06b60999766278efd6d2b5d8418a58c3d5b99e87"
 		},
 		{
+			"ImportPath": "github.com/beorn7/perks/quantile",
+			"Rev": "b965b613227fddccbfffe13eae360ed3fa822f8d"
+		},
+		{
 			"ImportPath": "github.com/blang/semver",
 			"Comment": "v3.1.0",
 			"Rev": "aea32c919a18e5ef4537bbd283ff29594b1b0165"
+		},
+		{
+			"ImportPath": "github.com/cenkalti/backoff",
+			"Comment": "v1.0.0-23-g61153c7",
+			"Rev": "61153c768f31ee5f130071d08fc82b85208528de"
 		},
 		{
 			"ImportPath": "github.com/coreos/etcd/Godeps/_workspace/src/github.com/ugorji/go/codec",
@@ -193,11 +197,11 @@
 		},
 		{
 			"ImportPath": "github.com/gravitational/coordinate/config",
-			"Rev": "d3d3609ffa9eb7f9b30f90ed1463389feeeff971"
+			"Rev": "435d9c7a6e6b6fa8494668df7067fc0c22d19ef9"
 		},
 		{
 			"ImportPath": "github.com/gravitational/coordinate/leader",
-			"Rev": "d3d3609ffa9eb7f9b30f90ed1463389feeeff971"
+			"Rev": "435d9c7a6e6b6fa8494668df7067fc0c22d19ef9"
 		},
 		{
 			"ImportPath": "github.com/gravitational/go-udev",
@@ -209,42 +213,42 @@
 		},
 		{
 			"ImportPath": "github.com/gravitational/satellite/agent",
-			"Comment": "v0.0.4-55-gf28bfd7",
-			"Rev": "f28bfd7128483dcda162d7015ad883a033e620e5"
+			"Comment": "v0.0.4-57-g0b3c8c1",
+			"Rev": "0b3c8c19bfd1348e6f67c4ec1aa85eeddae27764"
 		},
 		{
 			"ImportPath": "github.com/gravitational/satellite/agent/backend/inmemory",
-			"Comment": "v0.0.4-55-gf28bfd7",
-			"Rev": "f28bfd7128483dcda162d7015ad883a033e620e5"
+			"Comment": "v0.0.4-57-g0b3c8c1",
+			"Rev": "0b3c8c19bfd1348e6f67c4ec1aa85eeddae27764"
 		},
 		{
 			"ImportPath": "github.com/gravitational/satellite/agent/cache",
-			"Comment": "v0.0.4-55-gf28bfd7",
-			"Rev": "f28bfd7128483dcda162d7015ad883a033e620e5"
+			"Comment": "v0.0.4-57-g0b3c8c1",
+			"Rev": "0b3c8c19bfd1348e6f67c4ec1aa85eeddae27764"
 		},
 		{
 			"ImportPath": "github.com/gravitational/satellite/agent/health",
-			"Comment": "v0.0.4-55-gf28bfd7",
-			"Rev": "f28bfd7128483dcda162d7015ad883a033e620e5"
+			"Comment": "v0.0.4-57-g0b3c8c1",
+			"Rev": "0b3c8c19bfd1348e6f67c4ec1aa85eeddae27764"
 		},
 		{
 			"ImportPath": "github.com/gravitational/satellite/agent/proto/agentpb",
-			"Comment": "v0.0.4-55-gf28bfd7",
-			"Rev": "f28bfd7128483dcda162d7015ad883a033e620e5"
+			"Comment": "v0.0.4-57-g0b3c8c1",
+			"Rev": "0b3c8c19bfd1348e6f67c4ec1aa85eeddae27764"
 		},
 		{
 			"ImportPath": "github.com/gravitational/satellite/monitoring",
-			"Comment": "v0.0.4-55-gf28bfd7",
-			"Rev": "f28bfd7128483dcda162d7015ad883a033e620e5"
+			"Comment": "v0.0.4-57-g0b3c8c1",
+			"Rev": "0b3c8c19bfd1348e6f67c4ec1aa85eeddae27764"
 		},
 		{
 			"ImportPath": "github.com/gravitational/satellite/monitoring/etcd",
-			"Comment": "v0.0.4-55-gf28bfd7",
-			"Rev": "f28bfd7128483dcda162d7015ad883a033e620e5"
+			"Comment": "v0.0.4-57-g0b3c8c1",
+			"Rev": "0b3c8c19bfd1348e6f67c4ec1aa85eeddae27764"
 		},
 		{
 			"ImportPath": "github.com/gravitational/trace",
-			"Rev": "3a57d2a585a6d721265df44bae173af5ff71628e"
+			"Rev": "640274f75816ce3975e730e844290c14936f6288"
 		},
 		{
 			"ImportPath": "github.com/gravitational/version",
@@ -296,9 +300,8 @@
 			"Rev": "8c199fb6259ffc1af525cc3ad52ee60ba8359669"
 		},
 		{
-			"ImportPath": "github.com/mattn/go-sqlite3",
-			"Comment": "v1.1.0",
-			"Rev": "3b3f1d01b2696af5501697c35629048c227586ab"
+			"ImportPath": "github.com/matttproud/golang_protobuf_extensions/pbutil",
+			"Rev": "d0c3fe89de86839aecf2e0579c40ba3bb336a453"
 		},
 		{
 			"ImportPath": "github.com/opencontainers/runc/libcontainer",
@@ -395,8 +398,39 @@
 			"Rev": "dee7705ef7b324f27ceb85a121c61f2c2e8ce988"
 		},
 		{
+			"ImportPath": "github.com/prometheus/client_golang/prometheus",
+			"Comment": "0.7.0-64-g275368f",
+			"Rev": "275368fd9eb02bca5e452faad68e4411f8782842"
+		},
+		{
+			"ImportPath": "github.com/prometheus/client_model/go",
+			"Comment": "model-0.0.2-12-gfa8ad6f",
+			"Rev": "fa8ad6fec33561be4280a8f0514318c79d7f6cb6"
+		},
+		{
+			"ImportPath": "github.com/prometheus/common/expfmt",
+			"Rev": "50022896a67062a54a54f268fb6fe4bf90b34859"
+		},
+		{
+			"ImportPath": "github.com/prometheus/common/internal/bitbucket.org/ww/goautoneg",
+			"Rev": "50022896a67062a54a54f268fb6fe4bf90b34859"
+		},
+		{
+			"ImportPath": "github.com/prometheus/common/model",
+			"Rev": "50022896a67062a54a54f268fb6fe4bf90b34859"
+		},
+		{
+			"ImportPath": "github.com/prometheus/procfs",
+			"Rev": "406e5b7bfd8201a36e2bb5f7bdae0b03380c2ce8"
+		},
+		{
 			"ImportPath": "github.com/seccomp/libseccomp-golang",
 			"Rev": "1b506fc7c24eec5a3693cdcbed40d9c226cfc6a1"
+		},
+		{
+			"ImportPath": "github.com/sirupsen/logrus",
+			"Comment": "1.0.2-34-g181d419",
+			"Rev": "181d419aa9e2223811b824e8f0b4af96f9ba9302"
 		},
 		{
 			"ImportPath": "github.com/spf13/pflag",
@@ -417,6 +451,10 @@
 		{
 			"ImportPath": "github.com/vishvananda/netlink/nl",
 			"Rev": "bfd70f556483c008636b920dda142fdaa0d59ef9"
+		},
+		{
+			"ImportPath": "golang.org/x/crypto/ssh/terminal",
+			"Rev": "453249f01cfeb54c3d549ddb75ff152ca243f9d8"
 		},
 		{
 			"ImportPath": "golang.org/x/net/context",
@@ -1051,11 +1089,6 @@
 			"ImportPath": "k8s.io/client-go/1.4/transport",
 			"Comment": "v1.4.0",
 			"Rev": "3a5b96cfd3d3ff1d53d979b4297c4f3b869aab09"
-		},
-		{
-			"ImportPath": "github.com/cenkalti/backoff",
-			"Comment": "v1.0.0-23-g61153c7",
-			"Rev": "61153c768f31ee5f130071d08fc82b85208528de"
 		}
 	]
 }
