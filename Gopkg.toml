@@ -1,0 +1,77 @@
+
+# Gopkg.toml example
+#
+# Refer to https://github.com/golang/dep/blob/master/docs/Gopkg.toml.md
+# for detailed Gopkg.toml documentation.
+#
+# required = ["github.com/user/thing/cmd/thing"]
+# ignored = ["github.com/user/project/pkgX", "bitbucket.org/user/project/pkgA/pkgY"]
+#
+# [[constraint]]
+#   name = "github.com/user/project"
+#   version = "1.0.0"
+#
+# [[constraint]]
+#   name = "github.com/user/project2"
+#   branch = "dev"
+#   source = "github.com/myfork/project2"
+#
+# [[override]]
+#  name = "github.com/x/y"
+#  version = "2.4.0"
+
+[[override]]
+  name = "github.com/hashicorp/serf"
+  revision = "11bb88abf7b17f0b794b51416a9107d781e95f35"
+
+[[constraint]]
+  name = "github.com/coreos/etcd"
+  version = "3.2.4"
+
+[[constraint]]
+  name = "github.com/docker/docker"
+  version = "1.9.1"
+
+[[constraint]]
+  branch = "master"
+  name = "github.com/gravitational/configure"
+
+[[constraint]]
+  branch = "master"
+  name = "github.com/gravitational/coordinate"
+
+[[constraint]]
+  branch = "master"
+  name = "github.com/gravitational/go-udev"
+
+[[constraint]]
+  name = "github.com/gravitational/satellite"
+  version = ">=0.0.4, <=57.0.0-g0b3c8c1"
+
+[[constraint]]
+  name = "github.com/gravitational/trace"
+  version = "1.0.0"
+
+[[constraint]]
+  name = "github.com/julienschmidt/httprouter"
+  version = "1.1.0"
+
+[[constraint]]
+  name = "github.com/opencontainers/runc"
+  version = "0.1.0"
+
+[[constraint]]
+  name = "github.com/prometheus/client_golang"
+  version = ">=0.7.0, <=64.0.0-g275368f"
+
+[[constraint]]
+  name = "github.com/sirupsen/logrus"
+  version = ">=1.0.2, <=34.0.0-g181d419"
+
+[[constraint]]
+  name = "gopkg.in/alecthomas/kingpin.v2"
+  version = "2.0.11"
+
+[[constraint]]
+  name = "k8s.io/client-go"
+  version = "2.0.0"
