@@ -46,7 +46,7 @@
 
 [[constraint]]
   name = "github.com/gravitational/satellite"
-  version = ">=0.0.4, <=57.0.0-g0b3c8c1"
+  version = "0.0.6"
 
 [[constraint]]
   name = "github.com/gravitational/trace"
