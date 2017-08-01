@@ -14,9 +14,9 @@ import (
 	"strconv"
 	"time"
 
-	log "github.com/Sirupsen/logrus"
 	"github.com/gravitational/planet/lib/utils"
 	"github.com/gravitational/trace"
+	log "github.com/sirupsen/logrus"
 
 	"gopkg.in/alecthomas/kingpin.v2"
 )

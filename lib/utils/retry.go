@@ -4,8 +4,8 @@ import (
 	"context"
 	"time"
 
-	log "github.com/Sirupsen/logrus"
 	"github.com/gravitational/trace"
+	log "github.com/sirupsen/logrus"
 )
 
 // Retry retries 'times' attempts with retry period 'period' calling function fn

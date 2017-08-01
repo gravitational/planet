@@ -216,3 +216,9 @@ clean-images: clean-containers
 
 $(BUILDDIR)/current:
 	@echo "You need to build the full image first. Run \"make dev\""
+
+
+.PHONY: fix-logrus
+fix-logrus:
+	find vendor -type f -print0 | xargs -0 sed -i 's/Sirupsen/sirupsen/g'
+

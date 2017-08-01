@@ -4,11 +4,11 @@ import (
 	"bytes"
 	"os"
 
-	log "github.com/Sirupsen/logrus"
 	"github.com/docker/docker/pkg/term"
 	"github.com/gravitational/planet/lib/box"
 	"github.com/gravitational/planet/lib/constants"
 	"github.com/gravitational/trace"
+	log "github.com/sirupsen/logrus"
 )
 
 func enterConsole(rootfs, socketPath, cmd, user string, tty bool, args []string) (err error) {

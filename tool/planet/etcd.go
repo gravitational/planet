@@ -5,10 +5,10 @@ import (
 	"os"
 	"os/exec"
 
-	log "github.com/Sirupsen/logrus"
 	etcd "github.com/coreos/etcd/client"
 	"github.com/gravitational/planet/lib/box"
 	"github.com/gravitational/trace"
+	log "github.com/sirupsen/logrus"
 )
 
 // etcdPromote promotes running etcd proxy to a full member; does nothing if it's already

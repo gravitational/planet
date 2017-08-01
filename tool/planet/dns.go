@@ -11,10 +11,10 @@ import (
 	"github.com/gravitational/satellite/monitoring"
 	"github.com/gravitational/trace"
 
-	log "github.com/Sirupsen/logrus"
-	kube "k8s.io/client-go/1.4/kubernetes"
-	"k8s.io/client-go/1.4/pkg/api/v1"
-	"k8s.io/client-go/1.4/pkg/util/intstr"
+	log "github.com/sirupsen/logrus"
+	kube "k8s.io/client-go/kubernetes"
+	"k8s.io/client-go/pkg/api/v1"
+	"k8s.io/client-go/pkg/util/intstr"
 )
 
 const serviceNamespace = "kube-system"
