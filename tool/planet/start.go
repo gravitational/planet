@@ -469,6 +469,8 @@ func setDNSMasq(config *Config) error {
 	for _, hostNameserver := range resolv.Servers {
 		fmt.Fprintf(out, "server=%v\n", hostNameserver)
 	}
+	// do not send local requests to upstream servers
+	fmt.Fprintf(out, "local=/cluster.local/\n")
 
 	err = ioutil.WriteFile(filepath.Join(config.Rootfs, DNSMasqK8sConf), out.Bytes(), SharedFileMask)
 	if err != nil {
