@@ -2,7 +2,6 @@ package main
 
 import (
 	"bytes"
-	"encoding/json"
 	"fmt"
 	"io"
 	"io/ioutil"
@@ -558,32 +557,6 @@ func copyResolvFile(cfg utils.DNSConfig, destination string, upstreamNameservers
 		return trace.Wrap(err)
 	}
 
-	return nil
-}
-
-func writeKubeDNSConfig(config Config, dnsConfig utils.DNSConfig) error {
-	f, err := os.OpenFile(
-		config.inRootfs("etc", "kubernetes", kubeDNSConfigMap),
-		os.O_RDWR|os.O_CREATE|os.O_TRUNC, SharedFileMask,
-	)
-	if err != nil {
-		return trace.Wrap(err)
-	}
-	defer f.Close()
-
-	enc := json.NewEncoder(f)
-	err = enc.Encode(struct {
-		StubDomains map[string][]string `json:"stubDomains"`
-		Nameservers []string            `json:"upstreamNameservers"`
-	}{
-		StubDomains: map[string][]string{
-			"cluster.local": []string{"127.0.0.1#10053"},
-		},
-		Nameservers: dnsConfig.Servers,
-	})
-	if err != nil {
-		return trace.Wrap(err)
-	}
 	return nil
 }
 

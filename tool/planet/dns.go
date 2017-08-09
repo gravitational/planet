@@ -58,24 +58,24 @@ func (r *DNSBootstrapper) create() {
 
 		err = r.createService(client, metav1.NamespaceSystem, name)
 		if err != nil {
-			return trace.Wrap(err, "failed to create kube-dns service")
+			return trace.Wrap(err, "failed to create kubedns service")
 		}
-		log.Info("created kube-dns service")
+		log.Info("created kubedns service")
 
 		err = r.createConfigmap(client, metav1.NamespaceSystem, name)
 		if err != nil {
-			return trace.Wrap(err, "failed to create kube-dns configuration")
+			return trace.Wrap(err, "failed to create kubedns configuration")
 		}
-		log.Info("created kube-dns configuration")
+		log.Info("created kubedns configuration")
 
 		return nil
 	})
 	if err != nil {
-		log.Errorf("giving up on creating kube-dns: %v", trace.DebugReport(err))
+		log.Errorf("giving up on creating kubedns: %v", trace.DebugReport(err))
 	}
 }
 
-// createService creates or updates the `kube-dns` kubernetes service.
+// createService creates or updates the kubernetes DNS service.
 // It will set the service's cluster IP to the value specified by clusterIP.
 func (r *DNSBootstrapper) createService(client *kube.Clientset, namespace, name string) (err error) {
 	service := &v1.Service{

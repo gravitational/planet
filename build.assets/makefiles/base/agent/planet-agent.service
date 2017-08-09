@@ -28,5 +28,5 @@ ExecStart=/usr/bin/planet agent \
         --etcd-cafile=/var/state/root.cert \
         --etcd-certfile=/var/state/etcd.cert \
         --etcd-keyfile=/var/state/etcd.key \
-	--nameservers=${PLANET_DNS_UPSTREAM_NAMESERVERS}
+        --nameservers=${PLANET_DNS_UPSTREAM_NAMESERVERS}
 
