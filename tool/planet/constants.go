@@ -30,6 +30,7 @@ const (
 	EnvKubeConfig              = "KUBECONFIG"
 	EnvDNSOverrides            = "PLANET_DNS_OVERRIDES"
 	EnvHostname                = "PLANET_HOSTNAME"
+	EnvDNSUpstreamNameservers  = "PLANET_DNS_UPSTREAM_NAMESERVERS"
 
 	PlanetRoleMaster = "master"
 

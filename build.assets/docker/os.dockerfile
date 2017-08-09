@@ -1,26 +1,37 @@
 # This dockerfile bakes a base image Planet will use.
 # It is basically Debian with latest packages and properly configured locales
 #
-FROM debian:jessie-backports
+FROM debian:stretch-backports
 
 ENV DEBIAN_FRONTEND noninteractive
 
 ADD os-rootfs/ /
 
+RUN set -ex; \
+	if ! command -v gpg > /dev/null; then \
+		apt-get update; \
+		apt-get install -y --no-install-recommends \
+			gnupg2 \
+			dirmngr \
+		; \
+		rm -rf /var/lib/apt/lists/*; \
+	fi
+
 # dockerproject debian repo key
 RUN (apt-get update && \
 	apt-get -q -y install apt-transport-https && \
 	apt-key adv --keyserver hkp://p80.pool.sks-keyservers.net:80 --recv-keys 58118E89F3A912897C070ADBF76221572C52609D)
-RUN (echo 'deb http://ftp.debian.org/debian jessie-backports main' >> /etc/apt/sources.list && \
-	echo 'deb http://httpredir.debian.org/debian/ jessie contrib non-free' >> /etc/apt/sources.list && \
-	echo 'deb http://httpredir.debian.org/debian/ jessie-updates contrib non-free' >> /etc/apt/sources.list && \
-	echo 'deb https://apt.dockerproject.org/repo debian-jessie main' >> /etc/apt/sources.list)
+
+RUN (echo 'deb http://httpredir.debian.org/debian/ stretch contrib non-free' >> /etc/apt/sources.list && \
+	echo 'deb http://httpredir.debian.org/debian/ stretch-updates contrib non-free' >> /etc/apt/sources.list && \
+	echo 'deb https://apt.dockerproject.org/repo debian-stretch main' >> /etc/apt/sources.list)
+
 RUN (apt-get clean \
 	&& apt-key update \
 	&& apt-get -q -y update --fix-missing \
 	&& apt-get -q -y update \
 	&& apt-get install -q -y apt-utils less locales \
-	&& apt-get -t jessie-backports install -q -y systemd)
+	&& apt-get -t stretch-backports install -q -y systemd)
 
 # Set locale to en_US.UTF-8
 RUN (locale-gen \

@@ -27,5 +27,6 @@ ExecStart=/usr/bin/planet agent \
         --docker-registry-addr=${KUBE_APISERVER}:5000 \
         --etcd-cafile=/var/state/root.cert \
         --etcd-certfile=/var/state/etcd.cert \
-        --etcd-keyfile=/var/state/etcd.key
+        --etcd-keyfile=/var/state/etcd.key \
+	--nameservers=${PLANET_DNS_UPSTREAM_NAMESERVERS}
 

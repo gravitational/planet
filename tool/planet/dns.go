@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"encoding/json"
 	"time"
 
 	"github.com/gravitational/planet/lib/constants"
@@ -12,18 +13,21 @@ import (
 	"github.com/gravitational/trace"
 
 	log "github.com/sirupsen/logrus"
+	apierrors "k8s.io/apimachinery/pkg/api/errors"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/util/intstr"
 	kube "k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/pkg/api/v1"
-	"k8s.io/client-go/pkg/util/intstr"
 )
 
 const serviceNamespace = "kube-system"
 
 // DNSBootstrapper represents the process of creating a kubernetes service for DNS.
 type DNSBootstrapper struct {
-	clusterIP string
-	kubeAddr  string
-	agent     agent.Agent
+	clusterIP           string
+	upstreamNameservers []string
+	kubeAddr            string
+	agent               agent.Agent
 }
 
 // create runs a loop to creates/update the `kube-dns` kubernetes service.
@@ -52,13 +56,13 @@ func (r *DNSBootstrapper) create() {
 			}
 		}
 
-		err = r.createService(client, name)
+		err = r.createService(client, metav1.NamespaceSystem, name)
 		if err != nil {
 			return trace.Wrap(err, "failed to create kube-dns service")
 		}
 		log.Info("created kube-dns service")
 
-		err = r.createConfigmap(client, name)
+		err = r.createConfigmap(client, metav1.NamespaceSystem, name)
 		if err != nil {
 			return trace.Wrap(err, "failed to create kube-dns configuration")
 		}
@@ -73,19 +77,17 @@ func (r *DNSBootstrapper) create() {
 
 // createService creates or updates the `kube-dns` kubernetes service.
 // It will set the service's cluster IP to the value specified by clusterIP.
-func (r *DNSBootstrapper) createService(client *kube.Clientset, name string) (err error) {
-	err = createServiceNamespaceIfNeeded(client)
-	if err != nil {
-		return trace.Wrap(err)
-	}
+func (r *DNSBootstrapper) createService(client *kube.Clientset, namespace, name string) (err error) {
 	service := &v1.Service{
-		ObjectMeta: v1.ObjectMeta{
-			Name: name,
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      name,
+			Namespace: namespace,
 			Labels: map[string]string{
 				"k8s-app":                       name,
 				"kubernetes.io/cluster-service": "true",
 				"kubernetes.io/name":            "KubeDNS",
 			},
+			ResourceVersion: "0",
 		},
 		Spec: v1.ServiceSpec{
 			Selector: map[string]string{
@@ -107,66 +109,43 @@ func (r *DNSBootstrapper) createService(client *kube.Clientset, name string) (er
 			SessionAffinity: "None",
 		},
 	}
-	err = upsertService(client, dnsService)
-	if err != nil {
-		return trace.Wrap(err, "failed to create DNS service")
+
+	if _, err := client.CoreV1().Services(metav1.NamespaceSystem).Create(service); err != nil {
+		if !apierrors.IsAlreadyExists(err) {
+			return trace.Wrap(err, "failed to create kubedns service")
+		}
+
+		if _, err := client.CoreV1().Services(metav1.NamespaceSystem).Update(service); err != nil {
+			return trace.Wrap(err, "failed to update kubedns service")
+		}
 	}
 	return nil
 }
 
 func (r *DNSBootstrapper) createConfigmap(client *kube.Clientset, namespace, name string) (err error) {
-	configMap := &v1.ConfigMap{
-		TypeMeta: unversioned.TypeMeta{
-			Kind:       constants.KindConfigMap,
-			APIVersion: constants.ConfigMapAPIVersion,
-		},
-		ObjectMeta: v1.ObjectMeta{
-			Name:              name,
-			Namespace:         namespace,
-			CreationTimestamp: unversioned.Now(),
-		},
-		Data: map[string]string{},
-	}
-	err = upsertConfigMap(client, configMap)
+	nameserversJSON, err := json.Marshal(r.upstreamNameservers)
 	if err != nil {
-		return trace.Wrap(err, "failed to create DNS configmap")
-	}
-	return nil
-}
-
-// createServiceNamespaceIfNeeded creates a service namespace if one does not exist yet.
-func createServiceNamespaceIfNeeded(client *kube.Clientset) error {
-	log.Infof("creating %s namespace", serviceNamespace)
-	if _, err := client.Namespaces().Get(serviceNamespace); err != nil {
-		log.Infof("%s namespace not found: %v", serviceNamespace, err)
-		_, err = client.Namespaces().Create(&v1.Namespace{ObjectMeta: v1.ObjectMeta{Name: serviceNamespace}})
-		if err != nil {
-			return trace.Wrap(err)
-		}
-	}
-	return nil
-}
-
-// upsertService either creates a new service if the specified service does not exist,
-// or updates an existing one.
-func upsertService(client *kube.Clientset, service *v1.Service) (err error) {
-	log.Infof("creating %s service with spec:\n%#v", service.ObjectMeta.Name, service)
-	serviceName := service.ObjectMeta.Name
-	services := client.Services(serviceNamespace)
-	var existing *v1.Service
-	if existing, err = services.Get(serviceName); err != nil {
-		log.Infof("%s service not found: %v", service.ObjectMeta.Name, err)
-		_, err = services.Create(service)
-		if err != nil {
-			return trace.Wrap(err)
-		}
-		return nil
-	}
-	log.Infof("updating existing service %s: %v", existing.ObjectMeta.Name, existing)
-	// FIXME: w/o the resource version reset, the etcd update fails with an error
-	service.ObjectMeta.ResourceVersion = existing.ObjectMeta.ResourceVersion
-	if _, err = services.Update(service); err != nil {
 		return trace.Wrap(err)
+	}
+
+	configMap := &v1.ConfigMap{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      name,
+			Namespace: namespace,
+		},
+		Data: map[string]string{
+			"upstreamNameservers": string(nameserversJSON),
+		},
+	}
+
+	if _, err := client.CoreV1().ConfigMaps(metav1.NamespaceSystem).Create(configMap); err != nil {
+		if !apierrors.IsAlreadyExists(err) {
+			return trace.Wrap(err, "failed to create kubedns configmap")
+		}
+
+		if _, err := client.CoreV1().ConfigMaps(metav1.NamespaceSystem).Update(configMap); err != nil {
+			return trace.Wrap(err, "failed to update kubedns configmap")
+		}
 	}
 	return nil
 }

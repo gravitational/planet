@@ -155,15 +155,26 @@ func start(config *Config, monitorc chan<- bool) (*runtimeContext, error) {
 	if err = setupCloudOptions(config); err != nil {
 		return nil, trace.Wrap(err)
 	}
-	if err = addResolv(config); err != nil {
+
+	upstreamNameservers, err := addResolv(config)
+	if err != nil {
 		return nil, trace.Wrap(err)
 	}
+	// Add upstream nameservers to the cluster DNS configuration
+	config.Env = append(config.Env,
+		box.EnvPair{
+			Name: EnvDNSUpstreamNameservers,
+			Val:  strings.Join(upstreamNameservers, ","),
+		})
+
 	if err = setDNSMasq(config); err != nil {
 		return nil, trace.Wrap(err)
 	}
+
 	if err = addKubeConfig(config); err != nil {
 		return nil, trace.Wrap(err)
 	}
+
 	if err = setKubeConfigOwnership(config); err != nil {
 		return nil, trace.Wrap(err)
 	}
@@ -481,26 +492,16 @@ func setDNSMasq(config *Config) error {
 	return trace.Wrap(err)
 }
 
-func addResolv(config *Config) error {
+func addResolv(config *Config) (upstreamNameservers []string, err error) {
 	cfg, err := readHostResolv()
 	if err != nil {
-		return trace.Wrap(err)
+		return nil, trace.Wrap(err)
 	}
 
 	planetResolv := config.inRootfs("etc", PlanetResolv)
 	if err := copyResolvFile(*cfg, planetResolv, []string{"127.0.0.1"}); err != nil {
-		return trace.Wrap(err)
+		return nil, trace.Wrap(err)
 	}
-
-	kubeletResolv := config.inRootfs("etc", KubeletResolv)
-	if err := copyResolvFile(*cfg, kubeletResolv, nil); err != nil {
-		return trace.Wrap(err)
-	}
-
-	// err = writeKubeDNSConfig(*config, *cfg)
-	// if err != nil {
-	// 	return trace.Wrap(err)
-	// }
 
 	config.Mounts = append(config.Mounts, box.Mount{
 		Src:      planetResolv,
@@ -508,7 +509,7 @@ func addResolv(config *Config) error {
 		Readonly: true,
 	})
 
-	return nil
+	return cfg.Servers, nil
 }
 
 func readHostResolv() (*utils.DNSConfig, error) {
