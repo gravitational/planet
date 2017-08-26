@@ -47,7 +47,7 @@ KUBE_VER := v1.7.4
 SECCOMP_VER :=  2.3.1-2.1
 DOCKER_VER := 1.12.6
 FLANNEL_VER := amed/awsvpc-multi-routing-table-backend
-ETCD_VER := v3.2.5
+ETCD_VER := v2.3.8
 
 PUBLIC_IP := 127.0.0.1
 export
