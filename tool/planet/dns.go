@@ -34,7 +34,6 @@ type DNSBootstrapper struct {
 // The loop continues until the master node has become healthy and the service
 // gets created or a specified number of attempts have been made.
 func (r *DNSBootstrapper) create() {
-	const name = "kube-dns"
 	const retryPeriod = 5 * time.Second
 	const retryAttempts = 50
 	var client *kube.Clientset
@@ -56,13 +55,13 @@ func (r *DNSBootstrapper) create() {
 			}
 		}
 
-		err = r.createService(client, metav1.NamespaceSystem, name)
+		err = r.createService(client, metav1.NamespaceSystem, constants.DNSResourceName)
 		if err != nil {
 			return trace.Wrap(err, "failed to create kubedns service")
 		}
 		log.Info("created kubedns service")
 
-		err = r.createConfigmap(client, metav1.NamespaceSystem, name)
+		err = r.createConfigmap(client, metav1.NamespaceSystem, constants.DNSResourceName)
 		if err != nil {
 			return trace.Wrap(err, "failed to create kubedns configuration")
 		}

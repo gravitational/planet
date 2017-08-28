@@ -534,8 +534,7 @@ func readHostResolv() (*utils.DNSConfig, error) {
 // copyResolvFile adds DNS resolver configuration from the host's /etc/resolv.conf
 func copyResolvFile(cfg utils.DNSConfig, destination string, upstreamNameservers []string) error {
 	// Make sure upstream nameservers go first in the order supplied by caller
-	nameservers := append([]string{}, upstreamNameservers...)
-	nameservers = append(nameservers, cfg.Servers...)
+	nameservers := append(upstreamNameservers, cfg.Servers...)
 
 	cfg.Servers = nameservers
 	// Limit search to local cluster domain
