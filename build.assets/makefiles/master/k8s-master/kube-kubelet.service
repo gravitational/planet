@@ -25,9 +25,9 @@ ExecStart=/usr/bin/kubelet \
         --tls-cert-file=/var/state/apiserver.cert \
         --tls-private-key-file=/var/state/apiserver.key \
         --kubeconfig=/etc/kubernetes/kubelet.kubeconfig \
-        --resolv-conf=/etc/resolv.kubelet.conf $KUBE_CLOUD_FLAGS \
         --streaming-connection-idle-timeout=5m \
-        --event-qps=0
+        --event-qps=0 $KUBE_CLOUD_FLAGS
+
 Restart=always
 RestartSec=5
 StartLimitInterval=3600

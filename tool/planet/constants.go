@@ -1,8 +1,6 @@
 package main
 
-import (
-	"time"
-)
+import "time"
 
 const (
 	EnvMasterIP                = "KUBE_MASTER_IP"
@@ -32,6 +30,7 @@ const (
 	EnvKubeConfig              = "KUBECONFIG"
 	EnvDNSOverrides            = "PLANET_DNS_OVERRIDES"
 	EnvHostname                = "PLANET_HOSTNAME"
+	EnvDNSUpstreamNameservers  = "PLANET_DNS_UPSTREAM_NAMESERVERS"
 
 	PlanetRoleMaster = "master"
 
@@ -76,8 +75,6 @@ const (
 
 	// PlanetResolv is planet local resolver
 	PlanetResolv = "resolv.gravity.conf"
-	// KubeletResolv is kubelet local resolver
-	KubeletResolv = "resolv.kubelet.conf"
 
 	// SharedFileMask is file mask for shared file
 	SharedFileMask = 0644

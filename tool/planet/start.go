@@ -154,15 +154,26 @@ func start(config *Config, monitorc chan<- bool) (*runtimeContext, error) {
 	if err = setupCloudOptions(config); err != nil {
 		return nil, trace.Wrap(err)
 	}
-	if err = addResolv(config); err != nil {
+
+	upstreamNameservers, err := addResolv(config)
+	if err != nil {
 		return nil, trace.Wrap(err)
 	}
+	// Add upstream nameservers to the cluster DNS configuration
+	config.Env = append(config.Env,
+		box.EnvPair{
+			Name: EnvDNSUpstreamNameservers,
+			Val:  strings.Join(upstreamNameservers, ","),
+		})
+
 	if err = setDNSMasq(config); err != nil {
 		return nil, trace.Wrap(err)
 	}
+
 	if err = addKubeConfig(config); err != nil {
 		return nil, trace.Wrap(err)
 	}
+
 	if err = setKubeConfigOwnership(config); err != nil {
 		return nil, trace.Wrap(err)
 	}
@@ -480,18 +491,15 @@ func setDNSMasq(config *Config) error {
 	return trace.Wrap(err)
 }
 
-func addResolv(config *Config) error {
-	planetResolv := filepath.Join(config.Rootfs, "etc", PlanetResolv)
-	// it's important to set 127.0.0.1 first, so local queries are going to local dnsmasq
-	// however it is filtered out by docker in host networking mode - work around this behavior
-	// by adding this internal IP of the host
-	if err := copyResolvFile(planetResolv, []string{"127.0.0.1", config.PublicIP}); err != nil {
-		return trace.Wrap(err)
+func addResolv(config *Config) (upstreamNameservers []string, err error) {
+	cfg, err := readHostResolv()
+	if err != nil {
+		return nil, trace.Wrap(err)
 	}
 
-	kubeletResolv := filepath.Join(config.Rootfs, "etc", KubeletResolv)
-	if err := copyResolvFile(kubeletResolv, nil); err != nil {
-		return trace.Wrap(err)
+	planetResolv := config.inRootfs("etc", PlanetResolv)
+	if err := copyResolvFile(*cfg, planetResolv, []string{"127.0.0.1"}); err != nil {
+		return nil, trace.Wrap(err)
 	}
 
 	config.Mounts = append(config.Mounts, box.Mount{
@@ -500,7 +508,7 @@ func addResolv(config *Config) error {
 		Readonly: true,
 	})
 
-	return nil
+	return cfg.Servers, nil
 }
 
 func readHostResolv() (*utils.DNSConfig, error) {
@@ -524,16 +532,11 @@ func readHostResolv() (*utils.DNSConfig, error) {
 }
 
 // copyResolvFile adds DNS resolver configuration from the host's /etc/resolv.conf
-func copyResolvFile(destination string, nameservers []string) error {
-	cfg, err := readHostResolv()
-	if err != nil {
-		return trace.Wrap(err)
-	}
-	// Make sure external nameservers go first in the order supplied by caller
-	outNameservers := append([]string{}, nameservers...)
-	outNameservers = append(outNameservers, cfg.Servers...)
+func copyResolvFile(cfg utils.DNSConfig, destination string, upstreamNameservers []string) error {
+	// Make sure upstream nameservers go first in the order supplied by caller
+	nameservers := append(upstreamNameservers, cfg.Servers...)
 
-	cfg.Servers = outNameservers
+	cfg.Servers = nameservers
 	// Limit search to local cluster domain
 	cfg.Search = []string{DefaultSearchDomain}
 	cfg.Ndots = DNSNdots
@@ -547,6 +550,7 @@ func copyResolvFile(destination string, nameservers []string) error {
 		return trace.Wrap(err)
 	}
 	defer resolv.Close()
+
 	_, err = io.WriteString(resolv, cfg.String())
 	if err != nil {
 		return trace.Wrap(err)

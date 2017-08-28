@@ -11,6 +11,5 @@ do
       --total-timeout="30s" \
       --peers https://127.0.0.1:4001 cluster-health && exit 0
     n=$[$n+1]
-    echo "Failed to set variable reconnecting to the cluster"
-    sleep 1
+    sleep 3
 done

@@ -264,9 +264,10 @@ func runAgent(conf *agent.Config, monitoringConf *monitoring.Config, leaderConf 
 
 	if monitoringConf.Role == agent.RoleMaster {
 		dns := &DNSBootstrapper{
-			clusterIP: monitoringConf.ClusterDNS,
-			kubeAddr:  monitoringConf.KubeAddr,
-			agent:     monitoringAgent,
+			clusterIP:           monitoringConf.ClusterDNS,
+			upstreamNameservers: monitoringConf.UpstreamNameservers,
+			kubeAddr:            monitoringConf.KubeAddr,
+			agent:               monitoringAgent,
 		}
 		go dns.create()
 	}

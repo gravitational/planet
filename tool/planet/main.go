@@ -111,11 +111,12 @@ func run() error {
 		cagentClusterDNS       = cagent.Flag("cluster-dns", "IP for a cluster DNS server.").OverrideDefaultFromEnvar(EnvClusterDNSIP).IP()
 		cagentRegistryAddr     = cagent.Flag("docker-registry-addr",
 			"Address of the private docker registry.  Will default to apiserver-dns:5000").String()
-		cagentEtcdEndpoints   = List(cagent.Flag("etcd-endpoints", "List of comma-separated etcd endpoints").Default(DefaultEtcdEndpoints))
-		cagentEtcdCAFile      = cagent.Flag("etcd-cafile", "Certificate Authority file used to secure etcd communication").String()
-		cagentEtcdCertFile    = cagent.Flag("etcd-certfile", "TLS certificate file used to secure etcd communication").String()
-		cagentEtcdKeyFile     = cagent.Flag("etcd-keyfile", "TLS key file used to secure etcd communication").String()
-		cagentElectionEnabled = Bool(cagent.Flag("election-enabled", "Boolean flag to control if the agent initially starts with election participation on").OverrideDefaultFromEnvar(EnvElectionEnabled))
+		cagentEtcdEndpoints          = List(cagent.Flag("etcd-endpoints", "List of comma-separated etcd endpoints").Default(DefaultEtcdEndpoints))
+		cagentEtcdCAFile             = cagent.Flag("etcd-cafile", "Certificate Authority file used to secure etcd communication").String()
+		cagentEtcdCertFile           = cagent.Flag("etcd-certfile", "TLS certificate file used to secure etcd communication").String()
+		cagentEtcdKeyFile            = cagent.Flag("etcd-keyfile", "TLS key file used to secure etcd communication").String()
+		cagentElectionEnabled        = Bool(cagent.Flag("election-enabled", "Boolean flag to control if the agent initially starts with election participation on").OverrideDefaultFromEnvar(EnvElectionEnabled))
+		cagentDNSUpstreamNameservers = List(cagent.Flag("nameservers", "List of additional upstream nameservers to add to DNS configuration as a comma-separated list of IPs").OverrideDefaultFromEnvar(EnvDNSUpstreamNameservers))
 
 		// stop a running container
 		cstop = app.Command("stop", "Stop planet container")
@@ -245,6 +246,7 @@ func run() error {
 			Role:                  agent.Role(*cagentRole),
 			KubeAddr:              *cagentKubeAddr,
 			ClusterDNS:            cagentClusterDNS.String(),
+			UpstreamNameservers:   *cagentDNSUpstreamNameservers,
 			RegistryAddr:          fmt.Sprintf("https://%v", *cagentRegistryAddr),
 			NettestContainerImage: fmt.Sprintf("%v/gcr.io/google_containers/nettest:1.8", *cagentRegistryAddr),
 			ETCDConfig:            etcdConf,

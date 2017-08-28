@@ -26,6 +26,8 @@ type Config struct {
 	KubeAddr string
 	// ClusterDNS is the IP of the kubernetes DNS service
 	ClusterDNS string
+	// UpstreamNameservers lists additional upstream nameserver added to the DNS configuration
+	UpstreamNameservers []string
 	// RegistryAddr is the address of the private docker registry
 	RegistryAddr string
 	// NettestContainerImage is the name of the container image used for

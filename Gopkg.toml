@@ -46,7 +46,7 @@
 
 [[constraint]]
   name = "github.com/gravitational/satellite"
-  version = "0.0.6"
+  branch = "dmitri/k8s-1.7"
 
 [[constraint]]
   name = "github.com/gravitational/trace"
@@ -74,4 +74,8 @@
 
 [[constraint]]
   name = "k8s.io/client-go"
-  version = "2.0.0"
+  branch = "release-4.0"
+
+[[constraint]]
+  name = "k8s.io/apimachinery"
+  branch = "release-1.7"
