@@ -43,7 +43,7 @@ BUILD_ASSETS := $(PWD)/build/assets
 BUILDDIR ?= $(PWD)/build
 BUILDDIR := $(shell realpath $(BUILDDIR))
 
-KUBE_VER := v1.7.4
+KUBE_VER := v1.7.5
 SECCOMP_VER :=  2.3.1-2.1
 DOCKER_VER := 1.12.6
 FLANNEL_VER := amed/awsvpc-multi-routing-table-backend
