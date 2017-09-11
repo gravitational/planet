@@ -109,14 +109,19 @@ func (r *DNSBootstrapper) createService(client *kube.Clientset, namespace, name 
 		},
 	}
 
-	if _, err := client.CoreV1().Services(metav1.NamespaceSystem).Create(service); err != nil {
-		if !apierrors.IsAlreadyExists(err) {
-			return trace.Wrap(err, "failed to create kubedns service")
+	_, err = client.CoreV1().Services(metav1.NamespaceSystem).Get(service.Name, metav1.GetOptions{})
+	if err != nil {
+		if !apierrors.IsNotFound(err) {
+			return trace.Wrap(err, "failed to query kubedns service")
 		}
 
-		if _, err := client.CoreV1().Services(metav1.NamespaceSystem).Update(service); err != nil {
-			return trace.Wrap(err, "failed to update kubedns service")
+		if _, err := client.CoreV1().Services(metav1.NamespaceSystem).Create(service); err != nil {
+			return trace.Wrap(err, "failed to create kubedns service")
 		}
+		return nil
+	}
+	if _, err = client.CoreV1().Services(metav1.NamespaceSystem).Update(service); err != nil {
+		return trace.Wrap(err, "failed to update kubedns service")
 	}
 	return nil
 }
