@@ -12,4 +12,7 @@ const (
 
 	// DNSResourceName specifies the name for the DNS resources
 	DNSResourceName = "kube-dns"
+
+	// ExitCodeUnknown is equivalent to EX_SOFTWARE as defined by sysexits(3)
+	ExitCodeUnknown = 70
 )
