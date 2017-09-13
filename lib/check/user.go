@@ -26,12 +26,20 @@ func CheckUserGroup(userName, groupName, uid, gid string) (u *user.User, err err
 
 	output, err := run(groupAddCommand(groupName, gid))
 	if err != nil {
-		return nil, trace.Wrap(err, "failed to create group '%s': %s", groupName, output)
+		output, err = run(groupAddCommand(groupName, gid, "--extrausers"))
+		if err != nil {
+			return nil, trace.Wrap(err,
+				"failed to create group %q: %s", groupName, output)
+		}
 	}
 
 	output, err = run(userAddCommand(userName, uid, gid))
 	if err != nil {
-		return nil, trace.Wrap(err, "failed to create user '%s' in group '%s': %s", userName, groupName, output)
+		output, err = run(userAddCommand(userName, uid, gid, "--extrausers"))
+		if err != nil {
+			return nil, trace.Wrap(err,
+				"failed to create user %q in group %q: %s", userName, groupName, output)
+		}
 	}
 
 	return user.Lookup(userName)
@@ -49,22 +57,22 @@ func run(cmd *exec.Cmd) ([]byte, error) {
 	return nil, nil
 }
 
-func userAddCommand(userName, uid, gid string) *exec.Cmd {
-	cmd := exec.Command("/usr/sbin/useradd",
+func userAddCommand(userName, uid, gid string, extraArgs ...string) *exec.Cmd {
+	cmd := exec.Command("/usr/sbin/useradd", append([]string{
 		"--system",
 		"--no-create-home",
 		"--non-unique",
 		"--gid", gid,
 		"--uid", uid,
-		userName)
+		userName}, extraArgs...)...)
 	return cmd
 }
 
-func groupAddCommand(groupName, gid string) *exec.Cmd {
-	cmd := exec.Command("/usr/sbin/groupadd",
+func groupAddCommand(groupName, gid string, extraArgs ...string) *exec.Cmd {
+	cmd := exec.Command("/usr/sbin/groupadd", append([]string{
 		"--system",
 		"--non-unique",
 		"--gid", gid,
-		groupName)
+		groupName}, extraArgs...)...)
 	return cmd
 }
