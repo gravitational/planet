@@ -31,6 +31,9 @@ const (
 	EnvDNSOverrides            = "PLANET_DNS_OVERRIDES"
 	EnvHostname                = "PLANET_HOSTNAME"
 	EnvDNSUpstreamNameservers  = "PLANET_DNS_UPSTREAM_NAMESERVERS"
+	EnvDockerOptions           = "DOCKER_OPTS"
+	EnvEtcdOptions             = "ETCD_OPTS"
+	EnvKubeletOptions          = "KUBELET_OPTS"
 
 	PlanetRoleMaster = "master"
 

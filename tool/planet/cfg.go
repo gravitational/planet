@@ -43,10 +43,12 @@ type Config struct {
 	EtcdMemberName          string
 	EtcdInitialCluster      string
 	EtcdInitialClusterState string
+	EtcdOptions             string
 	ElectionEnabled         bool
 	NodeName                string
 	Hostname                string
 	DNSOverrides            kv.KeyVal
+	KubeletOptions          string
 }
 
 func (cfg *Config) SkyDNSResolverIP() string {

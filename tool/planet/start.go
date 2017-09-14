@@ -150,6 +150,8 @@ func start(config *Config, monitorc chan<- bool) (*runtimeContext, error) {
 
 	addInsecureRegistries(config)
 	addDockerOptions(config)
+	addEtcdOptions(config)
+	addKubeletOptions(config)
 	setupFlannel(config)
 	if err = setupCloudOptions(config); err != nil {
 		return nil, trace.Wrap(err)
@@ -379,7 +381,7 @@ func addInsecureRegistries(c *Config) {
 		out[i] = fmt.Sprintf("--insecure-registry=%v", r)
 	}
 	opts := strings.Join(out, " ")
-	c.Env.Append("DOCKER_OPTS", opts, " ")
+	c.Env.Append(EnvDockerOptions, opts, " ")
 }
 
 // pickDockerStorageBackend examines the filesystems this host supports and picks one
@@ -410,17 +412,31 @@ func pickDockerStorageBackend() (dockerBackend string, err error) {
 // variable
 func addDockerOptions(config *Config) {
 	// add supported storage backend
-	config.Env.Append("DOCKER_OPTS",
+	config.Env.Append(EnvDockerOptions,
 		fmt.Sprintf("--storage-driver=%s", config.DockerBackend), " ")
 
 	// use cgroups native driver, because of this:
 	// https://github.com/docker/docker/issues/16256
-	config.Env.Append("DOCKER_OPTS", "--exec-opt native.cgroupdriver=cgroupfs", " ")
+	config.Env.Append(EnvDockerOptions, "--exec-opt native.cgroupdriver=cgroupfs", " ")
 	// Add sensible size limits to logging driver
-	config.Env.Append("DOCKER_OPTS", "--log-opt max-size=50m", " ")
-	config.Env.Append("DOCKER_OPTS", "--log-opt max-file=9", " ")
+	config.Env.Append(EnvDockerOptions, "--log-opt max-size=50m", " ")
+	config.Env.Append(EnvDockerOptions, "--log-opt max-file=9", " ")
 	if config.DockerOptions != "" {
-		config.Env.Append("DOCKER_OPTS", config.DockerOptions, " ")
+		config.Env.Append(EnvDockerOptions, config.DockerOptions, " ")
+	}
+}
+
+// addEtcdOptions sets extra etcd command line arguments in environment
+func addEtcdOptions(config *Config) {
+	if config.EtcdOptions != "" {
+		config.Env.Append(EnvEtcdOptions, config.EtcdOptions, " ")
+	}
+}
+
+// addKubeletOptions sets extra kubelet command line arguments in environment
+func addKubeletOptions(config *Config) {
+	if config.KubeletOptions != "" {
+		config.Env.Append(EnvKubeletOptions, config.KubeletOptions, " ")
 	}
 }
 
