@@ -27,7 +27,7 @@ ExecStart=/usr/bin/kubelet \
         --kubeconfig=/etc/kubernetes/kubelet.kubeconfig \
         --streaming-connection-idle-timeout=5m \
         --system-reserved=memory=500Mi \
-        --eviction-hard="memory.available<100Mi,nodefs.available<10%,imagefs.available<10%,nodefs.inodesFree<5%,imagefs.inodesFree<5%" \
+        --eviction-hard="memory.available<100Mi,nodefs.available<10%,imagefs.available<15%,nodefs.inodesFree<5%,imagefs.inodesFree<5%" \
         --eviction-soft="memory.available<500Mi,nodefs.available<20%,imagefs.available<20%,nodefs.inodesFree<10%,imagefs.inodesFree<10%" \
         --eviction-soft-grace-period="memory.available=30m,nodefs.available=1h,nodefs.inodesFree=1h,imagefs.available=1h,imagefs.inodesFree=1h" \
         --event-qps=0 $KUBE_CLOUD_FLAGS
