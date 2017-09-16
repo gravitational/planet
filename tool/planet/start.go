@@ -275,10 +275,10 @@ func addUserToContainer(rootfs string) error {
 
 		return nil
 	}
-	containerPath := filepath.Join(rootfs, "etc", "passwd")
-	err := upsertFromHost("/etc/passwd", containerPath, newSysFile, rewrite)
+	containerPath := filepath.Join(rootfs, UsersDatabase)
+	err := upsertFromHost(UsersDatabase, containerPath, newSysFile, rewrite)
 	if err != nil {
-		err = upsertFromHost("/var/lib/extrausers/passwd", containerPath, newSysFile, rewrite)
+		err = upsertFromHost(UsersExtraDatabase, containerPath, newSysFile, rewrite)
 	}
 	return trace.Wrap(err)
 }
@@ -302,10 +302,10 @@ func addGroupToContainer(rootfs string) error {
 
 		return nil
 	}
-	containerPath := filepath.Join(rootfs, "etc", "group")
-	err := upsertFromHost("/etc/group", containerPath, newSysFile, rewrite)
+	containerPath := filepath.Join(rootfs, GroupsDatabase)
+	err := upsertFromHost(GroupsDatabase, containerPath, newSysFile, rewrite)
 	if err != nil {
-		err = upsertFromHost("/var/lib/extrausers/group", containerPath, newSysFile, rewrite)
+		err = upsertFromHost(GroupsExtraDatabase, containerPath, newSysFile, rewrite)
 	}
 	return trace.Wrap(err)
 }
