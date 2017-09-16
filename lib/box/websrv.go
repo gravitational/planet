@@ -7,13 +7,14 @@ import (
 	"os/exec"
 	"syscall"
 
+	"github.com/gravitational/planet/lib/constants"
+
 	"github.com/gravitational/roundtrip"
 	"github.com/gravitational/trace"
-	log "github.com/sirupsen/logrus"
 
 	"github.com/julienschmidt/httprouter"
 	"github.com/opencontainers/runc/libcontainer"
-
+	log "github.com/sirupsen/logrus"
 	"golang.org/x/net/websocket"
 )
 
@@ -84,18 +85,23 @@ func (s *webServer) enter(w http.ResponseWriter, r *http.Request, p httprouter.P
 
 		cfg.In = conn
 		cfg.Out = cmdOut
-		if err = StartProcess(s.container, *cfg); err != nil {
-			log.Errorf("StartProcess(%v) failed with %v", cfg, trace.DebugReport(err))
-			if errTrace, ok := err.(*trace.TraceErr); ok {
-				if errExit, ok := errTrace.OrigError().(*exec.ExitError); ok {
-					if waitStatus, ok := errExit.ProcessState.Sys().(syscall.WaitStatus); ok {
-						cmdOut.writeExitCode(waitStatus.ExitStatus())
-					}
-				}
+
+		err = StartProcess(s.container, *cfg)
+		if err == nil {
+			return
+		}
+
+		log.Errorf("StartProcess(%v) failed with %v", cfg, trace.DebugReport(err))
+
+		if errExit, ok := trace.Unwrap(err).(*exec.ExitError); ok {
+			if waitStatus, ok := errExit.ProcessState.Sys().(syscall.WaitStatus); ok {
+				cmdOut.writeExitCode(waitStatus.ExitStatus())
+				return
 			}
 		}
-		log.Infof("StartProcess(%v) completed!", cfg)
+		cmdOut.writeExitCode(constants.ExitCodeUnknown)
 	}
+
 	s.socketServer.ServeHTTP(w, r)
 	return nil
 }
