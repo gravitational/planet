@@ -24,6 +24,7 @@ RUN (apt-get update && \
 
 RUN (echo 'deb http://httpredir.debian.org/debian/ stretch contrib non-free' >> /etc/apt/sources.list && \
 	echo 'deb http://httpredir.debian.org/debian/ stretch-updates contrib non-free' >> /etc/apt/sources.list && \
+	echo 'deb http://cdn-fastly.deb.debian.org/debian/ testing main contrib non-free' >> /etc/apt/sources.list && \
 	echo 'deb https://apt.dockerproject.org/repo debian-stretch main' >> /etc/apt/sources.list)
 
 RUN (apt-get clean \
