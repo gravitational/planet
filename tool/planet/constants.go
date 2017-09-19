@@ -105,12 +105,12 @@ const (
 	// UsersDatabase is a file where Linux accounts information is stored
 	UsersDatabase = "/etc/passwd"
 	// UsersExtraDatabase is an alternate Linux accounts file on systems
-	// where /etc/passwd is unavailable
+	// where /etc/passwd is unavailable (e.g. /etc is read-only on Ubuntu Core)
 	UsersExtraDatabase = "/var/lib/extrausers/passwd"
 	// GroupsDatabase is a file where Linux groups information is stored
 	GroupsDatabase = "/etc/group"
 	// GroupsExtraDatabase is an alternate Linux groups file on systems
-	// where /etc/group is unavailable
+	// where /etc/group is unavailable (e.g. /etc is read-only on Ubuntu Core)
 	GroupsExtraDatabase = "/var/lib/extrausers/group"
 )
 
