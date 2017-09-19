@@ -262,8 +262,6 @@ func addUserToContainer(rootfs string) error {
 	newSysFile := func(r io.Reader) (user.SysFile, error) {
 		return user.NewPasswd(r)
 	}
-	hostPath := "/etc/passwd"
-	containerPath := filepath.Join(rootfs, "etc", "passwd")
 	rewrite := func(host, container user.SysFile) error {
 		hostFile, _ := host.(user.PasswdFile)
 		containerFile, _ := container.(user.PasswdFile)
@@ -277,8 +275,12 @@ func addUserToContainer(rootfs string) error {
 
 		return nil
 	}
-
-	return upsertFromHost(hostPath, containerPath, newSysFile, rewrite)
+	containerPath := filepath.Join(rootfs, UsersDatabase)
+	err := upsertFromHost(UsersDatabase, containerPath, newSysFile, rewrite)
+	if err != nil {
+		err = upsertFromHost(UsersExtraDatabase, containerPath, newSysFile, rewrite)
+	}
+	return trace.Wrap(err)
 }
 
 // addGroupToContainer adds a record for planet group from host's group file
@@ -287,8 +289,6 @@ func addGroupToContainer(rootfs string) error {
 	newSysFile := func(r io.Reader) (user.SysFile, error) {
 		return user.NewGroup(r)
 	}
-	hostPath := "/etc/group"
-	containerPath := filepath.Join(rootfs, "etc", "group")
 	rewrite := func(host, container user.SysFile) error {
 		hostFile, _ := host.(user.GroupFile)
 		containerFile, _ := container.(user.GroupFile)
@@ -302,8 +302,12 @@ func addGroupToContainer(rootfs string) error {
 
 		return nil
 	}
-
-	return upsertFromHost(hostPath, containerPath, newSysFile, rewrite)
+	containerPath := filepath.Join(rootfs, GroupsDatabase)
+	err := upsertFromHost(GroupsDatabase, containerPath, newSysFile, rewrite)
+	if err != nil {
+		err = upsertFromHost(GroupsExtraDatabase, containerPath, newSysFile, rewrite)
+	}
+	return trace.Wrap(err)
 }
 
 func upsertFromHost(hostPath, containerPath string, sysFile func(io.Reader) (user.SysFile, error),
