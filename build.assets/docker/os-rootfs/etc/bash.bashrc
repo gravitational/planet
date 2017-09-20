@@ -31,5 +31,6 @@ export PAGER="less"
 export SELECTED_EDITOR=$EDITOR
 export HISTTIMEFORMAT="%y.%m.%d %T "
 
-_start
+alias kctl="kubectl -nkube-system"
 
+_start

@@ -85,6 +85,7 @@ func run() error {
 		cstartEtcdMemberName          = cstart.Flag("etcd-member-name", "Etcd member name").OverrideDefaultFromEnvar("PLANET_ETCD_MEMBER_NAME").String()
 		cstartEtcdInitialCluster      = KeyValueList(cstart.Flag("etcd-initial-cluster", "Initial etcd cluster configuration (list of peers)").OverrideDefaultFromEnvar("PLANET_ETCD_INITIAL_CLUSTER"))
 		cstartEtcdInitialClusterState = cstart.Flag("etcd-initial-cluster-state", "Etcd initial cluster state: 'new' or 'existing'").OverrideDefaultFromEnvar("PLANET_ETCD_INITIAL_CLUSTER_STATE").String()
+		cstartEtcdOptions             = cstart.Flag("etcd-options", "Additional command line options to pass to etcd").OverrideDefaultFromEnvar("PLANET_ETCD_OPTIONS").String()
 		cstartInitialCluster          = KeyValueList(cstart.Flag("initial-cluster", "Initial planet cluster configuration as a comma-separated list of peers").OverrideDefaultFromEnvar(EnvInitialCluster))
 		cstartNodeName                = cstart.Flag("node-name", "Identify the node with this string instead of hostname in kubernetes services").OverrideDefaultFromEnvar("PLANET_NODE_NAME").String()
 		cstartHostname                = cstart.Flag("hostname", "Hostname to set inside container").OverrideDefaultFromEnvar("PLANET_HOSTNAME").String()
@@ -93,6 +94,7 @@ func run() error {
 		cstartDockerBackend   = cstart.Flag("docker-backend", "Docker backend to use. If no backend has been specified, one is selected automatically.").OverrideDefaultFromEnvar("PLANET_DOCKER_BACKEND").String()
 		cstartElectionEnabled = Bool(cstart.Flag("election-enabled", "Boolean flag to control if the agent initially starts with election participation on").OverrideDefaultFromEnvar(EnvElectionEnabled))
 		cstartDNSOverrides    = KeyValueList(cstart.Flag("dns-overrides", "Comma-separated list of domain name to IP address mappings as key:value pairs").OverrideDefaultFromEnvar(EnvDNSOverrides))
+		cstartKubeletOptions  = cstart.Flag("kubelet-options", "Additional command line options to pass to kubelet").OverrideDefaultFromEnvar("PLANET_KUBELET_OPTIONS").String()
 
 		// start the planet agent
 		cagent                 = app.Command("agent", "Start Planet Agent")
@@ -323,12 +325,14 @@ func run() error {
 			EtcdMemberName:          *cstartEtcdMemberName,
 			EtcdInitialCluster:      toEtcdPeerList(initialCluster),
 			EtcdInitialClusterState: *cstartEtcdInitialClusterState,
+			EtcdOptions:             *cstartEtcdOptions,
 			NodeName:                *cstartNodeName,
 			Hostname:                *cstartHostname,
 			DockerBackend:           *cstartDockerBackend,
 			DockerOptions:           *cstartDockerOptions,
 			ElectionEnabled:         bool(*cstartElectionEnabled),
 			DNSOverrides:            *cstartDNSOverrides,
+			KubeletOptions:          *cstartKubeletOptions,
 		}
 		if *cstartSelfTest {
 			err = selfTest(config, *cstartTestKubeRepoPath, *cstartTestSpec, extraArgs)
