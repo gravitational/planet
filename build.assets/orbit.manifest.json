@@ -110,6 +110,12 @@
                 "cli": {"name": "etcd-initial-cluster-state"}
             },
             {
+                "type": "String",
+                "name": "etcdoptions",
+                "env": "PLANET_ETCD_OPTIONS",
+                "cli": {"name": "etcd-options"}
+            },
+            {
                 "type": "List",
                 "name": "roles",
                 "spec": {
@@ -174,6 +180,12 @@
                 "name": "dockeroptions",
                 "env": "PLANET_DOCKER_OPTIONS",
                 "cli": {"name": "docker-options"}
+            },
+            {
+                "type": "String",
+                "name": "kubeletoptions",
+                "env": "PLANET_KUBELET_OPTIONS",
+                "cli": {"name": "kubelet-options"}
             },
             {
                 "type": "Bool",
