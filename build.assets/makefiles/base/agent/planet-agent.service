@@ -17,6 +17,7 @@ ExecStart=/usr/bin/planet agent \
         --name=${PLANET_AGENT_NAME} \
         --rpc-addr=${PLANET_PUBLIC_IP}:7575 \
         --rpc-addr=127.0.0.1:7575 \
+        --metrics-addr=${PLANET_PUBLIC_IP}:7580 \
         --role=${PLANET_ROLE} \
         --leader-key=/planet/cluster/${KUBE_CLUSTER_ID}/master \
         --election-key=/planet/cluster/${KUBE_CLUSTER_ID}/election \
@@ -29,4 +30,3 @@ ExecStart=/usr/bin/planet agent \
         --etcd-certfile=/var/state/etcd.cert \
         --etcd-keyfile=/var/state/etcd.key \
         --nameservers=${PLANET_DNS_UPSTREAM_NAMESERVERS}
-
