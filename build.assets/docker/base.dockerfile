@@ -3,7 +3,7 @@ FROM planet/os
 ARG SECCOMP_VER
 ARG DOCKER_VER
 
-RUN apt-get install -q -y bridge-utils \
+RUN apt-get update && apt-get install -q -y bridge-utils \
         seccomp=$SECCOMP_VER \
         bash-completion \
         kmod \
