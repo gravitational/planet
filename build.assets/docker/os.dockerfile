@@ -18,9 +18,15 @@ RUN set -ex; \
 	fi
 
 # dockerproject debian repo key
-RUN (apt-get update && \
-	apt-get -q -y install apt-transport-https && \
-	apt-key adv --keyserver hkp://p80.pool.sks-keyservers.net:80 --recv-keys 58118E89F3A912897C070ADBF76221572C52609D)
+RUN (apt-get update && apt-get -q -y install apt-transport-https && \
+  set -ex \
+    && for key in \
+      58118E89F3A912897C070ADBF76221572C52609D \
+    ; do \
+      apt-key adv --keyserver pgp.mit.edu --recv-keys "$key" || \
+      apt-key adv --keyserver keyserver.pgp.com --recv-keys "$key" || \
+      apt-key adv --keyserver ha.pool.sks-keyservers.net --recv-keys "$key" ; \
+    done)
 
 RUN (echo 'deb http://httpredir.debian.org/debian/ stretch contrib non-free' >> /etc/apt/sources.list && \
 	echo 'deb http://httpredir.debian.org/debian/ stretch-updates contrib non-free' >> /etc/apt/sources.list && \
@@ -28,7 +34,6 @@ RUN (echo 'deb http://httpredir.debian.org/debian/ stretch contrib non-free' >> 
 	echo 'deb https://apt.dockerproject.org/repo debian-stretch main' >> /etc/apt/sources.list)
 
 RUN (apt-get clean \
-	&& apt-key update \
 	&& apt-get -q -y update --fix-missing \
 	&& apt-get -q -y update \
 	&& apt-get install -q -y apt-utils less locales \

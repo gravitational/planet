@@ -1,12 +1,16 @@
 # This makefile runs right after an image was created
 # Its purpose is to remove as much garbage out of $(ROOTFS) as possible
 
-# Services to disable
-# remove cgproxy as there might not be a cgmanager running on host
-# remove cgmanager as it only runs outside of container
-# remove apt upgrade services
-services := cgproxy cgmanager apt-daily apt-daily-upgrade
-# remove apt upgrade timers
+# Units to disable
+# disable cgproxy as there might not be a cgmanager running on host
+# disable cgmanager as it only runs outside of container
+# disable apt upgrade services
+# disable lvm2 metadata daemon/socket and monitor
+units := \
+	cgproxy.service cgmanager.service \
+	apt-daily.service apt-daily-upgrade.service \
+	lvm2-monitor.service lvm2-lvmetad.service lvm2-lvmetad.socket
+# disable apt upgrade timers
 timers := apt-daily apt-daily-upgrade
 
 all:
@@ -18,8 +22,9 @@ all:
 	rm -rf $(ROOTFS)/var/log/*
 	rm -rf $(ROOTFS)/var/cache
 	rm -rf $(ROOTFS)/lib/systemd/system/sysinit.target.wants/proc-sys-fs-binfmt_misc.automount
-	$(foreach service,$(services),rm -f $(ROOTFS)/lib/systemd/system/multi-user.target.wants/$(service).service;)
-	$(foreach service,$(services),rm -f $(ROOTFS)/etc/systemd/system/multi-user.target.wants/$(service).service;)
+	$(foreach unit,$(units),rm -f $(ROOTFS)/lib/systemd/system/multi-user.target.wants/$(unit);)
+	$(foreach unit,$(units),rm -f $(ROOTFS)/etc/systemd/system/multi-user.target.wants/$(unit);)
+	$(foreach unit,$(units),rm -f $(ROOTFS)/etc/systemd/system/sysinit.target.wants/$(unit);)
 	$(foreach timer,$(timers),rm -f $(ROOTFS)/lib/systemd/system/timers.target.wants/$(timer).timer;)
 	$(foreach timer,$(timers),rm -f $(ROOTFS)/etc/systemd/system/timers.target.wants/$(timer).timer;)
 	# not sure if this is a good idea... to kill all locales:
