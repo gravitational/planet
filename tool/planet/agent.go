@@ -341,6 +341,9 @@ func status(rpcPort int, local, prettyPrint bool, timeout time.Duration) (ok boo
 	if local {
 		status, err := client.LocalStatus(ctx)
 		if err != nil {
+			if agent.IsUnavailableError(err) {
+				return false, newAgentUnavailableError()
+			}
 			return false, trace.Wrap(err)
 		}
 		ok = status.Status == pb.NodeStatus_Running
@@ -348,6 +351,9 @@ func status(rpcPort int, local, prettyPrint bool, timeout time.Duration) (ok boo
 	} else {
 		status, err := client.Status(ctx)
 		if err != nil {
+			if agent.IsUnavailableError(err) {
+				return false, newAgentUnavailableError()
+			}
 			return false, trace.Wrap(err)
 		}
 		ok = status.Status == pb.SystemStatus_Running
@@ -369,4 +375,8 @@ func status(rpcPort int, local, prettyPrint bool, timeout time.Duration) (ok boo
 
 func rpcAddr(port int) string {
 	return fmt.Sprintf("127.0.0.1:%d", port)
+}
+
+func newAgentUnavailableError() error {
+	return trace.LimitExceeded("agent could not be contacted. Make sure that the planet-agent service is running and try again")
 }

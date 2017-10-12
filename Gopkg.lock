@@ -231,7 +231,7 @@
   branch = "dmitri/2835-grpc-errors"
   name = "github.com/gravitational/satellite"
   packages = ["agent","agent/backend/inmemory","agent/cache","agent/health","agent/proto/agentpb","monitoring","monitoring/collector","utils"]
-  revision = "1672eac6f2b0d5130e6a31444ef28aafdfcd1b48"
+  revision = "f02a172de05fd4035d5b81374ef25c4289325a07"
 
 [[projects]]
   name = "github.com/gravitational/trace"
