@@ -134,6 +134,7 @@ func run() error {
 		cstatusLocal       = cstatus.Flag("local", "Query the status of the local node").Bool()
 		cstatusRPCPort     = cstatus.Flag("rpc-port", "Local agent RPC port.").Default("7575").Int()
 		cstatusPrettyPrint = cstatus.Flag("pretty", "Pretty-print the output").Default("false").Bool()
+		cstatusTimeout     = cstatus.Flag("timeout", "Status timeout").Default(AgentStatusTimeout.String()).Duration()
 
 		// test command
 		ctest             = app.Command("test", "Run end-to-end tests on a running cluster")
@@ -364,7 +365,7 @@ func run() error {
 	// "status" command
 	case cstatus.FullCommand():
 		var ok bool
-		ok, err = status(*cstatusRPCPort, *cstatusLocal, *cstatusPrettyPrint)
+		ok, err = status(*cstatusRPCPort, *cstatusLocal, *cstatusPrettyPrint, *cstatusTimeout)
 		if err == nil && !ok {
 			err = trace.Errorf("status degraded")
 		}

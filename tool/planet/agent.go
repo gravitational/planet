@@ -327,20 +327,16 @@ func getEtcdClient(conf *etcdconf.Config) (etcd.KeysAPI, error) {
 	return etcdapi, nil
 }
 
-// statusTimeout is the maximum time status query is blocked.
-const statusTimeout = 5 * time.Second
-
 // status obtains either the status of the planet cluster or that of
 // the local node from the local planet agent.
-func status(RPCPort int, local, prettyPrint bool) (ok bool, err error) {
-	RPCAddr := fmt.Sprintf("127.0.0.1:%d", RPCPort)
-	client, err := agent.NewClient(RPCAddr)
+func status(rpcPort int, local, prettyPrint bool, timeout time.Duration) (ok bool, err error) {
+	client, err := agent.NewClient(rpcAddr(rpcPort))
 	if err != nil {
 		return false, trace.Wrap(err)
 	}
 	var statusJson []byte
 	var statusBlob interface{}
-	ctx, cancel := context.WithTimeout(context.Background(), statusTimeout)
+	ctx, cancel := context.WithTimeout(context.TODO(), timeout)
 	defer cancel()
 	if local {
 		status, err := client.LocalStatus(ctx)
@@ -369,4 +365,8 @@ func status(RPCPort int, local, prettyPrint bool) (ok bool, err error) {
 		return ok, trace.Wrap(err, "failed to output status")
 	}
 	return ok, nil
+}
+
+func rpcAddr(port int) string {
+	return fmt.Sprintf("127.0.0.1:%d", port)
 }
