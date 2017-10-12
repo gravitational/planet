@@ -3,12 +3,12 @@ package monitoring
 import (
 	"github.com/gravitational/satellite/agent"
 	"github.com/gravitational/satellite/monitoring"
-	"github.com/gravitational/satellite/monitoring/etcd"
+	"github.com/gravitational/satellite/monitoring/collector"
 	"github.com/gravitational/trace"
 	"github.com/prometheus/client_golang/prometheus"
 )
 
-// AddMetrics exposes specific metrics to Prometheus
+// AddMetrics exposes specific metrics to prometheus
 func AddMetrics(config *Config) error {
 	etcdConfig := &monitoring.ETCDConfig{
 		Endpoints: config.ETCDConfig.Endpoints,
@@ -21,9 +21,9 @@ func AddMetrics(config *Config) error {
 	var err error
 	switch config.Role {
 	case agent.RoleMaster:
-		metrics, err = addMetricsToMaster(etcdConfig)
+		metrics, err = addMetricsToMaster(config.KubeAddr, etcdConfig)
 	case agent.RoleNode:
-		metrics, err = addMetricsToNode(etcdConfig)
+		metrics, err = addMetricsToNode(config.KubeAddr, etcdConfig)
 	}
 	if err != nil {
 		return trace.Wrap(err)
@@ -37,26 +37,20 @@ func AddMetrics(config *Config) error {
 	return nil
 }
 
-func addMetricsToMaster(etcdConfig *monitoring.ETCDConfig) ([]prometheus.Collector, error) {
-	var mc []prometheus.Collector
-
-	// ETCD stats collector
-	etcdExporter, err := etcd.NewExporter(etcdConfig)
+func addMetricsToMaster(kubeAddr string, etcdConfig *monitoring.ETCDConfig) (metrics []prometheus.Collector, err error) {
+	collector, err := collector.NewMetricsCollector(etcdConfig, kubeAddr, agent.RoleMaster)
 	if err != nil {
 		return nil, trace.Wrap(err)
 	}
-	mc = append(mc, etcdExporter)
-	return mc, nil
+	metrics = append(metrics, collector)
+	return metrics, nil
 }
 
-func addMetricsToNode(etcdConfig *monitoring.ETCDConfig) ([]prometheus.Collector, error) {
-	var mc []prometheus.Collector
-
-	// ETCD stats collector
-	etcdExporter, err := etcd.NewExporter(etcdConfig)
+func addMetricsToNode(kubeAddr string, etcdConfig *monitoring.ETCDConfig) (metrics []prometheus.Collector, err error) {
+	collector, err := collector.NewMetricsCollector(etcdConfig, kubeAddr, agent.RoleNode)
 	if err != nil {
 		return nil, trace.Wrap(err)
 	}
-	mc = append(mc, etcdExporter)
-	return mc, nil
+	metrics = append(metrics, collector)
+	return metrics, nil
 }
