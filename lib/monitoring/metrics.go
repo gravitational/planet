@@ -8,8 +8,8 @@ import (
 	"github.com/prometheus/client_golang/prometheus"
 )
 
-// AddMetrics exposes specific metrics to prometheus
-func AddMetrics(config *Config) error {
+// AddMetrics exposes specific metrics to Prometheus
+func AddMetrics(node agent.Agent, config *Config) error {
 	etcdConfig := &monitoring.ETCDConfig{
 		Endpoints: config.ETCDConfig.Endpoints,
 		CAFile:    config.ETCDConfig.CAFile,
@@ -17,40 +17,17 @@ func AddMetrics(config *Config) error {
 		KeyFile:   config.ETCDConfig.KeyFile,
 	}
 
-	var metrics []prometheus.Collector
+	var mc *collector.MetricsCollector
 	var err error
+
 	switch config.Role {
 	case agent.RoleMaster:
-		metrics, err = addMetricsToMaster(config.KubeAddr, etcdConfig)
+		mc, err = collector.NewMetricsCollector(etcdConfig, config.KubeAddr, agent.RoleMaster)
 	case agent.RoleNode:
-		metrics, err = addMetricsToNode(config.KubeAddr, etcdConfig)
+		mc, err = collector.NewMetricsCollector(etcdConfig, config.KubeAddr, agent.RoleNode)
 	}
-	if err != nil {
+	if err = prometheus.Register(mc); err != nil {
 		return trace.Wrap(err)
 	}
-
-	for _, metric := range metrics {
-		if err = prometheus.Register(metric); err != nil {
-			return trace.Wrap(err)
-		}
-	}
 	return nil
-}
-
-func addMetricsToMaster(kubeAddr string, etcdConfig *monitoring.ETCDConfig) (metrics []prometheus.Collector, err error) {
-	collector, err := collector.NewMetricsCollector(etcdConfig, kubeAddr, agent.RoleMaster)
-	if err != nil {
-		return nil, trace.Wrap(err)
-	}
-	metrics = append(metrics, collector)
-	return metrics, nil
-}
-
-func addMetricsToNode(kubeAddr string, etcdConfig *monitoring.ETCDConfig) (metrics []prometheus.Collector, err error) {
-	collector, err := collector.NewMetricsCollector(etcdConfig, kubeAddr, agent.RoleNode)
-	if err != nil {
-		return nil, trace.Wrap(err)
-	}
-	metrics = append(metrics, collector)
-	return metrics, nil
 }
