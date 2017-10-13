@@ -52,8 +52,7 @@ ignored = ["github.com/Sirupsen/logrus"]
 
 [[constraint]]
   name = "github.com/gravitational/satellite"
-  #version = "v0.0.9"
-  branch = "dmitri/2835-grpc-errors"
+  version = "v0.0.9"
 
 [[constraint]]
   name = "github.com/gravitational/trace"
