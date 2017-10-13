@@ -115,6 +115,9 @@ const (
 	// GroupsExtraDatabase is an alternate Linux groups file on systems
 	// where /etc/group is unavailable (e.g. /etc is read-only on Ubuntu Core)
 	GroupsExtraDatabase = "/var/lib/extrausers/group"
+
+	// AgentStatusTimeout specifies the default status query timeout
+	AgentStatusTimeout = 5 * time.Second
 )
 
 // K8sSearchDomains are default k8s search domain settings
