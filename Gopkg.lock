@@ -57,6 +57,12 @@
   revision = "61153c768f31ee5f130071d08fc82b85208528de"
 
 [[projects]]
+  branch = "master"
+  name = "github.com/cloudfoundry/gosigar"
+  packages = ["."]
+  revision = "14c0a766933d517675369dae6f551f5c1a10f0d8"
+
+[[projects]]
   name = "github.com/coreos/etcd"
   packages = ["client","pkg/pathutil","pkg/srv","pkg/tlsutil","pkg/transport","pkg/types","version"]
   revision = "c31bec0f29facff13f7c3e3d948e55dd6689ed42"
@@ -96,6 +102,12 @@
   revision = "0bbddae09c5a5419a8c6dcdd7ff90da3d450393b"
 
 [[projects]]
+  branch = "master"
+  name = "github.com/dustin/go-humanize"
+  packages = ["."]
+  revision = "79e699ccd02f240a1f1fbbdcee7e64c1c12e41aa"
+
+[[projects]]
   name = "github.com/emicklei/go-restful"
   packages = [".","log"]
   revision = "e9659cd7f08d0627d51c7a0193a6902890a9908b"
@@ -110,6 +122,12 @@
   name = "github.com/ghodss/yaml"
   packages = ["."]
   revision = "73d445a93680fa1a78ae23a5839bad48f32ba1ee"
+
+[[projects]]
+  name = "github.com/go-ini/ini"
+  packages = ["."]
+  revision = "20b96f641a5ea98f2f8619ff4f3e061cff4833bd"
+  version = "v1.28.2"
 
 [[projects]]
   branch = "master"
@@ -178,7 +196,7 @@
 
 [[projects]]
   name = "github.com/golang/protobuf"
-  packages = ["proto"]
+  packages = ["proto","ptypes","ptypes/any","ptypes/duration","ptypes/timestamp"]
   revision = "8ee79997227bf9b34611aee7946ae64735e6fd93"
 
 [[projects]]
@@ -210,10 +228,10 @@
   revision = "e7bee8354256fe4ae0d847e4c5d946d3e86f22af"
 
 [[projects]]
-  branch = "dmitri/k8s-1.7"
   name = "github.com/gravitational/satellite"
-  packages = ["agent","agent/backend/inmemory","agent/cache","agent/health","agent/proto/agentpb","monitoring","monitoring/etcd"]
-  revision = "3728953a843d3492bb2b9f26ed5bb79b0e927f3a"
+  packages = ["agent","agent/backend/inmemory","agent/cache","agent/health","agent/proto/agentpb","monitoring","monitoring/collector","utils"]
+  revision = "f078a4de8fa0b80360a7aab0e766736c4f888ce9"
+  version = "0.0.9"
 
 [[projects]]
   name = "github.com/gravitational/trace"
@@ -287,6 +305,12 @@
   name = "github.com/matttproud/golang_protobuf_extensions"
   packages = ["pbutil"]
   revision = "d0c3fe89de86839aecf2e0579c40ba3bb336a453"
+
+[[projects]]
+  branch = "master"
+  name = "github.com/mitchellh/go-ps"
+  packages = ["."]
+  revision = "4fdf99ab29366514c69ccccddab5dc58b8d84062"
 
 [[projects]]
   branch = "master"
@@ -365,9 +389,10 @@
   revision = "453249f01cfeb54c3d549ddb75ff152ca243f9d8"
 
 [[projects]]
+  branch = "release-branch.go1.9"
   name = "golang.org/x/net"
   packages = ["context","http2","http2/hpack","idna","internal/timeseries","lex/httplex","trace","websocket"]
-  revision = "e90d6d0afc4c315a0d87a568ae68577cc15149a0"
+  revision = "ab5485076ff3407ad2d02db054635913f017b0ed"
 
 [[projects]]
   name = "golang.org/x/sys"
@@ -377,13 +402,20 @@
 [[projects]]
   branch = "master"
   name = "golang.org/x/text"
-  packages = ["internal/gen","internal/triegen","internal/ucd","transform","unicode/cldr","unicode/norm","width"]
+  packages = ["internal/gen","internal/triegen","internal/ucd","secure/bidirule","transform","unicode/bidi","unicode/cldr","unicode/norm","unicode/rangetable","width"]
   revision = "3bd178b88a8180be2df394a1fbb81313916f0e7b"
 
 [[projects]]
+  branch = "master"
+  name = "google.golang.org/genproto"
+  packages = ["googleapis/rpc/status"]
+  revision = "f676e0f3ac6395ff1a529ae59a6670878a8371a6"
+
+[[projects]]
   name = "google.golang.org/grpc"
-  packages = [".","codes","credentials","grpclog","internal","metadata","naming","peer","transport"]
-  revision = "231b4cfea0e79843053a33f5fe90bd4d84b23cd3"
+  packages = [".","balancer","codes","connectivity","credentials","grpclb/grpc_lb_v1/messages","grpclog","internal","keepalive","metadata","naming","peer","resolver","stats","status","tap","transport"]
+  revision = "f7bf885db0b7479a537ec317c6e48ce53145f3db"
+  version = "v1.7.0"
 
 [[projects]]
   name = "gopkg.in/alecthomas/kingpin.v2"
@@ -428,6 +460,6 @@
 [solve-meta]
   analyzer-name = "dep"
   analyzer-version = 1
-  inputs-digest = "0d41ea7344b05a12531bf8af86490be748710013f3ba9a6af54bdf865cdd4749"
+  inputs-digest = "e94486a4139b75a67f36dc4e62050438c32edbf9c853a668a736aa7319d369c4"
   solver-name = "gps-cdcl"
   solver-version = 1
