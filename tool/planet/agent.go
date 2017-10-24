@@ -134,7 +134,7 @@ func startLeaderClient(conf *LeaderConfig, errorC chan error) (leaderClient io.C
 				return nil, trace.Wrap(err)
 			}
 		case false:
-			log.Infof("shutting down services until election has been re-enabled")
+			log.Info("shutting down services until election has been re-enabled")
 			// Shut down services at startup if running as master
 			if err := unitsCommand("stop"); err != nil {
 				log.Infof("failed to stop units: %v", err)
