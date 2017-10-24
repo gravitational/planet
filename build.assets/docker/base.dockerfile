@@ -9,6 +9,7 @@ RUN apt-get update && apt-get install -q -y bridge-utils \
         kmod \
         iptables \
         libdevmapper1.02.1 \
+        thin-provisioning-tools \
         libsqlite3-0 \
         e2fsprogs \
         libncurses5 \
