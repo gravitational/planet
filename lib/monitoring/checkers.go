@@ -119,7 +119,7 @@ func dockerRegistryHealth(addr string, transport *http.Transport) health.Checker
 
 func nodeProcessChecker() health.Checker {
 	return &monitoring.ProcessChecker{
-		[]string{
+		Required: []string{
 			"dockerd",
 			"kubelet",
 			"kube-proxy",
