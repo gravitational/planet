@@ -34,6 +34,7 @@ const (
 	EnvDockerOptions           = "DOCKER_OPTS"
 	EnvEtcdOptions             = "ETCD_OPTS"
 	EnvKubeletOptions          = "KUBELET_OPTS"
+	EnvPlanetAgentCertFile     = "PLANET_AGENT_CERTFILE"
 
 	PlanetRoleMaster = "master"
 
