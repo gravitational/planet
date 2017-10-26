@@ -134,7 +134,7 @@ func startLeaderClient(conf *LeaderConfig, errorC chan error) (leaderClient io.C
 				return nil, trace.Wrap(err)
 			}
 		case false:
-			log.Infof("shutting down services until election has been re-enabled")
+			log.Info("shutting down services until election has been re-enabled")
 			// Shut down services at startup if running as master
 			if err := unitsCommand("stop"); err != nil {
 				log.Infof("failed to stop units: %v", err)
@@ -329,8 +329,8 @@ func getEtcdClient(conf *etcdconf.Config) (etcd.KeysAPI, error) {
 
 // status obtains either the status of the planet cluster or that of
 // the local node from the local planet agent.
-func status(rpcPort int, local, prettyPrint bool, timeout time.Duration) (ok bool, err error) {
-	client, err := agent.NewClient(rpcAddr(rpcPort))
+func status(rpcPort int, local, prettyPrint bool, timeout time.Duration, certFile string) (ok bool, err error) {
+	client, err := agent.NewClient(rpcAddr(rpcPort), certFile)
 	if err != nil {
 		return false, trace.Wrap(err)
 	}

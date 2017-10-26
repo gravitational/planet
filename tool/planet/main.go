@@ -135,6 +135,8 @@ func run() error {
 		cstatusRPCPort     = cstatus.Flag("rpc-port", "Local agent RPC port.").Default("7575").Int()
 		cstatusPrettyPrint = cstatus.Flag("pretty", "Pretty-print the output").Default("false").Bool()
 		cstatusTimeout     = cstatus.Flag("timeout", "Status timeout").Default(AgentStatusTimeout.String()).Duration()
+		cstatusCertFile    = cstatus.Flag("cert-file", "Client certificate to use for RPC call").
+					Default(ClientRPCCertPath).OverrideDefaultFromEnvar(EnvPlanetAgentCertFile).String()
 
 		// test command
 		ctest             = app.Command("test", "Run end-to-end tests on a running cluster")
@@ -221,6 +223,8 @@ func run() error {
 			SerfRPCAddr: *cagentSerfRPCAddr,
 			MetricsAddr: *cagentMetricsAddr,
 			Cache:       cache,
+			CertFile:    *cagentEtcdCertFile,
+			KeyFile:     *cagentEtcdKeyFile,
 		}
 		etcdConf := etcdconf.Config{
 			Endpoints: *cagentEtcdEndpoints,
@@ -365,7 +369,7 @@ func run() error {
 	// "status" command
 	case cstatus.FullCommand():
 		var ok bool
-		ok, err = status(*cstatusRPCPort, *cstatusLocal, *cstatusPrettyPrint, *cstatusTimeout)
+		ok, err = status(*cstatusRPCPort, *cstatusLocal, *cstatusPrettyPrint, *cstatusTimeout, *cstatusCertFile)
 		if err == nil && !ok {
 			err = trace.Errorf("status degraded")
 		}

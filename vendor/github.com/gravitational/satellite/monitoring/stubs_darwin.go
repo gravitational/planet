@@ -1,5 +1,5 @@
 /*
-Copyright 2015 Gravitational, Inc.
+Copyright 2016 Gravitational, Inc.
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -13,24 +13,17 @@ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 See the License for the specific language governing permissions and
 limitations under the License.
 */
-package roundtrip
+
+package monitoring
 
 import (
-	"encoding/json"
-	"net/http"
+	"github.com/gravitational/satellite/agent/health"
 )
 
-// ReplyJSON encodes the passed objec as application/json and writes
-// a reply with a given HTTP status code to `w`
-//
-//   ReplyJSON(w, 404, map[string]interface{}{"msg": "not found"})
-//
-func ReplyJSON(w http.ResponseWriter, code int, obj interface{}) {
-	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(code)
-	out, err := json.Marshal(obj)
-	if err != nil {
-		out = []byte(`{"msg": "internal marshal error"}`)
-	}
-	w.Write(out)
+func GetStorageDriverBootConfigParams(drv string) health.Checker {
+	return nil
+}
+
+func BasicCheckers() health.Checker {
+	return nil
 }

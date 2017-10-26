@@ -223,15 +223,16 @@
   revision = "4cc8baba3689adc2d4ec4cf0e8e6be7bb136a3d2"
 
 [[projects]]
+  branch = "master"
   name = "github.com/gravitational/roundtrip"
   packages = ["."]
-  revision = "e7bee8354256fe4ae0d847e4c5d946d3e86f22af"
+  revision = "f39421c51f636f6a03a79a168aacc628e37a584b"
 
 [[projects]]
   name = "github.com/gravitational/satellite"
   packages = ["agent","agent/backend/inmemory","agent/cache","agent/health","agent/proto/agentpb","monitoring","monitoring/collector","utils"]
-  revision = "f078a4de8fa0b80360a7aab0e766736c4f888ce9"
-  version = "0.0.9"
+  revision = "35606a9baaa87fe4175c43f8d0f2e9379e2271a5"
+  version = "0.0.10"
 
 [[projects]]
   name = "github.com/gravitational/trace"
@@ -460,6 +461,6 @@
 [solve-meta]
   analyzer-name = "dep"
   analyzer-version = 1
-  inputs-digest = "e94486a4139b75a67f36dc4e62050438c32edbf9c853a668a736aa7319d369c4"
+  inputs-digest = "249435921d064db205504b31da9653c3807171a18b3050fd69165aba9b557acc"
   solver-name = "gps-cdcl"
   solver-version = 1
