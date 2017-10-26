@@ -90,7 +90,6 @@ func addToMaster(node agent.Agent, config *Config, etcdConfig *monitoring.ETCDCo
 	node.AddChecker(monitoring.SystemdHealth())
 	node.AddChecker(monitoring.NewIPForwardChecker())
 	node.AddChecker(monitoring.NewBrNetfilterChecker())
-	node.AddChecker(nodeProcessChecker())
 	if !config.DisableInterPodCheck {
 		node.AddChecker(monitoring.InterPodCommunication(config.KubeAddr, config.NettestContainerImage))
 	}
@@ -109,23 +108,11 @@ func addToNode(node agent.Agent, config *Config, etcdConfig *monitoring.ETCDConf
 	node.AddChecker(monitoring.SystemdHealth())
 	node.AddChecker(NewVersionCollector())
 	node.AddChecker(monitoring.NewIPForwardChecker())
-	node.AddChecker(nodeProcessChecker())
 	return nil
 }
 
 func dockerRegistryHealth(addr string, transport *http.Transport) health.Checker {
 	return monitoring.NewHTTPHealthzCheckerWithTransport("docker-registry", fmt.Sprintf("%v/v2/", addr), transport, noopResponseChecker)
-}
-
-func nodeProcessChecker() health.Checker {
-	return &monitoring.ProcessChecker{
-		Required: []string{
-			"dockerd",
-			"kubelet",
-			"kube-proxy",
-			"dnsmasq",
-		},
-	}
 }
 
 func noopResponseChecker(response io.Reader) error {

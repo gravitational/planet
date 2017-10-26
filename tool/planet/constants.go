@@ -118,6 +118,9 @@ const (
 
 	// AgentStatusTimeout specifies the default status query timeout
 	AgentStatusTimeout = 5 * time.Second
+
+	// ClientRPCCertPath specifies the path to the client certificate for agent RPC
+	ClientRPCCertPath = "/var/state/etcd.cert"
 )
 
 // K8sSearchDomains are default k8s search domain settings

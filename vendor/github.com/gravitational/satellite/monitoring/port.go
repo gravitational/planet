@@ -34,17 +34,11 @@ const (
 
 // PortRange defines ports and protocol family to check
 type PortRange struct {
-	// Protocol specifies the port protocol (tcp, udp etc)
-	Protocol string
-	// From and To specify the port range to check.
-	// From <= To
-	From, To uint64
-	// Description is a human-readable description for this range
+	Protocol    string
+	From, To    uint64
 	Description string
 }
 
-// DefaultPortChecker specifies all port ranges required to be unoccupied
-// before the cluster is installed
 func DefaultPortChecker() *PortChecker {
 	return &PortChecker{[]PortRange{
 		PortRange{protoTCP, 53, 53, "internal cluster DNS"},
@@ -77,10 +71,8 @@ func PreInstallPortChecker() *PortChecker {
 	}}
 }
 
-// PortChecker verifies that the specified port/port ranges are unoccupied
+// PortChecker will validate that all required ports are in fact unoccupied
 type PortChecker struct {
-	// Ranges lists port ranges for verification.
-	// To verify a single port, use a range with the same port as To and From
 	Ranges []PortRange
 }
 
@@ -140,10 +132,7 @@ func (c *PortChecker) Check(ctx context.Context, reporter health.Reporter) {
 	if conflicts {
 		return
 	}
-	reporter.Add(
-		&pb.Probe{
-			Checker: portCheckerID,
-			Status:  pb.Probe_Running,
-		},
-	)
+	reporter.Add(&pb.Probe{
+		Checker: portCheckerID,
+		Status:  pb.Probe_Running})
 }
