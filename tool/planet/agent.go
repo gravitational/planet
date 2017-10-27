@@ -14,15 +14,16 @@ import (
 	"syscall"
 	"time"
 
+	"github.com/gravitational/planet/lib/monitoring"
+
+	etcd "github.com/coreos/etcd/client"
 	etcdconf "github.com/gravitational/coordinate/config"
 	"github.com/gravitational/coordinate/leader"
-	"github.com/gravitational/planet/lib/monitoring"
 	"github.com/gravitational/satellite/agent"
 	pb "github.com/gravitational/satellite/agent/proto/agentpb"
 	"github.com/gravitational/trace"
-
-	etcd "github.com/coreos/etcd/client"
 	log "github.com/sirupsen/logrus"
+	"google.golang.org/grpc/credentials"
 )
 
 // LeaderConfig represents configuration for the master election task
@@ -330,7 +331,12 @@ func getEtcdClient(conf *etcdconf.Config) (etcd.KeysAPI, error) {
 // status obtains either the status of the planet cluster or that of
 // the local node from the local planet agent.
 func status(rpcPort int, local, prettyPrint bool, timeout time.Duration, certFile string) (ok bool, err error) {
-	client, err := agent.NewClient(rpcAddr(rpcPort), certFile)
+	creds, err := credentials.NewClientTLSFromFile(certFile, "")
+	if err != nil {
+		return false, trace.Wrap(err)
+	}
+
+	client, err := agent.NewClient(rpcAddr(rpcPort), creds)
 	if err != nil {
 		return false, trace.Wrap(err)
 	}
