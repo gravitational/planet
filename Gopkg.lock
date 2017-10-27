@@ -231,7 +231,7 @@
 [[projects]]
   name = "github.com/gravitational/satellite"
   packages = ["agent","agent/backend/inmemory","agent/cache","agent/health","agent/proto/agentpb","monitoring","monitoring/collector","utils"]
-  revision = "35606a9baaa87fe4175c43f8d0f2e9379e2271a5"
+  revision = "bb94380a0533c1f6ea7d0e3b49a6380e0f003f53"
   version = "0.0.10"
 
 [[projects]]
@@ -461,6 +461,6 @@
 [solve-meta]
   analyzer-name = "dep"
   analyzer-version = 1
-  inputs-digest = "249435921d064db205504b31da9653c3807171a18b3050fd69165aba9b557acc"
+  inputs-digest = "1b9c3e6849c330ce2da0d218673902eb83e91fb91eab866c0fe1793fd3c15ac3"
   solver-name = "gps-cdcl"
   solver-version = 1
