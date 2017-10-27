@@ -231,7 +231,7 @@
 [[projects]]
   name = "github.com/gravitational/satellite"
   packages = ["agent","agent/backend/inmemory","agent/cache","agent/health","agent/proto/agentpb","monitoring","monitoring/collector","utils"]
-  revision = "35606a9baaa87fe4175c43f8d0f2e9379e2271a5"
+  revision = "9a197133782cd45f9d43b530a039a8aa043fa006"
   version = "0.0.10"
 
 [[projects]]
