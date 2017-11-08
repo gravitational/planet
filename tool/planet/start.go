@@ -23,8 +23,6 @@ import (
 	log "github.com/sirupsen/logrus"
 )
 
-const DefaultSearchDomain = "cluster.local"
-
 const MinKernelVersion = 310
 const (
 	CheckKernel          = true
@@ -558,7 +556,7 @@ func copyResolvFile(cfg utils.DNSConfig, destination string, upstreamNameservers
 
 	cfg.Servers = nameservers
 	// Limit search to local cluster domain
-	cfg.Search = []string{DefaultSearchDomain}
+	cfg.Search = nil
 	cfg.Ndots = DNSNdots
 	cfg.Timeout = DNSTimeout
 
