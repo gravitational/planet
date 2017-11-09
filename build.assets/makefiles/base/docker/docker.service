@@ -16,6 +16,7 @@ ExecStartPre=-/sbin/brctl delbr docker0
 ExecStartPre=-/bin/rm -f /var/run/docker.pid
 ExecStartPre=/bin/systemctl is-active flanneld.service
 ExecStart=/usr/bin/dockerd --mtu=${FLANNEL_MTU} --iptables=false --ip-masq=false --bip=${FLANNEL_SUBNET} --graph=/ext/docker $DOCKER_OPTS
+ExecStartPost=/sbin/ifconfig docker0 promisc
 ExecReload=/bin/kill -s HUP $MAINPID
 # Having non-zero Limit*s causes performance problems due to accounting overhead
 # in the kernel. We recommend using cgroups to do container-local accounting.
