@@ -22,20 +22,49 @@ func SetPromiscuousMode(ifaceName, podCidr string) error {
 
 	output, err := exec.Command(cmdIP, "link", "show", "dev", ifaceName).CombinedOutput()
 	if err != nil || !bytes.Contains(output, promiscuousModeOn) {
-		_, err := exec.Command(cmdIP, "link", "set", ifaceName, "promisc", "on").CombinedOutput()
+		output, err = exec.Command(cmdIP, "link", "set", ifaceName, "promisc", "on").CombinedOutput()
 		if err != nil {
-			return trace.Wrap(err, "error setting promiscuous mode on %q", ifaceName)
+			return trace.Wrap(err, "error setting promiscuous mode on %q: %s", ifaceName, output)
 		}
 	}
 
-	// get the IPv4 of the interface
-	ipAddr, err := getIPv4Addr(*iface)
+	addrs, err := iface.Addrs()
 	if err != nil {
-		return trace.Wrap(err)
+		return trace.Wrap(err, "failed to list interface addresses")
 	}
 
-	// configure the ebtables rules to eliminate duplicate packets by best effort
-	return syncEbtablesDedupRules(iface.HardwareAddr, ifaceName, podCidr, ipAddr)
+	var errors []error
+	for _, addr := range addrs {
+		switch ipAddr := addr.(type) {
+		case *net.IPNet:
+			ip := ipAddr.IP.To4()
+			if ip == nil {
+				continue
+			}
+			// configure the ebtables rules to eliminate duplicate packets by best effort
+			err := syncEbtablesDedupRules(iface.HardwareAddr, ifaceName, podCidr, ip)
+			if err != nil {
+				errors = append(errors, err)
+			}
+		}
+	}
+
+	if len(errors) != 0 {
+		return trace.NewAggregate(errors...)
+	}
+
+	return nil
+}
+
+// UnsetPromiscuousMode removes the promiscuous mode flag and deletes the deduplication
+// chain set up for the specified interface ifaceName
+func UnsetPromiscuousMode(ifaceName string) error {
+	out, err := exec.Command(cmdIP, "link", "set", ifaceName, "promisc", "off").CombinedOutput()
+	if err != nil {
+		return trace.Wrap(err, "error removing promiscuous mode from %q: %s", ifaceName, out)
+	}
+
+	return trace.Wrap(tool.DeleteChain(tool.TableFilter, dedupChain))
 }
 
 func syncEbtablesDedupRules(macAddr net.HardwareAddr, ifaceName, podCidr string, gateway net.IP) error {
@@ -49,26 +78,29 @@ func syncEbtablesDedupRules(macAddr net.HardwareAddr, ifaceName, podCidr string,
 	}
 
 	log.Debugf("filtering packets with ebtables on mac address %v, gateway %v and pod CIDR %v", macAddr, gateway, podCidr)
-	_, err = tool.EnsureChain(tool.TableFilter, dedupChain)
+	err = tool.EnsureChain(tool.TableFilter, dedupChain)
 	if err != nil {
 		return trace.Wrap(err, "failed to create/update %q chain %q", tool.TableFilter, dedupChain)
 	}
 
-	_, err = tool.EnsureRule(tool.Append, tool.TableFilter, tool.ChainOutput, "-j", string(dedupChain))
+	// Jump from OUTPUT chain to deduplication chain in the filter table
+	err = tool.EnsureRule(tool.Append, tool.TableFilter, tool.ChainOutput, "-j", string(dedupChain))
 	if err != nil {
 		return trace.Wrap(err, "failed to ensure %v chain %v rule to jump to %v chain",
 			tool.TableFilter, tool.ChainOutput, dedupChain)
 	}
 
 	commonArgs := []string{"-p", "IPv4", "-s", macAddr.String(), "-o", "veth+"}
-	_, err = tool.EnsureRule(tool.Prepend, tool.TableFilter, dedupChain,
+	// Allow the gateway IP address when the source is the specified mac address
+	err = tool.EnsureRule(tool.Prepend, tool.TableFilter, dedupChain,
 		append(commonArgs, "--ip-src", gateway.String(), "-j", "ACCEPT")...)
 	if err != nil {
 		trace.Wrap(err, "failed to ensure rule for packets from %q gateway to be accepted", ifaceName)
 
 	}
 
-	_, err = tool.EnsureRule(tool.Append, tool.TableFilter, dedupChain,
+	// Block any other IP from pod subnet sourced with the specified mac address
+	err = tool.EnsureRule(tool.Append, tool.TableFilter, dedupChain,
 		append(commonArgs, "--ip-src", podCidr, "-j", "DROP")...)
 	if err != nil {
 		return trace.Wrap(err, "failed to ensure rule to drop packets from %v but with mac address of %q",
@@ -76,25 +108,6 @@ func syncEbtablesDedupRules(macAddr net.HardwareAddr, ifaceName, podCidr string,
 	}
 
 	return nil
-}
-
-func getIPv4Addr(iface net.Interface) (net.IP, error) {
-	addrs, err := iface.Addrs()
-	if err != nil {
-		return nil, trace.Wrap(err)
-	}
-
-	for _, addr := range addrs {
-		switch ipAddr := addr.(type) {
-		case *net.IPNet:
-			ip := ipAddr.IP.To4()
-			if ip != nil {
-				return ip, nil
-			}
-		}
-	}
-
-	return nil, trace.NotFound("no IPv4 addresses found for %q", iface.Name)
 }
 
 // ebtables chain to store deduplication rules

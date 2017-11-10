@@ -15,13 +15,13 @@ const (
 	fullMac = "--Lmac2"
 )
 
-// RulePosition describe the position of a rule relative to another: before or after
+// RulePosition describe the position of a rule in the chain
 type RulePosition string
 
 const (
-	// Prepend defines a rule position to place a new rule before another
+	// Prepend defines a rule position to place a new rule at the head of the chain
 	Prepend RulePosition = "-I"
-	// Append defines a rule position to place a new rule after another
+	// Append defines a rule position to place a new rule at the end of the chain
 	Append RulePosition = "-A"
 )
 
@@ -29,9 +29,7 @@ const (
 type Table string
 
 const (
-	// TableNAT identifies the nat table
-	TableNAT Table = "nat"
-	// TableNAT identifies the filter table
+	// TableFilter identifies the filter table
 	TableFilter Table = "filter"
 )
 
@@ -76,11 +74,11 @@ func GetVersion() (string, error) {
 	return match[1], nil
 }
 
-// EnsureRule checks if the specified rule is present and, if not, creates it.  If the rule existed, return true.
+// EnsureRule checks if the specified rule is present and, if not, creates it.
 // WARNING: ebtables does not provide check operation like iptables do. Hence we have to do a string match of args.
 // Input args must follow the format and sequence of ebtables list output. Otherwise, EnsureRule will always create
-// new rules and causing duplicates.
-func EnsureRule(position RulePosition, table Table, chain Chain, args ...string) (bool, error) {
+// new rules and cause duplicates.
+func EnsureRule(position RulePosition, table Table, chain Chain, args ...string) error {
 	var exists bool
 	fullArgs := makeFullArgs(table, opListChain, chain, fullMac)
 	out, err := exec.Command(cmd, fullArgs...).CombinedOutput()
@@ -91,14 +89,14 @@ func EnsureRule(position RulePosition, table Table, chain Chain, args ...string)
 		fullArgs = makeFullArgs(table, operation(position), chain, args...)
 		out, err := exec.Command(cmd, fullArgs...).CombinedOutput()
 		if err != nil {
-			return exists, trace.Wrap(err, "failed to ensure rule: %s", out)
+			return trace.Wrap(err, "failed to ensure rule: %s", out)
 		}
 	}
-	return exists, nil
+	return nil
 }
 
-// EnsureChain checks if the specified chain is present and, if not, creates it.  If the rule existed, return true.
-func EnsureChain(table Table, chain Chain) (bool, error) {
+// EnsureChain checks if the specified chain is present and, if not, creates it
+func EnsureChain(table Table, chain Chain) error {
 	exists := true
 
 	args := makeFullArgs(table, opListChain, chain)
@@ -111,23 +109,33 @@ func EnsureChain(table Table, chain Chain) (bool, error) {
 		args = makeFullArgs(table, opCreateChain, chain)
 		out, err := exec.Command(cmd, args...).CombinedOutput()
 		if err != nil {
-			return exists, trace.Wrap(err, "failed to ensure %q chain: %s", chain, out)
+			return trace.Wrap(err, "failed to ensure %q chain: %s", chain, out)
 		}
-	}
-	return exists, nil
-}
-
-// FlushChain flushes the specified chain. Returns error if chain does not exist.
-func FlushChain(table Table, chain Chain) error {
-	fullArgs := makeFullArgs(table, opFlushChain, chain)
-	out, err := exec.Command(cmd, fullArgs...).CombinedOutput()
-	if err != nil {
-		return trace.Wrap(err, "failed to flush %q chain %q: %s", string(table), string(chain), out)
 	}
 	return nil
 }
 
-// checkIfRuleExists takes the output of ebtables list chain and checks if the input rules exists
+// FlushChain flushes the specified chain. Returns error if the chain does not exist.
+func FlushChain(table Table, chain Chain) error {
+	fullArgs := makeFullArgs(table, opFlushChain, chain)
+	out, err := exec.Command(cmd, fullArgs...).CombinedOutput()
+	if err != nil {
+		return trace.Wrap(err, "failed to flush %q chain %q: %s", table, chain, out)
+	}
+	return nil
+}
+
+// DeleteChain deletes the specified chain. Returns error if the chain does not exist.
+func DeleteChain(table Table, chain Chain) error {
+	fullArgs := makeFullArgs(table, opDeleteChain, chain)
+	out, err := exec.Command(cmd, fullArgs...).CombinedOutput()
+	if err != nil {
+		return trace.Wrap(err, "failed to delete %v chain %v: %s", table, chain, out)
+	}
+	return nil
+}
+
+// checkIfRuleExists takes the output of 'ebtables list chain' and checks if the input rule exists
 func checkIfRuleExists(listChainOutput string, args ...string) bool {
 	rule := strings.Join(args, " ")
 	for _, line := range strings.Split(listChainOutput, "\n") {

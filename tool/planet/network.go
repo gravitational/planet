@@ -6,6 +6,10 @@ import (
 	"github.com/gravitational/trace"
 )
 
-func linkPromiscMode(ifaceName, podCidr string) error {
+func enablePromiscMode(ifaceName, podCidr string) error {
 	return trace.Wrap(network.SetPromiscuousMode(ifaceName, podCidr))
+}
+
+func disablePromiscMode(ifaceName string) error {
+	return trace.Wrap(network.UnsetPromiscuousMode(ifaceName))
 }

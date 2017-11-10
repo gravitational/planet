@@ -122,6 +122,9 @@ const (
 
 	// ClientRPCCertPath specifies the path to the CA certificate for agent RPC
 	ClientRPCCertPath = "/var/state/root.cert"
+
+	// DefaultDockerBridge specifies the default name of the docker bridge
+	DefaultDockerBridge = "docker0"
 )
 
 // K8sSearchDomains are default k8s search domain settings
