@@ -8,6 +8,7 @@ RUN apt-get update && apt-get install -q -y bridge-utils \
         bash-completion \
         kmod \
         iptables \
+        ebtables \
         libdevmapper1.02.1 \
         libsqlite3-0 \
         e2fsprogs \
