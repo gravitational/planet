@@ -15,7 +15,7 @@ const (
 	fullMac = "--Lmac2"
 )
 
-// RulePosition describe the position of a rule in the chain
+// RulePosition describes the position of a rule in the chain
 type RulePosition string
 
 const (
@@ -62,7 +62,7 @@ const (
 // GetVersion returns the "X.Y.Z" semver string for ebtables
 func GetVersion() (string, error) {
 	// this doesn't access mutable state so we don't need to use the interface / runner
-	bytes, err := exec.Command(cmd, "--version").CombinedOutput()
+	bytes, err := run(cmd, "--version")
 	if err != nil {
 		return "", err
 	}
@@ -81,13 +81,13 @@ func GetVersion() (string, error) {
 func EnsureRule(position RulePosition, table Table, chain Chain, args ...string) error {
 	var exists bool
 	fullArgs := makeFullArgs(table, opListChain, chain, fullMac)
-	out, err := exec.Command(cmd, fullArgs...).CombinedOutput()
+	out, err := run(cmd, fullArgs...)
 	if err == nil {
 		exists = checkIfRuleExists(string(out), args...)
 	}
 	if !exists {
 		fullArgs = makeFullArgs(table, operation(position), chain, args...)
-		out, err := exec.Command(cmd, fullArgs...).CombinedOutput()
+		out, err := run(cmd, fullArgs...)
 		if err != nil {
 			return trace.Wrap(err, "failed to ensure rule: %s", out)
 		}
@@ -98,16 +98,15 @@ func EnsureRule(position RulePosition, table Table, chain Chain, args ...string)
 // EnsureChain checks if the specified chain is present and, if not, creates it
 func EnsureChain(table Table, chain Chain) error {
 	exists := true
-
 	args := makeFullArgs(table, opListChain, chain)
-	_, err := exec.Command(cmd, args...).CombinedOutput()
+	_, err := run(cmd, args...)
 	if err != nil {
 		exists = false
 	}
 
 	if !exists {
 		args = makeFullArgs(table, opCreateChain, chain)
-		out, err := exec.Command(cmd, args...).CombinedOutput()
+		out, err := run(cmd, args...)
 		if err != nil {
 			return trace.Wrap(err, "failed to ensure %q chain: %s", chain, out)
 		}
@@ -118,7 +117,7 @@ func EnsureChain(table Table, chain Chain) error {
 // FlushChain flushes the specified chain. Returns error if the chain does not exist.
 func FlushChain(table Table, chain Chain) error {
 	fullArgs := makeFullArgs(table, opFlushChain, chain)
-	out, err := exec.Command(cmd, fullArgs...).CombinedOutput()
+	out, err := run(cmd, fullArgs...)
 	if err != nil {
 		return trace.Wrap(err, "failed to flush %q chain %q: %s", table, chain, out)
 	}
@@ -128,7 +127,7 @@ func FlushChain(table Table, chain Chain) error {
 // DeleteChain deletes the specified chain. Returns error if the chain does not exist.
 func DeleteChain(table Table, chain Chain) error {
 	fullArgs := makeFullArgs(table, opDeleteChain, chain)
-	out, err := exec.Command(cmd, fullArgs...).CombinedOutput()
+	out, err := run(cmd, fullArgs...)
 	if err != nil {
 		return trace.Wrap(err, "failed to delete %v chain %v: %s", table, chain, out)
 	}
@@ -148,4 +147,9 @@ func checkIfRuleExists(listChainOutput string, args ...string) bool {
 
 func makeFullArgs(table Table, op operation, chain Chain, args ...string) []string {
 	return append([]string{"-t", string(table), string(op), string(chain)}, args...)
+}
+
+func run(cmd string, args ...string) (output []byte, err error) {
+	output, err = exec.Command(cmd, args...).CombinedOutput()
+	return output, trace.ConvertSystemError(err)
 }

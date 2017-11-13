@@ -20,6 +20,11 @@ func SetPromiscuousMode(ifaceName, podCidr string) error {
 		return trace.Wrap(err)
 	}
 
+	addrs, err := getIPv4s(*iface)
+	if err != nil {
+		return trace.Wrap(err)
+	}
+
 	output, err := exec.Command(cmdIP, "link", "show", "dev", ifaceName).CombinedOutput()
 	if err != nil || !bytes.Contains(output, promiscuousModeOn) {
 		output, err = exec.Command(cmdIP, "link", "set", ifaceName, "promisc", "on").CombinedOutput()
@@ -28,24 +33,12 @@ func SetPromiscuousMode(ifaceName, podCidr string) error {
 		}
 	}
 
-	addrs, err := iface.Addrs()
-	if err != nil {
-		return trace.Wrap(err, "failed to list interface addresses")
-	}
-
 	var errors []error
-	for _, addr := range addrs {
-		switch ipAddr := addr.(type) {
-		case *net.IPNet:
-			ip := ipAddr.IP.To4()
-			if ip == nil {
-				continue
-			}
-			// configure the ebtables rules to eliminate duplicate packets by best effort
-			err := syncEbtablesDedupRules(iface.HardwareAddr, ifaceName, podCidr, ip)
-			if err != nil {
-				errors = append(errors, err)
-			}
+	for _, ipAddr := range addrs {
+		// configure the ebtables rules to eliminate duplicate packets by best effort
+		err := syncEbtablesDedupRules(iface.HardwareAddr, ifaceName, podCidr, ipAddr)
+		if err != nil {
+			errors = append(errors, err)
 		}
 	}
 
@@ -95,7 +88,7 @@ func syncEbtablesDedupRules(macAddr net.HardwareAddr, ifaceName, podCidr string,
 	err = tool.EnsureRule(tool.Prepend, tool.TableFilter, dedupChain,
 		append(commonArgs, "--ip-src", gateway.String(), "-j", "ACCEPT")...)
 	if err != nil {
-		trace.Wrap(err, "failed to ensure rule for packets from %q gateway to be accepted", ifaceName)
+		return trace.Wrap(err, "failed to ensure rule for packets from %q gateway to be accepted", ifaceName)
 
 	}
 
@@ -108,6 +101,30 @@ func syncEbtablesDedupRules(macAddr net.HardwareAddr, ifaceName, podCidr string,
 	}
 
 	return nil
+}
+
+func getIPv4s(iface net.Interface) (ips []net.IP, err error) {
+	addrs, err := iface.Addrs()
+	if err != nil {
+		return nil, trace.Wrap(err, "failed to list interface addresses")
+	}
+
+	for _, addr := range addrs {
+		switch ipAddr := addr.(type) {
+		case *net.IPNet:
+			ip := ipAddr.IP.To4()
+			if ip != nil {
+				ips = append(ips, ip)
+
+			}
+		}
+	}
+
+	if len(ips) != 0 {
+		return ips, nil
+	}
+
+	return nil, trace.NotFound("no IPv4 address found")
 }
 
 // ebtables chain to store deduplication rules
