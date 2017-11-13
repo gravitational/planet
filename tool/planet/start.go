@@ -147,7 +147,9 @@ func start(config *Config, monitorc chan<- bool) (*runtimeContext, error) {
 	)
 
 	addInsecureRegistries(config)
-	addDockerOptions(config)
+	if err = addDockerOptions(config); err != nil {
+		return nil, trace.Wrap(err)
+	}
 	addEtcdOptions(config)
 	addKubeletOptions(config)
 	setupFlannel(config)
@@ -412,7 +414,7 @@ func pickDockerStorageBackend() (dockerBackend string, err error) {
 
 // addDockerStorage adds a given docker storage back-end to DOCKER_OPTS environment
 // variable
-func addDockerOptions(config *Config) {
+func addDockerOptions(config *Config) error {
 	// add supported storage backend
 	config.Env.Append(EnvDockerOptions,
 		fmt.Sprintf("--storage-driver=%s", config.DockerBackend), " ")
@@ -426,6 +428,18 @@ func addDockerOptions(config *Config) {
 	if config.DockerOptions != "" {
 		config.Env.Append(EnvDockerOptions, config.DockerOptions, " ")
 	}
+
+	if config.DockerPromiscuousMode {
+		err := utils.WriteDropIn("docker.service", "99-docker-promisc.conf", []byte(`
+ExecStartPost=
+ExecStartPost=/bin/planet enable-promisc-mode docker0
+`))
+		if err != nil {
+			return trace.Wrap(err)
+		}
+	}
+
+	return nil
 }
 
 // addEtcdOptions sets extra etcd command line arguments in environment

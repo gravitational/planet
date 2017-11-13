@@ -3,6 +3,11 @@ package utils
 import (
 	"fmt"
 	"io"
+	"io/ioutil"
+	"os"
+	"path/filepath"
+
+	"github.com/gravitational/planet/lib/constants"
 
 	"github.com/gravitational/trace"
 )
@@ -24,4 +29,26 @@ type HostEntry struct {
 	Hostnames string
 	// IP is the IP the hostnames should resolve to
 	IP string
+}
+
+// WriteDropIn creates the specified dropin file for the specified systemd unit
+// with given contents
+func WriteDropIn(unitFile, dropInFile string, contents []byte) error {
+	dropInDir := filepath.Join(constants.SystemdUnitPath, dropInDir(unitFile))
+	err := os.MkdirAll(dropInDir, constants.SharedDirMask)
+	if err != nil {
+		return trace.ConvertSystemError(err)
+	}
+
+	dropInPath := filepath.Join(dropInDir, dropInFile)
+	err = ioutil.WriteFile(dropInPath, contents, constants.SharedReadMask)
+	if err != nil {
+		return trace.ConvertSystemError(err)
+	}
+
+	return nil
+}
+
+func dropInDir(unit string) string {
+	return fmt.Sprintf("%v.d", unit)
 }

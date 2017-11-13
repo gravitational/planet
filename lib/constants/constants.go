@@ -15,4 +15,13 @@ const (
 
 	// ExitCodeUnknown is equivalent to EX_SOFTWARE as defined by sysexits(3)
 	ExitCodeUnknown = 70
+
+	// SharedReadMask is a file mask with read access for everyone
+	SharedReadMask = 0644
+
+	// SharedDirMask is a mask for shared directories
+	SharedDirMask = 0755
+
+	// SystemdUnitPath specifies the path for user systemd units
+	SystemdUnitPath = "/etc/systemd/system"
 )

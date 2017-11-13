@@ -35,6 +35,7 @@ const (
 	EnvEtcdOptions             = "ETCD_OPTS"
 	EnvKubeletOptions          = "KUBELET_OPTS"
 	EnvPlanetAgentCertFile     = "PLANET_AGENT_CERTFILE"
+	EnvDockerPromiscuousMode   = "PLANET_DOCKER_PROMISCUOUS_MODE"
 
 	PlanetRoleMaster = "master"
 
