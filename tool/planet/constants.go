@@ -126,6 +126,13 @@ const (
 
 	// DefaultDockerBridge specifies the default name of the docker bridge
 	DefaultDockerBridge = "docker0"
+
+	// DefaultDockerUnit specifies the name of the docker service unit file
+	DefaultDockerUnit = "docker.service"
+
+	// DockerPromiscuousModeDropIn names the drop-in file with promiscuous mode configuration
+	// for docker bridge
+	DockerPromiscuousModeDropIn = "99-docker-promisc.conf"
 )
 
 // K8sSearchDomains are default k8s search domain settings

@@ -144,6 +144,7 @@ func start(config *Config, monitorc chan<- bool) (*runtimeContext, error) {
 		box.EnvPair{Name: EnvClusterID, Val: config.ClusterID},
 		box.EnvPair{Name: EnvNodeName, Val: config.NodeName},
 		box.EnvPair{Name: EnvElectionEnabled, Val: strconv.FormatBool(config.ElectionEnabled)},
+		box.EnvPair{Name: EnvDockerPromiscuousMode, Val: strconv.FormatBool(config.DockerPromiscuousMode)},
 	)
 
 	addInsecureRegistries(config)
@@ -430,9 +431,13 @@ func addDockerOptions(config *Config) error {
 	}
 
 	if config.DockerPromiscuousMode {
-		err := utils.WriteDropIn("docker.service", "99-docker-promisc.conf", []byte(`
+		dropInDir := filepath.Join(config.Rootfs, constants.SystemdUnitPath, utils.DropInDir(DefaultDockerUnit))
+		err := utils.WriteDropIn(dropInDir, DockerPromiscuousModeDropIn, []byte(`
+[Service]
 ExecStartPost=
-ExecStartPost=/bin/planet enable-promisc-mode docker0
+ExecStartPost=/usr/bin/gravity system enable-promisc-mode docker0 --pod-subnet=${KUBE_POD_SUBNET}
+ExecStopPost=
+ExecStopPost=-/usr/bin/gravity system disable-promisc-mode docker0
 `))
 		if err != nil {
 			return trace.Wrap(err)

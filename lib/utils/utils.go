@@ -31,10 +31,9 @@ type HostEntry struct {
 	IP string
 }
 
-// WriteDropIn creates the specified dropin file for the specified systemd unit
+// WriteDropIn creates the file specified with dropInPath in directory specified with dropInDir
 // with given contents
-func WriteDropIn(unitFile, dropInFile string, contents []byte) error {
-	dropInDir := filepath.Join(constants.SystemdUnitPath, dropInDir(unitFile))
+func WriteDropIn(dropInDir, dropInFile string, contents []byte) error {
 	err := os.MkdirAll(dropInDir, constants.SharedDirMask)
 	if err != nil {
 		return trace.ConvertSystemError(err)
@@ -49,6 +48,7 @@ func WriteDropIn(unitFile, dropInFile string, contents []byte) error {
 	return nil
 }
 
-func dropInDir(unit string) string {
+// DropInDir returns the name of the directory for the specified unit
+func DropInDir(unit string) string {
 	return fmt.Sprintf("%v.d", unit)
 }

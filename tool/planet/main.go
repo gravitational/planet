@@ -174,14 +174,6 @@ func run() error {
 		cleaderResume        = cleader.Command("resume", "Resume leader election participation for this node")
 		cleaderView          = cleader.Command("view", "Display the IP address of the active master")
 		cleaderViewKey       = cleaderView.Flag("leader-key", "Etcd key holding the new leader").Required().String()
-
-		// network helpers
-		cenablePromiscMode          = app.Command("enable-promisc-mode", "Put network interface into promiscuous mode")
-		cenablePromiscModeIface     = cenablePromiscMode.Arg("name", "Name of the interface (i.e. docker0)").Default(DefaultDockerBridge).String()
-		cenablePromiscModePodSubnet = kv.CIDRFlag(cenablePromiscMode.Flag("pod-subnet", "Subnet dedicated to the pods in the cluster").Default(DefaultPODSubnet).OverrideDefaultFromEnvar("PLANET_POD_SUBNET"))
-
-		cdisablePromiscMode      = app.Command("disable-promisc-mode", "Remove promiscuous mode flag and deduplication rules")
-		cdisablePromiscModeIface = cdisablePromiscMode.Arg("name", "Name of the interface (i.e. docker0)").Default(DefaultDockerBridge).String()
 	)
 
 	cmd, err := app.Parse(args[1:])
@@ -406,12 +398,6 @@ func run() error {
 
 	case cetcdPromote.FullCommand():
 		err = etcdPromote(*cetcdPromoteName, *cetcdPromoteInitialCluster, *cetcdPromoteInitialClusterState)
-
-	case cenablePromiscMode.FullCommand():
-		err = enablePromiscMode(*cenablePromiscModeIface, cenablePromiscModePodSubnet.String())
-
-	case cdisablePromiscMode.FullCommand():
-		err = disablePromiscMode(*cdisablePromiscModeIface)
 
 	default:
 		err = trace.Errorf("unsupported command: %v", cmd)
