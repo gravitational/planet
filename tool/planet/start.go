@@ -435,7 +435,7 @@ func addDockerOptions(config *Config) error {
 		err := utils.WriteDropIn(dropInDir, DockerPromiscuousModeDropIn, []byte(`
 [Service]
 ExecStartPost=
-ExecStartPost=/usr/bin/gravity system enable-promisc-mode docker0 --pod-subnet=${KUBE_POD_SUBNET}
+ExecStartPost=/usr/bin/gravity system enable-promisc-mode docker0
 ExecStopPost=
 ExecStopPost=-/usr/bin/gravity system disable-promisc-mode docker0
 `))
