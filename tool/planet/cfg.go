@@ -49,6 +49,8 @@ type Config struct {
 	Hostname                string
 	DNSOverrides            kv.KeyVal
 	KubeletOptions          string
+	// DockerPromiscuousMode specifies whether to put docker bridge into promiscuous mode
+	DockerPromiscuousMode bool
 }
 
 func (cfg *Config) SkyDNSResolverIP() string {

@@ -144,10 +144,13 @@ func start(config *Config, monitorc chan<- bool) (*runtimeContext, error) {
 		box.EnvPair{Name: EnvClusterID, Val: config.ClusterID},
 		box.EnvPair{Name: EnvNodeName, Val: config.NodeName},
 		box.EnvPair{Name: EnvElectionEnabled, Val: strconv.FormatBool(config.ElectionEnabled)},
+		box.EnvPair{Name: EnvDockerPromiscuousMode, Val: strconv.FormatBool(config.DockerPromiscuousMode)},
 	)
 
 	addInsecureRegistries(config)
-	addDockerOptions(config)
+	if err = addDockerOptions(config); err != nil {
+		return nil, trace.Wrap(err)
+	}
 	addEtcdOptions(config)
 	addKubeletOptions(config)
 	setupFlannel(config)
@@ -412,7 +415,7 @@ func pickDockerStorageBackend() (dockerBackend string, err error) {
 
 // addDockerStorage adds a given docker storage back-end to DOCKER_OPTS environment
 // variable
-func addDockerOptions(config *Config) {
+func addDockerOptions(config *Config) error {
 	// add supported storage backend
 	config.Env.Append(EnvDockerOptions,
 		fmt.Sprintf("--storage-driver=%s", config.DockerBackend), " ")
@@ -426,6 +429,22 @@ func addDockerOptions(config *Config) {
 	if config.DockerOptions != "" {
 		config.Env.Append(EnvDockerOptions, config.DockerOptions, " ")
 	}
+
+	if config.DockerPromiscuousMode {
+		dropInDir := filepath.Join(config.Rootfs, constants.SystemdUnitPath, utils.DropInDir(DefaultDockerUnit))
+		err := utils.WriteDropIn(dropInDir, DockerPromiscuousModeDropIn, []byte(`
+[Service]
+ExecStartPost=
+ExecStartPost=/usr/bin/gravity system enable-promisc-mode docker0
+ExecStopPost=
+ExecStopPost=-/usr/bin/gravity system disable-promisc-mode docker0
+`))
+		if err != nil {
+			return trace.Wrap(err)
+		}
+	}
+
+	return nil
 }
 
 // addEtcdOptions sets extra etcd command line arguments in environment

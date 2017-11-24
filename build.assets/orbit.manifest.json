@@ -204,6 +204,12 @@
                 "name": "hostname",
                 "env": "PLANET_HOSTNAME",
                 "cli": {"name": "hostname"}
+            },
+            {
+                "type": "Bool",
+                "name": "dockerpromiscuousmode",
+                "env": "PLANET_DOCKER_PROMISCUOUS_MODE",
+                "cli": {"name": "docker-promiscuous-mode"}
             }
         ]
     }

@@ -35,6 +35,7 @@ const (
 	EnvEtcdOptions             = "ETCD_OPTS"
 	EnvKubeletOptions          = "KUBELET_OPTS"
 	EnvPlanetAgentCertFile     = "PLANET_AGENT_CERTFILE"
+	EnvDockerPromiscuousMode   = "PLANET_DOCKER_PROMISCUOUS_MODE"
 
 	PlanetRoleMaster = "master"
 
@@ -122,6 +123,16 @@ const (
 
 	// ClientRPCCertPath specifies the path to the CA certificate for agent RPC
 	ClientRPCCertPath = "/var/state/root.cert"
+
+	// DefaultDockerBridge specifies the default name of the docker bridge
+	DefaultDockerBridge = "docker0"
+
+	// DefaultDockerUnit specifies the name of the docker service unit file
+	DefaultDockerUnit = "docker.service"
+
+	// DockerPromiscuousModeDropIn names the drop-in file with promiscuous mode configuration
+	// for docker bridge
+	DockerPromiscuousModeDropIn = "99-docker-promisc.conf"
 )
 
 // K8sSearchDomains are default k8s search domain settings
