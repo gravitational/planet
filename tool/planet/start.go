@@ -212,7 +212,7 @@ func start(config *Config, monitorc chan<- bool) (*runtimeContext, error) {
 		Mounts:       config.Mounts,
 		DataDir:      "/var/run/planet",
 		InitUser:     "root",
-		InitArgs:     []string{"/bin/systemd", "--log-level=debug"},
+		InitArgs:     []string{"/bin/systemd"},
 		InitEnv:      []string{"container=docker", "LC_ALL=en_US.UTF-8"},
 		Capabilities: allCaps,
 	}
