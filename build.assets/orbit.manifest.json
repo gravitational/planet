@@ -22,6 +22,7 @@
         "StartPreCommand": "-/bin/rm /var/run/planet.socket",
         "StopPostCommand": "-/bin/rm /var/run/planet.socket",
         "StopCommand": "stop",
+        "TimeoutStopSec": "5min",
         "Dependencies": {
             "Requires": "network-online.target",
             "After": "network.target network-online.target"

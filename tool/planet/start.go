@@ -213,7 +213,7 @@ func start(config *Config, monitorc chan<- bool) (*runtimeContext, error) {
 		DataDir:      "/var/run/planet",
 		InitUser:     "root",
 		InitArgs:     []string{"/bin/systemd"},
-		InitEnv:      []string{"container=libcontainer", "LC_ALL=en_US.UTF-8"},
+		InitEnv:      []string{"container=docker", "LC_ALL=en_US.UTF-8"},
 		Capabilities: allCaps,
 	}
 	defer log.Infof("start() is done!")
