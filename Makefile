@@ -45,7 +45,7 @@ BUILDDIR := $(shell realpath $(BUILDDIR))
 
 KUBE_VER := v1.7.12
 SECCOMP_VER :=  2.3.1-2.1
-DOCKER_VER := 1.12.6
+DOCKER_VER := 17.03.2
 FLANNEL_VER := amed/awsvpc-multi-routing-table-backend
 ETCD_VER := v2.3.8
 
@@ -224,4 +224,3 @@ $(BUILDDIR)/current:
 .PHONY: fix-logrus
 fix-logrus:
 	find vendor -type f -print0 | xargs -0 sed -i 's/Sirupsen/sirupsen/g'
-
