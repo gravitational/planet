@@ -34,7 +34,6 @@ ExecStart=/usr/bin/kube-apiserver \
         --bind-address=${PLANET_PUBLIC_IP} \
         --logtostderr=true $KUBE_CLOUD_FLAGS \
         --client-ca-file=/var/state/root.cert \
-        --anonymous-auth=false \
         --profiling=false \
         --audit-log-path=/var/log/apiserver/audit.log \
         --audit-log-maxage=30 \
