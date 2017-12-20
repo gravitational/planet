@@ -7,10 +7,27 @@ ENV DEBIAN_FRONTEND noninteractive
 
 ADD os-rootfs/ /
 
+RUN set -ex; \
+       if ! command -v gpg > /dev/null; then \
+               apt-get update; \
+               apt-get install -y --no-install-recommends \
+                       gnupg2 \
+                       dirmngr \
+               ; \
+               rm -rf /var/lib/apt/lists/*; \
+       fi
+
 # dockerproject debian repo key
-RUN (apt-get update && \
-	apt-get -q -y install apt-transport-https && \
-	apt-key adv --keyserver hkp://p80.pool.sks-keyservers.net:80 --recv-keys 58118E89F3A912897C070ADBF76221572C52609D)
+RUN (apt-get update && apt-get -q -y install apt-transport-https && \
+  set -ex \
+    && for key in \
+      58118E89F3A912897C070ADBF76221572C52609D \
+    ; do \
+      apt-key adv --keyserver pgp.mit.edu --recv-keys "$key" || \
+      apt-key adv --keyserver keyserver.pgp.com --recv-keys "$key" || \
+      apt-key adv --keyserver ha.pool.sks-keyservers.net --recv-keys "$key" ; \
+    done)
+
 RUN (echo 'deb http://ftp.debian.org/debian jessie-backports main' >> /etc/apt/sources.list && \
 	echo 'deb http://httpredir.debian.org/debian/ jessie contrib non-free' >> /etc/apt/sources.list && \
 	echo 'deb http://httpredir.debian.org/debian/ jessie-updates contrib non-free' >> /etc/apt/sources.list && \
