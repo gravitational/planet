@@ -36,6 +36,8 @@ const (
 	EnvKubeletOptions          = "KUBELET_OPTS"
 	EnvPlanetAgentCertFile     = "PLANET_AGENT_CERTFILE"
 	EnvDockerPromiscuousMode   = "PLANET_DOCKER_PROMISCUOUS_MODE"
+	EnvServiceUID              = "PLANET_SERVICE_UID"
+	EnvServiceGID              = "PLANET_SERVICE_GID"
 
 	PlanetRoleMaster = "master"
 
@@ -133,6 +135,19 @@ const (
 	// DockerPromiscuousModeDropIn names the drop-in file with promiscuous mode configuration
 	// for docker bridge
 	DockerPromiscuousModeDropIn = "99-docker-promisc.conf"
+
+	MinKernelVersion     = 310
+	CheckKernel          = true
+	CheckCgroupMounts    = true
+	DefaultServiceSubnet = "10.100.0.0/16"
+	DefaultPODSubnet     = "10.244.0.0/16"
+
+	// ServiceUser specifies the name of the service user as seen inside the container.
+	// Service user inside the container will be mapped to an existing user (not necessarily
+	// with the same name) on host
+	ServiceUser string = "planet"
+	// ServiceGroup specifies the name of the service group as seen inside the container.
+	ServiceGroup string = "planet"
 )
 
 // K8sSearchDomains are default k8s search domain settings
@@ -140,4 +155,44 @@ var K8sSearchDomains = []string{
 	"svc.cluster.local",
 	"default.svc.cluster.local",
 	"kube-system.svc.cluster.local",
+}
+
+var allCaps = []string{
+	"CAP_AUDIT_CONTROL",
+	"CAP_AUDIT_WRITE",
+	"CAP_BLOCK_SUSPEND",
+	"CAP_CHOWN",
+	"CAP_DAC_OVERRIDE",
+	"CAP_DAC_READ_SEARCH",
+	"CAP_FOWNER",
+	"CAP_FSETID",
+	"CAP_IPC_LOCK",
+	"CAP_IPC_OWNER",
+	"CAP_KILL",
+	"CAP_LEASE",
+	"CAP_LINUX_IMMUTABLE",
+	"CAP_MAC_ADMIN",
+	"CAP_MAC_OVERRIDE",
+	"CAP_MKNOD",
+	"CAP_NET_ADMIN",
+	"CAP_NET_BIND_SERVICE",
+	"CAP_NET_BROADCAST",
+	"CAP_NET_RAW",
+	"CAP_SETGID",
+	"CAP_SETFCAP",
+	"CAP_SETPCAP",
+	"CAP_SETUID",
+	"CAP_SYS_ADMIN",
+	"CAP_SYS_BOOT",
+	"CAP_SYS_CHROOT",
+	"CAP_SYS_MODULE",
+	"CAP_SYS_NICE",
+	"CAP_SYS_PACCT",
+	"CAP_SYS_PTRACE",
+	"CAP_SYS_RAWIO",
+	"CAP_SYS_RESOURCE",
+	"CAP_SYS_TIME",
+	"CAP_SYS_TTY_CONFIG",
+	"CAP_SYSLOG",
+	"CAP_WAKE_ALARM",
 }

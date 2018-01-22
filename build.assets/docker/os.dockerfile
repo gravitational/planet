@@ -37,7 +37,7 @@ RUN (apt-get clean \
 	&& apt-get -q -y update --fix-missing \
 	&& apt-get -q -y update \
 	&& apt-get install -q -y apt-utils less locales \
-	&& apt-get -t stretch-backports install -q -y systemd)
+	&& apt-get install -q -y systemd)
 
 # Set locale to en_US.UTF-8
 RUN (locale-gen \

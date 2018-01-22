@@ -44,6 +44,7 @@ RUN apt-get update && apt-get install -q -y --allow-downgrades bridge-utils \
         nfs-common \
         jq \
         conntrack \
+        strace \
         dnsmasq ; \
     apt-get -t testing install -y lvm2; \
     apt-get -y autoclean; apt-get -y clean
@@ -54,5 +55,8 @@ RUN curl https://get.docker.com/builds/Linux/x86_64/docker-$DOCKER_VER.tgz -o /t
     cp /tmp/docker/* /usr/bin && \
     rm -rf /tmp/docker*
 
+# Tarball is built such that most of the files are owned by planet (1000).
+# The said user is a placeholder user and the files will be extracted to whatever
+# effective user/group that runs the extraction.
 RUN groupadd --system --non-unique --gid 1000 planet ;\
     useradd --system --non-unique --no-create-home -g 1000 -u 1000 planet
