@@ -26,7 +26,8 @@ ExecStart=/usr/bin/kubelet \
         --kubeconfig=/etc/kubernetes/kubelet.kubeconfig \
         --streaming-connection-idle-timeout=5m \
         --fail-swap-on=false \
-        --event-qps=0 $KUBE_CLOUD_FLAGS $KUBELET_OPTS
+        --event-qps=0 $KUBE_CLOUD_FLAGS $KUBELET_OPTS \
+        --node-labels="gravitational.io/advertise-ip=${PLANET_PUBLIC_IP}"
 Restart=always
 RestartSec=5
 StartLimitInterval=3600
