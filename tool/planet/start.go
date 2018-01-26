@@ -67,27 +67,23 @@ func start(config *Config, monitorc chan<- bool) (*runtimeContext, error) {
 	var err error
 
 	// see if the kernel version is supported:
-	if CheckKernel {
-		v, err := check.KernelVersion()
-		if err != nil {
+	v, err := check.KernelVersion()
+	if err != nil {
+		return nil, trace.Wrap(err)
+	}
+	log.Infof("kernel: %v\n", v)
+	if v < MinKernelVersion {
+		err := trace.Errorf(
+			"current minimum supported kernel version is %0.2f. Upgrade kernel before moving on.", MinKernelVersion/100.0)
+		if !config.IgnoreChecks {
 			return nil, trace.Wrap(err)
 		}
-		log.Infof("kernel: %v\n", v)
-		if v < MinKernelVersion {
-			err := trace.Errorf(
-				"current minimum supported kernel version is %0.2f. Upgrade kernel before moving on.", MinKernelVersion/100.0)
-			if !config.IgnoreChecks {
-				return nil, trace.Wrap(err)
-			}
-			log.Infof("warning: %v", err)
-		}
+		log.Infof("warning: %v", err)
 	}
 
 	// check & mount cgroups:
-	if CheckCgroupMounts {
-		if err = box.MountCgroups("/"); err != nil {
-			return nil, trace.Wrap(err)
-		}
+	if err = box.MountCgroups("/"); err != nil {
+		return nil, trace.Wrap(err)
 	}
 
 	if config.DockerBackend == "" {
@@ -108,7 +104,7 @@ func start(config *Config, monitorc chan<- bool) (*runtimeContext, error) {
 	}
 
 	// validate the mounts:
-	if err = checkRequiredMounts(config, config.ServiceUser.User); err != nil {
+	if err = checkRequiredMounts(config); err != nil {
 		return nil, trace.Wrap(err)
 	}
 	// make sure the role is set
@@ -245,9 +241,9 @@ func addUserToContainer(rootfs string, id int) error {
 		hostFile, _ := host.(user.PasswdFile)
 		containerFile, _ := container.(user.PasswdFile)
 
-		user, exists := hostFile.GetID(id)
+		user, exists := hostFile.GetByID(id)
 		if !exists {
-			return trace.Errorf("user with UID %q not found on host", id)
+			return trace.NotFound("user with UID %q not found on host", id)
 		}
 		log.Debugf("Adding user %+v to container.", user)
 		user.Name = ServiceUser
@@ -273,9 +269,9 @@ func addGroupToContainer(rootfs string, id int) error {
 		hostFile, _ := host.(user.GroupFile)
 		containerFile, _ := container.(user.GroupFile)
 
-		group, exists := hostFile.GetID(id)
+		group, exists := hostFile.GetByID(id)
 		if !exists {
-			return trace.Errorf("group with GID %q not found on host", id)
+			return trace.NotFound("group with GID %q not found on host", id)
 		}
 		log.Debugf("Adding group %+v to container.", group)
 		group.Name = ServiceGroup
@@ -616,7 +612,7 @@ const (
 	ContainerEnvironmentFile = "/etc/container-environment"
 )
 
-func checkRequiredMounts(cfg *Config, serviceUser user.User) error {
+func checkRequiredMounts(cfg *Config) error {
 	expected := map[string]bool{
 		ETCDWorkDir:     false,
 		DockerWorkDir:   false,
@@ -629,7 +625,7 @@ func checkRequiredMounts(cfg *Config, serviceUser user.User) error {
 		}
 		if dst == ETCDWorkDir {
 			// chown <service user>:<service group> /ext/etcd -r
-			if err := chownDir(m.Src, serviceUser.Uid, serviceUser.Gid); err != nil {
+			if err := chownDir(m.Src, cfg.ServiceUser.Uid, cfg.ServiceUser.Gid); err != nil {
 				return err
 			}
 		}

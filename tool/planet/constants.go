@@ -3,54 +3,138 @@ package main
 import "time"
 
 const (
-	EnvMasterIP                = "KUBE_MASTER_IP"
-	EnvCloudProvider           = "KUBE_CLOUD_PROVIDER"
-	EnvServiceSubnet           = "KUBE_SERVICE_SUBNET"
-	EnvPODSubnet               = "KUBE_POD_SUBNET"
-	EnvPublicIP                = "PLANET_PUBLIC_IP"
-	EnvClusterDNSIP            = "KUBE_CLUSTER_DNS_IP"
-	EnvAPIServerName           = "KUBE_APISERVER"
-	EnvEtcdProxy               = "ETCD_PROXY"
-	EnvEtcdMemberName          = "ETCD_MEMBER_NAME"
-	EnvEtcdInitialCluster      = "ETCD_INITIAL_CLUSTER"
-	EnvEtcdInitialClusterState = "ETCD_INITIAL_CLUSTER_STATE"
-	EnvEtcdctlCertFile         = "ETCDCTL_CERT_FILE"
-	EnvEtcdctlKeyFile          = "ETCDCTL_KEY_FILE"
-	EnvEtcdctlCAFile           = "ETCDCTL_CA_FILE"
-	EnvEtcdctlPeers            = "ETCDCTL_PEERS"
-	EnvLeaderKey               = "KUBE_LEADER_KEY"
-	EnvRole                    = "PLANET_ROLE"
-	EnvElectionEnabled         = "PLANET_ELECTION_ENABLED"
-	EnvClusterID               = "KUBE_CLUSTER_ID"
-	EnvNodeName                = "KUBE_NODE_NAME"
-	EnvAgentName               = "PLANET_AGENT_NAME"
-	EnvInitialCluster          = "PLANET_INITIAL_CLUSTER"
-	EnvAWSAccessKey            = "AWS_ACCESS_KEY_ID"
-	EnvAWSSecretKey            = "AWS_SECRET_ACCESS_KEY"
-	EnvKubeConfig              = "KUBECONFIG"
-	EnvDNSOverrides            = "PLANET_DNS_OVERRIDES"
-	EnvHostname                = "PLANET_HOSTNAME"
-	EnvDNSUpstreamNameservers  = "PLANET_DNS_UPSTREAM_NAMESERVERS"
-	EnvDockerOptions           = "DOCKER_OPTS"
-	EnvEtcdOptions             = "ETCD_OPTS"
-	EnvKubeletOptions          = "KUBELET_OPTS"
-	EnvPlanetAgentCertFile     = "PLANET_AGENT_CERTFILE"
-	EnvDockerPromiscuousMode   = "PLANET_DOCKER_PROMISCUOUS_MODE"
-	EnvServiceUID              = "PLANET_SERVICE_UID"
-	EnvServiceGID              = "PLANET_SERVICE_GID"
+	// EnvMasterIP names the environment variable that specifies
+	// the IP address of the leader node
+	EnvMasterIP = "KUBE_MASTER_IP"
+	// EnvCloudProvider names the environment variable that specifies
+	// the name of the cloud provider
+	EnvCloudProvider = "KUBE_CLOUD_PROVIDER"
+	// EnvServiceSubnet names the environment variable that specifies
+	// the subnet CIDR for k8s services
+	EnvServiceSubnet = "KUBE_SERVICE_SUBNET"
+	// EnvPODSubnet names the environment variable that specifies
+	// the subnet CIDR for k8s pods
+	EnvPODSubnet = "KUBE_POD_SUBNET"
+	// EnvPublicIP names the environment variable that specifies
+	// the public IP address of the node
+	EnvPublicIP = "PLANET_PUBLIC_IP"
+	// EnvClusterDNSIP names the environment variable that specifies
+	// the IP address of the k8s DNS service
+	EnvClusterDNSIP = "KUBE_CLUSTER_DNS_IP"
+	// EnvAPIServerName names the environment variable that specifies
+	// the address of the API server
+	EnvAPIServerName = "KUBE_APISERVER"
 
+	// See https://coreos.com/etcd/docs/latest/v2/configuration.html
+	// EnvEtcdProxy names the environment variable that specifies
+	// the value of the proxy mode setting
+	EnvEtcdProxy = "ETCD_PROXY"
+	// EnvEtcdMemberName names the environment variable that specifies
+	// the name of this node in the etcd cluster
+	EnvEtcdMemberName = "ETCD_MEMBER_NAME"
+	// EnvEtcdInitialClusterState names the environment variable that specifies
+	// the initial etcd cluster configuration for bootstrapping
+	EnvEtcdInitialCluster = "ETCD_INITIAL_CLUSTER"
+	// EnvEtcdInitialClusterState names the environment variable that specifies
+	// the initial etcd cluster state
+	EnvEtcdInitialClusterState = "ETCD_INITIAL_CLUSTER_STATE"
+	// EnvEtcdctlCertFile names the environment variable that specifies the location
+	// of the certificate file
+	EnvEtcdctlCertFile = "ETCDCTL_CERT_FILE"
+	// EnvEtcdctlKeyFile names the environment variable that specifies the location
+	// of the certificate key file
+	EnvEtcdctlKeyFile = "ETCDCTL_KEY_FILE"
+	// EnvEtcdctlCAFile names the environment variable that specifies the location
+	// of the CA certificate file
+	EnvEtcdctlCAFile = "ETCDCTL_CA_FILE"
+	// EnvEtcdctlPeers names the environment variable that specifies the list of nodes
+	// in the etcd cluster as a comma-separated list
+	EnvEtcdctlPeers = "ETCDCTL_PEERS"
+
+	// EnvLeaderKey names the environment variable that specifies the name
+	// of the key with the active leader
+	EnvLeaderKey = "KUBE_LEADER_KEY"
+	// EnvRole names the environment variable that specifies the service role of this node
+	// (master or not)
+	EnvRole = "PLANET_ROLE"
+	// EnvElectionEnabled names the environment variable that controls if this
+	// node is participating in leader election when it starts
+	EnvElectionEnabled = "PLANET_ELECTION_ENABLED"
+	// EnvClusterID names the environment variable that is the name of the cluster
+	EnvClusterID = "KUBE_CLUSTER_ID"
+	// EnvNodeName names the environment variable that overrides the
+	// hostname attributes for k8s kubelet/kube-proxy
+	EnvNodeName = "KUBE_NODE_NAME"
+	// EnvAgentName names the environment variable that specifies the name
+	// of the planet agent as known within the serf cluster
+	EnvAgentName = "PLANET_AGENT_NAME"
+	// EnvInitialCluster names the environment variable that specifies the initial
+	// agent cluster configuration as comma-separated list of addresses
+	EnvInitialCluster = "PLANET_INITIAL_CLUSTER"
+	// EnvAWSAccessKey names the environment variable that specifies the AWS
+	// access key
+	EnvAWSAccessKey = "AWS_ACCESS_KEY_ID"
+	// EnvAWSSecretKey names the environment variable that specifies the AWS
+	// secret access key
+	EnvAWSSecretKey = "AWS_SECRET_ACCESS_KEY"
+	// EnvKubeConfig names the environment variable that specifies location
+	// of the kubernetes configuration file
+	EnvKubeConfig = "KUBECONFIG"
+	// EnvDNSOverrides names the environment variable that specifies additional
+	// DNS adderss overrides for container's dnsmasq
+	EnvDNSOverrides = "PLANET_DNS_OVERRIDES"
+	// EnvHostname names the environment variable that specifies the new
+	// hostname
+	EnvHostname = "PLANET_HOSTNAME"
+	// EnvDNSUpstreamNameservers names the environment variable that specifies
+	// additional nameservers to add to the container's dnsmasq configuration
+	EnvDNSUpstreamNameservers = "PLANET_DNS_UPSTREAM_NAMESERVERS"
+	// EnvDockerOptions names the environment variable that specifies additional
+	// command line options for docker
+	EnvDockerOptions = "DOCKER_OPTS"
+	// EnvEtcdOptions names the environment variable that specifies additional etcd
+	// command line options
+	EnvEtcdOptions = "ETCD_OPTS"
+	// EnvKubeletOptions names the environment variable that specifies additional
+	// kubelet command line options
+	EnvKubeletOptions = "KUBELET_OPTS"
+	// EnvPlanetAgentCertFile names the environment variable that specifies the location
+	// of the agent certificate file
+	EnvPlanetAgentCertFile = "PLANET_AGENT_CERTFILE"
+	// EnvDockerPromiscuousMode names the environment variable that specifies the
+	// promiscuous mode for docker
+	EnvDockerPromiscuousMode = "PLANET_DOCKER_PROMISCUOUS_MODE"
+	// EnvServiceGID names the environment variable that specifies the service user ID
+	EnvServiceUID = "PLANET_SERVICE_UID"
+	// EnvServiceGID names the environment variable that specifies the service group ID
+	EnvServiceGID = "PLANET_SERVICE_GID"
+
+	// PlanetRoleMaster specifies the value of the node role to be master.
+	// A master node runs additional runtime tests as well as additional
+	// set of services
 	PlanetRoleMaster = "master"
 
-	EtcdProxyOn  = "on"
+	// EtcdProxyOn specifies the value of the proxy mode that enables it
+	// See https://coreos.com/etcd/docs/latest/v2/configuration.html
+	EtcdProxyOn = "on"
+	// EtcdProxyOff specifies the value of the proxy mode that disables it
 	EtcdProxyOff = "off"
 
-	DefaultLeaderTerm    = 10 * time.Second
+	// DefaultLeaderTerm specifies the time-to-live value for the key used in leader election.
+	// It defines the maximum time the leader is maintained before the election is re-attempted.
+	DefaultLeaderTerm = 10 * time.Second
+	// DefaultEtcdEndpoints specifies the default etcd endpoint
 	DefaultEtcdEndpoints = "https://127.0.0.1:2379"
 
+	// DefaultSecretsMountDir specifies the default location for certificates
+	// as mapped inside the container
 	DefaultSecretsMountDir = "/var/state"
+	// DefaultEtcdctlCertFile is the path to the etcd certificate file
 	DefaultEtcdctlCertFile = DefaultSecretsMountDir + "/etcd.cert"
-	DefaultEtcdctlKeyFile  = DefaultSecretsMountDir + "/etcd.key"
-	DefaultEtcdctlCAFile   = DefaultSecretsMountDir + "/root.cert"
+	// DefaultEtcdctlKeyFile is the path to the etcd certificate key file
+	DefaultEtcdctlKeyFile = DefaultSecretsMountDir + "/etcd.key"
+	// DefaultEtcdctlCAFile is the path to the etcd CA certificate file
+	DefaultEtcdctlCAFile = DefaultSecretsMountDir + "/root.cert"
 
 	// APIServerDNSName defines the DNS entry name of the master node
 	APIServerDNSName = "apiserver"
@@ -104,9 +188,9 @@ const (
 	// HostnameFile specifies the location of the hostname configuration file
 	HostnameFile = "/etc/hostname"
 
-	// RootUID is id of the root user
+	// RootUID is the ID of the root user
 	RootUID = 0
-	// RootGID is id of the root group
+	// RootGID is the ID of the root group
 	RootGID = 0
 
 	// UsersDatabase is a file where Linux accounts information is stored
@@ -136,11 +220,12 @@ const (
 	// for docker bridge
 	DockerPromiscuousModeDropIn = "99-docker-promisc.conf"
 
-	MinKernelVersion     = 310
-	CheckKernel          = true
-	CheckCgroupMounts    = true
+	// MinKernelVersion specifies the minimum kernel version on the host
+	MinKernelVersion = 310
+	// DefaultServiceSubnet specifies the subnet CIDR used for k8s Services by default
 	DefaultServiceSubnet = "10.100.0.0/16"
-	DefaultPODSubnet     = "10.244.0.0/16"
+	// DefaultPODSubnet specifies the subnet CIDR used for k8s Pods by default
+	DefaultPODSubnet = "10.244.0.0/16"
 
 	// ServiceUser specifies the name of the service user as seen inside the container.
 	// Service user inside the container will be mapped to an existing user (not necessarily
