@@ -13,8 +13,13 @@ import (
 	"bytes"
 	"fmt"
 	"io"
+	"net"
 	"strconv"
 	"strings"
+
+	"github.com/gravitational/trace"
+	"github.com/miekg/dns"
+	log "github.com/sirupsen/logrus"
 )
 
 var defaultNS = []string{"127.0.0.1", "::1"}
@@ -166,6 +171,41 @@ func DNSReadConfig(rdr io.Reader) (*DNSConfig, error) {
 	return conf, nil
 }
 
+// ResolveAddr resolves the provided hostname using the local resolver
+func ResolveAddr(addr string) (hostPort string, err error) {
+	host := addr
+	port := ""
+	if strings.Contains(addr, ":") {
+		host, port, err = net.SplitHostPort(addr)
+		if err != nil {
+			return "", trace.Wrap(err)
+		}
+	}
+	if ip := net.ParseIP(host); len(ip) == 0 {
+		c := dns.Client{}
+		m := dns.Msg{}
+		m.SetQuestion(host+".", dns.TypeA)
+		r, t, err := c.Exchange(&m, localResolverAddr)
+		if err != nil {
+			return "", trace.Wrap(err)
+		}
+		log.Debugf("resolve %v took %v", host, t)
+		if len(r.Answer) == 0 {
+			return "", trace.ConnectionProblem(nil, "failed to resolve %v", addr)
+		}
+		for _, answer := range r.Answer {
+			record := answer.(*dns.A)
+			log.Debugf("resolved %v to %v", host, record.A)
+			host = record.A.String()
+			break
+		}
+	}
+	if port != "" {
+		host = fmt.Sprintf("%v:%v", host, port)
+	}
+	return host, nil
+}
+
 const (
 	ndotsPrefix     = "ndots:"
 	timeoutPrefix   = "timeout:"
@@ -176,4 +216,6 @@ const (
 	domainParam     = "domain"
 	searchParam     = "search"
 	optionsParam    = "options"
+
+	localResolverAddr = "127.0.0.1:53"
 )
