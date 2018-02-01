@@ -4,53 +4,107 @@ import (
 	"bytes"
 	"fmt"
 	"net"
-	"os/user"
 	"path/filepath"
 	"strconv"
 	"strings"
 	"text/template"
 
 	"github.com/gravitational/planet/lib/box"
+	"github.com/gravitational/planet/lib/user"
 	"github.com/gravitational/trace"
 
 	kv "github.com/gravitational/configure"
 	"github.com/gravitational/configure/cstrings"
 )
 
+// Config describes the configuration for the container start operation
 type Config struct {
-	Roles                   list
-	InsecureRegistries      list
-	Rootfs                  string
-	SocketPath              string
-	PublicIP                string
-	MasterIP                string
-	CloudProvider           string
-	ClusterID               string
-	Env                     box.EnvVars
-	Mounts                  box.Mounts
-	Files                   []box.File
-	IgnoreChecks            bool
-	SecretsDir              string
-	DockerBackend           string
-	DockerOptions           string
-	ServiceSubnet           kv.CIDR
-	PODSubnet               kv.CIDR
-	InitialCluster          kv.KeyVal
-	ServiceUser             *user.User
-	ServiceUID              string
-	ServiceGID              string
-	EtcdProxy               string
-	EtcdMemberName          string
-	EtcdInitialCluster      string
+	// Roles specifies the list of roles this node is attached
+	Roles list
+	// Rootfs is the path to container's rootfs directory
+	Rootfs string
+	// SocketPath is the path to the container's communication socket
+	SocketPath string
+	// PublicIP is the public IP address of this node
+	PublicIP string
+	// MasterIP is the IP addess of the leader
+	MasterIP string
+	// CloudProvider specifies the name of the cloud provider. Optional
+	CloudProvider string
+	// ClusterID is the unique cluster name
+	ClusterID string
+	// Env specifies the container's additional environment
+	Env box.EnvVars
+	// Mounts specifies the list of additional mounts
+	Mounts box.Mounts
+	// Files are files to be shared inside the container
+	Files []box.File
+	// IgnoreChecks disables kernel checks during start up
+	IgnoreChecks bool
+	// SecretsDir specifies the location on the host with certificates.
+	// This is mapped inside the container as DefaultSecretsMountDir.
+	SecretsDir string
+	// DockerBackend specifies the storage backend for docker
+	DockerBackend string
+	// DockerOptions is a list of additional docker options
+	DockerOptions string
+	// ServiceSubnet defines the kubernetes service subnet CIDR
+	ServiceSubnet kv.CIDR
+	// PODSubnet defines the kubernetes Pod subnet CIDR
+	PODSubnet kv.CIDR
+	// InitialCluster is the initial cluster configuration for etcd
+	InitialCluster kv.KeyVal
+	// EtcdProxy configures the value of ETCD_PROXY environment variable
+	// inside the container
+	// See https://coreos.com/etcd/docs/latest/v2/configuration.html for details
+	EtcdProxy string
+	// EtcdMemberName configures the value of ETCD_MEMBER_NAME environment variable
+	// inside the container
+	EtcdMemberName string
+	// EtcdInitialCluster configures the value of ETCD_INITIAL_CLUSTER environment variable
+	// inside the container
+	EtcdInitialCluster string
+	// EtcdInitialClusterState configures the value of ETCD_INITIAL_CLUSTER_STATE environment variable
+	// inside the container
 	EtcdInitialClusterState string
-	EtcdOptions             string
-	ElectionEnabled         bool
-	NodeName                string
-	Hostname                string
-	DNSOverrides            kv.KeyVal
-	KubeletOptions          string
+	// EtcdOptions specifies additional command line options to etcd daemon
+	EtcdOptions string
+	// ElectionEnabled specifies if this planet node participates in leader election
+	ElectionEnabled bool
+	// NodeName overrides the name of the node for kubernetes
+	NodeName string
+	// Hostname specifies the new hostname inside the container
+	Hostname string
+	// DNSOverrides specifies additional DNS addresses to add to local dnsmasq configuration
+	DNSOverrides kv.KeyVal
+	// KubeletOptions defines additional kubelet parameters
+	KubeletOptions string
+	// ServiceUser defines the user context for container's service user
+	ServiceUser serviceUser
 	// DockerPromiscuousMode specifies whether to put docker bridge into promiscuous mode
 	DockerPromiscuousMode bool
+}
+
+func (cfg *Config) checkAndSetDefaults() error {
+	uid, err := strconv.Atoi(cfg.ServiceUser.UID)
+	if err != nil {
+		return trace.BadParameter("expected a numeric UID for user, but got %v (%v)",
+			cfg.ServiceUser.UID, err)
+	}
+
+	u, err := user.LookupUID(uid)
+	if err != nil {
+		return trace.Wrap(err)
+	}
+
+	cfg.ServiceUser.User = *u
+
+	return nil
+}
+
+type serviceUser struct {
+	user.User
+	UID string
 }
 
 func (cfg *Config) SkyDNSResolverIP() string {

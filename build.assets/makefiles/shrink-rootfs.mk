@@ -27,5 +27,4 @@ all:
 	$(foreach unit,$(units),rm -f $(ROOTFS)/etc/systemd/system/sysinit.target.wants/$(unit);)
 	$(foreach timer,$(timers),rm -f $(ROOTFS)/lib/systemd/system/timers.target.wants/$(timer).timer;)
 	$(foreach timer,$(timers),rm -f $(ROOTFS)/etc/systemd/system/timers.target.wants/$(timer).timer;)
-	# not sure if this is a good idea... to kill all locales:
 	rm -rf $(ROOTFS)/usr/share/locale

@@ -12,23 +12,15 @@ import (
 	"strings"
 	"time"
 
-	"github.com/gravitational/planet/lib/constants"
-
 	"github.com/gravitational/planet/lib/box"
 	"github.com/gravitational/planet/lib/check"
+	"github.com/gravitational/planet/lib/constants"
 	"github.com/gravitational/planet/lib/user"
 	"github.com/gravitational/planet/lib/utils"
+
 	"github.com/gravitational/trace"
 	"github.com/opencontainers/runc/libcontainer"
 	log "github.com/sirupsen/logrus"
-)
-
-const MinKernelVersion = 310
-const (
-	CheckKernel          = true
-	CheckCgroupMounts    = true
-	DefaultServiceSubnet = "10.100.0.0/16"
-	DefaultPODSubnet     = "10.244.0.0/16"
 )
 
 // runtimeContext defines the context of a running planet container
@@ -46,10 +38,13 @@ func (r *runtimeContext) Close() error {
 }
 
 func startAndWait(config *Config) error {
-	ctx, err := start(config, nil)
+	if err := config.checkAndSetDefaults(); err != nil {
+		return trace.Wrap(err)
+	}
 
+	ctx, err := start(config, nil)
 	if err != nil {
-		return err
+		return trace.Wrap(err)
 	}
 	defer ctx.Close()
 
@@ -58,7 +53,7 @@ func startAndWait(config *Config) error {
 	if err != nil {
 		return trace.Wrap(err)
 	}
-	log.Infof("box.Wait() returned status %v", status)
+	log.WithField("status", status).Info("box.Wait() finished")
 	return nil
 }
 
@@ -72,27 +67,23 @@ func start(config *Config, monitorc chan<- bool) (*runtimeContext, error) {
 	var err error
 
 	// see if the kernel version is supported:
-	if CheckKernel {
-		v, err := check.KernelVersion()
-		if err != nil {
+	v, err := check.KernelVersion()
+	if err != nil {
+		return nil, trace.Wrap(err)
+	}
+	log.Infof("kernel: %v\n", v)
+	if v < MinKernelVersion {
+		err := trace.Errorf(
+			"current minimum supported kernel version is %0.2f. Upgrade kernel before moving on.", MinKernelVersion/100.0)
+		if !config.IgnoreChecks {
 			return nil, trace.Wrap(err)
 		}
-		log.Infof("kernel: %v\n", v)
-		if v < MinKernelVersion {
-			err := trace.Errorf(
-				"current minimum supported kernel version is %0.2f. Upgrade kernel before moving on.", MinKernelVersion/100.0)
-			if !config.IgnoreChecks {
-				return nil, trace.Wrap(err)
-			}
-			log.Infof("warning: %v", err)
-		}
+		log.Infof("warning: %v", err)
 	}
 
 	// check & mount cgroups:
-	if CheckCgroupMounts {
-		if err = box.MountCgroups("/"); err != nil {
-			return nil, trace.Wrap(err)
-		}
+	if err = box.MountCgroups("/"); err != nil {
+		return nil, trace.Wrap(err)
 	}
 
 	if config.DockerBackend == "" {
@@ -103,16 +94,12 @@ func start(config *Config, monitorc chan<- bool) (*runtimeContext, error) {
 		}
 	}
 
-	// check/create user accounts and set permissions
-	if err = ensureUsersGroups(config); err != nil {
+	// add service user/group to container
+	if err = addUserToContainer(config.Rootfs, config.ServiceUser.Uid); err != nil {
 		return nil, trace.Wrap(err)
 	}
 
-	if err = addUserToContainer(config.Rootfs); err != nil {
-		return nil, trace.Wrap(err)
-	}
-
-	if err = addGroupToContainer(config.Rootfs); err != nil {
+	if err = addGroupToContainer(config.Rootfs, config.ServiceUser.Gid); err != nil {
 		return nil, trace.Wrap(err)
 	}
 
@@ -147,7 +134,6 @@ func start(config *Config, monitorc chan<- bool) (*runtimeContext, error) {
 		box.EnvPair{Name: EnvDockerPromiscuousMode, Val: strconv.FormatBool(config.DockerPromiscuousMode)},
 	)
 
-	addInsecureRegistries(config)
 	if err = addDockerOptions(config); err != nil {
 		return nil, trace.Wrap(err)
 	}
@@ -245,23 +231,9 @@ func start(config *Config, monitorc chan<- bool) (*runtimeContext, error) {
 	}, nil
 }
 
-// ensureUsersGroups ensures that all user accounts exist.
-// If an account has not been created - it will attempt to create one.
-func ensureUsersGroups(config *Config) error {
-	var err error
-	if config.ServiceGID == "" {
-		config.ServiceGID = config.ServiceUID
-	}
-	config.ServiceUser, err = check.CheckUserGroup(check.PlanetUser, check.PlanetGroup, config.ServiceUID, config.ServiceGID)
-	if err != nil {
-		return trace.Wrap(err)
-	}
-	return nil
-}
-
 // addUserToContainer adds a record for planet user from host's passwd file
 // into container's /etc/passwd.
-func addUserToContainer(rootfs string) error {
+func addUserToContainer(rootfs string, id int) error {
 	newSysFile := func(r io.Reader) (user.SysFile, error) {
 		return user.NewPasswd(r)
 	}
@@ -269,11 +241,12 @@ func addUserToContainer(rootfs string) error {
 		hostFile, _ := host.(user.PasswdFile)
 		containerFile, _ := container.(user.PasswdFile)
 
-		user, exists := hostFile.Get(check.PlanetUser)
+		user, exists := hostFile.GetByID(id)
 		if !exists {
-			return trace.Errorf("planet user not in host's passwd file")
+			return trace.NotFound("user with UID %q not found on host", id)
 		}
-		log.Infof("adding user %v to container", user.Name)
+		log.Debugf("Adding user %+v to container.", user)
+		user.Name = ServiceUser
 		containerFile.Upsert(user)
 
 		return nil
@@ -288,7 +261,7 @@ func addUserToContainer(rootfs string) error {
 
 // addGroupToContainer adds a record for planet group from host's group file
 // into container's /etc/group.
-func addGroupToContainer(rootfs string) error {
+func addGroupToContainer(rootfs string, id int) error {
 	newSysFile := func(r io.Reader) (user.SysFile, error) {
 		return user.NewGroup(r)
 	}
@@ -296,11 +269,12 @@ func addGroupToContainer(rootfs string) error {
 		hostFile, _ := host.(user.GroupFile)
 		containerFile, _ := container.(user.GroupFile)
 
-		group, exists := hostFile.Get(check.PlanetGroup)
+		group, exists := hostFile.GetByID(id)
 		if !exists {
-			return trace.Errorf("planet group not in host's group file")
+			return trace.NotFound("group with GID %q not found on host", id)
 		}
-		log.Infof("adding group %v to container", group.Name)
+		log.Debugf("Adding group %+v to container.", group)
+		group.Name = ServiceGroup
 		containerFile.Upsert(group)
 
 		return nil
@@ -375,18 +349,6 @@ func setupCloudOptions(c *Config) error {
 	c.Env.Upsert("KUBE_CLOUD_FLAGS", strings.Join(flags, " "))
 
 	return nil
-}
-
-func addInsecureRegistries(c *Config) {
-	if len(c.InsecureRegistries) == 0 {
-		return
-	}
-	out := make([]string, len(c.InsecureRegistries))
-	for i, r := range c.InsecureRegistries {
-		out[i] = fmt.Sprintf("--insecure-registry=%v", r)
-	}
-	opts := strings.Join(out, " ")
-	c.Env.Append(EnvDockerOptions, opts, " ")
 }
 
 // pickDockerStorageBackend examines the filesystems this host supports and picks one
@@ -656,8 +618,6 @@ func checkRequiredMounts(cfg *Config) error {
 		DockerWorkDir:   false,
 		RegistryWorkDir: false,
 	}
-	uid := atoi(cfg.ServiceUser.Uid)
-	gid := atoi(cfg.ServiceUser.Gid)
 	for _, m := range cfg.Mounts {
 		dst := filepath.Clean(m.Dst)
 		if _, ok := expected[dst]; ok {
@@ -665,21 +625,21 @@ func checkRequiredMounts(cfg *Config) error {
 		}
 		if dst == ETCDWorkDir {
 			// chown <service user>:<service group> /ext/etcd -r
-			if err := chownDir(m.Src, uid, gid); err != nil {
+			if err := chownDir(m.Src, cfg.ServiceUser.Uid, cfg.ServiceUser.Gid); err != nil {
 				return err
 			}
 		}
 		if dst == DockerWorkDir {
 			if ok, _ := check.IsBtrfsVolume(m.Src); ok {
 				cfg.DockerBackend = "btrfs"
-				log.Infof("docker working directory is on BTRFS volume `%v`", m.Src)
+				log.Infof("Docker working directory is on BTRFS volume %q.", m.Src)
 			}
 		}
 	}
 	for k, v := range expected {
 		if !v {
-			return trace.Errorf(
-				"please supply mount source for data directory '%v'", k)
+			return trace.BadParameter(
+				"please supply mount source for data directory %q", k)
 		}
 	}
 	return nil
@@ -805,57 +765,6 @@ func getStatus(c libcontainer.Container, unit string) (string, error) {
 	return strings.TrimSpace(string(out)), nil
 }
 
-// quick & convenient way to convert strings to ints, but can only be used
-// for cases when we are FOR SURE know those are ints. It panics on
-// input that can't be parsed into an int.
-func atoi(s string) int {
-	i, err := strconv.ParseInt(s, 0, 0)
-	if err != nil {
-		panic(trace.Errorf("bad number `%s`: %v", s, err))
-	}
-	return int(i)
-}
-
 func isRoot() bool {
 	return os.Geteuid() == 0
-}
-
-var allCaps = []string{
-	"CAP_AUDIT_CONTROL",
-	"CAP_AUDIT_WRITE",
-	"CAP_BLOCK_SUSPEND",
-	"CAP_CHOWN",
-	"CAP_DAC_OVERRIDE",
-	"CAP_DAC_READ_SEARCH",
-	"CAP_FOWNER",
-	"CAP_FSETID",
-	"CAP_IPC_LOCK",
-	"CAP_IPC_OWNER",
-	"CAP_KILL",
-	"CAP_LEASE",
-	"CAP_LINUX_IMMUTABLE",
-	"CAP_MAC_ADMIN",
-	"CAP_MAC_OVERRIDE",
-	"CAP_MKNOD",
-	"CAP_NET_ADMIN",
-	"CAP_NET_BIND_SERVICE",
-	"CAP_NET_BROADCAST",
-	"CAP_NET_RAW",
-	"CAP_SETGID",
-	"CAP_SETFCAP",
-	"CAP_SETPCAP",
-	"CAP_SETUID",
-	"CAP_SYS_ADMIN",
-	"CAP_SYS_BOOT",
-	"CAP_SYS_CHROOT",
-	"CAP_SYS_MODULE",
-	"CAP_SYS_NICE",
-	"CAP_SYS_PACCT",
-	"CAP_SYS_PTRACE",
-	"CAP_SYS_RAWIO",
-	"CAP_SYS_RESOURCE",
-	"CAP_SYS_TIME",
-	"CAP_SYS_TTY_CONFIG",
-	"CAP_SYSLOG",
-	"CAP_WAKE_ALARM",
 }
