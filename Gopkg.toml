@@ -26,6 +26,14 @@ ignored = ["github.com/Sirupsen/logrus"]
   name = "github.com/hashicorp/serf"
   revision = "11bb88abf7b17f0b794b51416a9107d781e95f35"
 
+[[override]]
+  name = "golang.org/x/crypto"
+  revision = "453249f01cfeb54c3d549ddb75ff152ca243f9d8"
+
+[[constraint]]
+  name = "github.com/miekg/dns"
+  revision = "5d001d020961ae1c184f9f8152fdc73810481677"
+
 [[constraint]]
   name = "github.com/coreos/etcd"
   version = "3.2.4"
