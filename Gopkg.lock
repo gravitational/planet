@@ -308,6 +308,11 @@
   revision = "d0c3fe89de86839aecf2e0579c40ba3bb336a453"
 
 [[projects]]
+  name = "github.com/miekg/dns"
+  packages = ["."]
+  revision = "5d001d020961ae1c184f9f8152fdc73810481677"
+
+[[projects]]
   branch = "master"
   name = "github.com/mitchellh/go-ps"
   packages = ["."]
@@ -461,6 +466,6 @@
 [solve-meta]
   analyzer-name = "dep"
   analyzer-version = 1
-  inputs-digest = "f2c84d62a1dc4ea34fba73ad2a27a5e81c9518338715da0900955c0d434e058a"
+  inputs-digest = "0db08760fecef695ef9b9d710fa560ce70f74a0d4c15f72dace869d949a1b096"
   solver-name = "gps-cdcl"
   solver-version = 1

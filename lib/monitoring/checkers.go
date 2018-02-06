@@ -1,21 +1,25 @@
 package monitoring
 
 import (
+	"context"
 	"crypto/tls"
 	"crypto/x509"
 	"encoding/pem"
 	"fmt"
 	"io"
 	"io/ioutil"
+	"net"
 	"net/http"
 
 	"github.com/gravitational/planet/lib/constants"
+	"github.com/gravitational/planet/lib/utils"
 
 	etcdconf "github.com/gravitational/coordinate/config"
 	"github.com/gravitational/satellite/agent"
 	"github.com/gravitational/satellite/agent/health"
 	"github.com/gravitational/satellite/monitoring"
 	"github.com/gravitational/trace"
+	log "github.com/sirupsen/logrus"
 )
 
 // Config represents configuration for setting up monitoring checkers.
@@ -112,6 +116,9 @@ func addToNode(node agent.Agent, config *Config, etcdConfig *monitoring.ETCDConf
 }
 
 func dockerRegistryHealth(addr string, transport *http.Transport) health.Checker {
+	// Resolve registry address using local dnsmasq
+	// See https://github.com/gravitational/gravity/issues/3082
+	transport.DialContext = dialWithLocalResolver
 	return monitoring.NewHTTPHealthzCheckerWithTransport("docker-registry", fmt.Sprintf("%v/v2/", addr), transport, noopResponseChecker)
 }
 
@@ -144,4 +151,16 @@ func newCertPool(CAFiles []string) (*x509.CertPool, error) {
 	}
 
 	return certPool, nil
+}
+
+// dialWithLocalResolver resolves the specified address using the local resolver before dialing.
+// Returns a new connection on success.
+func dialWithLocalResolver(ctx context.Context, network, addr string) (net.Conn, error) {
+	hostPort, err := utils.ResolveAddr(addr)
+	if err != nil {
+		return nil, trace.Wrap(err, "failed to resolve %v", addr)
+	}
+	log.Debugf("dialing %v", hostPort)
+	var d net.Dialer
+	return d.DialContext(ctx, network, hostPort)
 }
