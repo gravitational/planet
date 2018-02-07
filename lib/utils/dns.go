@@ -171,10 +171,10 @@ func DNSReadConfig(rdr io.Reader) (*DNSConfig, error) {
 	return conf, nil
 }
 
-// ResolveAddr resolves the provided hostname using the local resolver
-func ResolveAddr(addr string) (hostPort string, err error) {
+// ResolveAddr resolves the provided address using the local instance of dnsmasq
+func ResolveAddr(addr string) (ipPort string, err error) {
 	host := addr
-	port := ""
+	var port string
 	if strings.Contains(addr, ":") {
 		host, port, err = net.SplitHostPort(addr)
 		if err != nil {
@@ -191,13 +191,16 @@ func ResolveAddr(addr string) (hostPort string, err error) {
 		}
 		log.Debugf("resolve %v took %v", host, t)
 		if len(r.Answer) == 0 {
-			return "", trace.ConnectionProblem(nil, "failed to resolve %v", addr)
+			return "", trace.NotFound("failed to resolve %v", addr)
 		}
-		for _, answer := range r.Answer {
-			record := answer.(*dns.A)
-			log.Debugf("resolved %v to %v", host, record.A)
-			host = record.A.String()
-			break
+		answer := r.Answer[0]
+		switch record := answer.(type) {
+		case *dns.A:
+			resolvedAddr := record.A.String()
+			log.Debugf("resolved %v to %v", host, resolvedAddr)
+			host = resolvedAddr
+		default:
+			return "", trace.BadParameter("unexpected DNS record type %T", record)
 		}
 	}
 	if port != "" {
