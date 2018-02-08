@@ -24,9 +24,9 @@ all: $(DOWNLOAD)
 	cp -afv $(ASSETDIR)/$(TARGET3)/etcd $(ROOTFS)/usr/bin/etcd-$(ETCD3_VER)
 	cp -afv $(ASSETDIR)/$(TARGET3)/etcdctl $(ROOTFS)/usr/bin/etcdctl-$(ETCD3_VER)
 
-	# Default to oldest supported etcd
-	ln $(ROOTFS)/usr/bin/etcd-$(ETCD_VER) $(ROOTFS)/usr/bin/etcd
-	ln $(ROOTFS)/usr/bin/etcdctl-$(ETCD_VER) $(ROOTFS)/usr/bin/etcdctl
+	# Default to newest supported etcd
+	ln $(ROOTFS)/usr/bin/etcd-$(ETCD3_VER) $(ROOTFS)/usr/bin/etcd
+	ln $(ROOTFS)/usr/bin/etcdctl-$(ETCD3_VER) $(ROOTFS)/usr/bin/etcdctl
 
 $(DOWNLOAD):
 	curl -L https://github.com/coreos/etcd/releases/download/$(ETCD_VER)/$(TARGET_TARBALL) -o $(DOWNLOAD)
