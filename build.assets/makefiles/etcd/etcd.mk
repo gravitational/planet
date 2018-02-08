@@ -12,7 +12,7 @@ DOWNLOAD3:=$(ASSETDIR)/$(TARGET3_TARBALL)
 
 all: $(DOWNLOAD)
 	@echo "\n---> Building etcd:\n"
-	cd $(ASSETDIR) && mkdir $(TARGET) && tar -xzf $(ASSETDIR)/$(TARGET_TARBALL) -C $(TARGET)/
+	cd $(ASSETDIR) && mkdir $(TARGET) && tar -xzf $(ASSETDIR)/$(TARGET_TARBALL) -C $(TARGET)
 	mkdir -p $(ROOTFS)/var/etcd
 	cp -afv $(ASSETDIR)/$(TARGET)/etcd $(ROOTFS)/usr/bin/etcd-$(ETCD_VER)
 	cp -afv $(ASSETDIR)/$(TARGET)/etcdctl $(ROOTFS)/usr/bin/etcdctl-$(ETCD_VER)
@@ -20,7 +20,7 @@ all: $(DOWNLOAD)
 	ln -sf /lib/systemd/system/etcd.service  $(ROOTFS)/lib/systemd/system/multi-user.target.wants/
 
 	# ETCD3
-	cd $(ASSETDIR) && mkdir $(TARGET3) && tar -xzf $(ASSETDIR)/$(TARGET3_TARBALL) -C $(TARGET3)/
+	cd $(ASSETDIR) && mkdir $(TARGET3) && tar -xzf $(ASSETDIR)/$(TARGET3_TARBALL) -C $(TARGET3)
 	cp -afv $(ASSETDIR)/$(TARGET3)/etcd $(ROOTFS)/usr/bin/etcd-$(ETCD3_VER)
 	cp -afv $(ASSETDIR)/$(TARGET3)/etcdctl $(ROOTFS)/usr/bin/etcdctl-$(ETCD3_VER)
 
