@@ -45,7 +45,7 @@ planet-image:
 	@cd $(BUILDDIR) && ln -fs $(TARGET) $(BUILDDIR)/current
 	@echo -e "\n---> Creating Planet image...\n"
 	cd $(TARGETDIR) && fakeroot -- sh -c ' \
-		chown -R planet:planet . ; \
+		chown -R 1000:1000 . ; \
 		chown -R root:root rootfs/sbin/mount.* ; \
 		tar -czf $(TARBALL) orbit.manifest.json rootfs'
 	@echo -e "\nDone --> $(TARBALL)"
