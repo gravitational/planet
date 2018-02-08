@@ -11,9 +11,9 @@ TimeoutStartSec=0
 # To support etcd upgrades, default to using oldest supported version
 Environment=ETCD_VER=v2.3.8
 # Override ETCD_VER if a version file is present in the etcd data dir
-EnvironmentFile=/ext/etcd/etcd-version.txt
+EnvironmentFile=-/ext/etcd/etcd-version.txt
 EnvironmentFile=/etc/container-environment
-ExecStart=/usr/bin/etcd-v2.3.8 \
+ExecStart=/bin/bash -c '/usr/bin/etcd-${ETCD_VER} \
         --name=${ETCD_MEMBER_NAME} \
         --data-dir=/ext/etcd \
         --initial-advertise-peer-urls=https://${PLANET_PUBLIC_IP}:2380 \
@@ -27,6 +27,7 @@ ExecStart=/usr/bin/etcd-v2.3.8 \
         --peer-cert-file=/var/state/etcd.cert \
         --peer-key-file=/var/state/etcd.key \
         --peer-trusted-ca-file=/var/state/root.cert \
-        --peer-client-cert-auth $ETCD_OPTS
+        --peer-client-cert-auth $ETCD_OPTS \
+        '
 User=planet
 Group=planet
