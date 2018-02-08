@@ -29,7 +29,7 @@ all: $(DOWNLOAD)
 	ln -s $(ROOTFS)/usr/bin/etcdctl-$(ETCD3_VER) $(ROOTFS)/usr/bin/etcdctl
 
 $(DOWNLOAD):
-	if [ ! -f "$(DOWNLOAD)" ] then \
+	if [[ ! -f "$(DOWNLOAD)" ]]; then \
 		curl -L https://github.com/coreos/etcd/releases/download/$(ETCD_VER)/$(TARGET_TARBALL) -o $(DOWNLOAD); \
 		curl -L https://github.com/coreos/etcd/releases/download/$(ETCD3_VER)/$(TARGET3_TARBALL) -o $(DOWNLOAD3); \
 	fi
