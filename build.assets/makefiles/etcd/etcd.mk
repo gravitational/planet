@@ -14,19 +14,19 @@ all: $(DOWNLOAD)
 	@echo "\n---> Building etcd:\n"
 	cd $(ASSETDIR) && mkdir $(TARGET) && tar -xzf $(ASSETDIR)/$(TARGET_TARBALL) -C $(TARGET)
 	mkdir -p $(ROOTFS)/var/etcd
-	cp -afv $(ASSETDIR)/$(TARGET)/etcd $(ROOTFS)/usr/bin/etcd-$(ETCD_VER)
-	cp -afv $(ASSETDIR)/$(TARGET)/etcdctl $(ROOTFS)/usr/bin/etcdctl-$(ETCD_VER)
+	cp -afv $(ASSETDIR)/$(TARGET)/$(TARGET)/etcd $(ROOTFS)/usr/bin/etcd-$(ETCD_VER)
+	cp -afv $(ASSETDIR)/$(TARGET)/$(TARGET)/etcdctl $(ROOTFS)/usr/bin/etcdctl-$(ETCD_VER)
 	cp -afv ./etcd.service $(ROOTFS)/lib/systemd/system/
 	ln -sf /lib/systemd/system/etcd.service  $(ROOTFS)/lib/systemd/system/multi-user.target.wants/
 
 	# ETCD3
 	cd $(ASSETDIR) && mkdir $(TARGET3) && tar -xzf $(ASSETDIR)/$(TARGET3_TARBALL) -C $(TARGET3)
-	cp -afv $(ASSETDIR)/$(TARGET3)/etcd $(ROOTFS)/usr/bin/etcd-$(ETCD3_VER)
-	cp -afv $(ASSETDIR)/$(TARGET3)/etcdctl $(ROOTFS)/usr/bin/etcdctl-$(ETCD3_VER)
+	cp -afv $(ASSETDIR)/$(TARGET3)/$(TARGET3)/etcd $(ROOTFS)/usr/bin/etcd-$(ETCD3_VER)
+	cp -afv $(ASSETDIR)/$(TARGET3)/$(TARGET3)/etcdctl $(ROOTFS)/usr/bin/etcdctl-$(ETCD3_VER)
 
 	# Default to newest supported etcd
-	ln $(ROOTFS)/usr/bin/etcd-$(ETCD3_VER) $(ROOTFS)/usr/bin/etcd
-	ln $(ROOTFS)/usr/bin/etcdctl-$(ETCD3_VER) $(ROOTFS)/usr/bin/etcdctl
+	ln -s $(ROOTFS)/usr/bin/etcd-$(ETCD3_VER) $(ROOTFS)/usr/bin/etcd
+	ln -s $(ROOTFS)/usr/bin/etcdctl-$(ETCD3_VER) $(ROOTFS)/usr/bin/etcdctl
 
 $(DOWNLOAD):
 	curl -L https://github.com/coreos/etcd/releases/download/$(ETCD_VER)/$(TARGET_TARBALL) -o $(DOWNLOAD)
