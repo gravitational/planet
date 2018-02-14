@@ -92,7 +92,8 @@ func etcdBackup(config etcdconf.Config, file string, prefix string) error {
 	}
 
 	kapi := etcd.NewKeysAPI(client)
-	ctx := context.WithTimeout(context.Background(), ETCDBackupTimeout)
+	ctx, cancel := context.WithTimeout(context.Background(), ETCDBackupTimeout)
+	defer cancel()
 
 	// This retrieves the entire etcd datastore after prefix into a go object, which could be fairly large
 	// so we may need to evaluate changing the approach if we have some large etcd datastores in the wild
@@ -110,10 +111,11 @@ func etcdBackup(config etcdconf.Config, file string, prefix string) error {
 	if err != nil {
 		return trace.Wrap(err)
 	}
+	return nil
 }
 
 func etcdRestore(config etcdconf.Config, file string, prefix string) error {
-
+	return nil
 }
 
 func convertError(err error) error {
