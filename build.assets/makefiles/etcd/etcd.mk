@@ -17,6 +17,7 @@ all: $(DOWNLOAD)
 	cp -afv $(ASSETDIR)/$(TARGET)/$(TARGET)/etcd $(ROOTFS)/usr/bin/etcd-$(ETCD_VER)
 	cp -afv $(ASSETDIR)/$(TARGET)/$(TARGET)/etcdctl $(ROOTFS)/usr/bin/etcdctl-$(ETCD_VER)
 	cp -afv ./etcd.service $(ROOTFS)/lib/systemd/system/
+	cp -afv ./etcd-upgrade.service $(ROOTFS)/lib/systemd/system/
 	ln -sf /lib/systemd/system/etcd.service  $(ROOTFS)/lib/systemd/system/multi-user.target.wants/
 
 	# ETCD3

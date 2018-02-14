@@ -133,6 +133,9 @@ const (
 	// DockerPromiscuousModeDropIn names the drop-in file with promiscuous mode configuration
 	// for docker bridge
 	DockerPromiscuousModeDropIn = "99-docker-promisc.conf"
+
+	// ETCDBackupTimeout specifies the timeout when attempting to backup/restore etcd
+	ETCDBackupTimeout = 5 * time.Minute
 )
 
 // K8sSearchDomains are default k8s search domain settings

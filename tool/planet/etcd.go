@@ -1,11 +1,14 @@
 package main
 
 import (
+	"context"
+	"encoding/json"
 	"fmt"
 	"os"
 	"os/exec"
 
 	etcd "github.com/coreos/etcd/client"
+	etcdconf "github.com/gravitational/coordinate/config"
 	"github.com/gravitational/planet/lib/box"
 	"github.com/gravitational/trace"
 	log "github.com/sirupsen/logrus"
@@ -75,6 +78,42 @@ func etcdPromote(name, initialCluster, initialClusterState string) error {
 	}
 
 	return nil
+}
+
+func etcdBackup(config etcdconf.Config, file string, prefix string) error {
+	err := config.CheckAndSetDefaults()
+	if err != nil {
+		return trace.Wrap(err)
+	}
+
+	client, err := config.NewClient()
+	if err != nil {
+		return trace.Wrap(err)
+	}
+
+	kapi := etcd.NewKeysAPI(client)
+	ctx := context.WithTimeout(context.Background(), ETCDBackupTimeout)
+
+	// This retrieves the entire etcd datastore after prefix into a go object, which could be fairly large
+	// so we may need to evaluate changing the approach if we have some large etcd datastores in the wild
+	res, err := kapi.Get(ctx, prefix, &etcd.GetOptions{Sort: true, Recursive: true})
+	if err != nil {
+		return err
+	}
+
+	f, err := os.Create("/tmp/dat2")
+	if err != nil {
+		return trace.Wrap(err)
+	}
+	enc := json.NewEncoder(f)
+	err := enc.Encode(&res)
+	if err != nil {
+		return trace.Wrap(err)
+	}
+}
+
+func etcdRestore(config etcdconf.Config, file string, prefix string) error {
+
 }
 
 func convertError(err error) error {
