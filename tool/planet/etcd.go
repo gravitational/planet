@@ -107,7 +107,7 @@ func etcdBackup(config etcdconf.Config, file string, prefix string) error {
 		return trace.Wrap(err)
 	}
 	enc := json.NewEncoder(f)
-	err := enc.Encode(&res)
+	err = enc.Encode(&res)
 	if err != nil {
 		return trace.Wrap(err)
 	}
