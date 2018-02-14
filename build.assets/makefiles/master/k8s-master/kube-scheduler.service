@@ -4,9 +4,10 @@ Documentation=https://github.com/GoogleCloudPlatform/kubernetes
 Wants=kube-apiserver.service
 
 [Service]
+EnvironmentFile=/etc/container-environment
 ExecStartPre=/bin/systemctl is-active kube-apiserver.service
 ExecStart=/usr/bin/kube-scheduler \
-        --master=https://apiserver:6443 \
+        --master=https://${KUBE_APISERVER}:6443 \
         --kubeconfig=/etc/kubernetes/scheduler.kubeconfig \
         --profiling=false
 Restart=always
