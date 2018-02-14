@@ -412,10 +412,22 @@ func run() error {
 		err = etcdPromote(*cetcdPromoteName, *cetcdPromoteInitialCluster, *cetcdPromoteInitialClusterState)
 
 	case cetcdBackup.FullCommand():
-		err = etcdBackup(*cetcdBackupFile, *cetcdBackupPrefix)
+		etcdConf := etcdconf.Config{
+			Endpoints: *cetcdEndpoints,
+			CAFile:    *cetcdCAFile,
+			CertFile:  *cetcdCertFile,
+			KeyFile:   *cetcdKeyFile,
+		}
+		err = etcdBackup(etcdConf, *cetcdBackupFile, *cetcdBackupPrefix)
 
 	case cetcdRestore.FullCommand():
-		err = etcdBackup(*cetcdRestoreFile, *cetcdRestorePrefix)
+		etcdConf := etcdconf.Config{
+			Endpoints: *cetcdEndpoints,
+			CAFile:    *cetcdCAFile,
+			CertFile:  *cetcdCertFile,
+			KeyFile:   *cetcdKeyFile,
+		}
+		err = etcdBackup(etcdConf, *cetcdRestoreFile, *cetcdRestorePrefix)
 
 	default:
 		err = trace.Errorf("unsupported command: %v", cmd)
