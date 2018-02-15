@@ -189,6 +189,7 @@ func run() error {
 	)
 
 	cmd, err := app.Parse(args[1:])
+	fmt.Print(cmd)
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "Failed parsing command line arguments: %s.\nTry planet --help\n", err.Error())
 		return err
@@ -412,6 +413,7 @@ func run() error {
 		err = etcdPromote(*cetcdPromoteName, *cetcdPromoteInitialCluster, *cetcdPromoteInitialClusterState)
 
 	case cetcdBackup.FullCommand():
+		fmt.Print("etcdBackup")
 		etcdConf := etcdconf.Config{
 			Endpoints: *cetcdEndpoints,
 			CAFile:    *cetcdCAFile,
@@ -421,6 +423,7 @@ func run() error {
 		err = etcdBackup(etcdConf, *cetcdBackupFile, *cetcdBackupPrefix)
 
 	case cetcdRestore.FullCommand():
+		fmt.Print("etcdRestore")
 		etcdConf := etcdconf.Config{
 			Endpoints: *cetcdEndpoints,
 			CAFile:    *cetcdCAFile,

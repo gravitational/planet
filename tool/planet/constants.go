@@ -1,6 +1,10 @@
 package main
 
-import "time"
+import (
+	"time"
+
+	"github.com/blang/semver"
+)
 
 const (
 	EnvMasterIP                = "KUBE_MASTER_IP"
@@ -136,6 +140,15 @@ const (
 
 	// ETCDBackupTimeout specifies the timeout when attempting to backup/restore etcd
 	ETCDBackupTimeout = 5 * time.Minute
+
+	// ETCDRegistryPrefix is the etcd directory for the k8s api server data in etcd
+	ETCDRegistryPrefix = "/registry"
+)
+
+var (
+	// ETCDBackupMaxVersion is the latest release we support backups.
+	// At present, we don't support backing up the v3 data store
+	ETCDBackupMaxVersion = semver.MustParse("2.3.8")
 )
 
 // K8sSearchDomains are default k8s search domain settings

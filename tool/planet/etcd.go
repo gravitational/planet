@@ -6,7 +6,9 @@ import (
 	"fmt"
 	"os"
 	"os/exec"
+	"strings"
 
+	"github.com/blang/semver"
 	etcd "github.com/coreos/etcd/client"
 	etcdconf "github.com/gravitational/coordinate/config"
 	"github.com/gravitational/planet/lib/box"
@@ -81,32 +83,51 @@ func etcdPromote(name, initialCluster, initialClusterState string) error {
 }
 
 func etcdBackup(config etcdconf.Config, file string, prefix string) error {
+	ctx, cancel := context.WithTimeout(context.Background(), ETCDBackupTimeout)
+	defer cancel()
+
+	log.Info("starting etcd backup")
 	err := config.CheckAndSetDefaults()
 	if err != nil {
 		return trace.Wrap(err)
 	}
 
+	log.Info("creating etcd client")
 	client, err := config.NewClient()
 	if err != nil {
 		return trace.Wrap(err)
 	}
 
+	version, err := client.GetVersion(ctx)
+	if err != nil {
+		return trace.Wrap(err)
+	}
+	semv, err := semver.Parse(version.Server)
+	if err != nil {
+		return trace.Wrap(err)
+	}
+	if semv.GT(ETCDBackupMaxVersion) {
+		return trace.BadParameter("Backing up etcd v3 is not supported")
+	}
+
+	log.Info("starting etcd keys api")
 	kapi := etcd.NewKeysAPI(client)
-	ctx, cancel := context.WithTimeout(context.Background(), ETCDBackupTimeout)
-	defer cancel()
 
 	// This retrieves the entire etcd datastore after prefix into a go object, which could be fairly large
 	// so we may need to evaluate changing the approach if we have some large etcd datastores in the wild
+	log.Info("getting keys")
 	res, err := kapi.Get(ctx, prefix, &etcd.GetOptions{Sort: true, Recursive: true})
 	if err != nil {
 		return err
 	}
 
-	f, err := os.Create("/tmp/dat2")
+	log.Info("saving to file")
+	f, err := os.Create(file)
 	if err != nil {
 		return trace.Wrap(err)
 	}
 	enc := json.NewEncoder(f)
+	log.Info("writing to file")
 	err = enc.Encode(&res)
 	if err != nil {
 		return trace.Wrap(err)
@@ -115,7 +136,70 @@ func etcdBackup(config etcdconf.Config, file string, prefix string) error {
 }
 
 func etcdRestore(config etcdconf.Config, file string, prefix string) error {
+	ctx, cancel := context.WithTimeout(context.Background(), ETCDBackupTimeout)
+	defer cancel()
+
+	log.Info("starting etcd backup")
+	err := config.CheckAndSetDefaults()
+	if err != nil {
+		return trace.Wrap(err)
+	}
+
+	log.Info("creating etcd client")
+	client, err := config.NewClient()
+	if err != nil {
+		return trace.Wrap(err)
+	}
+	clientv3, err := config.NewClientV3()
+	if err != nil {
+		return trace.Wrap(err)
+	}
+
+	log.Info("read and decode backup")
+	f, err := os.Open("file")
+	if err != nil {
+		return trace.Wrap(err)
+	}
+	dec := json.NewDecoder(f)
+	var backup etcd.Response
+	err := dec.Decode(&backup)
+	if err != nil {
+		return err
+	}
+
+	log.Info("restore data")
+
 	return nil
+}
+
+func restore(ctx context.Context, clientv2 etcd.Client, clientv3 pb.KVClient, node *etcd.Node) {
+	if strings.HasPrefix(node.Key, ETCDRegistryPrefix) {
+		// The k8s elements should be converted to the v3 datastore
+		writeV3(ctx, clientv3, node)
+	} else {
+		// write to the v2 datastore
+		clientv2.Set(ctx, node.Key, node.Value, etcd.SetOptions{Dir: node.Dir, NoValueOnSuccess: true, ttl: node.TTLDuration()})
+	}
+
+	// recurse for each sub node in the store
+	for _, n := range node.Nodes {
+		restore(ctx, clientv2, clientv3, n)
+	}
+}
+
+// writeV3 will convert a v2 node to a v3 node and write to the etcd server
+func writeV3(ctx context.Context, clientv3 pb.KVClient, node *etcd.Node) error {
+	if node.Dir {
+		return nil
+	}
+
+	req := &pb.PutRequest{
+		Key:   []byte(n.Key),
+		Value: []byte(n.Value),
+	}
+
+	_, err := clientv3.Put(ctx, req)
+	return trace.Wrap(err)
 }
 
 func convertError(err error) error {
