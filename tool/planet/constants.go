@@ -51,9 +51,13 @@ const (
 	DefaultEtcdctlCAFile   = DefaultSecretsMountDir + "/root.cert"
 
 	// APIServerDNSName defines the DNS entry name of the master node
-	APIServerDNSName = "apiserver"
-	// LeaderDNSName is a name of a current leader server
-	LeaderDNSName = "leader.telekube.local"
+	APIServerDNSName = "leader.telekube.local"
+
+	// LegacyAPIServerDNSName defines the DNS entry name of the master node
+	// as it used to be in previous versions.
+	// This is to keep compatibility with images vendored to the old location.
+	LegacyAPIServerDNSName = "apiserver"
+
 	// TelekubeDomain is the domain for local telekube cluster
 	TelekubeDomain = "telekube.local"
 

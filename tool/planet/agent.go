@@ -181,7 +181,7 @@ func startLeaderClient(conf *LeaderConfig, errorC chan error) (leaderClient io.C
 func writeLocalLeader(target string, masterIP string) error {
 	contents := strings.Join([]string{
 		fmt.Sprintf(`address=/%v/%v`, APIServerDNSName, masterIP),
-		fmt.Sprintf(`address=/%v/%v`, LeaderDNSName, masterIP),
+		fmt.Sprintf(`address=/%v/%v`, LegacyAPIServerDNSName, masterIP),
 	}, "\n")
 	err := ioutil.WriteFile(
 		target,
