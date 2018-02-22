@@ -1,15 +1,21 @@
 # This makefile runs right after an image was created
 # Its purpose is to remove as much garbage out of $(ROOTFS) as possible
 
-# Units to disable
-# disable cgproxy as there might not be a cgmanager running on host
-# disable cgmanager as it only runs outside of container
-# disable apt upgrade services
-# disable lvm2 metadata daemon/socket and monitor
+# Units to disable:
+#
+# Disable cgproxy as there might not be a cgmanager running on host
+# Disable cgmanager as it only runs outside of container
+#
+# Disable apt upgrade services
+#
+# Disable lvm2 metadata daemon/socket and monitor
+# Disable block availability service (blk-availability.service) to avoid deactivation
+# of block devices on container stop
 units := \
 	cgproxy.service cgmanager.service \
 	apt-daily.service apt-daily-upgrade.service \
-	lvm2-monitor.service lvm2-lvmetad.service lvm2-lvmetad.socket
+	lvm2-monitor.service lvm2-lvmetad.service lvm2-lvmetad.socket \
+	blk-availability.service
 # disable apt upgrade timers
 timers := apt-daily apt-daily-upgrade
 
