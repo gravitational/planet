@@ -72,12 +72,10 @@ func run() error {
 		cstartEnv                     = EnvVars(cstart.Flag("env", "Set environment variable").OverrideDefaultFromEnvar("PLANET_ENV"))
 		cstartMounts                  = Mounts(cstart.Flag("volume", "External volume to mount").OverrideDefaultFromEnvar("PLANET_VOLUME"))
 		cstartRoles                   = List(cstart.Flag("role", "Roles such as 'master' or 'node'").OverrideDefaultFromEnvar("PLANET_ROLE"))
-		cstartInsecureRegistries      = List(cstart.Flag("insecure-registry", "Optional insecure registries").OverrideDefaultFromEnvar("PLANET_INSECURE_REGISTRY"))
 		cstartSecretsDir              = cstart.Flag("secrets-dir", "Directory with master secrets - certificate authority and certificates").OverrideDefaultFromEnvar("PLANET_SECRETS_DIR").ExistingDir()
 		cstartServiceSubnet           = kv.CIDRFlag(cstart.Flag("service-subnet", "subnet dedicated to the services in cluster").Default(DefaultServiceSubnet).OverrideDefaultFromEnvar("PLANET_SERVICE_SUBNET"))
 		cstartPODSubnet               = kv.CIDRFlag(cstart.Flag("pod-subnet", "subnet dedicated to the pods in the cluster").Default(DefaultPODSubnet).OverrideDefaultFromEnvar("PLANET_POD_SUBNET"))
-		cstartServiceUID              = cstart.Flag("service-uid", "uid to use for services").Default("1000").String()
-		cstartServiceGID              = cstart.Flag("service-gid", "gid to use for services (defaults to service-uid)").String()
+		cstartServiceUID              = cstart.Flag("service-uid", "service user ID. Service user is used for services that do not require elevated permissions").OverrideDefaultFromEnvar(EnvServiceUID).String()
 		cstartSelfTest                = cstart.Flag("self-test", "Run end-to-end tests on the started cluster").Bool()
 		cstartTestSpec                = cstart.Flag("test-spec", "Regexp of the test specs to run (self-test mode only)").Default("Networking|Pods").String()
 		cstartTestKubeRepoPath        = cstart.Flag("repo-path", "Path to either a k8s repository or a directory with test configuration files (self-test mode only)").String()
@@ -311,23 +309,23 @@ func run() error {
 			initialCluster = *cstartInitialCluster
 		}
 		config := &Config{
-			Rootfs:                  rootfs,
-			SocketPath:              *socketPath,
-			Env:                     *cstartEnv,
-			Mounts:                  *cstartMounts,
-			IgnoreChecks:            *cstartIgnoreChecks,
-			Roles:                   *cstartRoles,
-			InsecureRegistries:      *cstartInsecureRegistries,
-			MasterIP:                cstartMasterIP.String(),
-			PublicIP:                cstartPublicIP.String(),
-			CloudProvider:           *cstartCloudProvider,
-			ClusterID:               *cstartClusterID,
-			SecretsDir:              *cstartSecretsDir,
-			ServiceSubnet:           *cstartServiceSubnet,
-			PODSubnet:               *cstartPODSubnet,
-			InitialCluster:          *cstartInitialCluster,
-			ServiceUID:              *cstartServiceUID,
-			ServiceGID:              *cstartServiceGID,
+			Rootfs:         rootfs,
+			SocketPath:     *socketPath,
+			Env:            *cstartEnv,
+			Mounts:         *cstartMounts,
+			IgnoreChecks:   *cstartIgnoreChecks,
+			Roles:          *cstartRoles,
+			MasterIP:       cstartMasterIP.String(),
+			PublicIP:       cstartPublicIP.String(),
+			CloudProvider:  *cstartCloudProvider,
+			ClusterID:      *cstartClusterID,
+			SecretsDir:     *cstartSecretsDir,
+			ServiceSubnet:  *cstartServiceSubnet,
+			PODSubnet:      *cstartPODSubnet,
+			InitialCluster: *cstartInitialCluster,
+			ServiceUser: serviceUser{
+				UID: *cstartServiceUID,
+			},
 			EtcdProxy:               *cstartEtcdProxy,
 			EtcdMemberName:          *cstartEtcdMemberName,
 			EtcdInitialCluster:      toEtcdPeerList(initialCluster),

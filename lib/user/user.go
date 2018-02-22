@@ -6,10 +6,20 @@ import (
 	"io"
 	"strings"
 
+	"github.com/gravitational/trace"
 	"github.com/opencontainers/runc/libcontainer/user"
 )
 
 // This file implements edit functions for passwd/group files.
+
+// LookupUID looks up a user by ID in the passwd database.
+func LookupUID(uid int) (*User, error) {
+	u, err := user.LookupUid(uid)
+	if err != nil {
+		return nil, trace.Wrap(err)
+	}
+	return (*User)(&u), nil
+}
 
 // SysFile is a base interface of a passwd/group reader/writer.
 type SysFile interface {
@@ -20,16 +30,20 @@ type SysFile interface {
 type PasswdFile interface {
 	SysFile
 
+	// Upsert creates or updates the user in the passwd database
 	Upsert(u User)
-	Get(name string) (u User, exists bool)
+	// GetByID returns an existing user given its ID
+	GetByID(id int) (u User, exists bool)
 }
 
 // GroupFile defines an interface to a group file.
 type GroupFile interface {
 	SysFile
 
+	// Upsert creates or updates the group in the group database
 	Upsert(g Group)
-	Get(name string) (g Group, exists bool)
+	// GetByID returns an existing group given its ID
+	GetByID(id int) (g Group, exists bool)
 }
 
 type User user.User
@@ -44,6 +58,8 @@ func (u User) String() string {
 type passwdFile struct {
 	users []user.User
 }
+
+var _ PasswdFile = (*passwdFile)(nil)
 
 // NewPasswd creates a passwd file reader.
 func NewPasswd(r io.Reader) (*passwdFile, error) {
@@ -69,11 +85,11 @@ func (r *passwdFile) Upsert(u User) {
 	}
 }
 
-// Get looks up existing user and returns it.
+// GetID looks up existing user by ID.
 // Upon success exists will also be set to true.
-func (r *passwdFile) Get(name string) (u User, exists bool) {
+func (r *passwdFile) GetByID(id int) (u User, exists bool) {
 	for _, user := range r.users {
-		if user.Name == name {
+		if user.Uid == id {
 			return User(user), true
 		}
 	}
@@ -124,6 +140,8 @@ type groupFile struct {
 	groups []user.Group
 }
 
+var _ GroupFile = (*groupFile)(nil)
+
 // NewGroup creates a group file reader.
 func NewGroup(r io.Reader) (*groupFile, error) {
 	groups, err := user.ParseGroup(r)
@@ -148,11 +166,11 @@ func (r *groupFile) Upsert(g Group) {
 	}
 }
 
-// Get looks up existing group and returns it.
+// GetID looks up existing group by ID.
 // Upon success exists will also be set to true.
-func (r *groupFile) Get(name string) (g Group, exists bool) {
+func (r *groupFile) GetByID(id int) (g Group, exists bool) {
 	for _, group := range r.groups {
-		if group.Name == name {
+		if group.Gid == id {
 			return Group(group), true
 		}
 	}
