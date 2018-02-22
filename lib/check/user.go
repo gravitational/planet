@@ -10,11 +10,6 @@ import (
 	log "github.com/sirupsen/logrus"
 )
 
-const (
-	PlanetUser  string = "planet"
-	PlanetGroup string = "planet"
-)
-
 // CheckUserGroup checks if a user specified with userName has been created.
 // If no user has been created - it will attempt to create one.
 // It will also attempt to create a group specified with groupName.
