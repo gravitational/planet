@@ -2,6 +2,7 @@ FROM planet/os
 
 ARG SECCOMP_VER
 ARG DOCKER_VER
+ARG HELM_VER
 
 # FIXME: allowing downgrades and pinning the version of libip4tc0 for iptables
 # as the package has a dependency on the older version as the one available.
@@ -53,6 +54,11 @@ RUN curl https://download.docker.com/linux/static/stable/x86_64/docker-$DOCKER_V
     tar -xvzf /tmp/docker-$DOCKER_VER.tgz -C /tmp && \
     cp /tmp/docker/* /usr/bin && \
     rm -rf /tmp/docker*
+
+RUN curl https://storage.googleapis.com/kubernetes-helm/helm-$HELM_VER-linux-amd64.tar.gz -o /tmp/helm-$HELM_VER.tar.gz && \
+    mkdir -p /tmp/helm && tar -xvzf /tmp/helm-$HELM_VER.tar.gz -C /tmp/helm && \
+    cp /tmp/helm/linux-amd64/helm /usr/bin && \
+    rm -rf /tmp/helm*
 
 RUN groupadd --system --non-unique --gid 1000 planet ;\
     useradd --system --non-unique --no-create-home -g 1000 -u 1000 planet
