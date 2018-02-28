@@ -467,7 +467,8 @@ func setDNSMasq(config *Config) error {
 	// otherwise you hit this bug:
 	// https://bugs.launchpad.net/ubuntu/+source/dnsmasq/+bug/1414887
 	fmt.Fprintf(out, "listen-address=127.0.0.1\n")
-	fmt.Fprintf(out, "listen-address=%v\n", config.PublicIP)
+	fmt.Fprintf(out, "interface=lo\n")
+	fmt.Fprintf(out, "bind-interfaces\n")
 	// Use SkyDNS K8s resolver for cluster local stuff
 	for _, searchDomain := range K8sSearchDomains {
 		fmt.Fprintf(out, "server=/%v/%v\n", searchDomain, config.SkyDNSResolverIP())
