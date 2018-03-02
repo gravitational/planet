@@ -155,24 +155,12 @@ func run() error {
 		cdeviceRemoveNode = cdeviceRemove.Flag("node", "Device node to remove").Required().String()
 
 		// etcd related commands
-		cetcd          = app.Command("etcd", "Commands related to etcd")
-		cetcdEndpoints = List(cetcd.Flag("etcd-endpoints", "List of comma-separated etcd endpoints").Default(DefaultEtcdEndpoints))
-		cetcdCAFile    = cetcd.Flag("etcd-cafile", "Certificate Authority file used to secure etcd communication").String()
-		cetcdCertFile  = cetcd.Flag("etcd-certfile", "TLS certificate file used to secure etcd communication").String()
-		cetcdKeyFile   = cetcd.Flag("etcd-keyfile", "TLS key file used to secure etcd communication").String()
+		cetcd = app.Command("etcd", "Commands related to etcd")
 
 		cetcdPromote                    = cetcd.Command("promote", "Promote etcd running in proxy mode to a full member")
 		cetcdPromoteName                = cetcdPromote.Flag("name", "Member name, as output by 'member add' command").Required().String()
 		cetcdPromoteInitialCluster      = cetcdPromote.Flag("initial-cluster", "Initial cluster, as output by 'member add' command").Required().String()
 		cetcdPromoteInitialClusterState = cetcdPromote.Flag("initial-cluster-state", "Initial cluster state, as output by 'member add' command").Required().String()
-
-		cetcdBackup       = cetcd.Command("backup", "Backup the etcd v2 data store").Hidden()
-		cetcdBackupFile   = cetcdBackup.Flag("file", "The file to store the backup (v2 datastore only)").Required().String()
-		cetcdBackupPrefix = cetcdBackup.Flag("prefix", "the etcd path prefix to backup (default /)").Default("/").String()
-
-		cetcdRestore       = cetcd.Command("restore", "Restore the etcd v2 data store from backup").Hidden()
-		cetcdRestoreFile   = cetcdRestore.Flag("file", "The file to store the backup (v2 datastore only)").Required().String()
-		cetcdRestorePrefix = cetcdRestore.Flag("prefix", "the etcd path prefix to backup (default /)").Default("/").String()
 
 		// leader election commands
 		cleader              = app.Command("leader", "Leader election control")
@@ -411,26 +399,6 @@ func run() error {
 
 	case cetcdPromote.FullCommand():
 		err = etcdPromote(*cetcdPromoteName, *cetcdPromoteInitialCluster, *cetcdPromoteInitialClusterState)
-
-	case cetcdBackup.FullCommand():
-		fmt.Print("etcdBackup")
-		etcdConf := etcdconf.Config{
-			Endpoints: *cetcdEndpoints,
-			CAFile:    *cetcdCAFile,
-			CertFile:  *cetcdCertFile,
-			KeyFile:   *cetcdKeyFile,
-		}
-		err = etcdBackup(etcdConf, *cetcdBackupFile, *cetcdBackupPrefix)
-
-	case cetcdRestore.FullCommand():
-		fmt.Print("etcdRestore")
-		etcdConf := etcdconf.Config{
-			Endpoints: *cetcdEndpoints,
-			CAFile:    *cetcdCAFile,
-			CertFile:  *cetcdCertFile,
-			KeyFile:   *cetcdKeyFile,
-		}
-		err = etcdBackup(etcdConf, *cetcdRestoreFile, *cetcdRestorePrefix)
 
 	default:
 		err = trace.Errorf("unsupported command: %v", cmd)
