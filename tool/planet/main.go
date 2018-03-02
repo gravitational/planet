@@ -163,14 +163,14 @@ func run() error {
 		cetcdPromoteInitialClusterState = cetcdPromote.Flag("initial-cluster-state", "Initial cluster state, as output by 'member add' command").Required().String()
 
 		cetcdBackup     = cetcd.Command("backup", "Backup the etcd datastore to a file")
-		cetcdBackupFile = cetcdBackup.Arg("file", "The file to store the backup").Required().File()
+		cetcdBackupFile = cetcdBackup.Arg("file", "The file to store the backup").Required().String()
 
 		cetcdDisable = cetcd.Command("disable", "Disable etcd on this node")
 
 		cetcdEnable = cetcd.Command("enable", "Enable etcd on this node")
 
 		cetcdUpgradeMaster     = cetcd.Command("upgrade-master", "Upgrade the first node in the cluster")
-		cetcdUpgradeMasterFile = cetcdUpgradeMaster.Arg("file", "A previously taken backup file to use during upgrade")
+		cetcdUpgradeMasterFile = cetcdUpgradeMaster.Arg("file", "A previously taken backup file to use during upgrade").Required().String()
 
 		cetcdUpgradeSlave = cetcd.Command("upgrade-slave", "Upgrade a slave server / proxy")
 
@@ -413,7 +413,7 @@ func run() error {
 		err = etcdPromote(*cetcdPromoteName, *cetcdPromoteInitialCluster, *cetcdPromoteInitialClusterState)
 
 	case cetcdBackup.FullCommand():
-		err = etcdBackup(cetcdBackupFile)
+		err = etcdBackup(*cetcdBackupFile)
 
 	case cetcdEnable.FullCommand():
 		err = etcdEnable()
@@ -422,7 +422,10 @@ func run() error {
 		err = etcdDisable()
 
 	case cetcdUpgradeMaster.FullCommand():
-		err = etcdUpgrade()
+		err = etcdUpgradeMaster(*cetcdUpgradeMasterFile)
+
+	case cetcdUpgradeSlave.FullCommand():
+		err = etcdUpgradeSlave()
 
 	default:
 		err = trace.Errorf("unsupported command: %v", cmd)

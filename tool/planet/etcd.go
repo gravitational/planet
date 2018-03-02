@@ -1,6 +1,7 @@
 package main
 
 import (
+	"context"
 	"fmt"
 	"os"
 	"os/exec"
@@ -10,9 +11,7 @@ import (
 	"github.com/coreos/go-systemd/dbus"
 	"github.com/davecgh/go-spew/spew"
 	etcdconf "github.com/gravitational/coordinate/config"
-	"github.com/gravitational/etcd-backup/lib/etcd"
-	"github.com/gravitational/gravity/lib/defaults"
-	"github.com/gravitational/gravity/lib/state"
+	backup "github.com/gravitational/etcd-backup/lib/etcd"
 	"github.com/gravitational/planet/lib/box"
 	"github.com/gravitational/trace"
 	log "github.com/sirupsen/logrus"
@@ -84,7 +83,8 @@ func etcdPromote(name, initialCluster, initialClusterState string) error {
 	return nil
 }
 
-func etcdBackup(backupFile *os.File) error {
+func etcdBackup(backupFile string) error {
+	ctx := context.TODO()
 	// If a backup from a previous upgrade exists, clean it up
 	if _, err := os.Stat(backupFile); err == nil {
 		err = os.Remove(backupFile)
@@ -93,20 +93,20 @@ func etcdBackup(backupFile *os.File) error {
 		}
 	}
 
-	backupConf := etcd.BackupConfig{
+	backupConf := backup.BackupConfig{
 		EtcdConfig: etcdconf.Config{
-			Endpoints: []string{defaults.EtcdLocalAddr},
-			KeyFile:   state.Secret(stateDir, defaults.EtcdKeyFilename),
-			CertFile:  state.Secret(stateDir, defaults.EtcdCertFilename),
-			CAFile:    state.Secret(stateDir, defaults.RootCertFilename),
+			Endpoints: []string{DefaultEtcdEndpoints},
+			KeyFile:   DefaultEtcdctlKeyFile,
+			CertFile:  DefaultEtcdctlCertFile,
+			CAFile:    DefaultEtcdctlCAFile,
 		},
 		Prefix: []string{"/"}, // Backup all etcd data
 		File:   backupFile,
-		Log:    p,
+		Log:    log.StandardLogger(),
 	}
 	log.Info("BackupConfig: ", spew.Sdump(backupConf))
 
-	err = etcd.Backup(ctx, backupConf)
+	err := backup.Backup(ctx, backupConf)
 	if err != nil {
 		return trace.Wrap(err)
 	}
@@ -114,7 +114,7 @@ func etcdBackup(backupFile *os.File) error {
 }
 
 func etcdRestore() error {
-
+	return nil
 }
 
 // etcdDisable disabled etcd on this machine
@@ -134,12 +134,12 @@ func etcdDisable() error {
 	}
 
 	c := make(chan string)
-	_, err := conn.StopUnit(ETCDServiceName, "replace", c)
+	_, err = conn.StopUnit(ETCDServiceName, "replace", c)
 	if err != nil {
 		return trace.Wrap(err)
 	}
 
-	status <- c
+	status := <-c
 	if strings.ToLower(status) != "done" {
 		return trace.BadParameter("Systemd stop unit recieved unexpected result: %v", status)
 	}
@@ -163,12 +163,12 @@ func etcdEnable() error {
 
 	c := make(chan string)
 	//https://godoc.org/github.com/coreos/go-systemd/dbus#Conn.StartUnit
-	_, err := conn.StartUnit(ETCDServiceName, "replace", c)
+	_, err = conn.StartUnit(ETCDServiceName, "replace", c)
 	if err != nil {
 		return trace.Wrap(err)
 	}
 
-	status <- c
+	status := <-c
 	if strings.ToLower(status) != "done" {
 		return trace.BadParameter("Systemd stop unit recieved unexpected result: %v", status)
 	}
@@ -176,18 +176,18 @@ func etcdEnable() error {
 }
 
 // etcdUpgradeMaster upgrades the first server in the cluster
-func etcdUpgradeMaster() error {
-
+func etcdUpgradeMaster(file string) error {
+	return nil
 }
 
 // etcdUpgradeSlave upgrades additional masters or proxies in etcd
 func etcdUpgradeSlave() error {
-
+	return nil
 }
 
 // etcdRollback rollsback up a failed upgrade attempt to the previous state
 func etcdRollback() error {
-
+	return nil
 }
 
 func convertError(err error) error {

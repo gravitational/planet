@@ -23,6 +23,10 @@
 ignored = ["github.com/Sirupsen/logrus"]
 
 [[override]]
+  name = "github.com/coreos/go-systemd"
+  version = "v16"
+
+[[override]]
   name = "github.com/hashicorp/serf"
   revision = "11bb88abf7b17f0b794b51416a9107d781e95f35"
 
