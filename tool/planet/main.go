@@ -189,7 +189,6 @@ func run() error {
 	)
 
 	cmd, err := app.Parse(args[1:])
-	fmt.Print(cmd)
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "Failed parsing command line arguments: %s.\nTry planet --help\n", err.Error())
 		return err
