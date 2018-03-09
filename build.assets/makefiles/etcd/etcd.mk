@@ -18,6 +18,7 @@ all: $(DOWNLOAD)
 	cp -afv $(ASSETDIR)/$(TARGET)/$(TARGET)/etcdctl $(ROOTFS)/usr/bin/etcdctl-$(ETCD_VER)
 	cp -afv ./etcd.service $(ROOTFS)/lib/systemd/system/
 	cp -afv ./etcd-upgrade.service $(ROOTFS)/lib/systemd/system/
+	cp -afv ./etcdctl3 $(ROOTFS)/usr/bin/etcdctl3
 	ln -sf /lib/systemd/system/etcd.service $(ROOTFS)/lib/systemd/system/multi-user.target.wants/
 	# mask the etcd upgrade service so that it can only be run if intentionally unmasked
 	ln -sf /dev/null $(ROOTFS)/etc/systemd/system/etcd-upgrade.service
