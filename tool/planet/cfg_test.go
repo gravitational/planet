@@ -40,8 +40,8 @@ func (r *CommandFlagSuite) TestConvertsToEtcdPeer(c *check.C) {
 	addrs := toEtcdPeerList(result)
 
 	// validate
-	expected := "172.168.178.1.example.com=http://172.168.178.1:2380,172.168.178.2.example.com=http://172.168.178.2:2380"
-	expectedReverse := "172.168.178.2.example.com=http://172.168.178.2:2380,172.168.178.1.example.com=http://172.168.178.1:2380"
+	expected := "172.168.178.1.example.com=https://172.168.178.1:2380,172.168.178.2.example.com=https://172.168.178.2:2380"
+	expectedReverse := "172.168.178.2.example.com=https://172.168.178.2:2380,172.168.178.1.example.com=https://172.168.178.1:2380"
 	c.Assert(addrs, OneOfEquals, []string{expected, expectedReverse})
 }
 

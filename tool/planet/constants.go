@@ -18,6 +18,7 @@ const (
 	EnvEtcdMemberName          = "ETCD_MEMBER_NAME"
 	EnvEtcdInitialCluster      = "ETCD_INITIAL_CLUSTER"
 	EnvEtcdInitialClusterState = "ETCD_INITIAL_CLUSTER_STATE"
+	EnvEtcdVersion             = "ETCD_VERSION"
 	EnvEtcdctlCertFile         = "ETCDCTL_CERT_FILE"
 	EnvEtcdctlKeyFile          = "ETCDCTL_KEY_FILE"
 	EnvEtcdctlCAFile           = "ETCDCTL_CA_FILE"
@@ -46,13 +47,22 @@ const (
 	EtcdProxyOn  = "on"
 	EtcdProxyOff = "off"
 
-	DefaultLeaderTerm    = 10 * time.Second
-	DefaultEtcdEndpoints = "https://127.0.0.1:2379"
+	DefaultLeaderTerm           = 10 * time.Second
+	DefaultEtcdEndpoints        = "https://127.0.0.1:2379"
+	DefaultEtcdUpgradeEndpoints = "https://127.0.0.2:2379"
 
 	DefaultSecretsMountDir = "/var/state"
 	DefaultEtcdctlCertFile = DefaultSecretsMountDir + "/etcd.cert"
 	DefaultEtcdctlKeyFile  = DefaultSecretsMountDir + "/etcd.key"
 	DefaultEtcdctlCAFile   = DefaultSecretsMountDir + "/root.cert"
+
+	DefaultEtcdStoreCurrent       = "/ext/etcd/member"
+	DefaultEtcdStoreBackup        = "/ext/etcd/member.pre_upgrade.bak"
+	DefaultEtcdCurrentVersionFile = "/ext/etcd/etcd-version.txt"
+	DefaultEtcdDesiredVersionFile = "/etc/planet-release"
+
+	// AssumeEtcdVersion is the etcd version we assume we're using if we're unable to locate the running version
+	AssumeEtcdVersion = "2.3.8"
 
 	// APIServerDNSName defines the DNS entry name of the master node
 	APIServerDNSName = "apiserver"
@@ -79,6 +89,10 @@ const (
 
 	// ETCDServiceName names the service unit for etcd
 	ETCDServiceName = "etcd.service"
+
+	// ETCDUpgradeServiceName is a temporary etcd service used only during upgrades
+	ETCDUpgradeServiceName = "etcd-upgrade.service"
+
 	// APIServerServiceName names the service unit for k8s apiserver
 	APIServerServiceName = "kube-apiserver.service"
 

@@ -28,8 +28,11 @@ all: $(DOWNLOAD)
 	cp -afv $(ASSETDIR)/$(TARGET3)/$(TARGET3)/etcdctl $(ROOTFS)/usr/bin/etcdctl-$(ETCD3_VER)
 
 	# Default to newest supported etcd
-	cd $(ROOTFS)/usr/bin/ && ln -s etcd-$(ETCD3_VER) etcd
-	cd $(ROOTFS)/usr/bin/ && ln -s etcdctl-$(ETCD3_VER) etcdctl
+	cd $(ROOTFS)/usr/bin/ && ln -sf etcd-$(ETCD3_VER) etcd
+	cd $(ROOTFS)/usr/bin/ && ln -sf etcdctl-$(ETCD3_VER) etcdctl
+
+	# Write to the release file to indicate the latest release
+	echo ETCD_VERSION=$(ETCD3_VER) >> /etc/planet-release
 
 $(DOWNLOAD):
 	curl -L https://github.com/coreos/etcd/releases/download/$(ETCD_VER)/$(TARGET_TARBALL) -o $(DOWNLOAD); \
