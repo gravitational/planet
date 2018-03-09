@@ -32,7 +32,7 @@ all: $(DOWNLOAD)
 	cd $(ROOTFS)/usr/bin/ && ln -sf etcdctl-$(ETCD3_VER) etcdctl
 
 	# Write to the release file to indicate the latest release
-	echo ETCD_VERSION=$(ETCD3_VER) >> /etc/planet-release
+	echo ETCD_VERSION=$(ETCD3_VER) >> $(ROOTFS)/etc/planet-release
 
 $(DOWNLOAD):
 	curl -L https://github.com/coreos/etcd/releases/download/$(ETCD_VER)/$(TARGET_TARBALL) -o $(DOWNLOAD); \
