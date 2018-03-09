@@ -13,7 +13,7 @@ Environment=ETCD_VER=v2.3.8
 # Override ETCD_VER if a version file is present in the etcd data dir
 EnvironmentFile=-/ext/etcd/etcd-version.txt
 EnvironmentFile=/etc/container-environment
-ExecStart=/bin/bash -c '/usr/bin/etcd-${ETCD_VER} \
+ExecStart=/bin/bash -c '/usr/bin/etcd-${ETCD_VERSION} \
         --name=${ETCD_MEMBER_NAME} \
         --data-dir=/ext/etcd \
         --initial-advertise-peer-urls=https://${PLANET_PUBLIC_IP}:2380 \

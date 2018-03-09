@@ -272,7 +272,7 @@ func disableService(service string) error {
 		return trace.Wrap(err)
 	}
 
-	changes, err := conn.MaskUnitFiles([]string{ETCDServiceName}, false, true)
+	changes, err := conn.MaskUnitFiles([]string{service}, false, true)
 	if err != nil {
 		return trace.Wrap(err)
 	}
@@ -281,7 +281,7 @@ func disableService(service string) error {
 	}
 
 	c := make(chan string)
-	_, err = conn.StopUnit(ETCDServiceName, "replace", c)
+	_, err = conn.StopUnit(service, "replace", c)
 	if err != nil {
 		return trace.Wrap(err)
 	}
@@ -299,7 +299,7 @@ func enableService(service string) error {
 		return trace.Wrap(err)
 	}
 
-	changes, err := conn.UnmaskUnitFiles([]string{ETCDServiceName}, false)
+	changes, err := conn.UnmaskUnitFiles([]string{service}, false)
 	if err != nil {
 		return trace.Wrap(err)
 	}
@@ -309,14 +309,14 @@ func enableService(service string) error {
 
 	c := make(chan string)
 	//https://godoc.org/github.com/coreos/go-systemd/dbus#Conn.StartUnit
-	_, err = conn.StartUnit(ETCDServiceName, "replace", c)
+	_, err = conn.StartUnit(service, "replace", c)
 	if err != nil {
 		return trace.Wrap(err)
 	}
 
 	status := <-c
 	if strings.ToLower(status) != "done" {
-		return trace.BadParameter("Systemd stop unit recieved unexpected result: %v", status)
+		return trace.BadParameter("Systemd start unit recieved unexpected result: %v", status)
 	}
 	return nil
 }
@@ -379,10 +379,9 @@ func writeEtcdEnvironment(path string, version string) error {
 	}
 	defer f.Close()
 
-	w := bufio.NewWriter(f)
-	_, err = fmt.Fprintln(w, "%v=%v", EnvEtcdVersion, version)
+	_, err = f.WriteString(fmt.Sprint(EnvEtcdVersion, "=", version))
 	if err != nil {
-		return trace.Wrap(err)
+		return err
 	}
 
 	return nil
