@@ -49,7 +49,7 @@ const (
 
 	DefaultLeaderTerm           = 10 * time.Second
 	DefaultEtcdEndpoints        = "https://127.0.0.1:2379"
-	DefaultEtcdUpgradeEndpoints = "https://127.0.0.2:2379"
+	DefaultEtcdUpgradeEndpoints = "http://127.0.0.2:2379"
 
 	DefaultSecretsMountDir = "/var/state"
 	DefaultEtcdctlCertFile = DefaultSecretsMountDir + "/etcd.cert"
