@@ -18,7 +18,7 @@ const (
 	EnvEtcdMemberName          = "ETCD_MEMBER_NAME"
 	EnvEtcdInitialCluster      = "ETCD_INITIAL_CLUSTER"
 	EnvEtcdInitialClusterState = "ETCD_INITIAL_CLUSTER_STATE"
-	EnvEtcdVersion             = "ETCD_VERSION"
+	EnvEtcdVersion             = "PLANET_ETCD_VERSION"
 	EnvEtcdctlCertFile         = "ETCDCTL_CERT_FILE"
 	EnvEtcdctlKeyFile          = "ETCDCTL_KEY_FILE"
 	EnvEtcdctlCAFile           = "ETCDCTL_CA_FILE"

@@ -9,11 +9,11 @@ StartLimitBurst=720
 Type=notify
 TimeoutStartSec=0
 # To support etcd upgrades, default to using oldest supported version
-Environment=ETCD_VERSION=v2.3.8
-# Override ETCD_VERSION if a version file is present in the etcd data dir
+Environment=PLANET_ETCD_VERSION=v2.3.8
+# Override PLANET_ETCD_VERSION if a version file is present in the etcd data dir
 EnvironmentFile=-/ext/etcd/etcd-version.txt
 EnvironmentFile=/etc/container-environment
-ExecStart=/bin/bash -c '/usr/bin/etcd-${ETCD_VERSION} \
+ExecStart=/bin/bash -c '/usr/bin/etcd-${PLANET_ETCD_VERSION} \
         --name=${ETCD_MEMBER_NAME} \
         --data-dir=/ext/etcd \
         --initial-advertise-peer-urls=https://${PLANET_PUBLIC_IP}:2380 \

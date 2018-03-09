@@ -10,10 +10,10 @@ StartLimitInterval=3600
 StartLimitBurst=720
 Type=notify
 TimeoutStartSec=0
-# Get ETCD_VERSION from the etcd data directory
+# Get PLANET_ETCD_VERSION from the etcd data directory
 EnvironmentFile=-/ext/etcd/etcd-version.txt
 EnvironmentFile=/etc/container-environment
-ExecStart=/bin/bash -c '/usr/bin/etcd-${ETCD_VERSION} \
+ExecStart=/bin/bash -c '/usr/bin/etcd-${PLANET_ETCD_VERSION} \
         --name=${ETCD_MEMBER_NAME} \
         --data-dir=/ext/etcd \
         --initial-advertise-peer-urls=https://127.0.0.2:2380 \
