@@ -9,8 +9,8 @@ StartLimitBurst=720
 Type=notify
 TimeoutStartSec=0
 # To support etcd upgrades, default to using oldest supported version
-Environment=ETCD_VER=v2.3.8
-# Override ETCD_VER if a version file is present in the etcd data dir
+Environment=ETCD_VERSION=v2.3.8
+# Override ETCD_VERSION if a version file is present in the etcd data dir
 EnvironmentFile=-/ext/etcd/etcd-version.txt
 EnvironmentFile=/etc/container-environment
 ExecStart=/bin/bash -c '/usr/bin/etcd-${ETCD_VERSION} \
