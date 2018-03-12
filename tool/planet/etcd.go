@@ -192,14 +192,12 @@ func etcdUpgradeCommon() error {
 		return trace.BadParameter("Etcd must be disabled in order to run the upgrade")
 	}
 
-	log.Info("Find current etcd version")
 	currentVersion, err := currentEtcdVersion(DefaultEtcdCurrentVersionFile)
 	if err != nil {
 		return trace.Wrap(err)
 	}
 	log.Info("Current etcd version: ", currentVersion)
 
-	log.Info("Find desired etcd version")
 	desiredVersion, err := readEtcdVersion(DefaultEtcdDesiredVersionFile)
 	if err != nil {
 		return trace.Wrap(err)
@@ -227,8 +225,15 @@ func etcdUpgradeCommon() error {
 	}
 
 	// Write desired version as the current version file
-	log.Info("Writign etcd desired version: ", desiredVersion)
+	log.Info("Writing etcd desired version: ", desiredVersion)
 	err = writeEtcdEnvironment(DefaultEtcdCurrentVersionFile, desiredVersion)
+	if err != nil {
+		return trace.Wrap(err)
+	}
+
+	// reset the kubernetes api server to take advantage of any new etcd settings that may have changed
+	// this only happens if the service is already running
+	err := tryResetService(APIServerServiceName)
 	if err != nil {
 		return trace.Wrap(err)
 	}
@@ -261,6 +266,19 @@ func convertError(err error) error {
 		}
 	}
 	return err
+}
+
+// resetApiServer will restart the kubernetes api server if it's running, so that it will switch to etcd3 api
+func tryResetService(service string) error {
+	conn, err := dbus.New()
+	if err != nil {
+		return trace.Wrap(err)
+	}
+
+	_, err := onn.TryRestartUnit(service, "replace", nil)
+	if err != nil {
+		return trace.Wrap(err)
+	}
 }
 
 func disableService(service string) error {
@@ -376,7 +394,12 @@ func writeEtcdEnvironment(path string, version string) error {
 	}
 	defer f.Close()
 
-	_, err = f.WriteString(fmt.Sprint(EnvEtcdVersion, "=", version))
+	_, err = f.WriteString(fmt.Sprint(EnvEtcdVersion, "=", version, '\n'))
+	if err != nil {
+		return err
+	}
+
+	_, err = f.WriteString(fmt.Sprint(EnvStorageBackend, "=", "etcd3", '\n'))
 	if err != nil {
 		return err
 	}

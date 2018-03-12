@@ -11,6 +11,7 @@ const (
 	EnvCloudProvider           = "KUBE_CLOUD_PROVIDER"
 	EnvServiceSubnet           = "KUBE_SERVICE_SUBNET"
 	EnvPODSubnet               = "KUBE_POD_SUBNET"
+	EnvStorageBackend          = "KUBE_STORAGE_BACKEND"
 	EnvPublicIP                = "PLANET_PUBLIC_IP"
 	EnvClusterDNSIP            = "KUBE_CLUSTER_DNS_IP"
 	EnvAPIServerName           = "KUBE_APISERVER"
