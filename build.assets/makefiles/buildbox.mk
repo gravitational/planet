@@ -26,7 +26,7 @@ build:
 		--env="ROOTFS=/rootfs" \
 		--env="TARGETDIR=/targetdir" \
 		--env="ASSETDIR=/assetdir" \
-		planet/buildbox:latest \
+		planet/buildbox-4x:latest \
 		make -e \
 			KUBE_VER=$(KUBE_VER) \
 			FLANNEL_VER=$(FLANNEL_VER) \

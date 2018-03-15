@@ -160,19 +160,19 @@ enter:
 # Debian stable + configured locales.
 os:
 	@echo -e "\n---> Making Planet/OS (Debian) Docker image...\n"
-	$(MAKE) -e BUILDIMAGE=planet/os DOCKERFILE=os.dockerfile make-docker-image
+	$(MAKE) -e BUILDIMAGE=planet/os-4x DOCKERFILE=os.dockerfile make-docker-image
 
 # Builds on top of "bare OS" image by adding components that every Kubernetes/planet node
 # needs (like bridge-utils or kmod)
 base: os
 	@echo -e "\n---> Making Planet/Base Docker image based on Planet/OS...\n"
-	$(MAKE) -e BUILDIMAGE=planet/base DOCKERFILE=base.dockerfile EXTRA_ARGS="--build-arg SECCOMP_VER=$(SECCOMP_VER) --build-arg DOCKER_VER=$(DOCKER_VER)" make-docker-image
+	$(MAKE) -e BUILDIMAGE=planet/base-4x DOCKERFILE=base.dockerfile EXTRA_ARGS="--build-arg SECCOMP_VER=$(SECCOMP_VER) --build-arg DOCKER_VER=$(DOCKER_VER)" make-docker-image
 
 # Builds a "buildbox" docker image. Actual building is done inside of Docker, and this
 # image is used as a build box. It contains dev tools (Golang, make, git, vi, etc)
 buildbox: base
 	@echo -e "\n---> Making Planet/BuildBox Docker image to be used for building:\n" ;\
-	$(MAKE) -e BUILDIMAGE=planet/buildbox DOCKERFILE=buildbox.dockerfile make-docker-image
+	$(MAKE) -e BUILDIMAGE=planet/buildbox-4x DOCKERFILE=buildbox.dockerfile make-docker-image
 
 # Builds a "testbox" image used during e2e testing.
 testbox:

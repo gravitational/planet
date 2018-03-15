@@ -1,4 +1,4 @@
-FROM planet/os
+FROM planet/os-4x
 
 ARG SECCOMP_VER
 ARG DOCKER_VER
