@@ -1,4 +1,4 @@
-FROM planet/base
+FROM planet/base-4x
 
 ENV GOPATH /gopath
 ENV GOROOT /opt/go
