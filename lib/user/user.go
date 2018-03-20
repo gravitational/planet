@@ -4,6 +4,7 @@ import (
 	"bufio"
 	"fmt"
 	"io"
+	"os"
 	"strings"
 
 	"github.com/gravitational/trace"
@@ -12,13 +13,15 @@ import (
 
 // This file implements edit functions for passwd/group files.
 
-// LookupUID looks up a user by ID in the passwd database.
+// LookupUID looks up a user by ID in the passwd database on the host.
 func LookupUID(uid int) (*User, error) {
-	u, err := user.LookupUid(uid)
+	u, err := lookupUser(func(u user.User) bool {
+		return u.Uid == uid
+	})
 	if err != nil {
 		return nil, trace.Wrap(err)
 	}
-	return (*User)(&u), nil
+	return (*User)(u), nil
 }
 
 // SysFile is a base interface of a passwd/group reader/writer.
@@ -188,3 +191,44 @@ func (r *groupFile) Save(w io.Writer) (err error) {
 	}
 	return b.err
 }
+
+func lookupUser(filter func(u user.User) bool) (*user.User, error) {
+	// Get operating system-specific passwd reader.
+	passwd, err := getPasswdUbuntuCore()
+	if err != nil && !trace.IsNotFound(err) {
+		return nil, trace.Wrap(err)
+	}
+	if trace.IsNotFound(err) {
+		passwd, err = user.GetPasswd()
+		if err != nil {
+			return nil, trace.ConvertSystemError(err)
+		}
+	}
+	defer passwd.Close()
+
+	// Get the users.
+	users, err := user.ParsePasswdFilter(passwd, filter)
+	if err != nil {
+		return nil, trace.ConvertSystemError(err)
+	}
+
+	if len(users) == 0 {
+		return nil, trace.NotFound("no matching entries in passwd file")
+	}
+
+	// Assume the first entry is the "correct" one.
+	return &users[0], nil
+}
+
+func getPasswdUbuntuCore() (io.ReadCloser, error) {
+	f, err := os.Open(ubuntuCorePasswdPath)
+	if err != nil {
+		return nil, trace.ConvertSystemError(err)
+	}
+	return f, nil
+}
+
+// Ubuntu-Core-specific path to the passwd formatted file.
+const (
+	ubuntuCorePasswdPath = "/var/lib/extrausers/passwd"
+)
