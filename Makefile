@@ -43,7 +43,7 @@ BUILD_ASSETS := $(PWD)/build/assets
 BUILDDIR ?= $(PWD)/build
 BUILDDIR := $(shell realpath $(BUILDDIR))
 
-KUBE_VER := v1.7.14
+KUBE_VER := v1.7.15
 SECCOMP_VER :=  2.3.1-2.1
 DOCKER_VER := 1.12.6
 FLANNEL_VER := amed/awsvpc-multi-routing-table-backend
@@ -224,4 +224,3 @@ $(BUILDDIR)/current:
 .PHONY: fix-logrus
 fix-logrus:
 	find vendor -type f -print0 | xargs -0 sed -i 's/Sirupsen/sirupsen/g'
-
