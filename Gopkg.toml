@@ -61,7 +61,7 @@ ignored = ["github.com/Sirupsen/logrus"]
 
 [[constraint]]
   name = "github.com/gravitational/satellite"
-  branch = "sergei/systemd_metrics"
+  branch = "version/4.x"
 
 [[constraint]]
   name = "github.com/gravitational/trace"

@@ -276,7 +276,7 @@
   revision = "f39421c51f636f6a03a79a168aacc628e37a584b"
 
 [[projects]]
-  branch = "sergei/systemd_metrics"
+  branch = "version/4.x"
   name = "github.com/gravitational/satellite"
   packages = [
     "agent",
@@ -288,7 +288,7 @@
     "monitoring/collector",
     "utils"
   ]
-  revision = "976b6e42107ba1ec8d016eeddfa7b06aedeedfd8"
+  revision = "9390ff052747ea98d5d3faa098a30a67eba12f20"
 
 [[projects]]
   name = "github.com/gravitational/trace"
@@ -716,6 +716,6 @@
 [solve-meta]
   analyzer-name = "dep"
   analyzer-version = 1
-  inputs-digest = "090926719f6c273cf1edc9659900c8f8288a6f5df8614f3e7c39e592554d635d"
+  inputs-digest = "ec6d22a60f094168aab5da722100f9d23ac29514473d422a4b26b6303c19f48c"
   solver-name = "gps-cdcl"
   solver-version = 1
