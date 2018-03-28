@@ -3,21 +3,21 @@ package main
 import (
 	"context"
 	"encoding/json"
-	"time"
 
 	"github.com/gravitational/planet/lib/constants"
 	"github.com/gravitational/planet/lib/utils"
+
 	"github.com/gravitational/satellite/agent"
 	pb "github.com/gravitational/satellite/agent/proto/agentpb"
 	"github.com/gravitational/satellite/monitoring"
 	"github.com/gravitational/trace"
 
 	log "github.com/sirupsen/logrus"
+	"k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/intstr"
 	kube "k8s.io/client-go/kubernetes"
-	"k8s.io/client-go/pkg/api/v1"
 )
 
 const serviceNamespace = "kube-system"
@@ -30,22 +30,18 @@ type DNSBootstrapper struct {
 	agent               agent.Agent
 }
 
-// create runs a loop to creates/update the `kube-dns` kubernetes service.
+// createLoop runs a loop to create/update the `kube-dns` kubernetes service.
 // The loop continues until the master node has become healthy and the service
-// gets created or a specified number of attempts have been made.
-func (r *DNSBootstrapper) create() {
-	const retryPeriod = 5 * time.Second
-	const retryAttempts = 50
+// has been created
+func (r *DNSBootstrapper) createLoop() {
 	var client *kube.Clientset
-	var err error
 
-	err = utils.Retry(context.TODO(), retryAttempts, retryPeriod, func() error {
+	err := utils.RetryWithInterval(context.TODO(), utils.NewUnlimitedExponentialBackOff(), func() (err error) {
 		var status *pb.NodeStatus
 		status = r.agent.LocalStatus()
 		if status.Status != pb.NodeStatus_Running {
 			return trace.ConnectionProblem(nil, "node unhealthy: %v retrying", status.Status)
 		}
-
 		// kube client is also a part of the retry loop as the kubernetes
 		// API server might not be available at first connect
 		if client == nil {
@@ -59,18 +55,18 @@ func (r *DNSBootstrapper) create() {
 		if err != nil {
 			return trace.Wrap(err, "failed to create kubedns service")
 		}
-		log.Info("created kubedns service")
+		log.Info("Created kubedns service.")
 
 		err = r.createConfigmap(client, metav1.NamespaceSystem, constants.DNSResourceName)
 		if err != nil {
 			return trace.Wrap(err, "failed to create kubedns configuration")
 		}
-		log.Info("created kubedns configuration")
+		log.Info("Created kubedns configuration.")
 
 		return nil
 	})
 	if err != nil {
-		log.Errorf("giving up on creating kubedns: %v", trace.DebugReport(err))
+		log.Errorf("Giving up on creating kubedns service: %v.", trace.DebugReport(err))
 	}
 }
 
