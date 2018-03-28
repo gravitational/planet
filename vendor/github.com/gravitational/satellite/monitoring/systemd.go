@@ -28,55 +28,36 @@ import (
 	"github.com/coreos/go-systemd/dbus"
 )
 
-type loadState string
-
-const (
-	loadStateLoaded   loadState = "loaded"
-	loadStateError              = "error"
-	loadStateMasked             = "masked"
-	loadStateNotFound           = "not-found"
-)
-
-type activeState string
-
-const (
-	activeStateActive       activeState = "active"
-	activeStateReloading                = "reloading"
-	activeStateInactive                 = "inactive"
-	activeStateFailed                   = "failed"
-	activeStateActivating               = "activating"
-	activeStateDeactivating             = "deactivating"
-)
-
+// NewSystemdChecker returns a new checker that reports status
+// of systemd units
 func NewSystemdChecker() systemdChecker {
 	return systemdChecker{}
 }
 
-// SystemChecker is a health checker for services managed by systemd/monit.
-type systemdChecker struct{}
-
-type serviceStatus struct {
-	name   string
-	status pb.Probe_Type
-	err    error
-}
-
-var systemStatusCmd = []string{"/bin/systemctl", "is-system-running"}
-
+// SystemStatusType describes the unit status
 type SystemStatusType string
 
 const (
-	SystemStatusRunning  SystemStatusType = "running"
-	SystemStatusDegraded                  = "degraded"
-	SystemStatusLoading                   = "loading"
-	SystemStatusStopped                   = "stopped"
-	SystemStatusUnknown                   = ""
+	// SystemStatusRunning is the status of an active unit
+	SystemStatusRunning SystemStatusType = "running"
+	// SystemStatusDegraded is the status of a failed unit
+	SystemStatusDegraded = "degraded"
+	// SystemStatusLoading indicates the unit in initializing or starting state
+	SystemStatusLoading = "loading"
+	// SystemStatusStopped indicates that the unit is stopped
+	SystemStatusStopped = "stopped"
+	// SystemStatusUnknown is the value of the unit state when it is unknown
+	SystemStatusUnknown = ""
 )
 
+// Name returns the name of this checker.
+// Implements health.Checker
 func (r systemdChecker) Name() string { return "systemd" }
 
+// Check evaluates the status of systemd.
+// Implements health.Checker
 func (r systemdChecker) Check(ctx context.Context, reporter health.Reporter) {
-	systemStatus, err := isSystemRunning()
+	systemStatus, err := IsSystemRunning()
 	if err != nil {
 		reason := "failed to query system health"
 		reporter.Add(NewProbeFromErr(r.Name(), reason, trace.Wrap(err)))
@@ -128,7 +109,8 @@ func systemdStatus() ([]serviceStatus, error) {
 	return conditions, nil
 }
 
-func isSystemRunning() (SystemStatusType, error) {
+// IsSystemRunning return the state of systemd
+func IsSystemRunning() (SystemStatusType, error) {
 	output, err := exec.Command(systemStatusCmd[0], systemStatusCmd[1:]...).CombinedOutput()
 	if err != nil && !isExitError(err) {
 		return SystemStatusUnknown, trace.Wrap(err)
@@ -156,3 +138,34 @@ func isExitError(err error) bool {
 	}
 	return false
 }
+
+// SystemChecker is a health checker for services managed by systemd/monit.
+type systemdChecker struct{}
+
+type serviceStatus struct {
+	name   string
+	status pb.Probe_Type
+	err    error
+}
+
+var systemStatusCmd = []string{"/bin/systemctl", "is-system-running"}
+
+type loadState string
+
+const (
+	loadStateLoaded   loadState = "loaded"
+	loadStateError              = "error"
+	loadStateMasked             = "masked"
+	loadStateNotFound           = "not-found"
+)
+
+type activeState string
+
+const (
+	activeStateActive       activeState = "active"
+	activeStateReloading                = "reloading"
+	activeStateInactive                 = "inactive"
+	activeStateFailed                   = "failed"
+	activeStateActivating               = "activating"
+	activeStateDeactivating             = "deactivating"
+)

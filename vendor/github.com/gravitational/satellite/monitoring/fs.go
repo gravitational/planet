@@ -1,5 +1,7 @@
+// +build !linux
+
 /*
-Copyright 2016 Gravitational, Inc.
+Copyright 2017 Gravitational, Inc.
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -13,17 +15,12 @@ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 See the License for the specific language governing permissions and
 limitations under the License.
 */
-
 package monitoring
 
-import (
-	"github.com/gravitational/satellite/agent/health"
-)
-
-func GetStorageDriverBootConfigParams(drv string) health.Checker {
-	return nil
-}
-
-func BasicCheckers() health.Checker {
-	return nil
+// NewDTypeChecker returns a checker that verifies that path
+// is mounted on a filesystem with d_type support.
+//
+// The checker only supports Linux.
+func NewDTypeChecker(path string) noopChecker {
+	return noopChecker{}
 }
