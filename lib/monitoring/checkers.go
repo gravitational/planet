@@ -89,7 +89,7 @@ func addToMaster(node agent.Agent, config *Config, etcdConfig *monitoring.ETCDCo
 	node.AddChecker(etcdChecker)
 	node.AddChecker(monitoring.SystemdHealth())
 	node.AddChecker(monitoring.NewIPForwardChecker())
-	node.AddChecker(monitoring.NewBrNetfilterChecker())
+	node.AddChecker(monitoring.NewBridgeNetfilterChecker())
 	if !config.DisableInterPodCheck {
 		node.AddChecker(monitoring.InterPodCommunication(config.KubeAddr, config.NettestContainerImage))
 	}
