@@ -28,7 +28,15 @@ func NewProbeFromErr(name, detail string, err error) *pb.Probe {
 	return &pb.Probe{
 		Checker: name,
 		Detail:  detail,
-		Error:   trace.DebugReport(err),
+		Error:   trace.UserMessage(err),
 		Status:  pb.Probe_Failed,
+	}
+}
+
+// NewSuccessProbe returns a successful probe for the given checker
+func NewSuccessProbe(name string) *pb.Probe {
+	return &pb.Probe{
+		Checker: name,
+		Status:  pb.Probe_Running,
 	}
 }

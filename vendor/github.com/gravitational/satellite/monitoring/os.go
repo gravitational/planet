@@ -1,3 +1,5 @@
+// +build !linux
+
 /*
 Copyright 2017 Gravitational, Inc.
 
@@ -13,97 +15,33 @@ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 See the License for the specific language governing permissions and
 limitations under the License.
 */
-
 package monitoring
 
-import (
-	"context"
-	"fmt"
+import "github.com/gravitational/trace"
 
-	"github.com/gravitational/satellite/agent/health"
-	pb "github.com/gravitational/satellite/agent/proto/agentpb"
+// NewOSChecker returns a new checker to verify OS distribution
+// against the list of supported releases.
+//
+// The checker only supports Linux.
+func NewOSChecker(releases ...OSRelease) noopChecker {
+	return noopChecker{}
+}
 
-	"github.com/gravitational/trace"
-
-	"github.com/go-ini/ini"
-)
-
-// OSRelease is used to represent a certain OS release based on https://www.freedesktop.org/software/systemd/man/os-release.html fields
+// OSRelease describes an OS distribution.
+// It only supports Linux.
 type OSRelease struct {
-	// ID is either ubuntu, redhat or centos
+	// ID identifies the distributor: ubuntu, redhat/centos, etc.
 	ID string
-	// VersionID is major release version i.e. 16.04
+	// VersionID is the release version i.e. 16.04 for Ubuntu
 	VersionID string
+	// Like specifies the list of root OS distributions this
+	// distribution is a descendant of
+	Like []string
 }
 
-// OSChecker validates host OS based on https://www.freedesktop.org/software/systemd/man/os-release.html
-type OSChecker struct {
-	Releases []OSRelease
-}
-
-const osCheckerID = "os-checker"
-
-// DefaultOSChecker returns standard distributions supported by Telekube
-func DefaultOSChecker() *OSChecker {
-	return &OSChecker{
-		[]OSRelease{
-			OSRelease{"rhel", "7.2"},
-			OSRelease{"rhel", "7.3"},
-			OSRelease{"rhel", "7.4"},
-			OSRelease{"centos", "7.2"},
-			OSRelease{"centos", "7.3"},
-			OSRelease{"centos", "7"},
-			OSRelease{"ubuntu", "16.04"},
-			OSRelease{"ubuntu-core", "16"},
-		},
-	}
-}
-
-// Name returns name of the checker
-func (c *OSChecker) Name() string {
-	return osCheckerID
-}
-
-// Check checks current OS and release is within supported list
-func (c *OSChecker) Check(ctx context.Context, reporter health.Reporter) {
-	id, versionID, err := parseOSRelease()
-	if err != nil {
-		reporter.Add(NewProbeFromErr(osCheckerID, "failed to parse /etc/os-release", trace.Wrap(err)))
-		return
-	}
-
-	for _, rel := range c.Releases {
-		if rel.ID == id && rel.VersionID == versionID {
-			reporter.Add(&pb.Probe{
-				Checker: osCheckerID,
-				Status:  pb.Probe_Running})
-			return
-		}
-	}
-
-	reporter.Add(&pb.Probe{
-		Checker: osCheckerID,
-		Detail:  fmt.Sprintf("%s %s is not supported", id, versionID),
-		Status:  pb.Probe_Failed})
-}
-
-const (
-	osRelFile      = "/etc/os-release"
-	osRelID        = "ID"
-	osRelVersionID = "VERSION_ID"
-)
-
-func parseOSRelease() (id, versionID string, err error) {
-	osrelFile, err := ini.Load(osRelFile)
-	if err != nil {
-		return "", "", trace.Wrap(err)
-	}
-
-	osrel, err := osrelFile.GetSection("")
-	if err != nil {
-		return "", "", trace.Wrap(err)
-	}
-
-	return osrel.Key(osRelID).String(), osrel.Key(osRelVersionID).String(), nil
-
+// GetOSRelease deteremines the OS distribution release information.
+//
+// It only supports Linux.
+func GetOSRelease() (*OSRelease, error) {
+	return nil, trace.BadParameter("not implemented")
 }

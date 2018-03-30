@@ -12,6 +12,7 @@ EnvironmentFile=/etc/container-environment
 ExecStart=/usr/bin/serf agent \
         -bind=${PLANET_PUBLIC_IP}:7496 \
 	-node=${PLANET_AGENT_NAME} \
+	-snapshot=/ext/state/serf-snapshot \
 	-tag role=${PLANET_ROLE} \
 	-tag publicip=${PLANET_PUBLIC_IP}
 User=planet

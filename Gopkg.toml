@@ -22,6 +22,11 @@
 
 ignored = ["github.com/Sirupsen/logrus"]
 
+[prune]
+  unused-packages = true
+  go-tests = true
+  non-go = true
+
 [[override]]
   name = "github.com/hashicorp/serf"
   revision = "11bb88abf7b17f0b794b51416a9107d781e95f35"
@@ -52,7 +57,8 @@ ignored = ["github.com/Sirupsen/logrus"]
 
 [[constraint]]
   name = "github.com/gravitational/satellite"
-  version = "0.0.11"
+  #version = "0.0.17"
+  revision = "f54ff0430c48ee868e78407dcada24ab09ff4a0a"
 
 [[constraint]]
   name = "github.com/gravitational/trace"
