@@ -4,6 +4,7 @@ import (
 	"context"
 	"time"
 
+	"github.com/cenkalti/backoff"
 	"github.com/gravitational/trace"
 	log "github.com/sirupsen/logrus"
 )
@@ -27,4 +28,29 @@ func Retry(ctx context.Context, times int, period time.Duration, fn func() error
 		}
 	}
 	return trace.Wrap(err)
+}
+
+// RetryWithInterval retries the specified operation fn using the specified backoff interval.
+// fn should return backoff.PermanentError if the error should not be retried and returned directly.
+// Returns nil on success or the last received error upon exhausting the interval.
+func RetryWithInterval(ctx context.Context, interval backoff.BackOff, fn func() error) error {
+	b := backoff.WithContext(interval, ctx)
+	err := backoff.RetryNotify(func() (err error) {
+		err = fn()
+		return err
+	}, b, func(err error, d time.Duration) {
+		log.Debugf("Retrying: %v (time %v).", trace.UserMessage(err), d)
+	})
+	if err != nil {
+		log.Errorf("All attempts failed: %v.", trace.DebugReport(err))
+		return trace.Wrap(err)
+	}
+	return nil
+}
+
+// NewUnlimitedExponentialBackOff returns a backoff interval without time restriction
+func NewUnlimitedExponentialBackOff() backoff.BackOff {
+	b := backoff.NewExponentialBackOff()
+	b.MaxElapsedTime = 0
+	return b
 }
