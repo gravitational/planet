@@ -66,9 +66,7 @@ ignored = ["github.com/Sirupsen/logrus"]
 
 [[constraint]]
   name = "github.com/gravitational/satellite"
-  # FIXME
-  # version = "0.0.17"
-  branch = "master"
+  version = "0.0.17"
 
 [[constraint]]
   name = "github.com/gravitational/trace"
@@ -88,7 +86,8 @@ ignored = ["github.com/Sirupsen/logrus"]
 
 [[constraint]]
   name = "github.com/sirupsen/logrus"
-  version = ">=1.0.2, <=34.0.0-g181d419"
+  source = "github.com/gravitational/logrus"
+  version = "1.0.6"
 
 [[constraint]]
   name = "gopkg.in/alecthomas/kingpin.v2"

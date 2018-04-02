@@ -238,7 +238,6 @@
   revision = "f39421c51f636f6a03a79a168aacc628e37a584b"
 
 [[projects]]
-  branch = "master"
   name = "github.com/gravitational/satellite"
   packages = [
     "agent",
@@ -251,7 +250,8 @@
     "monitoring/collector",
     "utils"
   ]
-  revision = "f4bbe80f785d8ea0b4a4d7ae210ccea3d8a05d30"
+  revision = "78cbbb8312b7556eca0226c2cfb51481e2c589cf"
+  version = "0.0.17"
 
 [[projects]]
   name = "github.com/gravitational/trace"
@@ -443,8 +443,9 @@
 [[projects]]
   name = "github.com/sirupsen/logrus"
   packages = ["."]
-  revision = "a3f95b5c423586578a4e099b11a46c2479628cac"
-  version = "1.0.2"
+  revision = "dcdb95d728dbb6fe4b9fbe6b3b9d1fb268e68036"
+  source = "github.com/gravitational/logrus"
+  version = "1.0.6"
 
 [[projects]]
   name = "github.com/spf13/pflag"
@@ -704,6 +705,6 @@
 [solve-meta]
   analyzer-name = "dep"
   analyzer-version = 1
-  inputs-digest = "42a9b03b1ba27ace6bf24798a2f66102a01cde8e57a7ed874b62a51e02b8b3ed"
+  inputs-digest = "4fc8efb35235fd4869bb3e878bd5b10a75883825d85c545e748c409142f76396"
   solver-name = "gps-cdcl"
   solver-version = 1
