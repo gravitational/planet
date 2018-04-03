@@ -41,7 +41,7 @@ func TestAddsUser(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	_, exists := passwd.GetID(1005)
+	_, exists := passwd.GetByID(1005)
 	if !exists {
 		t.Fatal("expected to find a user")
 	}
@@ -70,7 +70,7 @@ func TestReplacesUser(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	u3, exists := r.GetID(1006)
+	u3, exists := r.GetByID(1006)
 	if !exists {
 		t.Fatal("expected to find a user")
 	}
