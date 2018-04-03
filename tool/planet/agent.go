@@ -269,7 +269,7 @@ func runAgent(conf *agent.Config, monitoringConf *monitoring.Config, leaderConf 
 			kubeAddr:            monitoringConf.KubeAddr,
 			agent:               monitoringAgent,
 		}
-		go dns.create()
+		go dns.createLoop()
 	}
 
 	signalc := make(chan os.Signal, 2)
