@@ -27,6 +27,7 @@ ExecStart=/usr/bin/kubelet \
         --streaming-connection-idle-timeout=5m \
         --fail-swap-on=false \
         --event-qps=0 $KUBE_CLOUD_FLAGS $KUBELET_OPTS
+ExecStartPost=-/opt/cpu-shares.sh
 Restart=always
 RestartSec=5
 StartLimitInterval=3600
