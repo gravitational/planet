@@ -17,3 +17,4 @@ sleep 5
 # Ignore the output, incase
 echo "Setting cgroup /sys/fs/cgroup/cpu/kubepods/ cpu.shares = 2"
 echo 2 > /sys/fs/cgroup/cpu/kubepods/cpu.shares
+echo 2 > /sys/fs/cgroup/blkio/kubepods/blkio.weight
