@@ -26,3 +26,5 @@ ExecStart=/usr/bin/etcd \
         --peer-client-cert-auth $ETCD_OPTS
 User=planet
 Group=planet
+IOSchedulingClass=realtime
+IOSchedulingPriority=0
