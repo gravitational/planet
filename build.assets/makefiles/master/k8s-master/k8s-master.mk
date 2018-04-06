@@ -19,4 +19,4 @@ all: k8s-master.mk
 	install -m 0755 $(BINDIR)/kubectl $(ROOTFS)/usr/bin
 	install -m 0755 $(BINDIR)/kube-proxy $(ROOTFS)/usr/bin
 	install -m 0755 $(BINDIR)/kubelet $(ROOTFS)/usr/bin
-	install -m 0755 -d rootfs/usr/bin $(ROOTFS)/usr/bin
+	install -m 0755 ./rootfs/usr/bin/cpu-shares.sh $(ROOTFS)/usr/bin
