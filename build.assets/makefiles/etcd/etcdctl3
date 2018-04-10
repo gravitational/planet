@@ -1,0 +1,6 @@
+#!/bin/bash
+#
+# This is a helper script, to make it easier to access the etcd3 datastore
+#
+
+ETCDCTL_API=3 /usr/bin/etcdctl --key /var/state/etcd.key --cert /var/state/etcd.cert --cacert /var/state/root.cert "$@"

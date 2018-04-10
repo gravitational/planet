@@ -1,6 +1,10 @@
 package main
 
-import "time"
+import (
+	"time"
+
+	"github.com/blang/semver"
+)
 
 const (
 	// EnvMasterIP names the environment variable that specifies
@@ -15,6 +19,9 @@ const (
 	// EnvPODSubnet names the environment variable that specifies
 	// the subnet CIDR for k8s pods
 	EnvPODSubnet = "KUBE_POD_SUBNET"
+	// EnvStorageBackend names the environment variable that specifies
+	// which storage backend kubernetes should use (etcd2/etcd3)
+	EnvStorageBackend = "KUBE_STORAGE_BACKEND"
 	// EnvPublicIP names the environment variable that specifies
 	// the public IP address of the node
 	EnvPublicIP = "PLANET_PUBLIC_IP"
@@ -38,6 +45,9 @@ const (
 	// EnvEtcdInitialClusterState names the environment variable that specifies
 	// the initial etcd cluster state
 	EnvEtcdInitialClusterState = "ETCD_INITIAL_CLUSTER_STATE"
+	// EnvEtcdVersion names the environment variable that specifies
+	// the version of etcd to use
+	EnvEtcdVersion = "PLANET_ETCD_VERSION"
 	// EnvEtcdctlCertFile names the environment variable that specifies the location
 	// of the certificate file
 	EnvEtcdctlCertFile = "ETCDCTL_CERT_FILE"
@@ -125,6 +135,8 @@ const (
 	DefaultLeaderTerm = 10 * time.Second
 	// DefaultEtcdEndpoints specifies the default etcd endpoint
 	DefaultEtcdEndpoints = "https://127.0.0.1:2379"
+	// DefaultEtcdUpgradeEndpoints specified the endpoint for the temporary etcd used during upgrades
+	DefaultEtcdUpgradeEndpoints = "http://127.0.0.2:2379"
 
 	// DefaultSecretsMountDir specifies the default location for certificates
 	// as mapped inside the container
@@ -135,6 +147,18 @@ const (
 	DefaultEtcdctlKeyFile = DefaultSecretsMountDir + "/etcd.key"
 	// DefaultEtcdctlCAFile is the path to the etcd CA certificate file
 	DefaultEtcdctlCAFile = DefaultSecretsMountDir + "/root.cert"
+
+	// DefaultEtcdStoreCurrent is the location of the running etcd datastore
+	DefaultEtcdStoreCurrent = "/ext/etcd/member"
+	// DefaultEtcdStoreBackup is the location of the etcd datastore backed up before an upgrade
+	DefaultEtcdStoreBackup = "/ext/etcd/member.pre_upgrade.bak"
+	// DefaultEtcdCurrentVersionFile is the file location that contains version information about the etcd datastore
+	DefaultEtcdCurrentVersionFile = "/ext/etcd/etcd-version.txt"
+	// DefaultEtcdDesiredVersionFile is the planet file that indicates the latest available etcd version
+	DefaultEtcdDesiredVersionFile = "/etc/planet-release"
+
+	// AssumeEtcdVersion is the etcd version we assume we're using if we're unable to locate the running version
+	AssumeEtcdVersion = "2.3.8"
 
 	// LegacyAPIServerDNSName is the domain name of a current leader server
 	// as used to be in previous versions.
@@ -164,6 +188,8 @@ const (
 
 	// ETCDServiceName names the service unit for etcd
 	ETCDServiceName = "etcd.service"
+	// ETCDUpgradeServiceName is a temporary etcd service used only during upgrades
+	ETCDUpgradeServiceName = "etcd-upgrade.service"
 	// APIServerServiceName names the service unit for k8s apiserver
 	APIServerServiceName = "kube-apiserver.service"
 
@@ -236,6 +262,18 @@ const (
 	ServiceUser string = "planet"
 	// ServiceGroup specifies the name of the service group as seen inside the container.
 	ServiceGroup string = "planet"
+
+	// ETCDBackupTimeout specifies the timeout when attempting to backup/restore etcd
+	ETCDBackupTimeout = 5 * time.Minute
+
+	// ETCDRegistryPrefix is the etcd directory for the k8s api server data in etcd
+	ETCDRegistryPrefix = "/registry"
+)
+
+var (
+	// ETCDBackupMaxVersion is the latest release we support backups.
+	// At present, we don't support backing up the v3 data store
+	ETCDBackupMaxVersion = semver.MustParse("2.3.8")
 )
 
 // K8sSearchDomains are default k8s search domain settings

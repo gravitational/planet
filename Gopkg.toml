@@ -27,6 +27,10 @@ ignored = ["github.com/Sirupsen/logrus"]
   unused-packages = true
 
 [[override]]
+  name = "github.com/coreos/go-systemd"
+  version = "v16"
+
+[[override]]
   name = "bitbucket.org/ww/goautoneg"
   # Bitbucket doesn't support git protocol, which causes dep to timeout trying to connect
   # force to https url instead

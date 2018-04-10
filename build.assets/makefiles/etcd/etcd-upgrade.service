@@ -1,5 +1,7 @@
 [Unit]
-Description=Etcd Service
+Description=Temporary Etcd Service used for upgrades
+# This works by launching etcd, but bound to a non-default loopback interface. This will prevent system services that
+# are running during the upgrade from being able to access etcd while the data is restored.
 
 [Service]
 Restart=always
@@ -8,18 +10,16 @@ StartLimitInterval=3600
 StartLimitBurst=720
 Type=notify
 TimeoutStartSec=0
-# To support etcd upgrades, default to using oldest supported version
-Environment=PLANET_ETCD_VERSION=v2.3.8
-# Override PLANET_ETCD_VERSION if a version file is present in the etcd data dir
+# Get PLANET_ETCD_VERSION from the etcd data directory
 EnvironmentFile=-/ext/etcd/etcd-version.txt
 EnvironmentFile=/etc/container-environment
 ExecStart=/bin/bash -c '/usr/bin/etcd-${PLANET_ETCD_VERSION} \
         --name=${ETCD_MEMBER_NAME} \
         --data-dir=/ext/etcd \
-        --initial-advertise-peer-urls=https://${PLANET_PUBLIC_IP}:2380 \
-        --advertise-client-urls=https://${PLANET_PUBLIC_IP}:2379,https://${PLANET_PUBLIC_IP}:4001 \
-        --listen-client-urls=https://0.0.0.0:2379,https://0.0.0.0:4001 \
-        --listen-peer-urls=https://${PLANET_PUBLIC_IP}:2380,https://${PLANET_PUBLIC_IP}:7001 \
+        --initial-advertise-peer-urls=https://127.0.0.2:2380 \
+        --advertise-client-urls=https://127.0.0.2:2379,https://127.0.0.2:4001 \
+        --listen-client-urls=https://127.0.0.2:2379,https://127.0.0.2:4001 \
+        --listen-peer-urls=https://127.0.0.2:2380,https://127.0.0.2:7001 \
         --cert-file=/var/state/etcd.cert \
         --key-file=/var/state/etcd.key \
         --trusted-ca-file=/var/state/root.cert \
@@ -28,6 +28,7 @@ ExecStart=/bin/bash -c '/usr/bin/etcd-${PLANET_ETCD_VERSION} \
         --peer-key-file=/var/state/etcd.key \
         --peer-trusted-ca-file=/var/state/root.cert \
         --peer-client-cert-auth $ETCD_OPTS \
+        --initial-cluster-state new \
         '
 User=planet
 Group=planet
