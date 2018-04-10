@@ -66,7 +66,12 @@
 [[projects]]
   name = "github.com/coreos/etcd"
   packages = [
+    "auth/authpb",
     "client",
+    "clientv3",
+    "etcdserver/api/v3rpc/rpctypes",
+    "etcdserver/etcdserverpb",
+    "mvcc/mvccpb",
     "pkg/pathutil",
     "pkg/srv",
     "pkg/tlsutil",
@@ -89,8 +94,20 @@
     "dbus",
     "util"
   ]
-  revision = "b4a58d95188dd092ae20072bac14cece0e67c388"
-  version = "v4"
+  revision = "40e2722dffead74698ca12a750f64ef313ddce05"
+  version = "v16"
+
+[[projects]]
+  name = "github.com/coreos/pkg"
+  packages = ["dlopen"]
+  revision = "3ac0863d7acf3bc44daf49afef8919af12f704ef"
+  version = "v3"
+
+[[projects]]
+  name = "github.com/davecgh/go-spew"
+  packages = ["spew"]
+  revision = "346938d642f2ec3594ed81d874461961cd0faa76"
+  version = "v1.1.0"
 
 [[projects]]
   name = "github.com/docker/docker"
@@ -224,6 +241,12 @@
     "leader"
   ]
   revision = "435d9c7a6e6b6fa8494668df7067fc0c22d19ef9"
+
+[[projects]]
+  branch = "master"
+  name = "github.com/gravitational/etcd-backup"
+  packages = ["lib/etcd"]
+  revision = "cbf45b10989213d402c3cc9812d9a80328f2ef3b"
 
 [[projects]]
   branch = "master"
@@ -705,6 +728,6 @@
 [solve-meta]
   analyzer-name = "dep"
   analyzer-version = 1
-  inputs-digest = "4fc8efb35235fd4869bb3e878bd5b10a75883825d85c545e748c409142f76396"
+  inputs-digest = "b809b5fd73fb43361608cd6fc2504b278ea4302f8bf8ca8742a23e51a2df8ac0"
   solver-name = "gps-cdcl"
   solver-version = 1

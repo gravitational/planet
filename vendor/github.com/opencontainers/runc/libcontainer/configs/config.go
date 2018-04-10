@@ -7,7 +7,7 @@ import (
 	"os/exec"
 	"time"
 
-	"github.com/sirupsen/logrus"
+	"github.com/Sirupsen/logrus"
 )
 
 type Rlimit struct {
