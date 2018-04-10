@@ -40,13 +40,19 @@ ignored = ["github.com/Sirupsen/logrus"]
   name = "github.com/hashicorp/serf"
   revision = "11bb88abf7b17f0b794b51416a9107d781e95f35"
 
+[[override]]
+  # target codec version from etcd, since dep doesn't seem to grab it correctly
+  # https://github.com/coreos/etcd/issues/8715#issuecomment-377013707
+  name = "github.com/ugorji/go"
+  version = "v1.1.1"
+
 [[constraint]]
   name = "github.com/cenkalti/backoff"
   version = "2.0.0"
 
 [[constraint]]
   name = "github.com/coreos/etcd"
-  version = "3.2.4"
+  version = "3.3.3"
 
 [[constraint]]
   name = "github.com/docker/docker"
