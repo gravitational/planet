@@ -288,7 +288,7 @@ func tryResetService(service string) error {
 func disableService(service string) error {
 	err := trace.Wrap(systemctl("mask", service))
 	if err != nil {
-		return trace.Wrap(errr)
+		return trace.Wrap(err)
 	}
 	return trace.Wrap(systemctl("stop", service))
 }
@@ -296,7 +296,7 @@ func disableService(service string) error {
 func enableService(service string) error {
 	err := trace.Wrap(systemctl("unmask", service))
 	if err != nil {
-		return trace.Wrap(errr)
+		return trace.Wrap(err)
 	}
 	return trace.Wrap(systemctl("start", service))
 }
