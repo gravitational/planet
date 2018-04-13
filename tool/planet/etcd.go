@@ -233,15 +233,12 @@ func etcdUpgradeCommon() error {
 
 	// reset the kubernetes api server to take advantage of any new etcd settings that may have changed
 	// this only happens if the service is already running
-	status, err := getServiceStatus(APIServerServiceName)
+	status, err = getServiceStatus(APIServerServiceName)
 	if err != nil {
 		return trace.Wrap(err)
 	}
 	if status != "inactive" {
-		err = tryResetService(APIServerServiceName)
-		if err != nil {
-			return trace.Wrap(err)
-		}
+		tryResetService(APIServerServiceName)
 	}
 
 	return nil
