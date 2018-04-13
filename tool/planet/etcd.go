@@ -120,32 +120,38 @@ func etcdRestore() error {
 
 // etcdDisable disabled etcd on this machine
 // Used during upgrades
-func etcdDisable() error {
+func etcdDisable(upgradeService bool) error {
+	if upgradeService {
+		return trace.Wrap(disableService(ETCDUpgradeServiceName))
+	}
 	return trace.Wrap(disableService(ETCDServiceName))
 }
 
 // etcdEnable enables a disabled etcd node
-func etcdEnable() error {
+func etcdEnable(upgradeService bool) error {
+	if upgradeService {
+		return trace.Wrap(enableService(ETCDUpgradeServiceName))
+	}
 	return trace.Wrap(enableService(ETCDServiceName))
 
 }
 
 // etcdUpgradeMaster upgrades the first server in the cluster
-func etcdUpgradeMaster(file string) error {
-	ctx := context.TODO()
+func etcdUpgradeMaster(wipe bool) error {
 	log.Info("Updating first server in the cluster")
 
-	err := etcdUpgradeCommon()
+	err := etcdUpgradeCommon(wipe)
 	if err != nil {
 		return trace.Wrap(err)
 	}
 
-	log.Info("Launching temporary etcd instance")
-	err = enableService(ETCDUpgradeServiceName)
-	if err != nil {
-		return trace.Wrap(err)
-	}
+	log.Info("Upgrade complete")
 
+	return nil
+}
+
+func etcdUpgradeRestore(file string) error {
+	ctx := context.TODO()
 	log.Info("Restoring backup to temporary etcd")
 	restoreConf := backup.RestoreConfig{
 		EtcdConfig: etcdconf.Config{
@@ -158,19 +164,12 @@ func etcdUpgradeMaster(file string) error {
 	log.Info("RestoreConfig: ", spew.Sdump(restoreConf))
 	restoreConf.Log = log.StandardLogger()
 
-	err = backup.Restore(ctx, restoreConf)
+	err := backup.Restore(ctx, restoreConf)
 	if err != nil {
 		return trace.Wrap(err)
 	}
 
-	log.Info("Disabling temporary etcd instance")
-	err = disableService(ETCDUpgradeServiceName)
-	if err != nil {
-		return trace.Wrap(err)
-	}
-
-	log.Info("Upgrade complete")
-
+	log.Info("Restore complete")
 	return nil
 }
 
@@ -179,17 +178,20 @@ func etcdUpgradeSlave() error {
 	return nil
 }
 
-func etcdUpgradeCommon() error {
+func etcdUpgradeCommon(wipe bool) error {
 	log.Info("Starting common etcd upgrade steps")
 
 	log.Info("Checking etcd service status")
-	status, err := getServiceStatus(ETCDServiceName)
-	if err != nil {
-		return trace.Wrap(err)
-	}
-	log.Info("Etcd service status: ", status)
-	if status != "inactive" {
-		return trace.BadParameter("Etcd must be disabled in order to run the upgrade")
+	services := []string{ETCDServiceName, ETCDUpgradeServiceName}
+	for _, service := range services {
+		status, err := getServiceStatus(service)
+		if err != nil {
+			return trace.Wrap(err)
+		}
+		log.Info("%v service status: %v", service, status)
+		if status != "inactive" {
+			return trace.BadParameter("%v must be disabled in order to run the upgrade", service)
+		}
 	}
 
 	currentVersion, err := currentEtcdVersion(DefaultEtcdCurrentVersionFile)
@@ -217,11 +219,15 @@ func etcdUpgradeCommon() error {
 		return trace.Wrap(err)
 	}
 
-	// Move the current data directory to the backup location
-	log.Info("Backup etcd data")
-	err = os.Rename(DefaultEtcdStoreCurrent, DefaultEtcdStoreBackup)
-	if err != nil {
-		return trace.Wrap(err)
+	if wipe {
+		// Move the current data directory to the backup location
+		log.Info("Backup etcd data")
+		err = os.Rename(DefaultEtcdStoreCurrent, DefaultEtcdStoreBackup)
+		if err != nil {
+			return trace.Wrap(err)
+		}
+	} else {
+
 	}
 
 	// Write desired version as the current version file
@@ -233,7 +239,7 @@ func etcdUpgradeCommon() error {
 
 	// reset the kubernetes api server to take advantage of any new etcd settings that may have changed
 	// this only happens if the service is already running
-	status, err = getServiceStatus(APIServerServiceName)
+	status, err := getServiceStatus(APIServerServiceName)
 	if err != nil {
 		return trace.Wrap(err)
 	}

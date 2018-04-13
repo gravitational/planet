@@ -163,12 +163,17 @@ func run() error {
 		cetcdBackup     = cetcd.Command("backup", "Backup the etcd datastore to a file")
 		cetcdBackupFile = cetcdBackup.Arg("file", "The file to store the backup").Required().String()
 
-		cetcdDisable = cetcd.Command("disable", "Disable etcd on this node")
+		cetcdDisable        = cetcd.Command("disable", "Disable etcd on this node")
+		cetcdDisableUpgrade = cetcdDisable.Flag("upgrade", "disable the upgrade service").Bool()
 
-		cetcdEnable = cetcd.Command("enable", "Enable etcd on this node")
+		cetcdEnable        = cetcd.Command("enable", "Enable etcd on this node")
+		cetcdEnableUpgrade = cetcdEnable.Flag("upgrade", "enable the upgrade service").Bool()
 
-		cetcdUpgradeMaster     = cetcd.Command("upgrade-master", "Upgrade the first node in the cluster")
-		cetcdUpgradeMasterFile = cetcdUpgradeMaster.Arg("file", "A previously taken backup file to use during upgrade").Required().String()
+		cetcdUpgradeMaster     = cetcd.Command("upgrade-master", "Upgrade etcd to latest available in this container")
+		cetcdUpgradeMasterWipe = cetcdUpgradeMaster.Flag("wipe", "Whether to wipe / re-initialize the etcd database during the upgrade (restore with upgrade-restore)").Bool()
+
+		cetcdUpgradeRestore     = cetcd.Command("upgrade-restore", "Restore etcd backup as part of the upgrade")
+		cetcdUpgradeRestoreFile = cetcdUpgradeRestore.Arg("file", "A previously taken backup file to use during upgrade").Required().String()
 
 		cetcdUpgradeSlave = cetcd.Command("upgrade-slave", "Upgrade a slave server / proxy")
 
@@ -413,16 +418,19 @@ func run() error {
 		err = etcdBackup(*cetcdBackupFile)
 
 	case cetcdEnable.FullCommand():
-		err = etcdEnable()
+		err = etcdEnable(*cetcdEnableUpgrade)
 
 	case cetcdDisable.FullCommand():
-		err = etcdDisable()
+		err = etcdDisable(*cetcdDisableUpgrade)
 
 	case cetcdUpgradeMaster.FullCommand():
-		err = etcdUpgradeMaster(*cetcdUpgradeMasterFile)
+		err = etcdUpgradeMaster(*cetcdUpgradeMasterWipe)
 
 	case cetcdUpgradeSlave.FullCommand():
 		err = etcdUpgradeSlave()
+
+	case cetcdUpgradeRestore.FullCommand():
+		err = etcdUpgradeRestore(*cetcdUpgradeRestoreFile)
 
 	default:
 		err = trace.Errorf("unsupported command: %v", cmd)
