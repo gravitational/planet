@@ -268,73 +268,37 @@ func convertError(err error) error {
 	return err
 }
 
-// resetApiServer will restart the kubernetes api server if it's running, so that it will switch to etcd3 api
-func tryResetService(service string) error {
-	conn, err := dbus.New()
+// systemctl runs a local systemctl command.
+// TODO(knisbet): I'm using systemctl here, because using go-systemd and dbus appears to be unreliable, with
+// masking unit files not working. Ideally, this will use dbus at some point in the future.
+func systemctl(operation, service string) error {
+	out, err := exec.Command("/bin/systemctl", operation, service).CombinedOutput()
+	log.Infof("%v %v: %v", operation, service, string(out))
 	if err != nil {
-		return trace.Wrap(err)
-	}
-
-	_, err = conn.TryRestartUnit(service, "replace", nil)
-	if err != nil {
-		return trace.Wrap(err)
+		return trace.Wrap(err, fmt.Sprintf("failed to %v %v: %v", operation, service, string(out)))
 	}
 	return nil
+}
+
+// tryResetService will request for systemd to restart a system service
+func tryResetService(service string) error {
+	return trace.Wrap(systemctl("restart", service))
 }
 
 func disableService(service string) error {
-	conn, err := dbus.New()
+	err := trace.Wrap(systemctl("mask", service))
 	if err != nil {
-		return trace.Wrap(err)
+		return trace.Wrap(errr)
 	}
-
-	changes, err := conn.MaskUnitFiles([]string{service}, false, true)
-	if err != nil {
-		return trace.Wrap(err)
-	}
-	for _, change := range changes {
-		log.Debugf("unmask: type: %v filename: %v destination: %v", change.Type, change.Filename, change.Destination)
-	}
-
-	c := make(chan string)
-	_, err = conn.StopUnit(service, "replace", c)
-	if err != nil {
-		return trace.Wrap(err)
-	}
-
-	status := <-c
-	if strings.ToLower(status) != "done" {
-		return trace.BadParameter("Systemd stop unit recieved unexpected result: %v", status)
-	}
-	return nil
+	return trace.Wrap(systemctl("stop", service))
 }
 
 func enableService(service string) error {
-	conn, err := dbus.New()
+	err := trace.Wrap(systemctl("unmask", service))
 	if err != nil {
-		return trace.Wrap(err)
+		return trace.Wrap(errr)
 	}
-
-	changes, err := conn.UnmaskUnitFiles([]string{service}, false)
-	if err != nil {
-		return trace.Wrap(err)
-	}
-	for _, change := range changes {
-		log.Debugf("unmask: type: %v filename: %v destination: %v", change.Type, change.Filename, change.Destination)
-	}
-
-	c := make(chan string)
-	//https://godoc.org/github.com/coreos/go-systemd/dbus#Conn.StartUnit
-	_, err = conn.StartUnit(service, "replace", c)
-	if err != nil {
-		return trace.Wrap(err)
-	}
-
-	status := <-c
-	if strings.ToLower(status) != "done" {
-		return trace.BadParameter("Systemd start unit recieved unexpected result: %v", status)
-	}
-	return nil
+	return trace.Wrap(systemctl("start", service))
 }
 
 func getServiceStatus(service string) (string, error) {
