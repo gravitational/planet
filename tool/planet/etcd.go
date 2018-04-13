@@ -233,9 +233,15 @@ func etcdUpgradeCommon() error {
 
 	// reset the kubernetes api server to take advantage of any new etcd settings that may have changed
 	// this only happens if the service is already running
-	err = tryResetService(APIServerServiceName)
+	status, err := getServiceStatus(APIServerServiceName)
 	if err != nil {
 		return trace.Wrap(err)
+	}
+	if status != "inactive" {
+		err = tryResetService(APIServerServiceName)
+		if err != nil {
+			return trace.Wrap(err)
+		}
 	}
 
 	return nil
@@ -281,8 +287,9 @@ func systemctl(operation, service string) error {
 }
 
 // tryResetService will request for systemd to restart a system service
-func tryResetService(service string) error {
-	return trace.Wrap(systemctl("restart", service))
+func tryResetService(service string) {
+	// ignoring error results is intentional
+	_ = systemctl("restart", service)
 }
 
 func disableService(service string) error {
@@ -359,12 +366,12 @@ func writeEtcdEnvironment(path string, version string) error {
 	}
 	defer f.Close()
 
-	_, err = f.WriteString(fmt.Sprint(EnvEtcdVersion, "=", version, '\n'))
+	_, err = f.WriteString(fmt.Sprint(EnvEtcdVersion, "=", version, "\n"))
 	if err != nil {
 		return err
 	}
 
-	_, err = f.WriteString(fmt.Sprint(EnvStorageBackend, "=", "etcd3", '\n'))
+	_, err = f.WriteString(fmt.Sprint(EnvStorageBackend, "=", "etcd3", "\n"))
 	if err != nil {
 		return err
 	}
