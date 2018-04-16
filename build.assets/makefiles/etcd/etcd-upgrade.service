@@ -33,3 +33,4 @@ ExecStart=/usr/bin/etcd \
         --initial-cluster-state new
 User=planet
 Group=planet
+PermissionsStartOnly=true
