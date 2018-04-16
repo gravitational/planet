@@ -156,6 +156,9 @@ func etcdUpgradeRestore(file string) error {
 	restoreConf := backup.RestoreConfig{
 		EtcdConfig: etcdconf.Config{
 			Endpoints: []string{DefaultEtcdUpgradeEndpoints},
+			KeyFile:   DefaultEtcdctlKeyFile,
+			CertFile:  DefaultEtcdctlCertFile,
+			CAFile:    DefaultEtcdctlCAFile,
 		},
 		Prefix:        []string{"/"},         // Restore all etcd data
 		MigratePrefix: []string{"/registry"}, // migrate kubernetes data to etcd3 datastore

@@ -136,7 +136,7 @@ const (
 	// DefaultEtcdEndpoints specifies the default etcd endpoint
 	DefaultEtcdEndpoints = "https://127.0.0.1:2379"
 	// DefaultEtcdUpgradeEndpoints specified the endpoint for the temporary etcd used during upgrades
-	DefaultEtcdUpgradeEndpoints = "http://127.0.0.2:2379"
+	DefaultEtcdUpgradeEndpoints = "https://127.0.0.2:2379"
 
 	// DefaultSecretsMountDir specifies the default location for certificates
 	// as mapped inside the container
