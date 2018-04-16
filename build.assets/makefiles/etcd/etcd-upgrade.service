@@ -13,7 +13,9 @@ TimeoutStartSec=0
 # Get PLANET_ETCD_VERSION from the etcd data directory
 EnvironmentFile=-/ext/etcd/etcd-version.txt
 EnvironmentFile=/etc/container-environment
-ExecStart=/bin/bash -c '/usr/bin/etcd-${PLANET_ETCD_VERSION} \
+ExecStartPre=/bin/ln -frs /usr/bin/etcd-${PLANET_ETCD_VERSION} /usr/bin/etcd
+ExecStartPre=/bin/ln -frs /usr/bin/etcdctl-${PLANET_ETCD_VERSION} /usr/bin/etcdctl
+ExecStart=/usr/bin/etcd \
         --name=${ETCD_MEMBER_NAME} \
         --data-dir=/ext/etcd \
         --initial-advertise-peer-urls=https://${PLANET_PUBLIC_IP}:2380 \
@@ -28,7 +30,6 @@ ExecStart=/bin/bash -c '/usr/bin/etcd-${PLANET_ETCD_VERSION} \
         --peer-key-file=/var/state/etcd.key \
         --peer-trusted-ca-file=/var/state/root.cert \
         --peer-client-cert-auth $ETCD_OPTS \
-        --initial-cluster-state new \
-        '
+        --initial-cluster-state new
 User=planet
 Group=planet
