@@ -281,7 +281,7 @@ func convertError(err error) error {
 // TODO(knisbet): I'm using systemctl here, because using go-systemd and dbus appears to be unreliable, with
 // masking unit files not working. Ideally, this will use dbus at some point in the future.
 func systemctl(operation, service string) error {
-	out, err := exec.Command("/bin/systemctl", operation, service).CombinedOutput()
+	out, err := exec.Command("/bin/systemctl", "--no-block", operation, service).CombinedOutput()
 	log.Infof("%v %v: %v", operation, service, string(out))
 	if err != nil {
 		return trace.Wrap(err, fmt.Sprintf("failed to %v %v: %v", operation, service, string(out)))
