@@ -13,14 +13,16 @@ DOWNLOAD3:=$(ASSETDIR)/$(TARGET3_TARBALL)
 all: $(DOWNLOAD)
 	@echo "\n---> Building etcd:\n"
 	cd $(ASSETDIR) && mkdir -p $(TARGET) && tar -xzf $(ASSETDIR)/$(TARGET_TARBALL) -C $(TARGET)
-	mkdir -p $(ROOTFS)/var/etcd
+	mkdir -p $(ROOTFS)/var/etcd $(ROOTFS)/usr/lib/etcd
 	cp -afv $(ASSETDIR)/$(TARGET)/$(TARGET)/etcd $(ROOTFS)/usr/bin/etcd-$(ETCD_VER)
 	cp -afv $(ASSETDIR)/$(TARGET)/$(TARGET)/etcdctl $(ROOTFS)/usr/bin/etcdctl-$(ETCD_VER)
 	cp -afv ./etcd.service $(ROOTFS)/lib/systemd/system/
 	cp -afv ./etcd-upgrade.service $(ROOTFS)/lib/systemd/system/
+	cp -afv ./etcd-gateway.dropin $(ROOTFS)/usr/lib/etcd/
 	cp -afv ./etcdctl3 $(ROOTFS)/usr/bin/etcdctl3
 	ln -sf /lib/systemd/system/etcd.service $(ROOTFS)/lib/systemd/system/multi-user.target.wants/
-	# mask the etcd upgrade service so that it can only be run if intentionally unmasked
+
+	# mask the etcd-upgrade service so that it can only be run if intentionally unmasked
 	ln -sf /dev/null $(ROOTFS)/etc/systemd/system/etcd-upgrade.service
 
 	# ETCD3

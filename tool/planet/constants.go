@@ -31,17 +31,19 @@ const (
 	// EnvAPIServerName names the environment variable that specifies
 	// the address of the API server
 	EnvAPIServerName = "KUBE_APISERVER"
-
 	// See https://coreos.com/etcd/docs/latest/v2/configuration.html
 	// EnvEtcdProxy names the environment variable that specifies
 	// the value of the proxy mode setting
-	EnvEtcdProxy = "ETCD_PROXY"
+	EnvEtcdProxy = "PLANET_ETCD_PROXY"
 	// EnvEtcdMemberName names the environment variable that specifies
 	// the name of this node in the etcd cluster
 	EnvEtcdMemberName = "ETCD_MEMBER_NAME"
 	// EnvEtcdInitialClusterState names the environment variable that specifies
 	// the initial etcd cluster configuration for bootstrapping
 	EnvEtcdInitialCluster = "ETCD_INITIAL_CLUSTER"
+	// EnvEtcdGatewayEndpoints is a list of endpoints the etcd gateway can use
+	// to reach the etcd cluster
+	EnvEtcdGatewayEndpoints = "PLANET_ETCD_GW_ENDPOINTS"
 	// EnvEtcdInitialClusterState names the environment variable that specifies
 	// the initial etcd cluster state
 	EnvEtcdInitialClusterState = "ETCD_INITIAL_CLUSTER_STATE"

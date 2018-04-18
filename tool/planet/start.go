@@ -6,6 +6,7 @@ import (
 	"io"
 	"io/ioutil"
 	"os"
+	"path"
 	"path/filepath"
 	"sort"
 	"strconv"
@@ -126,6 +127,7 @@ func start(config *Config, monitorc chan<- bool) (*runtimeContext, error) {
 		box.EnvPair{Name: EnvEtcdProxy, Val: config.EtcdProxy},
 		box.EnvPair{Name: EnvEtcdMemberName, Val: config.EtcdMemberName},
 		box.EnvPair{Name: EnvEtcdInitialCluster, Val: config.EtcdInitialCluster},
+		box.EnvPair{Name: EnvEtcdGatewayEndpoints, Val: config.EtcdGatewayList},
 		box.EnvPair{Name: EnvEtcdInitialClusterState, Val: config.EtcdInitialClusterState},
 		box.EnvPair{Name: EnvRole, Val: config.Roles[0]},
 		box.EnvPair{Name: EnvClusterID, Val: config.ClusterID},
@@ -416,6 +418,22 @@ func addEtcdOptions(config *Config) {
 	}
 }
 
+// setupEtcdGateway will use the etcd gateway, instead of proxy, which is really just a dumb layer 4 proxy server
+func setupEtcdGateway(config *Config) error {
+	if strings.ToLower(config.EtcdProxy) == "on" {
+		err := os.MkdirAll(path.Join(config.Rootfs, "etc/systemd/system/etcd.service.d/"), 0755)
+		if err != nil {
+			return trace.Wrap(err)
+		}
+
+		err = os.Symlink("/usr/lib/etcd/etcd-gateway.dropin", path.Join(config.Rootfs, "etc/systemd/system/etcd.service.d/10-gateway.conf"))
+		if err != nil {
+			return trace.Wrap(err)
+		}
+	}
+	return nil
+}
+
 // addKubeletOptions sets extra kubelet command line arguments in environment
 func addKubeletOptions(config *Config) {
 	if config.KubeletOptions != "" {
@@ -675,6 +693,7 @@ var nodeUnits = []string{
 	"docker",
 	"kube-proxy",
 	"kube-kubelet",
+	"etcd",
 }
 
 func appendUnique(a, b []string) []string {

@@ -1,0 +1,10 @@
+# This systemd drop in file, will change the etcd unit to run a gateway
+# instead of the etcd service itself
+
+[Service]
+# Default to using latest available version when in gateway/proxy mode
+Environment=PLANET_ETCD_VERSION=v3.3.3
+ExecStart=/usr/bin/etcd gateway start \
+        --endpoints=${PLANET_ETCD_GW_ENDPOINTS} \
+        --listen-addr=0.0.0.0:2379,0.0.0.0:4001 \
+        --trusted-ca-file=/var/state/root.cert

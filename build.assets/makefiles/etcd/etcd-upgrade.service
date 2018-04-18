@@ -1,5 +1,7 @@
 [Unit]
 Description=Temporary Etcd Service used for upgrades
+Conflicts=etcd.service
+
 # This works by launching etcd, but bound to a non-default loopback interface. This will prevent system services that
 # are running during the upgrade from being able to access etcd while the data is restored.
 

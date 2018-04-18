@@ -346,6 +346,7 @@ func run() error {
 			EtcdProxy:               *cstartEtcdProxy,
 			EtcdMemberName:          *cstartEtcdMemberName,
 			EtcdInitialCluster:      toEtcdPeerList(initialCluster),
+			EtcdGatewayList:         toEtcdGatewayList(initialCluster),
 			EtcdInitialClusterState: *cstartEtcdInitialClusterState,
 			EtcdOptions:             *cstartEtcdOptions,
 			NodeName:                *cstartNodeName,
@@ -599,6 +600,17 @@ func toEtcdPeerList(list kv.KeyVal) (peers string) {
 	var addrs []string
 	for domain, addr := range list {
 		addrs = append(addrs, fmt.Sprintf("%v=https://%v:2380", domain, addr))
+	}
+	return strings.Join(addrs, ",")
+}
+
+// toEtcdGatewayList interprets each key/value pair, and
+// formats it as a list of endpoints the etcd gateway can
+// proxy to
+func toEtcdGatewayList(list kv.KeyVal) (peers string) {
+	var addrs []string
+	for _, addr := range list {
+		addrs = append(addrs, fmt.Sprintf("%v:2379", addr))
 	}
 	return strings.Join(addrs, ",")
 }

@@ -1,5 +1,6 @@
 [Unit]
 Description=Etcd Service
+Conflicts=etcd-upgrade.service
 
 [Service]
 Restart=always
