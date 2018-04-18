@@ -1,6 +1,6 @@
 #!/bin/bash
 
-PEERS=${1:-https://127.0.0.1:4001}
+PEERS=${1:-https://127.0.0.1:2379}
 
 n=0
 until [ $n -ge 10 ]
