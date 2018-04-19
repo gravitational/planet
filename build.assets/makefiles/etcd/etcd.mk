@@ -20,6 +20,7 @@ all: $(DOWNLOAD)
 	cp -afv ./etcd-upgrade.service $(ROOTFS)/lib/systemd/system/
 	cp -afv ./etcd-gateway.dropin $(ROOTFS)/usr/lib/etcd/
 	cp -afv ./etcdctl3 $(ROOTFS)/usr/bin/etcdctl3
+	chmod +x $(ROOTFS)/usr/bin/etcdctl3
 	ln -sf /lib/systemd/system/etcd.service $(ROOTFS)/lib/systemd/system/multi-user.target.wants/
 
 	# mask the etcd-upgrade service so that it can only be run if intentionally unmasked
