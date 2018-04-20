@@ -7,7 +7,6 @@ Wants=etcd.service
 Restart=always
 RestartSec=5
 Environment="TMPDIR=/var/tmp/"
-Environment="FLANNEL_VER=0.5.1"
 EnvironmentFile=/etc/container-environment
 LimitNOFILE=40000
 LimitNPROC=1048576
