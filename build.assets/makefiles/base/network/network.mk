@@ -4,7 +4,7 @@ ARCH := amd64
 NAME := flannel
 TARGET := $(NAME)-$(FLANNEL_VER)
 TARGET_TAR := $(TARGET)-linux-$(ARCH).tar.gz
-BINARIES := $(ASSETDIR)/flanneld
+BINARIES := $(ASSETDIR)/flanneld-$(FLANNEL_VER)
 
 all: $(BINARIES) network.mk
 	@echo "\\n---> Installing Flannel and preparing network stack for Kubernetes:\\n"
