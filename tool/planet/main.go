@@ -169,13 +169,11 @@ func run() error {
 		cetcdEnable        = cetcd.Command("enable", "Enable etcd on this node")
 		cetcdEnableUpgrade = cetcdEnable.Flag("upgrade", "enable the upgrade service").Bool()
 
-		cetcdUpgradeMaster     = cetcd.Command("upgrade-master", "Upgrade etcd to latest available in this container")
-		cetcdUpgradeMasterWipe = cetcdUpgradeMaster.Flag("wipe", "Whether to wipe / re-initialize the etcd database during the upgrade (restore with upgrade-restore)").Bool()
+		cetcdUpgrade     = cetcd.Command("upgrade", "Upgrade etcd to latest available in this container")
+		cetcdUpgradeWipe = cetcdUpgrade.Flag("wipe", "Whether to wipe / re-initialize the etcd database during the upgrade (restore with upgrade-restore)").Bool()
 
-		cetcdUpgradeRestore     = cetcd.Command("upgrade-restore", "Restore etcd backup as part of the upgrade")
-		cetcdUpgradeRestoreFile = cetcdUpgradeRestore.Arg("file", "A previously taken backup file to use during upgrade").Required().String()
-
-		cetcdUpgradeSlave = cetcd.Command("upgrade-slave", "Upgrade a slave server / proxy")
+		cetcdRestore     = cetcd.Command("restore", "Restore etcd backup as part of the upgrade")
+		cetcdRestoreFile = cetcdRestore.Arg("file", "A previously taken backup file to use during upgrade").Required().String()
 
 		// leader election commands
 		cleader              = app.Command("leader", "Leader election control")
@@ -424,14 +422,11 @@ func run() error {
 	case cetcdDisable.FullCommand():
 		err = etcdDisable(*cetcdDisableUpgrade)
 
-	case cetcdUpgradeMaster.FullCommand():
-		err = etcdUpgradeMaster(*cetcdUpgradeMasterWipe)
+	case cetcdUpgrade.FullCommand():
+		err = etcdUpgrade(*cetcdUpgradeWipe)
 
-	case cetcdUpgradeSlave.FullCommand():
-		err = etcdUpgradeSlave()
-
-	case cetcdUpgradeRestore.FullCommand():
-		err = etcdUpgradeRestore(*cetcdUpgradeRestoreFile)
+	case cetcdRestore.FullCommand():
+		err = etcdRestore(*cetcdRestoreFile)
 
 	default:
 		err = trace.Errorf("unsupported command: %v", cmd)

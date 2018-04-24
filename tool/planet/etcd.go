@@ -114,10 +114,6 @@ func etcdBackup(backupFile string) error {
 	return nil
 }
 
-func etcdRestore() error {
-	return nil
-}
-
 // etcdDisable disabled etcd on this machine
 // Used during upgrades
 func etcdDisable(upgradeService bool) error {
@@ -136,53 +132,19 @@ func etcdEnable(upgradeService bool) error {
 
 }
 
-// etcdUpgradeMaster upgrades the first server in the cluster
-func etcdUpgradeMaster(wipe bool) error {
-	log.Info("Updating first server in the cluster")
+// etcdUpgrade upgrades etcd on this server to the latest release
+func etcdUpgrade(wipe bool) error {
+	log.Info("Updating etcd")
 
-	err := etcdUpgradeCommon(wipe)
+	env, err := box.ReadEnvironment(ContainerEnvironmentFile)
 	if err != nil {
 		return trace.Wrap(err)
 	}
 
-	log.Info("Upgrade complete")
-
-	return nil
-}
-
-func etcdUpgradeRestore(file string) error {
-	ctx := context.TODO()
-	log.Info("Restoring backup to temporary etcd")
-	restoreConf := backup.RestoreConfig{
-		EtcdConfig: etcdconf.Config{
-			Endpoints: []string{DefaultEtcdUpgradeEndpoints},
-			KeyFile:   DefaultEtcdctlKeyFile,
-			CertFile:  DefaultEtcdctlCertFile,
-			CAFile:    DefaultEtcdctlCAFile,
-		},
-		Prefix:        []string{"/"},         // Restore all etcd data
-		MigratePrefix: []string{"/registry"}, // migrate kubernetes data to etcd3 datastore
-		File:          file,
+	if env.Get(EnvEtcdProxy) == EtcdProxyOn {
+		log.Infof("etcd is in proxy mode, nothing to do")
+		return nil
 	}
-	log.Info("RestoreConfig: ", spew.Sdump(restoreConf))
-	restoreConf.Log = log.StandardLogger()
-
-	err := backup.Restore(ctx, restoreConf)
-	if err != nil {
-		return trace.Wrap(err)
-	}
-
-	log.Info("Restore complete")
-	return nil
-}
-
-// etcdUpgradeSlave upgrades additional masters or proxies in etcd
-func etcdUpgradeSlave() error {
-	return nil
-}
-
-func etcdUpgradeCommon(wipe bool) error {
-	log.Info("Starting common etcd upgrade steps")
 
 	log.Info("Checking etcd service status")
 	services := []string{ETCDServiceName, ETCDUpgradeServiceName}
@@ -230,7 +192,7 @@ func etcdUpgradeCommon(wipe bool) error {
 			return trace.Wrap(err)
 		}
 	} else {
-
+		//TODO(knisbet) implement backup of data directory during non wiping upgrades
 	}
 
 	// Write desired version as the current version file
@@ -250,6 +212,34 @@ func etcdUpgradeCommon(wipe bool) error {
 		tryResetService(APIServerServiceName)
 	}
 
+	log.Info("Upgrade complete")
+
+	return nil
+}
+
+func etcdRestore(file string) error {
+	ctx := context.TODO()
+	log.Info("Restoring backup to temporary etcd")
+	restoreConf := backup.RestoreConfig{
+		EtcdConfig: etcdconf.Config{
+			Endpoints: []string{DefaultEtcdUpgradeEndpoints},
+			KeyFile:   DefaultEtcdctlKeyFile,
+			CertFile:  DefaultEtcdctlCertFile,
+			CAFile:    DefaultEtcdctlCAFile,
+		},
+		Prefix:        []string{"/"},         // Restore all etcd data
+		MigratePrefix: []string{"/registry"}, // migrate kubernetes data to etcd3 datastore
+		File:          file,
+	}
+	log.Info("RestoreConfig: ", spew.Sdump(restoreConf))
+	restoreConf.Log = log.StandardLogger()
+
+	err := backup.Restore(ctx, restoreConf)
+	if err != nil {
+		return trace.Wrap(err)
+	}
+
+	log.Info("Restore complete")
 	return nil
 }
 
