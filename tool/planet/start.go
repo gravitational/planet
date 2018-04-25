@@ -679,6 +679,9 @@ KubernetesClusterTag=%v
 ; list of network tags on instances which will be used
 ; when creating firewall rules for load balancers
 node-tags=%v
+; enable multi-zone setting, otherwise kube-controller-manager
+; will not recognize nodes running in different zones
+multizone=true
 `
 )
 
