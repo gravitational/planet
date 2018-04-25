@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"os"
 	"os/exec"
+	"path/filepath"
 	"strings"
 
 	etcd "github.com/coreos/etcd/client"
@@ -366,6 +367,11 @@ func readEtcdVersion(path string) (string, error) {
 }
 
 func writeEtcdEnvironment(path string, version string) error {
+	err := os.MkdirAll(filepath.Dir(path), 644)
+	if err != nil {
+		return trace.Wrap(err)
+	}
+
 	f, err := os.Create(path)
 	if err != nil {
 		return trace.Wrap(err)

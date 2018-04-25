@@ -146,7 +146,10 @@ func start(config *Config, monitorc chan<- bool) (*runtimeContext, error) {
 		return nil, trace.Wrap(err)
 	}
 
-	setupEtcd(config)
+	err = setupEtcd(config)
+	if err != nil {
+		return trace.Wrap(err)
+	}
 
 	upstreamNameservers, err := addResolv(config)
 	if err != nil {
