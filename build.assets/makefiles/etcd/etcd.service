@@ -12,7 +12,7 @@ TimeoutStartSec=0
 # To support etcd upgrades, default to using oldest supported version
 Environment=PLANET_ETCD_VERSION=v2.3.8
 # Override PLANET_ETCD_VERSION if a version file is present in the etcd data dir
-EnvironmentFile=-/ext/etcd/etcd-version.txt
+EnvironmentFile=-/etc/etcd/etcd-version.txt
 EnvironmentFile=/etc/container-environment
 ExecStartPre=/bin/ln -frs /usr/bin/etcd-${PLANET_ETCD_VERSION} /usr/bin/etcd
 ExecStartPre=/bin/ln -frs /usr/bin/etcdctl-${PLANET_ETCD_VERSION} /usr/bin/etcdctl

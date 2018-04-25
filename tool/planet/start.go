@@ -146,7 +146,7 @@ func start(config *Config, monitorc chan<- bool) (*runtimeContext, error) {
 		return nil, trace.Wrap(err)
 	}
 
-	setupEtcdGateway(config)
+	setupEtcd(config)
 
 	upstreamNameservers, err := addResolv(config)
 	if err != nil {
@@ -420,17 +420,38 @@ func addEtcdOptions(config *Config) {
 	}
 }
 
-// setupEtcdGateway will use the etcd gateway, instead of proxy, which is really just a dumb layer 4 proxy server
-func setupEtcdGateway(config *Config) error {
+// setupEtcd runs setup tasks for etcd
+// If this is a proxy node, symlink in the etcd gateway dropin, so the etcd service runs the gateway and not etcd
+// If this is a master node, and we don't detect an existing data directory, start the latest etcd, since we default
+// to using the oldest etcd during an upgrade
+func setupEtcd(config *Config) error {
 	if strings.ToLower(config.EtcdProxy) == "on" {
 		err := os.MkdirAll(path.Join(config.Rootfs, "etc/systemd/system/etcd.service.d/"), 0755)
 		if err != nil {
 			return trace.Wrap(err)
 		}
 
-		err = os.Symlink("/usr/lib/etcd/etcd-gateway.dropin", path.Join(config.Rootfs, "etc/systemd/system/etcd.service.d/10-gateway.conf"))
+		err = os.Symlink(
+			"/usr/lib/etcd/etcd-gateway.dropin",
+			path.Join(config.Rootfs, "etc/systemd/system/etcd.service.d/10-gateway.conf"),
+		)
 		if err != nil {
 			return trace.Wrap(err)
+		}
+	} else {
+		// only set etcd environment on first run (etcd data directory doens't exist),
+		// otherwise we need to be coordinated through an upgrade
+		if _, err := os.Stat(path.Join(config.Rootfs, "ext/etcd/member")); os.IsNotExist(err) {
+			desiredVersion, err := readEtcdVersion(path.Join(config.Rootfs, DefaultEtcdDesiredVersionFile))
+			if err != nil {
+				return trace.Wrap(err)
+			}
+			log.Info("Desired etcd version: ", desiredVersion)
+
+			err = writeEtcdEnvironment(path.Join(config.Rootfs, DefaultEtcdCurrentVersionFile), desiredVersion)
+			if err != nil {
+				return trace.Wrap(err)
+			}
 		}
 	}
 	return nil

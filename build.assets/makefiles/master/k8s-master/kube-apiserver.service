@@ -8,7 +8,7 @@ Wants=etcd.service
 # TODO - remove when we no longer support etcd2 upgrade paths
 Environment=KUBE_STORAGE_BACKEND=etcd2
 # Override KUBE_STORAGE_BACKEND if we're using a version 3 compatible etcd
-EnvironmentFile=-/ext/etcd/etcd-version.txt
+EnvironmentFile=-/etc/etcd/etcd-version.txt
 EnvironmentFile=/etc/container-environment
 ExecStartPre=/usr/bin/scripts/wait-for-etcd.sh
 ExecStartPre=/bin/systemctl is-active etcd.service
