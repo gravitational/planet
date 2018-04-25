@@ -126,6 +126,16 @@ func etcdDisable(upgradeService bool) error {
 // etcdEnable enables a disabled etcd node
 func etcdEnable(upgradeService bool) error {
 	if upgradeService {
+		// don't actually enable the service if this is a proxy
+		env, err := box.ReadEnvironment(ContainerEnvironmentFile)
+		if err != nil {
+			return trace.Wrap(err)
+		}
+
+		if env.Get(EnvEtcdProxy) == EtcdProxyOn {
+			log.Infof("etcd is in proxy mode, nothing to do")
+			return nil
+		}
 		return trace.Wrap(enableService(ETCDUpgradeServiceName))
 	}
 	return trace.Wrap(enableService(ETCDServiceName))
