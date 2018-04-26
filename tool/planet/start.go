@@ -441,21 +441,6 @@ func setupEtcd(config *Config) error {
 		if err != nil {
 			return trace.Wrap(err)
 		}
-	} else {
-		// only set etcd environment on first run (etcd data directory doens't exist),
-		// otherwise we need to be coordinated through an upgrade
-		if _, err := os.Stat(path.Join(config.Rootfs, "ext/etcd/member")); os.IsNotExist(err) {
-			desiredVersion, err := readEtcdVersion(path.Join(config.Rootfs, DefaultEtcdDesiredVersionFile))
-			if err != nil {
-				return trace.Wrap(err)
-			}
-			log.Info("Desired etcd version: ", desiredVersion)
-
-			err = writeEtcdEnvironment(path.Join(config.Rootfs, DefaultEtcdCurrentVersionFile), desiredVersion)
-			if err != nil {
-				return trace.Wrap(err)
-			}
-		}
 	}
 	return nil
 }

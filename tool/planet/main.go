@@ -160,6 +160,8 @@ func run() error {
 		cetcdPromoteInitialCluster      = cetcdPromote.Flag("initial-cluster", "Initial cluster, as output by 'member add' command").Required().String()
 		cetcdPromoteInitialClusterState = cetcdPromote.Flag("initial-cluster-state", "Initial cluster state, as output by 'member add' command").Required().String()
 
+		cetcdInit = cetcd.Command("init", "setup etcd to run the correct version").Hidden()
+
 		cetcdBackup     = cetcd.Command("backup", "Backup the etcd datastore to a file")
 		cetcdBackupFile = cetcdBackup.Arg("file", "The file to store the backup").Required().String()
 
@@ -412,6 +414,9 @@ func run() error {
 
 	case cetcdPromote.FullCommand():
 		err = etcdPromote(*cetcdPromoteName, *cetcdPromoteInitialCluster, *cetcdPromoteInitialClusterState)
+
+	case cetcdInit.FullCommand():
+		err = etcdInit()
 
 	case cetcdBackup.FullCommand():
 		err = etcdBackup(*cetcdBackupFile)

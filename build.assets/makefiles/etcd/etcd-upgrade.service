@@ -12,11 +12,8 @@ StartLimitInterval=3600
 StartLimitBurst=720
 Type=notify
 TimeoutStartSec=0
-# Get PLANET_ETCD_VERSION from the etcd data directory
-EnvironmentFile=-/etc/etcd/etcd-version.txt
 EnvironmentFile=/etc/container-environment
-ExecStartPre=/bin/ln -frs /usr/bin/etcd-${PLANET_ETCD_VERSION} /usr/bin/etcd
-ExecStartPre=/bin/ln -frs /usr/bin/etcdctl-${PLANET_ETCD_VERSION} /usr/bin/etcdctl
+ExecStartPre=/usr/bin/planet etcd init
 ExecStart=/usr/bin/etcd \
         --name=${ETCD_MEMBER_NAME} \
         --data-dir=/ext/etcd \

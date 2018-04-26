@@ -2,8 +2,6 @@
 # instead of the etcd service itself
 
 [Service]
-# Default to using latest available version when in gateway/proxy mode
-Environment=PLANET_ETCD_VERSION=v3.3.3
 ExecStart=
 ExecStart=/usr/bin/etcd gateway start \
         --endpoints=${PLANET_ETCD_GW_ENDPOINTS} \

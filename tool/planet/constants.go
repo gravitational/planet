@@ -155,7 +155,7 @@ const (
 	// DefaultEtcdStoreBackup is the location of the etcd datastore backed up before an upgrade
 	DefaultEtcdStoreBackup = "/ext/etcd/member.pre_upgrade.bak"
 	// DefaultEtcdCurrentVersionFile is the file location that contains version information about the etcd datastore
-	DefaultEtcdCurrentVersionFile = "/etcd/etcd/etcd-version.txt"
+	DefaultEtcdCurrentVersionFile = "/etc/etcd/etcd-version.txt"
 	// DefaultEtcdDesiredVersionFile is the planet file that indicates the latest available etcd version
 	DefaultEtcdDesiredVersionFile = "/etc/planet-release"
 

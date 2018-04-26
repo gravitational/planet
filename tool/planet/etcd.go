@@ -85,6 +85,54 @@ func etcdPromote(name, initialCluster, initialClusterState string) error {
 	return nil
 }
 
+// etcdInit detects which version of etcd should be running, and sets symlinks to point
+// to the correct version
+func etcdInit() error {
+	currentVersion, err := currentEtcdVersion(DefaultEtcdCurrentVersionFile)
+	if err != nil {
+		return trace.Wrap(err)
+	}
+	log.Info("Current etcd version: ", currentVersion)
+
+	desiredVersion, err := readEtcdVersion(DefaultEtcdDesiredVersionFile)
+	if err != nil {
+		return trace.Wrap(err)
+	}
+	log.Info("Desired etcd version: ", desiredVersion)
+
+	if currentVersion == AssumeEtcdVersion {
+		if _, err := os.Stat("/ext/etcd/member"); os.IsNotExist(err) {
+			// If the etcd data directory doesn't exist, we can assume this
+			// is a new install of etcd, and use the latest version.
+			log.Info("new installation detected, using etcd version: ", desiredVersion)
+			err = writeEtcdEnvironment(DefaultEtcdCurrentVersionFile, desiredVersion)
+			if err != nil {
+				return trace.Wrap(err)
+			}
+			currentVersion = desiredVersion
+		}
+	}
+
+	// symlink /usr/bin/etcd to the version we expect to be running
+	for _, path := range []string{"/usr/bin/etcd", "/usr/bin/etcdctl"} {
+		if _, err := os.Stat(path); err == nil {
+			err = os.Remove(path)
+			if err != nil {
+				return trace.Wrap(err)
+			}
+		}
+
+		err = os.Symlink(
+			fmt.Sprint(path, "-", currentVersion),
+			path,
+		)
+		if err != nil {
+			return trace.Wrap(err)
+		}
+	}
+	return nil
+}
+
 func etcdBackup(backupFile string) error {
 	ctx := context.TODO()
 	// If a backup from a previous upgrade exists, clean it up
