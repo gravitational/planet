@@ -109,6 +109,9 @@ const (
 	// EnvServiceGID names the environment variable that specifies the service group ID
 	EnvServiceGID = "PLANET_SERVICE_GID"
 
+	// EnvGCENodeTags names the environment variable that defines network node tags on GCE
+	EnvGCENodeTags = "PLANET_GCE_NODE_TAGS"
+
 	// PlanetRoleMaster specifies the value of the node role to be master.
 	// A master node runs additional runtime tests as well as additional
 	// set of services

@@ -347,11 +347,15 @@ func setupCloudOptions(c *Config) error {
 		}
 	case CloudProviderGCE:
 		if c.ClusterID != "" {
+			nodeTags := c.ClusterID
+			if c.GCENodeTags != "" {
+				nodeTags = c.GCENodeTags
+			}
 			flags = append(flags, "--cloud-config=/etc/cloud-config.conf")
 			c.Files = append(c.Files, box.File{
 				Path: "/etc/cloud-config.conf",
 				Contents: strings.NewReader(fmt.Sprintf(
-					gceCloudConfig, c.ClusterID)),
+					gceCloudConfig, nodeTags)),
 			})
 		}
 	}
