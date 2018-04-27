@@ -50,16 +50,16 @@ const (
 	EnvEtcdVersion = "PLANET_ETCD_VERSION"
 	// EnvEtcdctlCertFile names the environment variable that specifies the location
 	// of the certificate file
-	EnvEtcdctlCertFile = "ETCDCTL_CERT"
+	EnvEtcdctlCertFile = "ETCDCTL_CERT_FILE"
 	// EnvEtcdctlKeyFile names the environment variable that specifies the location
 	// of the certificate key file
-	EnvEtcdctlKeyFile = "ETCDCTL_KEY"
+	EnvEtcdctlKeyFile = "ETCDCTL_KEY_FILE"
 	// EnvEtcdctlCAFile names the environment variable that specifies the location
 	// of the CA certificate file
-	EnvEtcdctlCAFile = "ETCDCTL_CACERT"
+	EnvEtcdctlCAFile = "ETCDCTL_CA_FILE"
 	// EnvEtcdctlPeers names the environment variable that specifies the list of nodes
 	// in the etcd cluster as a comma-separated list
-	EnvEtcdctlPeers = "ETCDCTL_ENDPOINTS"
+	EnvEtcdctlPeers = "ETCDCTL_PEERS"
 
 	// EnvLeaderKey names the environment variable that specifies the name
 	// of the key with the active leader
