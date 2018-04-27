@@ -30,8 +30,8 @@ build:
 		make -e \
 			KUBE_VER=$(KUBE_VER) \
 			FLANNEL_VER=$(FLANNEL_VER) \
-			ETCD_VER=$(ETCD_VER) \
-			ETCD3_VER=$(ETCD3_VER) \
+			ETCD_VER="$(ETCD_VER)" \
+			ETCD_LATEST_VER=$(ETCD_LATEST_VER) \
 			-C /assets/makefiles -f $(TARGET)-docker.mk
 ifeq ($(TARGET),master)
 	$(MAKE) -C $(ASSETS)/makefiles/master/k8s-master -e -f containers.mk

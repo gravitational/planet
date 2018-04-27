@@ -436,7 +436,7 @@ func setupEtcd(config *Config) error {
 
 		dropinPath := path.Join(config.Rootfs, "etc/systemd/system/etcd.service.d/10-gateway.conf")
 		err = os.Symlink(
-			"/usr/lib/etcd/etcd-gateway.dropin",
+			"/lib/systemd/system/etcd-gateway.dropin",
 			dropinPath,
 		)
 		if err != nil && !os.IsExist(err) {

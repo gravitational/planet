@@ -47,9 +47,13 @@ KUBE_VER := v1.9.6
 SECCOMP_VER :=  2.3.1-2.1
 DOCKER_VER := 17.03.2
 FLANNEL_VER := amed/awsvpc-multi-routing-table-backend
-ETCD_VER := v2.3.8
-ETCD3_VER := v3.3.3
 HELM_VER := v2.8.1
+
+# ETCD Versions to include in the release
+# This list needs to include every version of etcd that we can upgrade from
+ETCD_VER := v2.3.8 v3.3.3
+# This is the version of etcd we should upgrade to
+ETCD_LATEST_VER := v3.3.3
 
 PUBLIC_IP := 127.0.0.1
 export
