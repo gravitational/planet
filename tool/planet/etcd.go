@@ -247,6 +247,7 @@ func etcdUpgrade(wipe bool) error {
 		}
 	} else {
 		//TODO(knisbet) implement backup of data directory during non wiping upgrades
+		return trace.BadParameter("upgrades that don't wipe the data aren't supported")
 	}
 
 	// Write desired version as the current version file

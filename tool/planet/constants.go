@@ -2,8 +2,6 @@ package main
 
 import (
 	"time"
-
-	"github.com/blang/semver"
 )
 
 const (
@@ -160,7 +158,7 @@ const (
 	DefaultEtcdDesiredVersionFile = "/etc/planet-release"
 
 	// AssumeEtcdVersion is the etcd version we assume we're using if we're unable to locate the running version
-	AssumeEtcdVersion = "2.3.8"
+	AssumeEtcdVersion = "v2.3.8"
 
 	// LegacyAPIServerDNSName is the domain name of a current leader server
 	// as used to be in previous versions.
@@ -270,12 +268,6 @@ const (
 
 	// ETCDRegistryPrefix is the etcd directory for the k8s api server data in etcd
 	ETCDRegistryPrefix = "/registry"
-)
-
-var (
-	// ETCDBackupMaxVersion is the latest release we support backups.
-	// At present, we don't support backing up the v3 data store
-	ETCDBackupMaxVersion = semver.MustParse("2.3.8")
 )
 
 // K8sSearchDomains are default k8s search domain settings
