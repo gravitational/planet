@@ -2,7 +2,7 @@
     "version": "0.0.1",
     "labels": [
       {"name": "os", "value": "linux"},
-      {"name": "version.etcd", "value": "v3.3.3"}
+      {"name": "version-etcd", "value": "v3.3.3"}
     ],
     "commands": [
       {"name": "start", "args": ["rootfs/usr/bin/planet", "start"]},
