@@ -55,4 +55,7 @@ type KeyValue struct {
 	// When the attached lease expires, the key will be deleted.
 	// If lease is 0, then no lease is attached to the key.
 	Lease int64 `protobuf:"varint,6,opt,name=lease,proto3" json:"lease,omitempty"`
+	// TTL (not from etcd datastructure)
+	// This is the TTL of the key, which we look up during the backup, because etcd3 stores these separatly from the key
+	TTL int64 `json:ttl,omitempty`
 }

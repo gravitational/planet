@@ -248,7 +248,7 @@
   branch = "master"
   name = "github.com/gravitational/etcd-backup"
   packages = ["lib/etcd"]
-  revision = "cbf45b10989213d402c3cc9812d9a80328f2ef3b"
+  revision = "bd01cd7fd72840a70d7f010e25cde0798ede98d0"
 
 [[projects]]
   branch = "master"
@@ -738,6 +738,6 @@
 [solve-meta]
   analyzer-name = "dep"
   analyzer-version = 1
-  inputs-digest = "0c4f59cddfe5045310deab10b99404f968019d2aab7618ae28c719661648c8d0"
+  inputs-digest = "6e914c397784942d9d6217e8c1c50db75628c4a1c37fe22cd81c7991903586be"
   solver-name = "gps-cdcl"
   solver-version = 1

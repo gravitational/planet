@@ -82,7 +82,7 @@ func Restore(ctx context.Context, conf RestoreConfig) error {
 				return err
 			}
 		} else {
-			err = restoreNodeV3(ctx, conf, node.V2, clientv3)
+			err = restoreNodeV3(ctx, conf, node.V3, clientv3)
 			if err != nil {
 				return err
 			}
@@ -131,8 +131,25 @@ func restoreNodeV2(ctx context.Context, conf RestoreConfig, node *etcdv2.Node, k
 	return nil
 }
 
-func restoreNodeV3(ctx context.Context, conf RestoreConfig, node *etcdv2.Node, clientv3 *etcdv3.Client) error {
-	return trace.BadParameter("Not implemented")
+func restoreNodeV3(ctx context.Context, conf RestoreConfig, node *KeyValue, clientv3 *etcdv3.Client) error {
+	if !checkPrefix(string(node.Key), conf.Prefix) {
+		return nil
+	}
+
+	if node.TTL != 0 {
+		if node.TTL <= int64(conf.MinRestoreTTL.Seconds()) {
+			conf.Log.Warnf("Skipping restore of key: %v because it's TTL is too short (%v <= %v)", string(node.Key), node.TTL, conf.MinRestoreTTL)
+			return nil
+		}
+		lease, err := clientv3.Grant(ctx, node.TTL)
+		if err != nil {
+			return trace.Wrap(err)
+		}
+		clientv3.KV.Put(ctx, string(node.Key), string(node.Value), etcdv3.WithLease(lease.ID))
+	} else {
+		clientv3.KV.Put(ctx, string(node.Key), string(node.Value))
+	}
+	return nil
 }
 
 // checkPrefix checks if a given string matches a list of prefixes

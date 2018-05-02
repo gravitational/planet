@@ -38,6 +38,7 @@ func Backup(ctx context.Context, conf BackupConfig) error {
 	if err != nil {
 		return trace.Wrap(err)
 	}
+	defer clientv3.Close()
 
 	file, err := os.OpenFile(conf.File, os.O_WRONLY|os.O_CREATE, 0666)
 	if err != nil {
@@ -109,7 +110,45 @@ func recurseV2Nodes(ctx context.Context, w *json.Encoder, n *etcdv2.Node) error 
 	return nil
 }
 
-func runv3Backup(ctx context.Context, w *json.Encoder, n *etcdv3.Client, prefix string) error {
-	// TODO(knisbet): implement v3 backups
+func runv3Backup(ctx context.Context, w *json.Encoder, client *etcdv3.Client, prefix string) error {
+	// Note, this may need to be revisited in the future
+	// We query the entire etcd database in a single query, which may cause excessive memory usage
+	resp, err := client.KV.Get(ctx, prefix, etcdv3.WithPrefix())
+	if err != nil {
+		return trace.Wrap(err)
+	}
+
+	for _, ev := range resp.Kvs {
+		select {
+		case <-ctx.Done():
+			return ctx.Err()
+		default:
+		}
+
+		var ttl int64
+		if ev.Lease != 0 {
+			lease, err := client.Lease.TimeToLive(ctx, etcdv3.LeaseID(ev.Lease))
+			if err != nil {
+				return trace.Wrap(err)
+			}
+			ttl = lease.TTL
+		}
+
+		err := w.Encode(etcdBackupNode{
+			V3: &KeyValue{
+				Key:            ev.Key,
+				CreateRevision: ev.CreateRevision,
+				ModRevision:    ev.ModRevision,
+				Version:        ev.Version,
+				Value:          ev.Value,
+				Lease:          ev.Lease,
+				TTL:            ttl,
+			},
+		})
+		if err != nil {
+			return trace.Wrap(err)
+		}
+	}
+
 	return nil
 }
