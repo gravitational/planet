@@ -36,6 +36,14 @@ ignored = ["github.com/Sirupsen/logrus"]
   name = "github.com/hashicorp/serf"
   revision = "11bb88abf7b17f0b794b51416a9107d781e95f35"
 
+[[override]]
+  name = "golang.org/x/sys"
+  revision = "78d5f264b493f125018180c204871ecf58a2dce1"
+
+[[override]]
+  name = "github.com/syndtr/gocapability"
+  revision = "33e07d32887e1e06b7c025f27ce52f62c7990bc0"
+
 [[constraint]]
   name = "github.com/cenkalti/backoff"
   version = "2.0.0"
@@ -78,7 +86,7 @@ ignored = ["github.com/Sirupsen/logrus"]
 
 [[constraint]]
   name = "github.com/opencontainers/runc"
-  version = "0.1.0"
+  version = "v1.0.0-rc5"
 
 [[constraint]]
   name = "github.com/prometheus/client_golang"

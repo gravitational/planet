@@ -64,6 +64,12 @@
   revision = "14c0a766933d517675369dae6f551f5c1a10f0d8"
 
 [[projects]]
+  branch = "master"
+  name = "github.com/containerd/console"
+  packages = ["."]
+  revision = "cb7008ab3d8359b78c5f464cb7cf160107ad5925"
+
+[[projects]]
   name = "github.com/coreos/etcd"
   packages = [
     "client",
@@ -93,15 +99,16 @@
   version = "v4"
 
 [[projects]]
+  name = "github.com/cyphar/filepath-securejoin"
+  packages = ["."]
+  revision = "06bda8370f45268db985f7af15732444d94ed51c"
+  version = "v0.2.1"
+
+[[projects]]
   name = "github.com/docker/docker"
   packages = [
-    "pkg/longpath",
-    "pkg/mount",
-    "pkg/symlink",
-    "pkg/system",
     "pkg/term",
-    "pkg/term/windows",
-    "pkg/units"
+    "pkg/term/windows"
   ]
   revision = "a34a1d598c6096ed8b5ce5219e77d68e5cd85462"
   version = "v1.9.1"
@@ -368,6 +375,12 @@
   version = "1.0.0"
 
 [[projects]]
+  branch = "master"
+  name = "github.com/mrunalp/fileutils"
+  packages = ["."]
+  revision = "7d4729fb36185a7c1719923406c9d40e54fb93c7"
+
+[[projects]]
   name = "github.com/opencontainers/runc"
   packages = [
     "libcontainer",
@@ -379,18 +392,33 @@
     "libcontainer/configs/validate",
     "libcontainer/criurpc",
     "libcontainer/devices",
+    "libcontainer/intelrdt",
     "libcontainer/keys",
-    "libcontainer/label",
+    "libcontainer/mount",
     "libcontainer/nsenter",
     "libcontainer/seccomp",
-    "libcontainer/selinux",
     "libcontainer/stacktrace",
     "libcontainer/system",
     "libcontainer/user",
     "libcontainer/utils"
   ]
-  revision = "8e129e097220b2591edd59957c4ff08e064e14b9"
-  version = "v0.1.0"
+  revision = "4fc53a81fb7c994640722ac585fa9ca548971871"
+  version = "v1.0.0-rc5"
+
+[[projects]]
+  name = "github.com/opencontainers/runtime-spec"
+  packages = ["specs-go"]
+  revision = "4e3b9264a330d094b0386c3703c5f379119711e8"
+  version = "v1.0.1"
+
+[[projects]]
+  name = "github.com/opencontainers/selinux"
+  packages = [
+    "go-selinux",
+    "go-selinux/label"
+  ]
+  revision = "ba1aefe8057f1d0cfb8e88d0ec1dc85925ef987d"
+  version = "v1.0.0-rc1"
 
 [[projects]]
   name = "github.com/pborman/uuid"
@@ -408,6 +436,12 @@
   packages = ["."]
   revision = "5f041e8faa004a95c88a202771f4cc3e991971e6"
   version = "v2.0.1"
+
+[[projects]]
+  name = "github.com/pkg/errors"
+  packages = ["."]
+  revision = "645ef00459ed84a119197bfb8d8205042c6df63d"
+  version = "v0.8.0"
 
 [[projects]]
   name = "github.com/prometheus/client_golang"
@@ -456,7 +490,7 @@
 [[projects]]
   name = "github.com/syndtr/gocapability"
   packages = ["capability"]
-  revision = "2c00daeb6c3b45114c80ac44119e7b8801fdd852"
+  revision = "33e07d32887e1e06b7c025f27ce52f62c7990bc0"
 
 [[projects]]
   name = "github.com/ugorji/go"
@@ -493,8 +527,11 @@
 
 [[projects]]
   name = "golang.org/x/sys"
-  packages = ["unix"]
-  revision = "442cd600860ce722f6615730eb008a37a87b13ee"
+  packages = [
+    "unix",
+    "windows"
+  ]
+  revision = "78d5f264b493f125018180c204871ecf58a2dce1"
 
 [[projects]]
   branch = "master"
@@ -705,6 +742,6 @@
 [solve-meta]
   analyzer-name = "dep"
   analyzer-version = 1
-  inputs-digest = "4fc8efb35235fd4869bb3e878bd5b10a75883825d85c545e748c409142f76396"
+  inputs-digest = "e70eeab38712dee0b6c1b8223602094d5ae226e6c89e1fda8150a156e0ec1154"
   solver-name = "gps-cdcl"
   solver-version = 1
