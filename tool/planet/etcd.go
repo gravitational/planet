@@ -362,6 +362,7 @@ loop:
 				continue loop
 			}
 		}
+		return nil
 	}
 }
 
