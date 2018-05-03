@@ -8,6 +8,7 @@ import (
 	"os/exec"
 	"path/filepath"
 	"strings"
+	"time"
 
 	etcd "github.com/coreos/etcd/client"
 	"github.com/coreos/go-systemd/dbus"
@@ -16,6 +17,7 @@ import (
 	backup "github.com/gravitational/etcd-backup/lib/etcd"
 	"github.com/gravitational/planet/lib/box"
 	"github.com/gravitational/trace"
+	ps "github.com/mitchellh/go-ps"
 	log "github.com/sirupsen/logrus"
 )
 
@@ -329,12 +331,38 @@ func convertError(err error) error {
 // TODO(knisbet): I'm using systemctl here, because using go-systemd and dbus appears to be unreliable, with
 // masking unit files not working. Ideally, this will use dbus at some point in the future.
 func systemctl(operation, service string) error {
-	out, err := exec.Command("/bin/systemctl", "--no-block", operation, service).CombinedOutput()
+	ctx, _ := context.WithTimeout(context.Background(), 1*time.Minute)
+	out, err := exec.CommandContext(ctx, "/bin/systemctl", operation, service).CombinedOutput()
 	log.Infof("%v %v: %v", operation, service, string(out))
 	if err != nil {
 		return trace.Wrap(err, fmt.Sprintf("failed to %v %v: %v", operation, service, string(out)))
 	}
 	return nil
+}
+
+// waitForEtcdStopped waits for etcd to not be present in the process list
+// the problem is, when shutting down etcd, systemd will respond when the process has been told to shutdown
+// but this leaves a race, where we might be continuing while etcd is still cleanly shutting down
+func waitForEtcdStopped() error {
+	ctx, _ := context.WithTimeout(context.Background(), 1*time.Minute)
+loop:
+	for {
+		select {
+		case <-ctx.Done():
+			return trace.Wrap(ctx.Err())
+		default:
+		}
+
+		procs, err := ps.Processes()
+		if err != nil {
+			return trace.Wrap(err)
+		}
+		for _, proc := range procs {
+			if proc.Executable() == "etcd" {
+				continue loop
+			}
+		}
+	}
 }
 
 // tryResetService will request for systemd to restart a system service
@@ -344,15 +372,19 @@ func tryResetService(service string) {
 }
 
 func disableService(service string) error {
-	err := trace.Wrap(systemctl("mask", service))
+	err := systemctl("mask", service)
 	if err != nil {
 		return trace.Wrap(err)
 	}
-	return trace.Wrap(systemctl("stop", service))
+	err = systemctl("stop", service)
+	if err != nil {
+		return trace.Wrap(err)
+	}
+	return trace.Wrap(waitForEtcdStopped())
 }
 
 func enableService(service string) error {
-	err := trace.Wrap(systemctl("unmask", service))
+	err := systemctl("unmask", service)
 	if err != nil {
 		return trace.Wrap(err)
 	}
