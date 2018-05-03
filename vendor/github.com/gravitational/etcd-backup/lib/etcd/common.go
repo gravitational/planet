@@ -1,8 +1,12 @@
 package etcd
 
 import (
+	"context"
+	"time"
+
 	etcdv2 "github.com/coreos/etcd/client"
 	etcdv3 "github.com/coreos/etcd/clientv3"
+	"github.com/coreos/go-semver/semver"
 	etcdconf "github.com/gravitational/coordinate/config"
 	"github.com/gravitational/trace"
 )
@@ -18,6 +22,18 @@ func getClients(config etcdconf.Config) (etcdv2.KeysAPI, *etcdv3.Client, error) 
 		return nil, nil, trace.Wrap(err)
 	}
 	keysv2 := etcdv2.NewKeysAPI(clientv2)
+
+	ctx, _ := context.WithTimeout(context.Background(), 5*time.Second)
+	version, err := clientv2.GetVersion(ctx)
+	if err != nil {
+		return nil, nil, trace.Wrap(err)
+	}
+	serverVersion := semver.New(version.Server)
+	v3 := semver.New("3.0.0")
+	// if we're talking to a v2 only etcd server, don't try and use the v3 client
+	if serverVersion.LessThan(*v3) {
+		return keysv2, nil, nil
+	}
 
 	clientv3, err := config.NewClientV3()
 	if err != nil {

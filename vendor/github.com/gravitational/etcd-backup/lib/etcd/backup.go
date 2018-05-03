@@ -38,7 +38,9 @@ func Backup(ctx context.Context, conf BackupConfig) error {
 	if err != nil {
 		return trace.Wrap(err)
 	}
-	defer clientv3.Close()
+	if clientv3 != nil {
+		defer clientv3.Close()
+	}
 
 	file, err := os.OpenFile(conf.File, os.O_WRONLY|os.O_CREATE, 0666)
 	if err != nil {
@@ -55,9 +57,11 @@ func Backup(ctx context.Context, conf BackupConfig) error {
 			return trace.Wrap(err)
 		}
 
-		err = runv3Backup(ctx, enc, clientv3, prefix)
-		if err != nil {
-			return trace.Wrap(err)
+		if clientv3 != nil {
+			err = runv3Backup(ctx, enc, clientv3, prefix)
+			if err != nil {
+				return trace.Wrap(err)
+			}
 		}
 	}
 

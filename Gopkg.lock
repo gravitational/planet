@@ -248,7 +248,7 @@
   branch = "master"
   name = "github.com/gravitational/etcd-backup"
   packages = ["lib/etcd"]
-  revision = "bd01cd7fd72840a70d7f010e25cde0798ede98d0"
+  revision = "692ce153711a83913e03d3860c48b1b790af3ec0"
 
 [[projects]]
   branch = "master"
