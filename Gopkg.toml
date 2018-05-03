@@ -45,6 +45,10 @@ ignored = ["github.com/Sirupsen/logrus"]
   revision = "33e07d32887e1e06b7c025f27ce52f62c7990bc0"
 
 [[constraint]]
+  name = "github.com/containerd/console"
+  revision = "cb7008ab3d8359b78c5f464cb7cf160107ad5925"
+
+[[constraint]]
   name = "github.com/cenkalti/backoff"
   version = "2.0.0"
 

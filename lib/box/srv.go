@@ -145,9 +145,18 @@ func Start(cfg Config) (*Box, error) {
 		}
 	}
 
+	capabilities := configs.Capabilities{
+		Bounding:    cfg.Capabilities,
+		Effective:   cfg.Capabilities,
+		Inheritable: cfg.Capabilities,
+		Permitted:   cfg.Capabilities,
+		Ambient:     cfg.Capabilities,
+	}
+
+	allowAllDevices := true
 	config := &configs.Config{
 		Rootfs:       rootfs,
-		Capabilities: cfg.Capabilities,
+		Capabilities: &capabilities,
 		Namespaces: configs.Namespaces([]configs.Namespace{
 			{Type: configs.NEWNS},
 			{Type: configs.NEWUTS},
@@ -202,7 +211,7 @@ func Start(cfg Config) (*Box, error) {
 			Name:   containerID,
 			Parent: "system",
 			Resources: &configs.Resources{
-				AllowAllDevices:  true,
+				AllowAllDevices:  &allowAllDevices,
 				AllowedDevices:   configs.DefaultAllowedDevices,
 				MemorySwappiness: nil, // nil means "machine-default" and that's what we need because we don't care
 			},

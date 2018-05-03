@@ -64,7 +64,6 @@
   revision = "14c0a766933d517675369dae6f551f5c1a10f0d8"
 
 [[projects]]
-  branch = "master"
   name = "github.com/containerd/console"
   packages = ["."]
   revision = "cb7008ab3d8359b78c5f464cb7cf160107ad5925"
@@ -742,6 +741,6 @@
 [solve-meta]
   analyzer-name = "dep"
   analyzer-version = 1
-  inputs-digest = "e70eeab38712dee0b6c1b8223602094d5ae226e6c89e1fda8150a156e0ec1154"
+  inputs-digest = "5cf61c195e870502939db105e23148f845fa60ad3b1d2ebdcad0bca661bf1a92"
   solver-name = "gps-cdcl"
   solver-version = 1
