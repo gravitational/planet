@@ -5,13 +5,12 @@ import (
 	"io"
 	"os"
 
-	"github.com/gravitational/trace"
-	log "github.com/sirupsen/logrus"
-	// "github.com/containerd/go-runc"
 	"github.com/containerd/console"
+	"github.com/gravitational/trace"
 	"github.com/opencontainers/runc/libcontainer"
 	_ "github.com/opencontainers/runc/libcontainer/nsenter" // this line is important for enter, nothing will work without it
 	libcutils "github.com/opencontainers/runc/libcontainer/utils"
+	log "github.com/sirupsen/logrus"
 )
 
 func CombinedOutput(c libcontainer.Container, cfg ProcessConfig) ([]byte, error) {
