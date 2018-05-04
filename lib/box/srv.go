@@ -89,7 +89,7 @@ func Start(cfg Config) (*Box, error) {
 		}
 	}
 
-	// We resolve the paths for {newuidmap,newgidmap} from the context of runc,
+	// Resolve the paths for {newuidmap,newgidmap} from the context of runc,
 	// to avoid doing a path lookup in the nsexec context.
 	// TODO: the binary names are not currently configurable.
 	newuidmap, err := exec.LookPath("newuidmap")
@@ -114,6 +114,19 @@ func Start(cfg Config) (*Box, error) {
 		return nil, trace.Wrap(err)
 	}
 
+	// Bootstrap the container.
+	//
+	//
+	// In this step, runc will execute the special "planet init" command
+	// that will set things up for the container:
+	//
+	// The command runs nsexec code required to initialize namespaces _before_
+	// the Go runtime.
+	//
+	// Then it runs the factory.StartInitialization to set up the container.
+	//
+	// After all of the above is done, "planet init" will block waiting for execve
+	// to start the container's init process (see container.Start below).
 	container, err := root.Create(containerID, config)
 	if err != nil {
 		return nil, trace.Wrap(err)
@@ -124,8 +137,7 @@ func Start(cfg Config) (*Box, error) {
 		}
 	}()
 
-	// start the API webserver (the sooner the better, so if it can't start we can
-	// fail sooner)
+	// start the API server
 	socketPath := serverSockPath(cfg.Rootfs, cfg.SocketPath)
 	listener, err := net.Listen("unix", socketPath)
 	if err != nil {
@@ -146,11 +158,9 @@ func Start(cfg Config) (*Box, error) {
 		Stderr: os.Stderr,
 	}
 
-	// this will cause libcontainer to exec this binary again
-	// with "init" command line argument.  (this is the default setting)
-	// then our init() function comes into play
+	// Run the container by starting the init process.
 	if err := container.Run(process); err != nil {
-		// kill the webserver (so it would close the socket)
+		// Close the listener to release web server socket
 		listener.Close()
 		return nil, trace.Wrap(err)
 	}

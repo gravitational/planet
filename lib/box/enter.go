@@ -2,14 +2,13 @@ package box
 
 import (
 	"bytes"
+	"context"
 	"io"
 	"os"
 
-	"github.com/containerd/console"
 	"github.com/gravitational/trace"
 	"github.com/opencontainers/runc/libcontainer"
-	_ "github.com/opencontainers/runc/libcontainer/nsenter" // this line is important for enter, nothing will work without it
-	libcutils "github.com/opencontainers/runc/libcontainer/utils"
+	libcontainerutils "github.com/opencontainers/runc/libcontainer/utils"
 	log "github.com/sirupsen/logrus"
 )
 
@@ -43,18 +42,11 @@ func StartProcessTTY(c libcontainer.Container, cfg ProcessConfig) error {
 		ConsoleWidth:  uint16(cfg.TTY.W),
 	}
 
-	// FIXME: factor console setup into a separate function
-	parent, child, err := libcutils.NewSockPair("console")
+	parentConsole, childConsole, err := libcontainerutils.NewSockPair("console")
 	if err != nil {
 		return trace.Wrap(err, "failed to create a console socket pair")
 	}
-	p.ConsoleSocket = child
-
-	type cdata struct {
-		c   console.Console
-		err error
-	}
-	dc := make(chan *cdata, 1)
+	p.ConsoleSocket = childConsole
 
 	// this will cause libcontainer to exec this binary again
 	// with "init" command line argument.  (this is the default setting)
@@ -64,33 +56,10 @@ func StartProcessTTY(c libcontainer.Container, cfg ProcessConfig) error {
 	}
 	log.Info("Process started.")
 
-	go func() {
-		f, err := libcutils.RecvFd(parent)
-		if err != nil {
-			dc <- &cdata{
-				err: err,
-			}
-			return
-		}
-		c, err := console.ConsoleFromFile(f)
-		if err != nil {
-			dc <- &cdata{
-				err: err,
-			}
-			f.Close()
-			return
-		}
-		console.ClearONLCR(c.Fd())
-		dc <- &cdata{
-			c: c,
-		}
-	}()
-
-	data := <-dc
-	if data.err != nil {
-		return trace.Wrap(err, "failed to set up a console")
+	containerConsole, err := getContainerConsole(context.TODO(), parentConsole)
+	if err != nil {
+		return trace.Wrap(err, "failed to create container console")
 	}
-	containerConsole := data.c
 	defer containerConsole.Close()
 
 	// start copying output from the process of the container's console
