@@ -1,18 +1,17 @@
-# This makefile runs on the host and it uses buildbox Docker image
-# to kick off inside-buildbox building
+# This makefile is used inside the buildbox container
 SHELL:=/bin/bash
 TARGETDIR:=$(BUILDDIR)/$(TARGET)
 ASSETDIR:=$(BUILDDIR)/assets
 ROOTFS:=$(TARGETDIR)/rootfs
-CONTAINERNAME:=planet-base-$(TARGET)
-TARBALL:=$(TARGETDIR)/planet-$(TARGET).tar.gz
+CONTAINERNAME:=planet-base-build
+TARBALL:=$(TARGETDIR)/planet.tar.gz
 export
 TMPFS_SIZE?=900m
 
-.PHONY: all build clean planet-image
-
+.PHONY: all
 all: $(ROOTFS)/bin/bash build planet-image
 
+.PHONY: build
 build:
 	@echo -e "\n---> Launching 'buildbox' Docker container to build $(TARGET):\n"
 	@mkdir -p $(ASSETDIR)
@@ -31,11 +30,10 @@ build:
 			KUBE_VER=$(KUBE_VER) \
 			FLANNEL_VER=$(FLANNEL_VER) \
 			ETCD_VER=$(ETCD_VER) \
-			-C /assets/makefiles -f $(TARGET)-docker.mk
-ifeq ($(TARGET),master)
+			-C /assets/makefiles -f planet.mk
 	$(MAKE) -C $(ASSETS)/makefiles/master/k8s-master -e -f containers.mk
-endif
 
+.PHONY: planet-image
 planet-image:
 	cp $(ASSETS)/orbit.manifest.json $(TARGETDIR)
 	cp $(ASSETDIR)/planet $(ROOTFS)/usr/bin/
@@ -50,7 +48,8 @@ planet-image:
 		tar -czf $(TARBALL) orbit.manifest.json rootfs'
 	@echo -e "\nDone --> $(TARBALL)"
 
-enter_buildbox:
+.PHONY: enter-buildbox
+enter-buildbox:
 	docker run -ti -u $$(id -u) --rm=true \
 		--volume=$(ASSETS):/assets \
 		--volume=$(ROOTFS):/rootfs \
@@ -77,6 +76,7 @@ $(ROOTFS)/bin/bash: clean-rootfs
 	cd $(ROOTFS) && docker export $(CONTAINERNAME) | tar -x
 
 
+.PHONY: clean-rootfs
 clean-rootfs:
 # umount tmps volume for rootfs:
 	if [[ $$(mount | grep $(ROOTFS)) ]]; then \
@@ -87,5 +87,6 @@ clean-rootfs:
 		docker rm -f $(CONTAINERNAME) ;\
 	fi
 
+.PHONY: clean
 clean: clean-rootfs
 	rm -rf $(TARGETDIR)
