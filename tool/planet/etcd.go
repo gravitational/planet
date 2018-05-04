@@ -241,14 +241,6 @@ func etcdUpgrade(rollback bool) error {
 		return nil
 	}
 
-	// Upgrade - Remove previous backup of etcd data directory if it already exists
-	// Rollback - Remove data directory from the failed upgrade
-	log.Info("Cleaning up data from previous upgrades")
-	store := DefaultEtcdStoreBackup
-	if rollback {
-		store := DefaultEtcdStoreCurrent
-	}
-
 	// Upgrade - Move the current data directory to the backup location
 	// Rollback - Move the backup back to the original directory
 	// removes the destination directory before moving
