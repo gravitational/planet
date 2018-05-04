@@ -75,6 +75,12 @@ func etcdPromote(name, initialCluster, initialClusterState string) error {
 		EtcdProxy: "off",
 	})
 
+	out, err = exec.Command("/bin/systemctl", "daemon-reload").CombinedOutput()
+	log.Infof("systemctl daemon-reload: %v", string(out))
+	if err != nil {
+		return trace.Wrap(err, fmt.Sprintf("failed to trigger systemctl daemon-reload: %v", string(out)))
+	}
+
 	out, err = exec.Command("/bin/systemctl", "start", ETCDServiceName).CombinedOutput()
 	log.Infof("starting etcd: %v", string(out))
 	if err != nil {
