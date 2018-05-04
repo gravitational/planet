@@ -188,8 +188,9 @@ func etcdEnable(upgradeService bool) error {
 
 }
 
-// etcdUpgrade upgrades etcd on this server to the latest release
-func etcdUpgrade(wipe bool) error {
+// etcdUpgrade upgrades / rollbacks the etcd upgrade
+// the procedure is basically the same for an upgrade or rollback, just with some paths reversed
+func etcdUpgrade(rollback bool) error {
 	log.Info("Updating etcd")
 
 	env, err := box.ReadEnvironment(ContainerEnvironmentFile)
@@ -215,7 +216,11 @@ func etcdUpgrade(wipe bool) error {
 		}
 	}
 
-	currentVersion, err := currentEtcdVersion(DefaultEtcdCurrentVersionFile)
+	versionFile := DefaultEtcdCurrentVersionFile
+	if rollback {
+		versionFile = DefaultEtcdBackupVersionFile
+	}
+	currentVersion, err := currentEtcdVersion(versionFile)
 	if err != nil {
 		return trace.Wrap(err)
 	}
@@ -233,30 +238,59 @@ func etcdUpgrade(wipe bool) error {
 		return nil
 	}
 
-	// Remove previous backup of etcd data directory if it already exists
+	// Upgrade - Remove previous backup of etcd data directory if it already exists
+	// Rollback - Remove data directory from the failed upgrade
 	log.Info("Cleaning up data from previous upgrades")
-	err = os.RemoveAll(DefaultEtcdStoreBackup)
+	store := DefaultEtcdStoreBackup
+	if rollback {
+		store := DefaultEtcdStoreCurrent
+	}
+
+	// Upgrade - Move the current data directory to the backup location
+	// Rollback - Move the backup back to the original directory
+	// removes the destination directory before moving
+	log.Info("Backup etcd data")
+	from := DefaultEtcdStoreCurrent
+	to := DefaultEtcdStoreBackup
+	if rollback {
+		from := DefaultEtcdStoreBackup
+		to := DefaultEtcdStoreCurrent
+	}
+	err = os.RemoveAll(to)
+	if err != nil {
+		return trace.Wrap(err)
+	}
+	err = os.Rename(from, to)
 	if err != nil {
 		return trace.Wrap(err)
 	}
 
-	if wipe {
-		// Move the current data directory to the backup location
-		log.Info("Backup etcd data")
-		err = os.Rename(DefaultEtcdStoreCurrent, DefaultEtcdStoreBackup)
+	// Upgrade - Move the current version file to the backup location
+	// Rollback - Move the backup version to the original directory
+	log.Info("Backup etcd data")
+	from := DefaultEtcdCurrentVersionFile
+	to := DefaultEtcdBackupVersionFile
+	if rollback {
+		from := DefaultEtcdBackupVersionFile
+		to := DefaultEtcdCurrentVersionFile
+	}
+	err = os.RemoveAll(to)
+	if err != nil && !os.IsNotExist(err) {
+		return trace.Wrap(err)
+	}
+	err = os.Rename(from, to)
+	if err != nil && !os.IsNotExist(err) {
+		return trace.Wrap(err)
+	}
+
+	//only write the new version information if doing an upgrade
+	if !rollback {
+		// Write desired version as the current version file
+		log.Info("Writing etcd desired version: ", desiredVersion)
+		err = writeEtcdEnvironment(DefaultEtcdCurrentVersionFile, desiredVersion)
 		if err != nil {
 			return trace.Wrap(err)
 		}
-	} else {
-		//TODO(knisbet) implement backup of data directory during non wiping upgrades
-		return trace.BadParameter("upgrades that don't wipe the data aren't supported")
-	}
-
-	// Write desired version as the current version file
-	log.Info("Writing etcd desired version: ", desiredVersion)
-	err = writeEtcdEnvironment(DefaultEtcdCurrentVersionFile, desiredVersion)
-	if err != nil {
-		return trace.Wrap(err)
 	}
 
 	// reset the kubernetes api server to take advantage of any new etcd settings that may have changed
@@ -297,11 +331,6 @@ func etcdRestore(file string) error {
 	}
 
 	log.Info("Restore complete")
-	return nil
-}
-
-// etcdRollback rollsback up a failed upgrade attempt to the previous state
-func etcdRollback() error {
 	return nil
 }
 

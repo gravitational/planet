@@ -171,8 +171,8 @@ func run() error {
 		cetcdEnable        = cetcd.Command("enable", "Enable etcd on this node")
 		cetcdEnableUpgrade = cetcdEnable.Flag("upgrade", "enable the upgrade service").Bool()
 
-		cetcdUpgrade     = cetcd.Command("upgrade", "Upgrade etcd to latest available in this container")
-		cetcdUpgradeWipe = cetcdUpgrade.Flag("wipe", "Whether to wipe / re-initialize the etcd database during the upgrade (restore with upgrade-restore)").Bool()
+		cetcdUpgrade  = cetcd.Command("upgrade", "Upgrade etcd to latest available in this container")
+		cetcdRollback = cetcd.Command("rollback", "Rollback etcd to the previous release")
 
 		cetcdRestore     = cetcd.Command("restore", "Restore etcd backup as part of the upgrade")
 		cetcdRestoreFile = cetcdRestore.Arg("file", "A previously taken backup file to use during upgrade").Required().String()
@@ -428,7 +428,10 @@ func run() error {
 		err = etcdDisable(*cetcdDisableUpgrade)
 
 	case cetcdUpgrade.FullCommand():
-		err = etcdUpgrade(*cetcdUpgradeWipe)
+		err = etcdUpgrade(false)
+
+	case cetcdRollback.FullCommand():
+		err = etcdUpgrade(true)
 
 	case cetcdRestore.FullCommand():
 		err = etcdRestore(*cetcdRestoreFile)
