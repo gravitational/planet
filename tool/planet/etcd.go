@@ -256,8 +256,8 @@ func etcdUpgrade(rollback bool) error {
 	from := DefaultEtcdStoreCurrent
 	to := DefaultEtcdStoreBackup
 	if rollback {
-		from := DefaultEtcdStoreBackup
-		to := DefaultEtcdStoreCurrent
+		from = DefaultEtcdStoreBackup
+		to = DefaultEtcdStoreCurrent
 	}
 	err = os.RemoveAll(to)
 	if err != nil {
@@ -271,11 +271,11 @@ func etcdUpgrade(rollback bool) error {
 	// Upgrade - Move the current version file to the backup location
 	// Rollback - Move the backup version to the original directory
 	log.Info("Backup etcd data")
-	from := DefaultEtcdCurrentVersionFile
-	to := DefaultEtcdBackupVersionFile
+	from = DefaultEtcdCurrentVersionFile
+	to = DefaultEtcdBackupVersionFile
 	if rollback {
-		from := DefaultEtcdBackupVersionFile
-		to := DefaultEtcdCurrentVersionFile
+		from = DefaultEtcdBackupVersionFile
+		to = DefaultEtcdCurrentVersionFile
 	}
 	err = os.RemoveAll(to)
 	if err != nil && !os.IsNotExist(err) {
