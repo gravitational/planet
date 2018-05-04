@@ -362,7 +362,7 @@ func convertError(err error) error {
 // masking unit files not working. Ideally, this will use dbus at some point in the future.
 func systemctl(operation, service string) error {
 	ctx, _ := context.WithTimeout(context.Background(), 1*time.Minute)
-	out, err := exec.CommandContext(ctx, "/bin/systemctl", operation, service).CombinedOutput()
+	out, err := exec.CommandContext(ctx, "/bin/systemctl", "--no-block", operation, service).CombinedOutput()
 	log.Infof("%v %v: %v", operation, service, string(out))
 	if err != nil {
 		return trace.Wrap(err, fmt.Sprintf("failed to %v %v: %v", operation, service, string(out)))
