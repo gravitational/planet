@@ -66,9 +66,14 @@ func etcdPromote(name, initialCluster, initialClusterState string) error {
 	}
 
 	log.Infof("removing %v", ETCDProxyDir)
-	if err := os.RemoveAll(ETCDProxyDir); err != nil {
+	if err := os.RemoveAll(ETCDProxyDir); err != nil && !os.IsNotExist(err) {
 		return trace.Wrap(err)
 	}
+
+	setupEtcd(&Config{
+		Rootfs:    "/",
+		EtcdProxy: "off",
+	})
 
 	out, err = exec.Command("/bin/systemctl", "start", ETCDServiceName).CombinedOutput()
 	log.Infof("starting etcd: %v", string(out))
@@ -76,12 +81,10 @@ func etcdPromote(name, initialCluster, initialClusterState string) error {
 		return trace.Wrap(err, fmt.Sprintf("failed to start etcd: %v", string(out)))
 	}
 
-	if env.Get(EnvRole) == PlanetRoleMaster {
-		out, err = exec.Command("/bin/systemctl", "start", APIServerServiceName).CombinedOutput()
-		log.Infof("starting kube-apiserver: %v", string(out))
-		if err != nil {
-			return trace.Wrap(err, fmt.Sprintf("failed to start kube-apiserver: %v", string(out)))
-		}
+	out, err = exec.Command("/bin/systemctl", "restart", PlanetAgentServiceName).CombinedOutput()
+	log.Infof("restarting planet-agent: %v", string(out))
+	if err != nil {
+		return trace.Wrap(err, fmt.Sprintf("failed to restart planet-agent: %v", string(out)))
 	}
 
 	return nil

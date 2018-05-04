@@ -428,18 +428,24 @@ func addEtcdOptions(config *Config) {
 // If this is a master node, and we don't detect an existing data directory, start the latest etcd, since we default
 // to using the oldest etcd during an upgrade
 func setupEtcd(config *Config) error {
+	dropinPath := path.Join(config.Rootfs, ETCDGatewayDropinPath)
+
 	if strings.ToLower(config.EtcdProxy) == "on" {
 		err := os.MkdirAll(path.Join(config.Rootfs, "etc/systemd/system/etcd.service.d/"), 0755)
 		if err != nil {
 			return trace.Wrap(err)
 		}
 
-		dropinPath := path.Join(config.Rootfs, "etc/systemd/system/etcd.service.d/10-gateway.conf")
 		err = os.Symlink(
 			"/lib/systemd/system/etcd-gateway.dropin",
 			dropinPath,
 		)
 		if err != nil && !os.IsExist(err) {
+			return trace.Wrap(err)
+		}
+	} else {
+		err := os.Remove(dropinPath)
+		if err != nil && !os.IsNotExist(err) {
 			return trace.Wrap(err)
 		}
 	}

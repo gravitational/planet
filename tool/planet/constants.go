@@ -194,6 +194,11 @@ const (
 	ETCDUpgradeServiceName = "etcd-upgrade.service"
 	// APIServerServiceName names the service unit for k8s apiserver
 	APIServerServiceName = "kube-apiserver.service"
+	// PlanetAgentServiceName is the name of the planet agent
+	PlanetAgentServiceName = "planet-agent.service"
+
+	// ETCDDropinPath is the location of the systemd dropin when etcd is in gateway mode
+	ETCDGatewayDropinPath = "/etc/systemd/system/etcd.service.d/10-gateway.conf"
 
 	// PlanetResolv is planet local resolver
 	PlanetResolv = "resolv.gravity.conf"
