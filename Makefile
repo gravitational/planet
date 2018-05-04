@@ -70,7 +70,7 @@ build: $(BUILDDIR)/current
 
 # Makes a "developer" image, with _all_ parts of Kubernetes installed
 dev: buildbox
-	$(MAKE) -C $(ASSETS)/makefiles -e TARGET=dev -f buildbox.mk
+	$(MAKE) -C $(ASSETS)/makefiles -e TARGET=master -f buildbox.mk
 
 # Deploys the build artifacts to Amazon S3
 deploy:
@@ -119,16 +119,14 @@ dev-test: dev prepare-to-run
 
 # Starts "planet-dev" build.
 dev-start: dev prepare-to-run
-	cd $(BUILDDIR)/current && sudo rootfs/usr/bin/planet start\
+	cd $(BUILDDIR)/current && sudo rootfs/usr/bin/planet start \
 		--debug \
-		--etcd-member-name=v-planet-master \
+		--etcd-member-name=dev-planet \
 		--secrets-dir=/var/planet/state \
-		--state-dir=/var/planet/state \
 		--public-ip=$(PUBLIC_IP) \
 		--role=master \
-		--role=node \
 		--service-uid=1000 \
-		--initial-cluster=v-planet-master:$(PUBLIC_IP) \
+		--initial-cluster=dev-planet:$(PUBLIC_IP) \
 		--volume=/var/planet/agent:/ext/agent \
 		--volume=/var/planet/etcd:/ext/etcd \
 		--volume=/var/planet/registry:/ext/registry \

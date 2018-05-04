@@ -149,7 +149,7 @@ func Start(cfg Config) (*Box, error) {
 	// this will cause libcontainer to exec this binary again
 	// with "init" command line argument.  (this is the default setting)
 	// then our init() function comes into play
-	if err := container.Start(process); err != nil {
+	if err := container.Run(process); err != nil {
 		// kill the webserver (so it would close the socket)
 		listener.Close()
 		return nil, trace.Wrap(err)
