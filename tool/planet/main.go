@@ -68,6 +68,7 @@ func run() error {
 		cstartMasterIP                = cstart.Flag("master-ip", "IP of the master POD (defaults to public-ip)").OverrideDefaultFromEnvar("PLANET_MASTER_IP").IP()
 		cstartCloudProvider           = cstart.Flag("cloud-provider", "cloud provider name, e.g. 'aws' or 'gce'").OverrideDefaultFromEnvar("PLANET_CLOUD_PROVIDER").String()
 		cstartClusterID               = cstart.Flag("cluster-id", "ID of the cluster").OverrideDefaultFromEnvar("PLANET_CLUSTER_ID").String()
+		cstartGCENodeTags             = cstart.Flag("gce-node-tags", "Node tag to set in the cloud configuration file on GCE as comma-separated values").OverrideDefaultFromEnvar(EnvGCENodeTags).String()
 		cstartIgnoreChecks            = cstart.Flag("ignore-checks", "Force start ignoring some failed host checks (e.g. kernel version)").OverrideDefaultFromEnvar("PLANET_FORCE").Bool()
 		cstartEnv                     = EnvVars(cstart.Flag("env", "Set environment variable").OverrideDefaultFromEnvar("PLANET_ENV"))
 		cstartMounts                  = Mounts(cstart.Flag("volume", "External volume to mount").OverrideDefaultFromEnvar("PLANET_VOLUME"))
@@ -336,6 +337,7 @@ func run() error {
 			PublicIP:       cstartPublicIP.String(),
 			CloudProvider:  *cstartCloudProvider,
 			ClusterID:      *cstartClusterID,
+			GCENodeTags:    *cstartGCENodeTags,
 			SecretsDir:     *cstartSecretsDir,
 			ServiceSubnet:  *cstartServiceSubnet,
 			PODSubnet:      *cstartPODSubnet,

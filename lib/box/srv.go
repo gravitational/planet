@@ -188,6 +188,15 @@ func Start(cfg Config) (*Box, error) {
 				Flags:       syscall.MS_NOSUID | syscall.MS_NOEXEC,
 				Data:        "newinstance,ptmxmode=0666,mode=0620,gid=5",
 			},
+			// needed for dynamically provisioned/attached persistent volumes
+			// to work on some cloud providers (e.g. GCE) which use symlinks
+			// in /dev/disk/by-uuid to refer to provisioned devices
+			{
+				Device:      "bind",
+				Source:      "/dev/disk",
+				Destination: "/dev/disk",
+				Flags:       syscall.MS_BIND,
+			},
 		},
 		Cgroups: &configs.Cgroup{
 			Name:   containerID,

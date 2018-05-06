@@ -7,7 +7,6 @@ Wants=etcd.service
 Restart=always
 RestartSec=5
 Environment="TMPDIR=/var/tmp/"
-Environment="FLANNEL_VER=0.5.1"
 EnvironmentFile=/etc/container-environment
 LimitNOFILE=40000
 LimitNPROC=1048576
@@ -27,5 +26,10 @@ ExecStart=/usr/bin/flanneld \
     --etcd-cafile=/var/state/root.cert \
     --etcd-certfile=/var/state/etcd.cert \
     --etcd-keyfile=/var/state/etcd.key \
+    --kube-apiserver=${KUBE_APISERVER}:6443 \
+    --kube-node=${KUBE_NODE_NAME} \
+    --kube-cert=/var/state/kubelet.cert \
+    --kube-key=/var/state/kubelet.key \
+    --kube-ca=/var/state/root.cert \
     --iface=${PLANET_PUBLIC_IP}
 ExecStartPost=-/bin/bash -c "until [ -e /run/flannel/subnet.env ]; do echo \"waiting for write.\"; sleep 3; done"

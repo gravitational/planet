@@ -342,15 +342,29 @@ func setupCloudOptions(c *Config) error {
 
 	flags := []string{fmt.Sprintf("--cloud-provider=%v", c.CloudProvider)}
 
-	// generate AWS cloud config for kubernetes cluster
-	if c.CloudProvider == CloudProviderAWS && c.ClusterID != "" {
-		flags = append(flags,
-			"--cloud-config=/etc/cloud-config.conf")
-		c.Files = append(c.Files, box.File{
-			Path: "/etc/cloud-config.conf",
-			Contents: strings.NewReader(
-				fmt.Sprintf(awsCloudConfig, c.ClusterID)),
-		})
+	switch c.CloudProvider {
+	case CloudProviderAWS:
+		if c.ClusterID != "" {
+			flags = append(flags, "--cloud-config=/etc/cloud-config.conf")
+			c.Files = append(c.Files, box.File{
+				Path: "/etc/cloud-config.conf",
+				Contents: strings.NewReader(fmt.Sprintf(
+					awsCloudConfig, c.ClusterID)),
+			})
+		}
+	case CloudProviderGCE:
+		if c.ClusterID != "" {
+			nodeTags := c.ClusterID
+			if c.GCENodeTags != "" {
+				nodeTags = c.GCENodeTags
+			}
+			flags = append(flags, "--cloud-config=/etc/cloud-config.conf")
+			c.Files = append(c.Files, box.File{
+				Path: "/etc/cloud-config.conf",
+				Contents: strings.NewReader(fmt.Sprintf(
+					gceCloudConfig, nodeTags)),
+			})
+		}
 	}
 
 	c.Env.Upsert("KUBE_CLOUD_FLAGS", strings.Join(flags, " "))
@@ -573,8 +587,6 @@ func copyResolvFile(cfg utils.DNSConfig, destination string, upstreamNameservers
 	nameservers := append(upstreamNameservers, cfg.Servers...)
 
 	cfg.Servers = nameservers
-	// Limit search to local cluster domain
-	cfg.Search = nil
 	cfg.Ndots = DNSNdots
 	cfg.Timeout = DNSTimeout
 
@@ -634,9 +646,12 @@ func mountSecrets(config *Config) {
 }
 
 func setupFlannel(config *Config) {
-	if config.CloudProvider == CloudProviderAWS {
+	switch config.CloudProvider {
+	case CloudProviderAWS:
 		config.Env.Upsert("FLANNEL_BACKEND", "aws-vpc")
-	} else {
+	case CloudProviderGCE:
+		config.Env.Upsert("FLANNEL_BACKEND", "gce")
+	default:
 		config.Env.Upsert("FLANNEL_BACKEND", "vxlan")
 	}
 }
@@ -694,9 +709,21 @@ func chownDir(dirPath string, uid, gid int) error {
 	})
 }
 
-const awsCloudConfig = `[Global]
+const (
+	// awsCloudConfig is the cloud-config for integration with AWS
+	awsCloudConfig = `[Global]
 KubernetesClusterTag=%v
 `
+	// gceCloudConfig is the cloud-config for integration with GCE
+	gceCloudConfig = `[global]
+; list of network tags on instances which will be used
+; when creating firewall rules for load balancers
+node-tags=%v
+; enable multi-zone setting, otherwise kube-controller-manager
+; will not recognize nodes running in different zones
+multizone=true
+`
+)
 
 var masterUnits = []string{
 	"etcd",

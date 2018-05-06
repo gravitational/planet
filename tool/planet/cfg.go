@@ -33,6 +33,12 @@ type Config struct {
 	CloudProvider string
 	// ClusterID is the unique cluster name
 	ClusterID string
+	// GCENodeTags specify tags to set in the cloud configuration on GCE.
+	// Kubernetes will use the tags to match instances when creating LoadBalancers on GCE.
+	// By default, a cluster name is used a node tag.
+	// GCE imposes restrictions on tag values and cluster names are not always conforming.
+	// GCENodeTags can specify alternative node tag for LoadBalancer matching.
+	GCENodeTags string
 	// Env specifies the container's additional environment
 	Env box.EnvVars
 	// Mounts specifies the list of additional mounts

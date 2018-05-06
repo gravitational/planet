@@ -218,6 +218,12 @@
                 "name": "serviceuid",
                 "env": "PLANET_SERVICE_UID",
                 "cli": {"name": "service-uid"}
+            },
+            {
+                "type": "String",
+                "name": "gcenodetags",
+                "env": "PLANET_GCE_NODE_TAGS",
+                "cli": {"name": "gce-node-tags"}
             }
         ]
     }

@@ -119,6 +119,9 @@ const (
 	// EnvServiceGID names the environment variable that specifies the service group ID
 	EnvServiceGID = "PLANET_SERVICE_GID"
 
+	// EnvGCENodeTags names the environment variable that defines network node tags on GCE
+	EnvGCENodeTags = "PLANET_GCE_NODE_TAGS"
+
 	// PlanetRoleMaster specifies the value of the node role to be master.
 	// A master node runs additional runtime tests as well as additional
 	// set of services
@@ -175,6 +178,8 @@ const (
 	// CloudProviderAWS defines the name of the AWS cloud provider used to
 	// setup AWS integration in kubernetes
 	CloudProviderAWS = "aws"
+	// CloudProviderGCE is the Google Compute Engine cloud provider ID
+	CloudProviderGCE = "gce"
 
 	// See resolv.conf(5) on a Linux machine
 	//
