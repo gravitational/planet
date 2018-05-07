@@ -13,7 +13,7 @@ all: $(ROOTFS)/bin/bash build planet-image
 
 .PHONY: build
 build:
-	@echo -e "\n---> Launching 'buildbox' Docker container to build $(TARGET):\n"
+	@echo -e "\n---> Launching 'buildbox' Docker container to build planet:\n"
 	@mkdir -p $(ASSETDIR)
 	docker run -i -u $$(id -u) --rm=true \
 		--volume=$(ASSETS):/assets \
@@ -40,7 +40,6 @@ planet-image:
 	cp $(ASSETDIR)/docker-import $(ROOTFS)/usr/bin/
 	@echo -e "\n---> Moving current symlink to $(TARGETDIR)\n"
 	@rm -f $(BUILDDIR)/current
-	@cd $(BUILDDIR) && ln -fs $(TARGET) $(BUILDDIR)/current
 	@echo -e "\n---> Creating Planet image...\n"
 	cd $(TARGETDIR) && fakeroot -- sh -c ' \
 		chown -R 1000:1000 . ; \

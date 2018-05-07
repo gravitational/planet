@@ -25,8 +25,8 @@
 #     7. build/current/rootfs is basically the output of the build.
 #     8. Last, rootfs is stored into a ready for distribution tarball.
 #
-.DEFAULT_GOAL:=all
-SHELL:=/bin/bash
+.DEFAULT_GOAL := all
+SHELL := /bin/bash
 
 PWD := $(shell pwd)
 ASSETS := $(PWD)/build.assets
@@ -45,47 +45,48 @@ BUILDBOX_GO_VER := 1.9
 
 PUBLIC_IP := 127.0.0.1
 export
-PLANET_PACKAGE_PATH=$(PWD)
-PLANET_PACKAGE=github.com/gravitational/planet
-PLANET_VERSION_PACKAGE_PATH=$(PLANET_PACKAGE)/Godeps/_workspace/src/github.com/gravitational/version
+
+PLANET_PACKAGE_PATH = $(PWD)
+PLANET_PACKAGE = github.com/gravitational/planet
+PLANET_VERSION_PACKAGE_PATH = $(PLANET_PACKAGE)/Godeps/_workspace/src/github.com/gravitational/version
+GO_FILES := $(shell find . -type f -name '*.go' -not -path "./vendor/*" -not -path "./build/*")
+# Space separated patterns of packages to skip
+IGNORED_PACKAGES := /vendor build/
 
 .PHONY: all
 all: production
 
-.PHONY: build
 # 'make build' compiles the Go portion of Planet, meant for quick & iterative
 # development on an _already built image_. You need to build an image first, for
 # example with "make dev"
-build: $(BUILDDIR)/current
-	GOOS=linux GOARCH=amd64 go install -ldflags "$(PLANET_GO_LDFLAGS)" github.com/gravitational/planet/tool/planet
-	cp -f $$GOPATH/bin/planet $(BUILDDIR)/current/planet
-	rm -f $(BUILDDIR)/current/rootfs/usr/bin/planet
-	cp -f $$GOPATH/bin/planet $(BUILDDIR)/current/rootfs/usr/bin/planet
+.PHONY: build
+build: $(BUILD_ASSETS)/planet $(BUILDDIR)/planet.tar.gz
+	cp -f $< $(BUILDDIR)/rootfs/usr/bin/
 
-.PHONY: deploy
 # Deploys the build artifacts to Amazon S3
+.PHONY: deploy
 deploy:
 	$(MAKE) -C $(ASSETS)/makefiles/deploy
 
 .PHONY: production
-production: buildbox
-	@rm -f $(BUILD_ASSETS)/planet
+production: buildbox $(BUILDDIR)/planet.tar.gz
+
+$(BUILD_ASSETS)/planet:
+	GOOS=linux GOARCH=amd64 \
+	     go install -ldflags "$(PLANET_GO_LDFLAGS)" \
+	     $(PLANET_PACKAGE)/tool/planet -o $@
+
+$(BUILDDIR)/planet.tar.gz: Makefile $(wildcard build.assets/**/*) $(GO_FILES)
 	$(MAKE) -C $(ASSETS)/makefiles -f buildbox.mk
 
 .PHONY: enter-buildbox
 enter-buildbox:
 	$(MAKE) -C $(ASSETS)/makefiles -e -f buildbox.mk enter-buildbox
 
-
-.PHONY: test
 # Run package tests
+.PHONY: test
 test: remove-temp-files
-	go test -race -v -test.parallel=0 ./lib/... ./tool/...
-
-.PHONY: test-package
-# Test a specific package
-test-package: remove-temp-files
-	go test -race -v -test.parallel=0 ./$(p)
+	go test -race -v -test.parallel=1 $(allpackages)
 
 .PHONY: test-package-with-etcd
 test-package-with-etcd: remove-temp-files
@@ -95,10 +96,10 @@ test-package-with-etcd: remove-temp-files
 remove-temp-files:
 	find . -name flymake_* -delete
 
-.PHONY: start
 # Start the planet container locally
+.PHONY: start
 start: build prepare-to-run
-	cd $(BUILDDIR)/current && sudo rootfs/usr/bin/planet start \
+	cd $(BUILDDIR) && sudo rootfs/usr/bin/planet start \
 		--debug \
 		--etcd-member-name=local-planet \
 		--secrets-dir=/var/planet/state \
@@ -114,29 +115,29 @@ start: build prepare-to-run
 # Stop the running planet container
 .PHONY: stop
 stop:
-	cd $(BUILDDIR)/current && sudo rootfs/usr/bin/planet --debug stop
+	cd $(BUILDDIR) && sudo rootfs/usr/bin/planet --debug stop
 
 # Enter the running planet container
 .PHONY: enter
 enter:
-	cd $(BUILDDIR)/current && sudo rootfs/usr/bin/planet enter --debug /bin/bash
+	cd $(BUILDDIR) && sudo rootfs/usr/bin/planet enter --debug /bin/bash
 
-.PHONY: os
 # Build the base Docker image everything else is based on.
+.PHONY: os
 os:
 	@echo -e "\n---> Making Planet/OS (Debian) Docker image...\n"
 	$(MAKE) -e BUILDIMAGE=planet/os DOCKERFILE=os.dockerfile make-docker-image
 
-.PHONY: base
 # Build the image with components required for running a Kubernetes node
+.PHONY: base
 base: os
 	@echo -e "\n---> Making Planet/Base Docker image based on Planet/OS...\n"
 	$(MAKE) -e BUILDIMAGE=planet/base DOCKERFILE=base.dockerfile \
 		EXTRA_ARGS="--build-arg SECCOMP_VER=$(SECCOMP_VER) --build-arg DOCKER_VER=$(DOCKER_VER) --build-arg HELM_VER=$(HELM_VER)" \
 		make-docker-image
 
-.PHONY: buildbox
 # Build a container used for building the planet image
+.PHONY: buildbox
 buildbox: base
 	@echo -e "\n---> Making Planet/BuildBox Docker image:\n" ;\
 	$(MAKE) -e BUILDIMAGE=planet/buildbox \
@@ -144,14 +145,14 @@ buildbox: base
 		EXTRA_ARGS="--build-arg GOVERSION=$(BUILDBOX_GO_VER)" \
 		make-docker-image
 
-.PHONY: clean
 # Remove build aftifacts
+.PHONY: clean
 clean:
 	$(MAKE) -C $(ASSETS)/makefiles -f buildbox.mk clean
 	rm -rf $(BUILDDIR)
 
-.PHONY: make-docker-image
 # internal use:
+.PHONY: make-docker-image
 make-docker-image:
 	cd $(ASSETS)/docker; docker build $(EXTRA_ARGS) -t $(BUILDIMAGE) -f $(DOCKERFILE) .
 
@@ -164,7 +165,7 @@ remove-godeps:
 prepare-to-run: build
 	@sudo mkdir -p /var/planet/registry /var/planet/etcd /var/planet/docker
 	@sudo chown $$USER:$$USER /var/planet/etcd -R
-	@cp -f $(BUILDDIR)/current/planet $(BUILDDIR)/current/rootfs/usr/bin/planet
+	@cp -f $(BUILD_ASSETS)/planet $(BUILDDIR)/rootfs/usr/bin/planet
 
 .PHONY: clean-containers
 clean-containers:
@@ -182,9 +183,13 @@ clean-images: clean-containers
 		docker rmi -f $$DEADIMAGES ;\
 	fi
 
-$(BUILDDIR)/current:
-	@echo "You need to build the full image first. Run \"make dev\""
-
 .PHONY: fix-logrus
 fix-logrus:
 	find vendor -type f -print0 | xargs -0 sed -i 's/Sirupsen/sirupsen/g'
+
+_allpackages = $(shell ( go list ./... 2>&1 1>&3 | \
+    grep -v -e "^$$" $(addprefix -e ,$(IGNORED_PACKAGES)) 1>&2 ) 3>&1 | \
+    grep -v -e "^$$" $(addprefix -e ,$(IGNORED_PACKAGES)))
+
+# memoize allpackages, so that it's executed only once and only if used
+allpackages = $(if $(__allpackages),,$(eval __allpackages := $$(_allpackages)))$(__allpackages)
