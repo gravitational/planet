@@ -49,7 +49,7 @@ planet-image:
 	cd $(TARGETDIR) && fakeroot -- sh -c ' \
 		chown -R 1000:1000 . ; \
 		chown -R root:root rootfs/sbin/mount.* ; \
-		tar -czf $(TARBALL) orbit.manifest.json rootfs'
+		tar -czf $(TARBALL) orbit.manifest.json rootfs ; ls -l'
 	@echo -e "\nDone --> $(TARBALL)"
 
 enter_buildbox:
