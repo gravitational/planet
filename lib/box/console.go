@@ -21,7 +21,10 @@ func getContainerConsole(ctx context.Context, consoleSocket *os.File) (libconsol
 
 	go func() {
 		f, err := libcontainerutils.RecvFd(consoleSocket)
-		if err != nil {
+		defer func() {
+			if err == nil {
+				return
+			}
 			select {
 			case consoleCh <- &resp{
 				err: err,
@@ -29,17 +32,12 @@ func getContainerConsole(ctx context.Context, consoleSocket *os.File) (libconsol
 			case <-ctx.Done():
 				log.Warnf("Context is closing: %v.", ctx.Err())
 			}
+		}()
+		if err != nil {
 			return
 		}
 		console, err := libconsole.ConsoleFromFile(f)
 		if err != nil {
-			select {
-			case consoleCh <- &resp{
-				err: err,
-			}:
-			case <-ctx.Done():
-				log.Warnf("Context is closing: %v.", ctx.Err())
-			}
 			f.Close()
 			return
 		}

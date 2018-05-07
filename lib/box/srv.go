@@ -28,6 +28,11 @@ type ContainerServer interface {
 	Enter(cfg ProcessConfig) error
 }
 
+// Box defines a running planet container.
+//
+// A box manages a number of resources including an init process
+// and an API server that exposes a unix socket endpoint.
+// Once started, the box can be shut down with Close.
 type Box struct {
 	Process   *libcontainer.Process
 	Container libcontainer.Container
@@ -52,6 +57,8 @@ func (b *Box) Close() error {
 	return err
 }
 
+// Wait blocks waiting the initi process to finish.
+// Returns the state of the init process.
 func (b *Box) Wait() (*os.ProcessState, error) {
 	log.Infof("box.Wait() is called")
 	st, err := b.Process.Wait()
@@ -61,6 +68,8 @@ func (b *Box) Wait() (*os.ProcessState, error) {
 	return st, err
 }
 
+// Starts the container described by cfg.
+// Returns a Box instance or an error.
 func Start(cfg Config) (*Box, error) {
 	log.Infof("[BOX] starting with config: %#v", cfg)
 
@@ -143,6 +152,11 @@ func Start(cfg Config) (*Box, error) {
 	if err != nil {
 		return nil, trace.Wrap(err)
 	}
+	defer func() {
+		if err != nil {
+			listener.Close()
+		}
+	}()
 
 	err = startWebServer(listener, container)
 	if err != nil {
@@ -160,8 +174,6 @@ func Start(cfg Config) (*Box, error) {
 
 	// Run the container by starting the init process.
 	if err := container.Run(process); err != nil {
-		// Close the listener to release web server socket
-		listener.Close()
 		return nil, trace.Wrap(err)
 	}
 

@@ -4,8 +4,10 @@ import (
 	"os"
 	"runtime"
 
+	"github.com/gravitational/trace"
 	"github.com/opencontainers/runc/libcontainer"
 	_ "github.com/opencontainers/runc/libcontainer/nsenter"
+	log "github.com/sirupsen/logrus"
 )
 
 func init() {
@@ -18,11 +20,13 @@ func init() {
 // Init is implicitly called by the libcontainer logic and is used to start
 // a process in the new namespaces and cgroups
 func Init() error {
-	factory, _ := libcontainer.New("")
+	factory, err := libcontainer.New("")
+	if err != nil {
+		return trace.Wrap(err, "failed to create container factory")
+	}
 	if err := factory.StartInitialization(); err != nil {
-		// as the error is sent back to the parent there is no need to log
-		// or write it to stderr because the parent process will handle this
-		os.Exit(1)
+		log.Warnf("Failed to initialize container factory: %v.", err)
+		return trace.Wrap(err, "failed to initialize container factory")
 	}
 	panic("libcontainer: container init failed to exec")
 }
