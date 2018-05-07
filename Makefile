@@ -26,29 +26,31 @@
 #     8. Last, rootfs is stored into a ready for distribution tarball.
 #
 .DEFAULT_GOAL := all
-SHELL := /bin/bash
 
+SHELL := /bin/bash
 PWD := $(shell pwd)
 ASSETS := $(PWD)/build.assets
 BUILD_ASSETS := $(PWD)/build/assets
 BUILDDIR ?= $(PWD)/build
 BUILDDIR := $(shell realpath $(BUILDDIR))
 
-KUBE_VER := v1.9.6
-SECCOMP_VER :=  2.3.1-2.1
-DOCKER_VER := 17.03.2
+KUBE_VER ?= v1.9.6
+SECCOMP_VER ?=  2.3.1-2.1
+DOCKER_VER ?= 17.03.2
 # we currently use our own flannel fork: gravitational/flannel
-FLANNEL_VER := master
-ETCD_VER := v2.3.8
-HELM_VER := v2.8.1
-BUILDBOX_GO_VER := 1.9
-
-PUBLIC_IP := 127.0.0.1
+FLANNEL_VER ?= master
+ETCD_VER ?= v2.3.8
+HELM_VER ?= v2.8.1
+BUILDBOX_GO_VER ?= 1.9
+PLANET_BUILD_TAG ?= $(shell git describe --tags)
+PLANET_IMAGE_NAME ?= planet/base
+PLANET_IMAGE ?= $(PLANET_IMAGE_NAME):$(PLANET_BUILD_TAG)
 export
 
-PLANET_PACKAGE_PATH = $(PWD)
-PLANET_PACKAGE = github.com/gravitational/planet
-PLANET_VERSION_PACKAGE_PATH = $(PLANET_PACKAGE)/Godeps/_workspace/src/github.com/gravitational/version
+PUBLIC_IP ?= 127.0.0.1
+PLANET_PACKAGE_PATH := $(PWD)
+PLANET_PACKAGE := github.com/gravitational/planet
+PLANET_VERSION_PACKAGE_PATH := $(PLANET_PACKAGE)/Godeps/_workspace/src/github.com/gravitational/version
 GO_FILES := $(shell find . -type f -name '*.go' -not -path "./vendor/*" -not -path "./build/*")
 # Space separated patterns of packages to skip
 IGNORED_PACKAGES := /vendor build/
@@ -76,7 +78,7 @@ $(BUILD_ASSETS)/planet:
 	     go install -ldflags "$(PLANET_GO_LDFLAGS)" \
 	     $(PLANET_PACKAGE)/tool/planet -o $@
 
-$(BUILDDIR)/planet.tar.gz: Makefile $(wildcard build.assets/**/*) $(GO_FILES)
+$(BUILDDIR)/planet.tar.gz: base Makefile $(wildcard build.assets/**/*) $(GO_FILES)
 	$(MAKE) -C $(ASSETS)/makefiles -f buildbox.mk
 
 .PHONY: enter-buildbox
@@ -132,7 +134,7 @@ os:
 .PHONY: base
 base: os
 	@echo -e "\n---> Making Planet/Base Docker image based on Planet/OS...\n"
-	$(MAKE) -e BUILDIMAGE=planet/base DOCKERFILE=base.dockerfile \
+	$(MAKE) -e BUILDIMAGE=$(PLANET_IMAGE) DOCKERFILE=base.dockerfile \
 		EXTRA_ARGS="--build-arg SECCOMP_VER=$(SECCOMP_VER) --build-arg DOCKER_VER=$(DOCKER_VER) --build-arg HELM_VER=$(HELM_VER)" \
 		make-docker-image
 
@@ -187,9 +189,15 @@ clean-images: clean-containers
 fix-logrus:
 	find vendor -type f -print0 | xargs -0 sed -i 's/Sirupsen/sirupsen/g'
 
-_allpackages = $(shell ( go list ./... 2>&1 1>&3 | \
+.PHONY: get-version
+get-version:
+	@echo $(PLANET_BUILD_TAG)
+
+# http://blog.jgc.org/2016/07/lazy-gnu-make-variables.html
+# https://github.com/cloudflare/hellogopher
+# lazy-evaluate the packages only on first use
+_allpackages = $(shell (go list ./... 2>&1 1>&3 | \
     grep -v -e "^$$" $(addprefix -e ,$(IGNORED_PACKAGES)) 1>&2 ) 3>&1 | \
     grep -v -e "^$$" $(addprefix -e ,$(IGNORED_PACKAGES)))
 
-# memoize allpackages, so that it's executed only once and only if used
 allpackages = $(if $(__allpackages),,$(eval __allpackages := $$(_allpackages)))$(__allpackages)

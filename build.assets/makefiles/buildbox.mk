@@ -70,7 +70,7 @@ $(ROOTFS)/bin/bash: clean-rootfs
 	  sudo mount -t tmpfs -o size=$(TMPFS_SIZE) tmpfs $(ROOTFS) ;\
 	fi
 # populate Rootfs using docker image 'planet/base'
-	docker create --name=$(CONTAINERNAME) planet/base
+	docker create --name=$(CONTAINERNAME) $(PLANET_IMAGE)
 	@echo "Exporting base Docker image into a fresh RootFS into $(ROOTFS)...."
 	cd $(ROOTFS) && docker export $(CONTAINERNAME) | tar -x
 
