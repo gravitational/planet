@@ -57,7 +57,7 @@ func (b *Box) Close() error {
 	return err
 }
 
-// Wait blocks waiting the initi process to finish.
+// Wait blocks waiting the init process to finish.
 // Returns the state of the init process.
 func (b *Box) Wait() (*os.ProcessState, error) {
 	log.Infof("box.Wait() is called")
