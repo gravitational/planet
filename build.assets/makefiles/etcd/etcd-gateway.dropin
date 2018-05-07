@@ -1,5 +1,5 @@
 # This systemd drop in file, will change the etcd unit to run a gateway
-# instead of the etcd service itself
+# instead of the etcd service
 
 [Service]
 ExecStart=
