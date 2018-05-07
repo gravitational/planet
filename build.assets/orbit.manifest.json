@@ -2,7 +2,7 @@
     "version": "0.0.1",
     "labels": [
       {"name": "os", "value": "linux"},
-      {"name": "version-etcd", "value": "v3.3.4"}
+      {"name": "version-etcd", "value": "REPLACE_ETCD_LATEST_VERSION"}
     ],
     "commands": [
       {"name": "start", "args": ["rootfs/usr/bin/planet", "start"]},

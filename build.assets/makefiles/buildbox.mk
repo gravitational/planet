@@ -39,6 +39,7 @@ endif
 
 planet-image:
 	cp $(ASSETS)/orbit.manifest.json $(TARGETDIR)
+	sed -i "s/REPLACE_ETCD_LATEST_VERSION/$(ETCD_LATEST_VER)/g" $(TARGETDIR)/orbit.manifest.json
 	cp $(ASSETDIR)/planet $(ROOTFS)/usr/bin/
 	cp $(ASSETDIR)/docker-import $(ROOTFS)/usr/bin/
 	@echo -e "\n---> Moving current symlink to $(TARGETDIR)\n"
