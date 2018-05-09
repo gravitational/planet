@@ -111,6 +111,7 @@ func etcdInit() error {
 		if !trace.IsNotFound(err) {
 			return trace.Wrap(err)
 		}
+		currentVersion = AssumeEtcdVersion
 
 		// if the etcd data directory doesn't exist, treat this as a new installation
 		if _, err := os.Stat("/ext/etcd/member"); os.IsNotExist(err) {
@@ -146,7 +147,7 @@ func etcdInit() error {
 	// to /ext/data
 	latestDir := path.Join(DefaultEtcdStoreBase, "latest")
 	_ = os.Remove(latestDir)
-	dest := getEtcdDirForVersion(currentVersion)
+	dest := getBaseEtcdDir(currentVersion)
 	err = os.MkdirAll(dest, 700)
 	if err != nil && !os.IsExist(err) {
 		return trace.ConvertSystemError(err)
@@ -297,7 +298,7 @@ func etcdUpgrade(rollback bool) error {
 			// wipe old backups leftover from previous upgrades
 			// Note: if this fails, but previous steps were successfull, the backups won't get cleaned up
 			if backupVersion != "" {
-				path := getEtcdDirForVersion(backupVersion)
+				path := path.Join(getBaseEtcdDir(backupVersion), "member")
 				err = os.RemoveAll(path)
 				if err != nil {
 					return trace.ConvertSystemError(err)
@@ -306,7 +307,7 @@ func etcdUpgrade(rollback bool) error {
 		}
 
 		// wipe data directory of any previous upgrade attempt
-		path := getEtcdDirForVersion(desiredVersion)
+		path := path.Join(getBaseEtcdDir(desiredVersion), "member")
 		err = os.RemoveAll(path)
 		if err != nil && !os.IsNotExist(err) {
 			return trace.ConvertSystemError(err)
@@ -328,10 +329,10 @@ func etcdUpgrade(rollback bool) error {
 	return nil
 }
 
-func getEtcdDirForVersion(version string) string {
-	p := path.Join(DefaultEtcdStoreBase, "member")
+func getBaseEtcdDir(version string) string {
+	p := DefaultEtcdStoreBase
 	if version != AssumeEtcdVersion {
-		p = path.Join(DefaultEtcdStoreBase, version, "member")
+		p = path.Join(DefaultEtcdStoreBase, version)
 	}
 	return p
 }
