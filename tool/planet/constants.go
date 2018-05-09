@@ -159,8 +159,8 @@ const (
 	DefaultEtcdCurrentVersionFile = "/ext/etcd/etcd-version.txt"
 	// DefaultEtcdBackupVersionFile is the file location that contains version information about the etcd datastore
 	DefaultEtcdBackupVersionFile = "/ext/etcd/etcd-version.txt.pre_upgrade.bak"
-	// DefaultEtcdDesiredVersionFile is the planet file that indicates the latest available etcd version
-	DefaultEtcdDesiredVersionFile = "/etc/planet-release"
+	// DefaultPlanetReleaseFile is the planet file that indicates the latest available etcd version
+	DefaultPlanetReleaseFile = "/etc/planet-release"
 
 	// AssumeEtcdVersion is the etcd version we assume we're using if we're unable to locate the running version
 	AssumeEtcdVersion = "v2.3.8"
@@ -280,6 +280,15 @@ const (
 
 	// ETCDRegistryPrefix is the etcd directory for the k8s api server data in etcd
 	ETCDRegistryPrefix = "/registry"
+
+	// WaitInterval is the amount of time to sleep between loops
+	WaitInterval = 100 * time.Millisecond
+
+	// ServiceTimeout is the amount of time when trying to start/stop a systemd service
+	ServiceTimeout = 1 * time.Minute
+
+	// EtcdUpgradeTimeout is the amount of time to wait for operations during the etcd upgrade
+	EtcdUpgradeTimeout = 15 * time.Minute
 )
 
 // K8sSearchDomains are default k8s search domain settings

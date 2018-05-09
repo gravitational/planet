@@ -161,7 +161,7 @@ func run() error {
 		cetcdPromoteInitialCluster      = cetcdPromote.Flag("initial-cluster", "Initial cluster, as output by 'member add' command").Required().String()
 		cetcdPromoteInitialClusterState = cetcdPromote.Flag("initial-cluster-state", "Initial cluster state, as output by 'member add' command").Required().String()
 
-		cetcdInit = cetcd.Command("init", "setup etcd to run the correct version").Hidden()
+		cetcdInit = cetcd.Command("init", "Setup etcd to run the correct version").Hidden()
 
 		cetcdBackup     = cetcd.Command("backup", "Backup the etcd datastore to a file")
 		cetcdBackupFile = cetcdBackup.Arg("file", "The file to store the backup").Required().String()
@@ -172,11 +172,11 @@ func run() error {
 		cetcdEnable        = cetcd.Command("enable", "Enable etcd on this node")
 		cetcdEnableUpgrade = cetcdEnable.Flag("upgrade", "enable the upgrade service").Bool()
 
-		cetcdUpgrade  = cetcd.Command("upgrade", "Upgrade etcd to latest available in this container")
+		cetcdUpgrade  = cetcd.Command("upgrade", "Upgrade etcd to the latest version")
 		cetcdRollback = cetcd.Command("rollback", "Rollback etcd to the previous release")
 
 		cetcdRestore     = cetcd.Command("restore", "Restore etcd backup as part of the upgrade")
-		cetcdRestoreFile = cetcdRestore.Arg("file", "A previously taken backup file to use during upgrade").Required().String()
+		cetcdRestoreFile = cetcdRestore.Arg("file", "A previously taken backup file to use during upgrade").Required().ExistingFile()
 
 		// leader election commands
 		cleader              = app.Command("leader", "Leader election control")

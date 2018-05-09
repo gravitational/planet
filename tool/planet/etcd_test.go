@@ -6,6 +6,7 @@ import (
 	"os"
 	"testing"
 
+	"github.com/gravitational/trace"
 	check "gopkg.in/check.v1"
 )
 
@@ -18,18 +19,14 @@ var _ = check.Suite(&EtcdSuite{})
 
 func (*EtcdSuite) TestEtcdAssumedVersion(c *check.C) {
 	ver, err := currentEtcdVersion("/this/file/doesnt/exist")
-	if err != nil {
-		c.Error(err)
-	}
-
+	c.Assert(trace.IsNotFound(err), check.Equals, true)
+	c.Assert(err, check.IsNil)
 	c.Assert(ver, check.Equals, AssumeEtcdVersion)
 }
 
 func (*EtcdSuite) TestEtcdParseFile(c *check.C) {
 	file, err := ioutil.TempFile(os.TempDir(), "prefix")
-	if err != nil {
-		c.Fatal(err)
-	}
+	c.Assert(err, IsNil)
 	defer os.Remove(file.Name())
 
 	// reading an empty file should return an error
@@ -44,7 +41,7 @@ func (*EtcdSuite) TestEtcdParseFile(c *check.C) {
 
 	// write a version file then check it
 	version := "1.1.1"
-	file.WriteString(fmt.Sprintf("%v=%v", EnvEtcdVersion, version))
+	fmt.Fprintf(file, "%v=%v", EnvEtcdVersion, version)
 	file.Sync()
 
 	ver, err = currentEtcdVersion(file.Name())

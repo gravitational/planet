@@ -62,7 +62,7 @@ func etcdPromote(name, initialCluster, initialClusterState string) error {
 	out, err := exec.Command("/bin/systemctl", "stop", "etcd").CombinedOutput()
 	log.Infof("stopping etcd: %v", string(out))
 	if err != nil {
-		return trace.Wrap(err, fmt.Sprintf("failed to stop etcd: %v", string(out)))
+		return trace.Wrap(err, "failed to stop etcd: %v", string(out))
 	}
 
 	log.Infof("removing %v", ETCDProxyDir)
@@ -78,19 +78,19 @@ func etcdPromote(name, initialCluster, initialClusterState string) error {
 	out, err = exec.Command("/bin/systemctl", "daemon-reload").CombinedOutput()
 	log.Infof("systemctl daemon-reload: %v", string(out))
 	if err != nil {
-		return trace.Wrap(err, fmt.Sprintf("failed to trigger systemctl daemon-reload: %v", string(out)))
+		return trace.Wrap(err, "failed to trigger systemctl daemon-reload: %v", string(out))
 	}
 
 	out, err = exec.Command("/bin/systemctl", "start", ETCDServiceName).CombinedOutput()
 	log.Infof("starting etcd: %v", string(out))
 	if err != nil {
-		return trace.Wrap(err, fmt.Sprintf("failed to start etcd: %v", string(out)))
+		return trace.Wrap(err, "failed to start etcd: %v", string(out))
 	}
 
 	out, err = exec.Command("/bin/systemctl", "restart", PlanetAgentServiceName).CombinedOutput()
 	log.Infof("restarting planet-agent: %v", string(out))
 	if err != nil {
-		return trace.Wrap(err, fmt.Sprintf("failed to restart planet-agent: %v", string(out)))
+		return trace.Wrap(err, "failed to restart planet-agent: %v", string(out))
 	}
 
 	return nil
@@ -99,23 +99,23 @@ func etcdPromote(name, initialCluster, initialClusterState string) error {
 // etcdInit detects which version of etcd should be running, and sets symlinks to point
 // to the correct version
 func etcdInit() error {
-	currentVersion, err := currentEtcdVersion(DefaultEtcdCurrentVersionFile)
-	if err != nil {
-		return trace.Wrap(err)
-	}
-	log.Info("Current etcd version: ", currentVersion)
-
-	desiredVersion, err := readEtcdVersion(DefaultEtcdDesiredVersionFile)
+	desiredVersion, err := readEtcdVersion(DefaultPlanetReleaseFile)
 	if err != nil {
 		return trace.Wrap(err)
 	}
 	log.Info("Desired etcd version: ", desiredVersion)
 
-	if currentVersion == AssumeEtcdVersion {
+	currentVersion, err := currentEtcdVersion(DefaultEtcdCurrentVersionFile)
+	if err != nil {
+		if !trace.IsNotFound(err) {
+			return trace.Wrap(err)
+		}
+
+		// if the etcd data directory doesn't exist, treat this as a new installation
 		if _, err := os.Stat("/ext/etcd/member"); os.IsNotExist(err) {
 			// If the etcd data directory doesn't exist, we can assume this
 			// is a new install of etcd, and use the latest version.
-			log.Info("new installation detected, using etcd version: ", desiredVersion)
+			log.Info("New installation detected, using etcd version: ", desiredVersion)
 			err = writeEtcdEnvironment(DefaultEtcdCurrentVersionFile, desiredVersion)
 			if err != nil {
 				return trace.Wrap(err)
@@ -123,6 +123,7 @@ func etcdInit() error {
 			currentVersion = desiredVersion
 		}
 	}
+	log.Info("Current etcd version: ", currentVersion)
 
 	// symlink /usr/bin/etcd to the version we expect to be running
 	for _, path := range []string{"/usr/bin/etcd", "/usr/bin/etcdctl"} {
@@ -133,14 +134,16 @@ func etcdInit() error {
 			path,
 		)
 		if err != nil {
-			return trace.Wrap(err)
+			return trace.ConvertSystemError(err)
 		}
 	}
 	return nil
 }
 
 func etcdBackup(backupFile string) error {
-	ctx := context.TODO()
+	ctx, cancel := context.WithTimeout(context.Background(), EtcdUpgradeTimeout)
+	defer cancel()
+
 	// If a backup from a previous upgrade exists, clean it up
 	if _, err := os.Stat(backupFile); err == nil {
 		err = os.Remove(backupFile)
@@ -169,39 +172,27 @@ func etcdBackup(backupFile string) error {
 	return nil
 }
 
-// etcdDisable disabled etcd on this machine
+// etcdDisable disables etcd on this machine
 // Used during upgrades
 func etcdDisable(upgradeService bool) error {
+	ctx, cancel := context.WithTimeout(context.Background(), EtcdUpgradeTimeout)
+	defer cancel()
+
 	if upgradeService {
-		return trace.Wrap(disableService(ETCDUpgradeServiceName))
+		return trace.Wrap(disableService(ctx, ETCDUpgradeServiceName))
 	}
-	return trace.Wrap(disableService(ETCDServiceName))
+	return trace.Wrap(disableService(ctx, ETCDServiceName))
 }
 
 // etcdEnable enables a disabled etcd node
 func etcdEnable(upgradeService bool) error {
-	if upgradeService {
-		// don't actually enable the service if this is a proxy
-		env, err := box.ReadEnvironment(ContainerEnvironmentFile)
-		if err != nil {
-			return trace.Wrap(err)
-		}
+	ctx, cancel := context.WithTimeout(context.Background(), EtcdUpgradeTimeout)
+	defer cancel()
 
-		if env.Get(EnvEtcdProxy) == EtcdProxyOn {
-			log.Infof("etcd is in proxy mode, nothing to do")
-			return nil
-		}
-		return trace.Wrap(enableService(ETCDUpgradeServiceName))
+	if !upgradeService {
+		return trace.Wrap(enableService(ctx, ETCDServiceName))
 	}
-	return trace.Wrap(enableService(ETCDServiceName))
-
-}
-
-// etcdUpgrade upgrades / rollbacks the etcd upgrade
-// the procedure is basically the same for an upgrade or rollback, just with some paths reversed
-func etcdUpgrade(rollback bool) error {
-	log.Info("Updating etcd")
-
+	// don't actually enable the service if this is a proxy
 	env, err := box.ReadEnvironment(ContainerEnvironmentFile)
 	if err != nil {
 		return trace.Wrap(err)
@@ -211,13 +202,33 @@ func etcdUpgrade(rollback bool) error {
 		log.Infof("etcd is in proxy mode, nothing to do")
 		return nil
 	}
+	return trace.Wrap(enableService(ctx, ETCDUpgradeServiceName))
+}
+
+// etcdUpgrade upgrades / rollbacks the etcd upgrade
+// the procedure is basically the same for an upgrade or rollback, just with some paths reversed
+func etcdUpgrade(rollback bool) error {
+	ctx, cancel := context.WithTimeout(context.Background(), EtcdUpgradeTimeout)
+	defer cancel()
+	log.Info("Updating etcd")
+
+	env, err := box.ReadEnvironment(ContainerEnvironmentFile)
+	if err != nil {
+		return trace.Wrap(err)
+	}
+
+	if env.Get(EnvEtcdProxy) == EtcdProxyOn {
+		log.Info("etcd is in proxy mode, nothing to do")
+		return nil
+	}
 
 	log.Info("Checking etcd service status")
 	services := []string{ETCDServiceName, ETCDUpgradeServiceName}
 	for _, service := range services {
 		status, err := getServiceStatus(service)
 		if err != nil {
-			return trace.Wrap(err)
+			log.Warnf("Failed to query status of service %v. Continuing upgrade. Error: %v", service, err)
+			continue
 		}
 		log.Info("%v service status: %v", service, status)
 		if status != "inactive" {
@@ -231,11 +242,15 @@ func etcdUpgrade(rollback bool) error {
 	}
 	currentVersion, err := currentEtcdVersion(versionFile)
 	if err != nil {
-		return trace.Wrap(err)
+		if trace.IsNotFound(err) {
+			currentVersion = AssumeEtcdVersion
+		} else {
+			return trace.Wrap(err)
+		}
 	}
 	log.Info("Current etcd version: ", currentVersion)
 
-	desiredVersion, err := readEtcdVersion(DefaultEtcdDesiredVersionFile)
+	desiredVersion, err := readEtcdVersion(DefaultPlanetReleaseFile)
 	if err != nil {
 		return trace.Wrap(err)
 	}
@@ -268,7 +283,7 @@ func etcdUpgrade(rollback bool) error {
 
 	// Upgrade - Move the current version file to the backup location
 	// Rollback - Move the backup version to the original directory
-	log.Info("Backup etcd data")
+	log.Info("Backup etcd version")
 	from = DefaultEtcdCurrentVersionFile
 	to = DefaultEtcdBackupVersionFile
 	if rollback {
@@ -301,7 +316,7 @@ func etcdUpgrade(rollback bool) error {
 		return trace.Wrap(err)
 	}
 	if status != "inactive" {
-		tryResetService(APIServerServiceName)
+		tryResetService(ctx, APIServerServiceName)
 	}
 
 	log.Info("Upgrade complete")
@@ -360,12 +375,11 @@ func convertError(err error) error {
 // systemctl runs a local systemctl command.
 // TODO(knisbet): I'm using systemctl here, because using go-systemd and dbus appears to be unreliable, with
 // masking unit files not working. Ideally, this will use dbus at some point in the future.
-func systemctl(operation, service string) error {
-	ctx, _ := context.WithTimeout(context.Background(), 1*time.Minute)
+func systemctl(ctx context.Context, operation, service string) error {
 	out, err := exec.CommandContext(ctx, "/bin/systemctl", "--no-block", operation, service).CombinedOutput()
 	log.Infof("%v %v: %v", operation, service, string(out))
 	if err != nil {
-		return trace.Wrap(err, fmt.Sprintf("failed to %v %v: %v", operation, service, string(out)))
+		return trace.Wrap(err, "failed to %v %v: %v", operation, service, string(out))
 	}
 	return nil
 }
@@ -373,14 +387,14 @@ func systemctl(operation, service string) error {
 // waitForEtcdStopped waits for etcd to not be present in the process list
 // the problem is, when shutting down etcd, systemd will respond when the process has been told to shutdown
 // but this leaves a race, where we might be continuing while etcd is still cleanly shutting down
-func waitForEtcdStopped() error {
-	ctx, _ := context.WithTimeout(context.Background(), 1*time.Minute)
+func waitForEtcdStopped(ctx context.Context) error {
+	tick := time.Tick(WaitInterval)
 loop:
 	for {
 		select {
 		case <-ctx.Done():
 			return trace.Wrap(ctx.Err())
-		default:
+		case <-tick:
 		}
 
 		procs, err := ps.Processes()
@@ -397,29 +411,32 @@ loop:
 }
 
 // tryResetService will request for systemd to restart a system service
-func tryResetService(service string) {
+func tryResetService(ctx context.Context, service string) {
 	// ignoring error results is intentional
-	_ = systemctl("restart", service)
+	err := systemctl(ctx, "restart", service)
+	if err != nil {
+		log.Warn("error attempting to restart service", err)
+	}
 }
 
-func disableService(service string) error {
-	err := systemctl("mask", service)
+func disableService(ctx context.Context, service string) error {
+	err := systemctl(ctx, "mask", service)
 	if err != nil {
 		return trace.Wrap(err)
 	}
-	err = systemctl("stop", service)
+	err = systemctl(ctx, "stop", service)
 	if err != nil {
 		return trace.Wrap(err)
 	}
-	return trace.Wrap(waitForEtcdStopped())
+	return trace.Wrap(waitForEtcdStopped(ctx))
 }
 
-func enableService(service string) error {
-	err := systemctl("unmask", service)
+func enableService(ctx context.Context, service string) error {
+	err := systemctl(ctx, "unmask", service)
 	if err != nil {
 		return trace.Wrap(err)
 	}
-	return trace.Wrap(systemctl("start", service))
+	return trace.Wrap(systemctl(ctx, "start", service))
 }
 
 func getServiceStatus(service string) (string, error) {
@@ -433,7 +450,7 @@ func getServiceStatus(service string) (string, error) {
 		return "", trace.Wrap(err)
 	}
 	if len(status) != 1 {
-		return "", trace.BadParameter("Unexpected number of status results when checking service '%v'", service)
+		return "", trace.BadParameter("unexpected number of status results when checking service '%q'", service)
 	}
 
 	return status[0].ActiveState, nil
@@ -441,16 +458,21 @@ func getServiceStatus(service string) (string, error) {
 
 // currentEtcdVersion tries to read the version, but if the file doesn't exist returns an assumed version
 func currentEtcdVersion(path string) (string, error) {
-	if _, err := os.Stat(path); err == nil {
-		return readEtcdVersion(path)
+	_, err := os.Stat(path)
+	if err != nil {
+		if os.IsNotExist(err) {
+			return "", trace.NotFound("unknown etcd version")
+		}
+		return "", trace.ConvertSystemError(err)
 	}
-	return AssumeEtcdVersion, nil
+
+	return readEtcdVersion(path)
 }
 
 func readEtcdVersion(path string) (string, error) {
 	inFile, err := os.Open(path)
 	if err != nil {
-		return "", trace.Wrap(err)
+		return "", trace.ConvertSystemError(err)
 	}
 	defer inFile.Close()
 
@@ -476,12 +498,12 @@ func readEtcdVersion(path string) (string, error) {
 func writeEtcdEnvironment(path string, version string) error {
 	err := os.MkdirAll(filepath.Dir(path), 644)
 	if err != nil {
-		return trace.Wrap(err)
+		return trace.ConvertSystemError(err)
 	}
 
 	f, err := os.Create(path)
 	if err != nil {
-		return trace.Wrap(err)
+		return trace.ConvertSystemError(err)
 	}
 	defer f.Close()
 
