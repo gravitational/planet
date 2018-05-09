@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"os"
 	"os/exec"
+	"path"
 	"path/filepath"
 	"strings"
 	"time"
@@ -99,13 +100,13 @@ func etcdPromote(name, initialCluster, initialClusterState string) error {
 // etcdInit detects which version of etcd should be running, and sets symlinks to point
 // to the correct version
 func etcdInit() error {
-	desiredVersion, err := readEtcdVersion(DefaultPlanetReleaseFile)
+	desiredVersion, _, err := readEtcdVersion(DefaultPlanetReleaseFile)
 	if err != nil {
 		return trace.Wrap(err)
 	}
 	log.Info("Desired etcd version: ", desiredVersion)
 
-	currentVersion, err := currentEtcdVersion(DefaultEtcdCurrentVersionFile)
+	currentVersion, _, err := readEtcdVersion(DefaultEtcdCurrentVersionFile)
 	if err != nil {
 		if !trace.IsNotFound(err) {
 			return trace.Wrap(err)
@@ -116,7 +117,7 @@ func etcdInit() error {
 			// If the etcd data directory doesn't exist, we can assume this
 			// is a new install of etcd, and use the latest version.
 			log.Info("New installation detected, using etcd version: ", desiredVersion)
-			err = writeEtcdEnvironment(DefaultEtcdCurrentVersionFile, desiredVersion)
+			err = writeEtcdEnvironment(DefaultEtcdCurrentVersionFile, desiredVersion, "")
 			if err != nil {
 				return trace.Wrap(err)
 			}
@@ -136,6 +137,26 @@ func etcdInit() error {
 		if err != nil {
 			return trace.ConvertSystemError(err)
 		}
+	}
+
+	// create a symlink for the etcd data
+	// this way we can easily support upgrade/rollback by simply changing
+	// the pointer to where the data lives
+	// Note: in order to support rollback to version 2.3.8, we need to link
+	// to /ext/data
+	latestDir := path.Join(DefaultEtcdStoreBase, "latest")
+	_ = os.Remove(latestDir)
+	dest := getEtcdDirForVersion(currentVersion)
+	err = os.MkdirAll(dest, 700)
+	if err != nil && !os.IsExist(err) {
+		return trace.ConvertSystemError(err)
+	}
+	err = os.Symlink(
+		dest,
+		latestDir,
+	)
+	if err != nil {
+		return trace.Wrap(err)
 	}
 	return nil
 }
@@ -236,11 +257,16 @@ func etcdUpgrade(rollback bool) error {
 		}
 	}
 
-	versionFile := DefaultEtcdCurrentVersionFile
-	if rollback {
-		versionFile = DefaultEtcdBackupVersionFile
+	// In order to upgrade in a re-entrant way
+	// we need to make sure that if the upgrade or rollback is repeated
+	// that it skips anything that has been done on a previous run, and continues anything that may have failed
+	desiredVersion, _, err := readEtcdVersion(DefaultPlanetReleaseFile)
+	if err != nil {
+		return trace.Wrap(err)
 	}
-	currentVersion, err := currentEtcdVersion(versionFile)
+	log.Info("Desired etcd version: ", desiredVersion)
+
+	currentVersion, backupVersion, err := readEtcdVersion(DefaultEtcdCurrentVersionFile)
 	if err != nil {
 		if trace.IsNotFound(err) {
 			currentVersion = AssumeEtcdVersion
@@ -249,63 +275,41 @@ func etcdUpgrade(rollback bool) error {
 		}
 	}
 	log.Info("Current etcd version: ", currentVersion)
+	log.Info("Backup etcd version: ", backupVersion)
 
-	desiredVersion, err := readEtcdVersion(DefaultPlanetReleaseFile)
-	if err != nil {
-		return trace.Wrap(err)
-	}
-	log.Info("Desired etcd version: ", desiredVersion)
-
-	// we're already on the correct version
-	if currentVersion == desiredVersion {
-		log.Info("Already running desired versions")
-		return nil
-	}
-
-	// Upgrade - Move the current data directory to the backup location
-	// Rollback - Move the backup back to the original directory
-	// removes the destination directory before moving
-	log.Info("Backup etcd data")
-	from := DefaultEtcdStoreCurrent
-	to := DefaultEtcdStoreBackup
 	if rollback {
-		from = DefaultEtcdStoreBackup
-		to = DefaultEtcdStoreCurrent
-	}
-	err = os.RemoveAll(to)
-	if err != nil {
-		return trace.Wrap(err)
-	}
-	err = os.Rename(from, to)
-	if err != nil {
-		return trace.Wrap(err)
-	}
+		// in order to rollback, write the backup version as the current version, with no backup version
+		if backupVersion != "" {
+			err = writeEtcdEnvironment(DefaultEtcdCurrentVersionFile, backupVersion, "")
+			if err != nil {
+				return trace.Wrap(err)
+			}
+		}
+	} else {
+		// in order to upgrade, write the new version to to disk with the current version as backup
+		// if current version == desired version, we must have already run this step
+		if currentVersion != desiredVersion {
+			err = writeEtcdEnvironment(DefaultEtcdCurrentVersionFile, desiredVersion, currentVersion)
+			if err != nil {
+				return trace.Wrap(err)
+			}
 
-	// Upgrade - Move the current version file to the backup location
-	// Rollback - Move the backup version to the original directory
-	log.Info("Backup etcd version")
-	from = DefaultEtcdCurrentVersionFile
-	to = DefaultEtcdBackupVersionFile
-	if rollback {
-		from = DefaultEtcdBackupVersionFile
-		to = DefaultEtcdCurrentVersionFile
-	}
-	err = os.RemoveAll(to)
-	if err != nil && !os.IsNotExist(err) {
-		return trace.Wrap(err)
-	}
-	err = os.Rename(from, to)
-	if err != nil && !os.IsNotExist(err) {
-		return trace.Wrap(err)
-	}
+			// wipe old backups leftover from previous upgrades
+			// Note: if this fails, but previous steps were successfull, the backups won't get cleaned up
+			if backupVersion != "" {
+				path := getEtcdDirForVersion(backupVersion)
+				err = os.RemoveAll(path)
+				if err != nil {
+					return trace.ConvertSystemError(err)
+				}
+			}
+		}
 
-	//only write the new version information if doing an upgrade
-	if !rollback {
-		// Write desired version as the current version file
-		log.Info("Writing etcd desired version: ", desiredVersion)
-		err = writeEtcdEnvironment(DefaultEtcdCurrentVersionFile, desiredVersion)
-		if err != nil {
-			return trace.Wrap(err)
+		// wipe data directory of any previous upgrade attempt
+		path := getEtcdDirForVersion(desiredVersion)
+		err = os.RemoveAll(path)
+		if err != nil && !os.IsNotExist(err) {
+			return trace.ConvertSystemError(err)
 		}
 	}
 
@@ -322,6 +326,14 @@ func etcdUpgrade(rollback bool) error {
 	log.Info("Upgrade complete")
 
 	return nil
+}
+
+func getEtcdDirForVersion(version string) string {
+	p := path.Join(DefaultEtcdStoreBase, "member")
+	if version != AssumeEtcdVersion {
+		p = path.Join(DefaultEtcdStoreBase, version, "member")
+	}
+	return p
 }
 
 func etcdRestore(file string) error {
@@ -456,23 +468,10 @@ func getServiceStatus(service string) (string, error) {
 	return status[0].ActiveState, nil
 }
 
-// currentEtcdVersion tries to read the version, but if the file doesn't exist returns an assumed version
-func currentEtcdVersion(path string) (string, error) {
-	_, err := os.Stat(path)
-	if err != nil {
-		if os.IsNotExist(err) {
-			return "", trace.NotFound("unknown etcd version")
-		}
-		return "", trace.ConvertSystemError(err)
-	}
-
-	return readEtcdVersion(path)
-}
-
-func readEtcdVersion(path string) (string, error) {
+func readEtcdVersion(path string) (currentVersion string, prevVersion string, err error) {
 	inFile, err := os.Open(path)
 	if err != nil {
-		return "", trace.ConvertSystemError(err)
+		return "", "", trace.ConvertSystemError(err)
 	}
 	defer inFile.Close()
 
@@ -485,17 +484,23 @@ func readEtcdVersion(path string) (string, error) {
 		if strings.Contains(line, "=") {
 			split := strings.SplitN(line, "=", 2)
 			if len(split) == 2 {
-				if strings.ToUpper(split[0]) == EnvEtcdVersion {
-					return split[1], nil
+				switch split[0] {
+				case EnvEtcdVersion:
+					currentVersion = split[1]
+				case EnvEtcdPrevVersion:
+					prevVersion = split[1]
 				}
 			}
 		}
 	}
 
-	return "", trace.BadParameter("unable to parse etcd version")
+	if currentVersion == "" {
+		return "", "", trace.BadParameter("unable to parse etcd version")
+	}
+	return currentVersion, prevVersion, nil
 }
 
-func writeEtcdEnvironment(path string, version string) error {
+func writeEtcdEnvironment(path string, version string, prevVersion string) error {
 	err := os.MkdirAll(filepath.Dir(path), 644)
 	if err != nil {
 		return trace.ConvertSystemError(err)
@@ -507,12 +512,23 @@ func writeEtcdEnvironment(path string, version string) error {
 	}
 	defer f.Close()
 
-	_, err = f.WriteString(fmt.Sprint(EnvEtcdVersion, "=", version, "\n"))
+	_, err = fmt.Fprint(f, EnvEtcdVersion, "=", version, "\n")
 	if err != nil {
 		return err
 	}
 
-	_, err = f.WriteString(fmt.Sprint(EnvStorageBackend, "=", "etcd3", "\n"))
+	if prevVersion != "" {
+		_, err = fmt.Fprint(f, EnvEtcdPrevVersion, "=", prevVersion, "\n")
+		if err != nil {
+			return err
+		}
+	}
+
+	backend := "etcd3"
+	if version == AssumeEtcdVersion {
+		backend = "etcd2"
+	}
+	_, err = fmt.Fprint(f, EnvStorageBackend, "=", backend, "\n")
 	if err != nil {
 		return err
 	}

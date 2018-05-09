@@ -4,9 +4,9 @@ ARCH := amd64
 
 
 all: $(ETCD_VER)
-	@echo "\n---> Building etcd:\n"
+	@echo -e "\n---> Building etcd:\n"
 
-	@echo "\n---> Setup etcd services:\n"
+	@echo -e "\n---> Setup etcd services:\n"
 	cd $(ASSETDIR)
 	cp -afv ./etcd.service $(ROOTFS)/lib/systemd/system/
 	cp -afv ./etcd-upgrade.service $(ROOTFS)/lib/systemd/system/
@@ -23,11 +23,11 @@ all: $(ETCD_VER)
 
 .PHONY: $(ETCD_VER)
 $(ETCD_VER):
-	@echo "\n---> $@ - Downloading etcd\n"
+	@echo -e "\n---> $@ - Downloading etcd\n"
 	curl -L https://github.com/coreos/etcd/releases/download/$@/etcd-$@-linux-$(ARCH).tar.gz \
 	-o $(ASSETDIR)/$@.tar.gz;
 
-	@echo "\n---> $@ - Extracting etcd\n"
+	@echo -e "\n---> $@ - Extracting etcd\n"
 	cd $(ASSETDIR)
 	tar -xzf $(ASSETDIR)/$@.tar.gz
 

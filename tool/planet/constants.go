@@ -48,6 +48,8 @@ const (
 	// EnvEtcdVersion names the environment variable that specifies
 	// the version of etcd to use
 	EnvEtcdVersion = "PLANET_ETCD_VERSION"
+	// EnvEtcdPrevVersion points to the previously installed version used for rollback
+	EnvEtcdPrevVersion = "PLANET_ETCD_PREV_VERSION"
 	// EnvEtcdctlCertFile names the environment variable that specifies the location
 	// of the certificate file
 	EnvEtcdctlCertFile = "ETCDCTL_CERT_FILE"
@@ -151,14 +153,10 @@ const (
 	// DefaultEtcdctlCAFile is the path to the etcd CA certificate file
 	DefaultEtcdctlCAFile = DefaultSecretsMountDir + "/root.cert"
 
-	// DefaultEtcdStoreCurrent is the location of the running etcd datastore
-	DefaultEtcdStoreCurrent = "/ext/etcd/member"
-	// DefaultEtcdStoreBackup is the location of the etcd datastore backed up before an upgrade
-	DefaultEtcdStoreBackup = "/ext/etcd/member.pre_upgrade.bak"
+	// DefaultEtcdStoreBase is the base path to etcd data on disk
+	DefaultEtcdStoreBase = "/ext/etcd"
 	// DefaultEtcdCurrentVersionFile is the file location that contains version information about the etcd datastore
 	DefaultEtcdCurrentVersionFile = "/ext/etcd/etcd-version.txt"
-	// DefaultEtcdBackupVersionFile is the file location that contains version information about the etcd datastore
-	DefaultEtcdBackupVersionFile = "/ext/etcd/etcd-version.txt.pre_upgrade.bak"
 	// DefaultPlanetReleaseFile is the planet file that indicates the latest available etcd version
 	DefaultPlanetReleaseFile = "/etc/planet-release"
 
