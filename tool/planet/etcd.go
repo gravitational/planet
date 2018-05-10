@@ -9,6 +9,7 @@ import (
 	"path"
 	"path/filepath"
 	"strings"
+	"syscall"
 	"time"
 
 	etcd "github.com/coreos/etcd/client"
@@ -152,6 +153,20 @@ func etcdInit() error {
 	if err != nil && !os.IsExist(err) {
 		return trace.ConvertSystemError(err)
 	}
+
+	// chown the destination directory to the planet user
+	fi, err := os.Stat(DefaultEtcdStoreBase)
+	if err != nil {
+		return trace.ConvertSystemError(err)
+	}
+	stat := fi.Sys().(*syscall.Stat_t)
+	uid := int(stat.Uid)
+	gid := int(stat.Gid)
+	err = chownDir(dest, uid, gid)
+	if err != nil {
+		return trace.Wrap(err)
+	}
+
 	err = os.Symlink(
 		dest,
 		latestDir,
@@ -159,6 +174,7 @@ func etcdInit() error {
 	if err != nil {
 		return trace.Wrap(err)
 	}
+
 	return nil
 }
 
