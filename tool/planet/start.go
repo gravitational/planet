@@ -678,9 +678,14 @@ func checkRequiredMounts(cfg *Config) error {
 			expected[dst] = true
 		}
 		if dst == ETCDWorkDir {
+			// remove the latest symlink, as it won't point to a valid path during chown below
+			// and will get recreated during etcd initialization
+			// if the file doesn't exist or we fail, it doesn't really matter if later steps are working
+			_ = os.Remove(path.Join(m.Src, "latest"))
+
 			// chown <service user>:<service group> /ext/etcd -r
 			if err := chownDir(m.Src, cfg.ServiceUser.Uid, cfg.ServiceUser.Gid); err != nil {
-				return err
+				return trace.Wrap(err)
 			}
 		}
 		if dst == DockerWorkDir {
