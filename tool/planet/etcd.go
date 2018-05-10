@@ -253,8 +253,8 @@ func etcdUpgrade(rollback bool) error {
 			continue
 		}
 		log.Info("%v service status: %v", service, status)
-		if status != "inactive" {
-			return trace.BadParameter("%v must be disabled in order to run the upgrade", service)
+		if status != "inactive" && status != "failed" {
+			return trace.BadParameter("%v must be disabled in order to run the upgrade. current status: %v", service, status)
 		}
 	}
 
