@@ -146,8 +146,6 @@ func etcdInit() error {
 	// the pointer to where the data lives
 	// Note: in order to support rollback to version 2.3.8, we need to link
 	// to /ext/data
-	latestDir := path.Join(DefaultEtcdStoreBase, "latest")
-	_ = os.Remove(latestDir)
 	dest := getBaseEtcdDir(currentVersion)
 	err = os.MkdirAll(dest, 700)
 	if err != nil && !os.IsExist(err) {
@@ -163,14 +161,6 @@ func etcdInit() error {
 	uid := int(stat.Uid)
 	gid := int(stat.Gid)
 	err = chownDir(dest, uid, gid)
-	if err != nil {
-		return trace.Wrap(err)
-	}
-
-	err = os.Symlink(
-		dest,
-		latestDir,
-	)
 	if err != nil {
 		return trace.Wrap(err)
 	}
