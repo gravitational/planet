@@ -41,7 +41,7 @@ func etcdPromote(name, initialCluster, initialClusterState string) error {
 	}
 
 	if env.Get(EnvEtcdProxy) == EtcdProxyOff {
-		log.Infof("etcd is not running in proxy mode, nothing to do")
+		log.Info("etcd is not running in proxy mode, nothing to do")
 		return nil
 	}
 
@@ -227,7 +227,7 @@ func etcdEnable(upgradeService bool) error {
 	}
 
 	if env.Get(EnvEtcdProxy) == EtcdProxyOn {
-		log.Infof("etcd is in proxy mode, nothing to do")
+		log.Info("etcd is in proxy mode, nothing to do")
 		return nil
 	}
 	return trace.Wrap(enableService(ctx, ETCDUpgradeServiceName))
@@ -324,10 +324,11 @@ func etcdUpgrade(rollback bool) error {
 	// this only happens if the service is already running
 	status, err := getServiceStatus(APIServerServiceName)
 	if err != nil {
-		return trace.Wrap(err)
-	}
-	if status != "inactive" {
-		tryResetService(ctx, APIServerServiceName)
+		log.Warnf("Failed to query status of service %v. Continuing upgrade. Error: %v", APIServerServiceName, err)
+	} else {
+		if status != "inactive" {
+			tryResetService(ctx, APIServerServiceName)
+		}
 	}
 
 	log.Info("Upgrade complete")
