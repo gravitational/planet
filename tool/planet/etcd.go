@@ -520,9 +520,14 @@ func writeEtcdEnvironment(path string, version string, prevVersion string) error
 	}
 	defer f.Close()
 
-	_, err = fmt.Fprint(f, EnvEtcdVersion, "=", version, "\n")
-	if err != nil {
-		return err
+	// don't write the version during rollback to 2.3.8 because the systemd unit file
+	// use the version to locate the data directory. When rolling back, we want to rollback to
+	// a nil directory
+	if version != AssumeEtcdVersion {
+		_, err = fmt.Fprint(f, EnvEtcdVersion, "=", version, "\n")
+		if err != nil {
+			return err
+		}
 	}
 
 	if prevVersion != "" {
