@@ -503,7 +503,7 @@ func readEtcdVersion(path string) (currentVersion string, prevVersion string, er
 	}
 
 	if currentVersion == "" {
-		return "", "", trace.BadParameter("unable to parse etcd version")
+		return "", "", trace.NotFound("unable to parse etcd version")
 	}
 	return currentVersion, prevVersion, nil
 }
