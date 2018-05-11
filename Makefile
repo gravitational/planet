@@ -52,9 +52,9 @@ HELM_VER := v2.8.1
 
 # ETCD Versions to include in the release
 # This list needs to include every version of etcd that we can upgrade from + latest
-ETCD_VER := v2.3.8 v3.3.4
+ETCD_VER := v2.3.8 v3.3.3 v3.3.4
 # This is the version of etcd we should upgrade to (from the version list)
-ETCD_LATEST_VER := v3.3.4
+ETCD_LATEST_VER := v3.3.3
 
 PUBLIC_IP := 127.0.0.1
 export
