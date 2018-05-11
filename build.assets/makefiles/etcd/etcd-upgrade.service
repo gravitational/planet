@@ -14,6 +14,7 @@ StartLimitBurst=720
 Type=notify
 TimeoutStartSec=0
 EnvironmentFile=/etc/container-environment
+EnvironmentFile=-/ext/etcd/etcd-version.txt
 ExecStartPre=/usr/bin/planet etcd init
 ExecStart=/usr/bin/etcd \
         --name=${PLANET_ETCD_MEMBER_NAME} \
