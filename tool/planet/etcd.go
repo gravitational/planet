@@ -147,7 +147,7 @@ func etcdInit() error {
 	// Note: in order to support rollback to version 2.3.8, we need to link
 	// to /ext/data
 	dest := getBaseEtcdDir(currentVersion)
-	err = os.MkdirAll(dest, 700)
+	err = os.MkdirAll(dest, 0700)
 	if err != nil && !os.IsExist(err) {
 		return trace.ConvertSystemError(err)
 	}
@@ -338,7 +338,7 @@ func etcdUpgrade(rollback bool) error {
 func getBaseEtcdDir(version string) string {
 	p := DefaultEtcdStoreBase
 	if version != AssumeEtcdVersion {
-		p = path.Join(DefaultEtcdStoreBase, version)
+		p = filepath.Join(DefaultEtcdStoreBase, version)
 	}
 	return p
 }
