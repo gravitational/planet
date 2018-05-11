@@ -437,7 +437,7 @@ func addEtcdOptions(config *Config) {
 	}
 }
 
-// setupEtcd runs setup tasks for etcd
+// setupEtcd runs setup tasks for etcd.
 // If this is a proxy node, symlink in the etcd gateway dropin, so the etcd service runs the gateway and not etcd
 // If this is a master node, and we don't detect an existing data directory, start the latest etcd, since we default
 // to using the oldest etcd during an upgrade
