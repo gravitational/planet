@@ -33,6 +33,7 @@ ASSETS := $(PWD)/build.assets
 BUILD_ASSETS := $(PWD)/build/assets
 BUILDDIR ?= $(PWD)/build
 BUILDDIR := $(shell realpath $(BUILDDIR))
+OUTPUTDIR := $(BUILDDIR)/planet
 
 KUBE_VER ?= v1.9.6
 SECCOMP_VER ?=  2.3.1-2.1
@@ -62,8 +63,8 @@ all: production
 # development on an _already built image_. You need to build an image first, for
 # example with "make dev"
 .PHONY: build
-build: $(BUILD_ASSETS)/planet $(BUILDDIR)/planet.tar.gz
-	cp -f $< $(BUILDDIR)/rootfs/usr/bin/
+build: $(BUILD_ASSETS)/planet $(OUTPUTDIR)/planet.tar.gz
+	cp -f $< $(OUTPUTDIR)/rootfs/usr/bin/
 
 # Deploys the build artifacts to Amazon S3
 .PHONY: deploy
@@ -71,15 +72,18 @@ deploy:
 	$(MAKE) -C $(ASSETS)/makefiles/deploy
 
 .PHONY: production
-production: buildbox $(BUILDDIR)/planet.tar.gz
+production: $(OUTPUTDIR)/planet.tar.gz
 
 $(BUILD_ASSETS)/planet:
 	GOOS=linux GOARCH=amd64 \
 	     go install -ldflags "$(PLANET_GO_LDFLAGS)" \
 	     $(PLANET_PACKAGE)/tool/planet -o $@
 
-$(BUILDDIR)/planet.tar.gz: base Makefile $(wildcard build.assets/**/*) $(GO_FILES)
-	$(MAKE) -C $(ASSETS)/makefiles -f buildbox.mk
+$(OUTPUTDIR)/planet.tar.gz: buildbox Makefile $(wildcard build.assets/**/*) $(GO_FILES)
+	$(MAKE) -C $(ASSETS)/makefiles -e \
+		PLANET_BASE_IMAGE=$(PLANET_IMAGE) \
+		TARGETDIR=$(OUTPUTDIR) \
+		-f buildbox.mk
 
 .PHONY: enter-buildbox
 enter-buildbox:
@@ -101,7 +105,7 @@ remove-temp-files:
 # Start the planet container locally
 .PHONY: start
 start: build prepare-to-run
-	cd $(BUILDDIR) && sudo rootfs/usr/bin/planet start \
+	cd $(OUTPUTDIR) && sudo rootfs/usr/bin/planet start \
 		--debug \
 		--etcd-member-name=local-planet \
 		--secrets-dir=/var/planet/state \
@@ -117,12 +121,12 @@ start: build prepare-to-run
 # Stop the running planet container
 .PHONY: stop
 stop:
-	cd $(BUILDDIR) && sudo rootfs/usr/bin/planet --debug stop
+	cd $(OUTPUTDIR) && sudo rootfs/usr/bin/planet --debug stop
 
 # Enter the running planet container
 .PHONY: enter
 enter:
-	cd $(BUILDDIR) && sudo rootfs/usr/bin/planet enter --debug /bin/bash
+	cd $(OUTPUTDIR) && sudo rootfs/usr/bin/planet enter --debug /bin/bash
 
 # Build the base Docker image everything else is based on.
 .PHONY: os
@@ -144,10 +148,10 @@ buildbox: base
 	@echo -e "\n---> Making Planet/BuildBox Docker image:\n" ;\
 	$(MAKE) -e BUILDIMAGE=planet/buildbox \
 		DOCKERFILE=buildbox.dockerfile \
-		EXTRA_ARGS="--build-arg GOVERSION=$(BUILDBOX_GO_VER)" \
+		EXTRA_ARGS="--build-arg GOVERSION=$(BUILDBOX_GO_VER) --build-arg PLANET_BASE_IMAGE=$(PLANET_IMAGE)" \
 		make-docker-image
 
-# Remove build aftifacts
+# Remove build artifacts
 .PHONY: clean
 clean:
 	$(MAKE) -C $(ASSETS)/makefiles -f buildbox.mk clean
@@ -167,7 +171,7 @@ remove-godeps:
 prepare-to-run: build
 	@sudo mkdir -p /var/planet/registry /var/planet/etcd /var/planet/docker
 	@sudo chown $$USER:$$USER /var/planet/etcd -R
-	@cp -f $(BUILD_ASSETS)/planet $(BUILDDIR)/rootfs/usr/bin/planet
+	@cp -f $(BUILD_ASSETS)/planet $(OUTPUTDIR)/rootfs/usr/bin/planet
 
 .PHONY: clean-containers
 clean-containers:

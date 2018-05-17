@@ -1,12 +1,12 @@
 # This makefile is used inside the buildbox container
-SHELL:=/bin/bash
-TARGETDIR:=$(BUILDDIR)/$(TARGET)
-ASSETDIR:=$(BUILDDIR)/assets
-ROOTFS:=$(TARGETDIR)/rootfs
-CONTAINERNAME:=planet-base-build
-TARBALL:=$(TARGETDIR)/planet.tar.gz
+SHELL := /bin/bash
+TARGETDIR ?= $(BUILDDIR)/$(TARGET)
+ASSETDIR ?= $(BUILDDIR)/assets
+ROOTFS ?= $(TARGETDIR)/rootfs
+CONTAINERNAME ?= planet-base-build
+TARBALL ?= $(TARGETDIR)/planet.tar.gz
 export
-TMPFS_SIZE?=900m
+TMPFS_SIZE ?= 900m
 
 .PHONY: all
 all: $(ROOTFS)/bin/bash build planet-image
@@ -35,9 +35,9 @@ build:
 
 .PHONY: planet-image
 planet-image:
-	cp $(ASSETS)/orbit.manifest.json $(TARGETDIR)
 	cp $(ASSETDIR)/planet $(ROOTFS)/usr/bin/
 	cp $(ASSETDIR)/docker-import $(ROOTFS)/usr/bin/
+	cp $(ASSETS)/docker/os-rootfs/etc/planet/orbit.manifest.json $(TARGETDIR)/
 	@echo -e "\n---> Moving current symlink to $(TARGETDIR)\n"
 	@rm -f $(BUILDDIR)/current
 	@echo -e "\n---> Creating Planet image...\n"
