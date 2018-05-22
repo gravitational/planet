@@ -57,29 +57,33 @@ GO_FILES := $(shell find . -type f -name '*.go' -not -path "./vendor/*" -not -pa
 IGNORED_PACKAGES := /vendor build/
 
 .PHONY: all
-all: production
+all: production image
 
 # 'make build' compiles the Go portion of Planet, meant for quick & iterative
 # development on an _already built image_. You need to build an image first, for
 # example with "make dev"
 .PHONY: build
-build: $(BUILD_ASSETS)/planet $(OUTPUTDIR)/planet.tar.gz
+build: $(BUILD_ASSETS)/planet $(BUILDDIR)/planet.tar.gz
 	cp -f $< $(OUTPUTDIR)/rootfs/usr/bin/
 
 # Deploys the build artifacts to Amazon S3
 .PHONY: deploy
 deploy:
-	$(MAKE) -C $(ASSETS)/makefiles/deploy
+	$(MAKE) -C $(ASSETS)/makefiles/deploy deploy
 
 .PHONY: production
-production: $(OUTPUTDIR)/planet.tar.gz
+production: $(BUILDDIR)/planet.tar.gz
+
+.PHONY: image
+image:
+	$(MAKE) -C $(ASSETS)/makefiles/deploy image
 
 $(BUILD_ASSETS)/planet:
 	GOOS=linux GOARCH=amd64 \
 	     go install -ldflags "$(PLANET_GO_LDFLAGS)" \
 	     $(PLANET_PACKAGE)/tool/planet -o $@
 
-$(OUTPUTDIR)/planet.tar.gz: buildbox Makefile $(wildcard build.assets/**/*) $(GO_FILES)
+$(BUILDDIR)/planet.tar.gz: buildbox Makefile $(wildcard build.assets/**/*) $(GO_FILES)
 	$(MAKE) -C $(ASSETS)/makefiles -e \
 		PLANET_BASE_IMAGE=$(PLANET_IMAGE) \
 		TARGETDIR=$(OUTPUTDIR) \

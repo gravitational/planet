@@ -1,10 +1,10 @@
 # This makefile is used inside the buildbox container
 SHELL := /bin/bash
-TARGETDIR ?= $(BUILDDIR)/$(TARGET)
+TARGETDIR ?= $(BUILDDIR)/planet
 ASSETDIR ?= $(BUILDDIR)/assets
 ROOTFS ?= $(TARGETDIR)/rootfs
 CONTAINERNAME ?= planet-base-build
-TARBALL ?= $(TARGETDIR)/planet.tar.gz
+TARBALL ?= $(BUILDDIR)/planet.tar.gz
 export
 TMPFS_SIZE ?= 900m
 
@@ -69,7 +69,7 @@ $(ROOTFS)/bin/bash: clean-rootfs
 	if [ ! -z $$MEMROOTFS ]; then \
 	  sudo mount -t tmpfs -o size=$(TMPFS_SIZE) tmpfs $(ROOTFS) ;\
 	fi
-# populate Rootfs using docker image 'planet/base'
+# populate rootfs using docker image 'planet/base'
 	docker create --name=$(CONTAINERNAME) $(PLANET_IMAGE)
 	@echo "Exporting base Docker image into a fresh RootFS into $(ROOTFS)...."
 	cd $(ROOTFS) && docker export $(CONTAINERNAME) | tar -x
