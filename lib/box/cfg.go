@@ -202,3 +202,40 @@ func (m *Mounts) String() string {
 	}
 	return b.String()
 }
+
+// DNSOverrides is a command-line flag parser for DNS host/zone overrides
+type DNSOverrides map[string][]string
+
+// Set sets the overrides value from a CLI flag
+func (d *DNSOverrides) Set(v string) error {
+	for _, i := range cstrings.SplitComma(v) {
+		if err := d.setItem(i); err != nil {
+			return trace.Wrap(err)
+		}
+	}
+	return nil
+}
+
+func (d *DNSOverrides) setItem(v string) error {
+	vals := strings.Split(v, "/")
+	if len(vals) != 2 {
+		return trace.BadParameter(
+			"expected <host>/<ip> overrides format, got: %q", v)
+	}
+	(*d)[vals[0]] = append((*d)[vals[0]], vals[1])
+	return nil
+}
+
+// String formats overrides to a string
+func (d *DNSOverrides) String() string {
+	if len(*d) == 0 {
+		return ""
+	}
+	var s []string
+	for key, values := range *d {
+		for _, value := range values {
+			s = append(s, fmt.Sprintf("%v/%v", key, value))
+		}
+	}
+	return strings.Join(s, ",")
+}

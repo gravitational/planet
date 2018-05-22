@@ -26,6 +26,7 @@ const serviceNamespace = "kube-system"
 type DNSBootstrapper struct {
 	clusterIP           string
 	upstreamNameservers []string
+	dnsZones            map[string][]string
 	kubeAddr            string
 	agent               agent.Agent
 }
@@ -127,7 +128,6 @@ func (r *DNSBootstrapper) createConfigmap(client *kube.Clientset, namespace, nam
 	if err != nil {
 		return trace.Wrap(err)
 	}
-
 	configMap := &v1.ConfigMap{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      name,
@@ -136,6 +136,14 @@ func (r *DNSBootstrapper) createConfigmap(client *kube.Clientset, namespace, nam
 		Data: map[string]string{
 			"upstreamNameservers": string(nameserversJSON),
 		},
+	}
+
+	if len(r.dnsZones) > 0 {
+		stubDomainsJSON, err := json.Marshal(r.dnsZones)
+		if err != nil {
+			return trace.Wrap(err)
+		}
+		configMap.Data["stubDomains"] = string(stubDomainsJSON)
 	}
 
 	if _, err := client.CoreV1().ConfigMaps(metav1.NamespaceSystem).Create(configMap); err != nil {

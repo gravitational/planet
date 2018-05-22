@@ -81,8 +81,10 @@ type Config struct {
 	NodeName string
 	// Hostname specifies the new hostname inside the container
 	Hostname string
-	// DNSOverrides specifies additional DNS addresses to add to local dnsmasq configuration
-	DNSOverrides kv.KeyVal
+	// DNSHosts is a host->ip mapping
+	DNSHosts box.DNSOverrides
+	// DNSZones is a zone->nameserver mapping
+	DNSZones box.DNSOverrides
 	// KubeletOptions defines additional kubelet parameters
 	KubeletOptions string
 	// ServiceUser defines the user context for container's service user

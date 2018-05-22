@@ -266,6 +266,7 @@ func runAgent(conf *agent.Config, monitoringConf *monitoring.Config, leaderConf 
 		dns := &DNSBootstrapper{
 			clusterIP:           monitoringConf.ClusterDNS,
 			upstreamNameservers: monitoringConf.UpstreamNameservers,
+			dnsZones:            monitoringConf.DNSZones,
 			kubeAddr:            monitoringConf.KubeAddr,
 			agent:               monitoringAgent,
 		}

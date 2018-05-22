@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"io"
 	"io/ioutil"
+	"net"
 	"os"
 	"path/filepath"
 	"sort"
@@ -132,6 +133,8 @@ func start(config *Config, monitorc chan<- bool) (*runtimeContext, error) {
 		box.EnvPair{Name: EnvNodeName, Val: config.NodeName},
 		box.EnvPair{Name: EnvElectionEnabled, Val: strconv.FormatBool(config.ElectionEnabled)},
 		box.EnvPair{Name: EnvDockerPromiscuousMode, Val: strconv.FormatBool(config.DockerPromiscuousMode)},
+		box.EnvPair{Name: EnvDNSHosts, Val: config.DNSHosts.String()},
+		box.EnvPair{Name: EnvDNSZones, Val: config.DNSZones.String()},
 	)
 
 	if err = addDockerOptions(config); err != nil {
@@ -487,8 +490,19 @@ func setDNSMasq(config *Config) error {
 	for _, searchDomain := range K8sSearchDomains {
 		fmt.Fprintf(out, "server=/%v/%v\n", searchDomain, config.SkyDNSResolverIP())
 	}
-	for domainName, addrIP := range config.DNSOverrides {
-		fmt.Fprintf(out, "address=/%v/%v\n", domainName, addrIP)
+	for zone, nameservers := range config.DNSZones {
+		for _, nameserver := range nameservers {
+			ns, err := formatNameserver(nameserver)
+			if err != nil {
+				return trace.Wrap(err)
+			}
+			fmt.Fprintf(out, "server=/%v/%v\n", zone, ns)
+		}
+	}
+	for hostname, ips := range config.DNSHosts {
+		for _, ip := range ips {
+			fmt.Fprintf(out, "address=/%v/%v\n", hostname, ip)
+		}
 	}
 	// Use host DNS for everything else
 	for _, hostNameserver := range resolv.Servers {
@@ -503,6 +517,26 @@ func setDNSMasq(config *Config) error {
 	}
 	err = writeLocalLeader(filepath.Join(config.Rootfs, DNSMasqAPIServerConf), config.MasterIP)
 	return trace.Wrap(err)
+}
+
+// formatNameserver formats the nameserver in the format <ip>[:<port>] to
+// the format expected by dnsmasq config
+func formatNameserver(nameserver string) (string, error) {
+	// if this is an IP w/o a port, return as-is
+	if net.ParseIP(nameserver) != nil {
+		return nameserver, nil
+	}
+	// otherwise it includes port, dnsmasq expects <ip>#<port>
+	host, port, err := net.SplitHostPort(nameserver)
+	if err != nil {
+		return "", trace.Wrap(err, "failed to parse nameserver: %q", nameserver)
+	}
+	// host must be an IP address
+	if net.ParseIP(host) == nil {
+		return "", trace.BadParameter("nameserver should be an IP, got: %q",
+			nameserver)
+	}
+	return fmt.Sprintf("%v#%v", host, port), nil
 }
 
 func addResolv(config *Config) (upstreamNameservers []string, err error) {

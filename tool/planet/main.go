@@ -92,7 +92,8 @@ func run() error {
 		cstartDockerOptions         = cstart.Flag("docker-options", "Additional options to pass to docker daemon").OverrideDefaultFromEnvar("PLANET_DOCKER_OPTIONS").String()
 		cstartDockerBackend         = cstart.Flag("docker-backend", "Docker backend to use. If no backend has been specified, one is selected automatically.").OverrideDefaultFromEnvar("PLANET_DOCKER_BACKEND").String()
 		cstartElectionEnabled       = Bool(cstart.Flag("election-enabled", "Boolean flag to control if the agent initially starts with election participation on").OverrideDefaultFromEnvar(EnvElectionEnabled))
-		cstartDNSOverrides          = KeyValueList(cstart.Flag("dns-overrides", "Comma-separated list of domain name to IP address mappings as key:value pairs").OverrideDefaultFromEnvar(EnvDNSOverrides))
+		cstartDNSHosts              = DNSOverrides(cstart.Flag("dns-hosts", "Comma-separated list of domain name to IP address mappings as 'domain/ip' pairs").OverrideDefaultFromEnvar(EnvDNSHosts))
+		cstartDNSZones              = DNSOverrides(cstart.Flag("dns-zones", "Comma-separated list of DNS zone to nameserver IP mappings as 'zone/nameserver' pairs").OverrideDefaultFromEnvar(EnvDNSZones))
 		cstartKubeletOptions        = cstart.Flag("kubelet-options", "Additional command line options to pass to kubelet").OverrideDefaultFromEnvar("PLANET_KUBELET_OPTIONS").String()
 		cstartDockerPromiscuousMode = cstart.Flag("docker-promiscuous-mode", "Whether to put docker bridge into promiscuous mode").OverrideDefaultFromEnvar(EnvDockerPromiscuousMode).Bool()
 
@@ -119,6 +120,7 @@ func run() error {
 		cagentEtcdKeyFile            = cagent.Flag("etcd-keyfile", "TLS key file used to secure etcd communication").String()
 		cagentElectionEnabled        = Bool(cagent.Flag("election-enabled", "Boolean flag to control if the agent initially starts with election participation on").OverrideDefaultFromEnvar(EnvElectionEnabled))
 		cagentDNSUpstreamNameservers = List(cagent.Flag("nameservers", "List of additional upstream nameservers to add to DNS configuration as a comma-separated list of IPs").OverrideDefaultFromEnvar(EnvDNSUpstreamNameservers))
+		cagentDNSZones               = DNSOverrides(cagent.Flag("dns-zones", "Comma-separated list of DNS zone to nameserver IP mappings as 'zone/nameserver' pairs").OverrideDefaultFromEnvar(EnvDNSZones))
 
 		// stop a running container
 		cstop = app.Command("stop", "Stop planet container")
@@ -255,6 +257,7 @@ func run() error {
 			KubeAddr:              *cagentKubeAddr,
 			ClusterDNS:            cagentClusterDNS.String(),
 			UpstreamNameservers:   *cagentDNSUpstreamNameservers,
+			DNSZones:              (map[string][]string)(*cagentDNSZones),
 			RegistryAddr:          fmt.Sprintf("https://%v", *cagentRegistryAddr),
 			NettestContainerImage: fmt.Sprintf("%v/gcr.io/google_containers/nettest:1.8", *cagentRegistryAddr),
 			ETCDConfig:            etcdConf,
@@ -338,7 +341,8 @@ func run() error {
 			DockerBackend:           *cstartDockerBackend,
 			DockerOptions:           *cstartDockerOptions,
 			ElectionEnabled:         bool(*cstartElectionEnabled),
-			DNSOverrides:            *cstartDNSOverrides,
+			DNSHosts:                *cstartDNSHosts,
+			DNSZones:                *cstartDNSZones,
 			KubeletOptions:          *cstartKubeletOptions,
 			DockerPromiscuousMode:   *cstartDockerPromiscuousMode,
 		}
@@ -450,6 +454,13 @@ func EnvVars(s kingpin.Settings) *box.EnvVars {
 
 func Mounts(s kingpin.Settings) *box.Mounts {
 	vars := new(box.Mounts)
+	s.SetValue(vars)
+	return vars
+}
+
+// DNSOverrides returns a CLI flag for DNS host/zone overrides
+func DNSOverrides(s kingpin.Settings) *box.DNSOverrides {
+	vars := &box.DNSOverrides{}
 	s.SetValue(vars)
 	return vars
 }

@@ -80,9 +80,12 @@ const (
 	// EnvKubeConfig names the environment variable that specifies location
 	// of the kubernetes configuration file
 	EnvKubeConfig = "KUBECONFIG"
-	// EnvDNSOverrides names the environment variable that specifies additional
-	// DNS adderss overrides for container's dnsmasq
-	EnvDNSOverrides = "PLANET_DNS_OVERRIDES"
+	// EnvDNSHosts is the environment variable that specifies DNS hostname
+	// overrides for the dnsmasq config
+	EnvDNSHosts = "PLANET_DNS_HOSTS"
+	// EnvDNSZones is the environment variable that specified DNS zone
+	// overrides for the dnsmasq config
+	EnvDNSZones = "PLANET_DNS_ZONES"
 	// EnvHostname names the environment variable that specifies the new
 	// hostname
 	EnvHostname = "PLANET_HOSTNAME"

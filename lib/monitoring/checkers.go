@@ -28,6 +28,8 @@ type Config struct {
 	ClusterDNS string
 	// UpstreamNameservers lists additional upstream nameserver added to the DNS configuration
 	UpstreamNameservers []string
+	// DNSZones maps DNS zone to a list of nameservers
+	DNSZones map[string][]string
 	// RegistryAddr is the address of the private docker registry
 	RegistryAddr string
 	// NettestContainerImage is the name of the container image used for
