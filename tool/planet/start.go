@@ -529,11 +529,12 @@ func formatNameserver(nameserver string) (string, error) {
 	// otherwise it includes port, dnsmasq expects <ip>#<port>
 	host, port, err := net.SplitHostPort(nameserver)
 	if err != nil {
-		return "", trace.Wrap(err, "failed to parse nameserver: %q", nameserver)
+		return "", trace.Wrap(err, "expected nameserver in the <ip> or <ip>:<port> format, got: %q",
+			nameserver)
 	}
 	// host must be an IP address
 	if net.ParseIP(host) == nil {
-		return "", trace.BadParameter("nameserver should be an IP, got: %q",
+		return "", trace.BadParameter("nameserver should be an IP address, got: %q",
 			nameserver)
 	}
 	return fmt.Sprintf("%v#%v", host, port), nil
