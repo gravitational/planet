@@ -68,7 +68,7 @@ func etcdPromote(name, initialCluster, initialClusterState string) error {
 	}
 
 	log.Infof("removing %v", ETCDProxyDir)
-	if err := os.RemoveAll(ETCDProxyDir); err != nil && !os.IsNotExist(err) {
+	if err := os.RemoveAll(ETCDProxyDir); err != nil {
 		return trace.Wrap(err)
 	}
 
@@ -258,7 +258,7 @@ func etcdUpgrade(rollback bool) error {
 			log.Warnf("Failed to query status of service %v. Continuing upgrade. Error: %v", service, err)
 			continue
 		}
-		log.Info("%v service status: %v", service, status)
+		log.Infof("%v service status: %v", service, status)
 		if status != "inactive" && status != "failed" {
 			return trace.BadParameter("%v must be disabled in order to run the upgrade. current status: %v", service, status)
 		}
@@ -293,7 +293,7 @@ func etcdUpgrade(rollback bool) error {
 			}
 		}
 	} else {
-		// in order to upgrade, write the new version to to disk with the current version as backup
+		// in order to upgrade, write the new version to disk with the current version as backup
 		// if current version == desired version, we must have already run this step
 		if currentVersion != desiredVersion {
 			err = writeEtcdEnvironment(DefaultEtcdCurrentVersionFile, desiredVersion, currentVersion)
@@ -315,7 +315,7 @@ func etcdUpgrade(rollback bool) error {
 		// wipe data directory of any previous upgrade attempt
 		path := path.Join(getBaseEtcdDir(desiredVersion), "member")
 		err = os.RemoveAll(path)
-		if err != nil && !os.IsNotExist(err) {
+		if err != nil {
 			return trace.ConvertSystemError(err)
 		}
 	}
@@ -354,8 +354,8 @@ func etcdRestore(file string) error {
 			CertFile:  DefaultEtcdctlCertFile,
 			CAFile:    DefaultEtcdctlCAFile,
 		},
-		Prefix:        []string{"/"},         // Restore all etcd data
-		MigratePrefix: []string{"/registry"}, // migrate kubernetes data to etcd3 datastore
+		Prefix:        []string{"/"},                // Restore all etcd data
+		MigratePrefix: []string{ETCDRegistryPrefix}, // migrate kubernetes data to etcd3 datastore
 		File:          file,
 	}
 	log.Info("RestoreConfig: ", spew.Sdump(restoreConf))
@@ -408,13 +408,14 @@ func systemctl(ctx context.Context, operation, service string) error {
 // the problem is, when shutting down etcd, systemd will respond when the process has been told to shutdown
 // but this leaves a race, where we might be continuing while etcd is still cleanly shutting down
 func waitForEtcdStopped(ctx context.Context) error {
-	tick := time.Tick(WaitInterval)
+	ticker := time.NewTicker(WaitInterval)
+	defer ticker.Stop()
 loop:
 	for {
 		select {
 		case <-ctx.Done():
 			return trace.Wrap(ctx.Err())
-		case <-tick:
+		case <-ticker.C:
 		}
 
 		procs, err := ps.Processes()
