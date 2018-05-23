@@ -163,6 +163,23 @@ func run() error {
 		cetcdPromoteInitialCluster      = cetcdPromote.Flag("initial-cluster", "Initial cluster, as output by 'member add' command").Required().String()
 		cetcdPromoteInitialClusterState = cetcdPromote.Flag("initial-cluster-state", "Initial cluster state, as output by 'member add' command").Required().String()
 
+		cetcdInit = cetcd.Command("init", "Setup etcd to run the correct version").Hidden()
+
+		cetcdBackup     = cetcd.Command("backup", "Backup the etcd datastore to a file")
+		cetcdBackupFile = cetcdBackup.Arg("file", "The file to store the backup").Required().String()
+
+		cetcdDisable        = cetcd.Command("disable", "Disable etcd on this node")
+		cetcdDisableUpgrade = cetcdDisable.Flag("upgrade", "disable the upgrade service").Bool()
+
+		cetcdEnable        = cetcd.Command("enable", "Enable etcd on this node")
+		cetcdEnableUpgrade = cetcdEnable.Flag("upgrade", "enable the upgrade service").Bool()
+
+		cetcdUpgrade  = cetcd.Command("upgrade", "Upgrade etcd to the latest version")
+		cetcdRollback = cetcd.Command("rollback", "Rollback etcd to the previous release")
+
+		cetcdRestore     = cetcd.Command("restore", "Restore etcd backup as part of the upgrade")
+		cetcdRestoreFile = cetcdRestore.Arg("file", "A previously taken backup file to use during upgrade").Required().ExistingFile()
+
 		// leader election commands
 		cleader              = app.Command("leader", "Leader election control")
 		cleaderPublicIP      = cleader.Flag("public-ip", "IP accessible by other nodes for inter-host communication").OverrideDefaultFromEnvar(EnvPublicIP).IP()
@@ -334,6 +351,7 @@ func run() error {
 			EtcdProxy:               *cstartEtcdProxy,
 			EtcdMemberName:          *cstartEtcdMemberName,
 			EtcdInitialCluster:      toEtcdPeerList(initialCluster),
+			EtcdGatewayList:         toEtcdGatewayList(initialCluster),
 			EtcdInitialClusterState: *cstartEtcdInitialClusterState,
 			EtcdOptions:             *cstartEtcdOptions,
 			NodeName:                *cstartNodeName,
@@ -402,6 +420,27 @@ func run() error {
 
 	case cetcdPromote.FullCommand():
 		err = etcdPromote(*cetcdPromoteName, *cetcdPromoteInitialCluster, *cetcdPromoteInitialClusterState)
+
+	case cetcdInit.FullCommand():
+		err = etcdInit()
+
+	case cetcdBackup.FullCommand():
+		err = etcdBackup(*cetcdBackupFile)
+
+	case cetcdEnable.FullCommand():
+		err = etcdEnable(*cetcdEnableUpgrade)
+
+	case cetcdDisable.FullCommand():
+		err = etcdDisable(*cetcdDisableUpgrade)
+
+	case cetcdUpgrade.FullCommand():
+		err = etcdUpgrade(false)
+
+	case cetcdRollback.FullCommand():
+		err = etcdUpgrade(true)
+
+	case cetcdRestore.FullCommand():
+		err = etcdRestore(*cetcdRestoreFile)
 
 	default:
 		err = trace.Errorf("unsupported command: %v", cmd)
@@ -577,6 +616,17 @@ func toEtcdPeerList(list kv.KeyVal) (peers string) {
 	var addrs []string
 	for domain, addr := range list {
 		addrs = append(addrs, fmt.Sprintf("%v=https://%v:2380", domain, addr))
+	}
+	return strings.Join(addrs, ",")
+}
+
+// toEtcdGatewayList interprets each key/value pair, and
+// formats it as a list of endpoints the etcd gateway can
+// proxy to
+func toEtcdGatewayList(list kv.KeyVal) (peers string) {
+	var addrs []string
+	for _, addr := range list {
+		addrs = append(addrs, fmt.Sprintf("%v:2379", addr))
 	}
 	return strings.Join(addrs, ",")
 }

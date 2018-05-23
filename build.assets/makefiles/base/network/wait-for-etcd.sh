@@ -1,5 +1,7 @@
 #!/bin/bash
 
+PEERS=${1:-https://127.0.0.1:2379}
+
 n=0
 until [ $n -ge 10 ]
 do
@@ -9,7 +11,7 @@ do
       --ca-file=/var/state/root.cert \
       --timeout="5s" \
       --total-timeout="30s" \
-      --peers https://127.0.0.1:4001 cluster-health && exit 0
+      --peers ${PEERS} cluster-health && exit 0
     n=$[$n+1]
     sleep 3
 done

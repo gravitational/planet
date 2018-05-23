@@ -1,0 +1,9 @@
+# This systemd drop in file, will change the etcd unit to run a gateway
+# instead of the etcd service
+
+[Service]
+ExecStart=
+ExecStart=/usr/bin/etcd gateway start \
+        --endpoints=${PLANET_ETCD_GW_ENDPOINTS} \
+        --listen-addr=0.0.0.0:2379 \
+        --trusted-ca-file=/var/state/root.cert

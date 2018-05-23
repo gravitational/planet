@@ -1,5 +1,6 @@
 [Unit]
 Description=Etcd Service
+Conflicts=etcd-upgrade.service
 
 [Service]
 Restart=always
@@ -9,9 +10,11 @@ StartLimitBurst=720
 Type=notify
 TimeoutStartSec=0
 EnvironmentFile=/etc/container-environment
+EnvironmentFile=-/ext/etcd/etcd-version.txt
+ExecStartPre=/usr/bin/planet etcd init
 ExecStart=/usr/bin/etcd \
-        --name=${ETCD_MEMBER_NAME} \
-        --data-dir=/ext/etcd \
+        --name=${PLANET_ETCD_MEMBER_NAME} \
+        --data-dir=/ext/etcd/${PLANET_ETCD_VERSION} \
         --initial-advertise-peer-urls=https://${PLANET_PUBLIC_IP}:2380 \
         --advertise-client-urls=https://${PLANET_PUBLIC_IP}:2379,https://${PLANET_PUBLIC_IP}:4001 \
         --listen-client-urls=https://0.0.0.0:2379,https://0.0.0.0:4001 \
@@ -26,3 +29,4 @@ ExecStart=/usr/bin/etcd \
         --peer-client-cert-auth $ETCD_OPTS
 User=planet
 Group=planet
+PermissionsStartOnly=true

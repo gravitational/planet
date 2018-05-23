@@ -1,0 +1,37 @@
+[Unit]
+Description=Temporary Etcd Service used for upgrades
+Conflicts=etcd.service
+
+# This works by launching etcd, but bound to a non-default loopback interface.
+# This is to prevent etcd from being used, while it is being upgraded, and the
+# database is inconsistent
+
+[Service]
+Restart=always
+RestartSec=5
+StartLimitInterval=3600
+StartLimitBurst=720
+Type=notify
+TimeoutStartSec=0
+EnvironmentFile=/etc/container-environment
+EnvironmentFile=-/ext/etcd/etcd-version.txt
+ExecStartPre=/usr/bin/planet etcd init
+ExecStart=/usr/bin/etcd \
+        --name=${PLANET_ETCD_MEMBER_NAME} \
+        --data-dir=/ext/etcd/${PLANET_ETCD_VERSION} \
+        --initial-advertise-peer-urls=https://${PLANET_PUBLIC_IP}:2380 \
+        --advertise-client-urls=https://127.0.0.2:2379,https://127.0.0.2:4001 \
+        --listen-client-urls=https://127.0.0.2:2379,https://127.0.0.2:4001 \
+        --listen-peer-urls=https://${PLANET_PUBLIC_IP}:2380,https://${PLANET_PUBLIC_IP}:7001 \
+        --cert-file=/var/state/etcd.cert \
+        --key-file=/var/state/etcd.key \
+        --trusted-ca-file=/var/state/root.cert \
+        --client-cert-auth \
+        --peer-cert-file=/var/state/etcd.cert \
+        --peer-key-file=/var/state/etcd.key \
+        --peer-trusted-ca-file=/var/state/root.cert \
+        --peer-client-cert-auth $ETCD_OPTS \
+        --initial-cluster-state new
+User=planet
+Group=planet
+PermissionsStartOnly=true

@@ -1,6 +1,8 @@
 package main
 
-import "time"
+import (
+	"time"
+)
 
 const (
 	// EnvMasterIP names the environment variable that specifies
@@ -15,6 +17,9 @@ const (
 	// EnvPODSubnet names the environment variable that specifies
 	// the subnet CIDR for k8s pods
 	EnvPODSubnet = "KUBE_POD_SUBNET"
+	// EnvStorageBackend names the environment variable that specifies
+	// which storage backend kubernetes should use (etcd2/etcd3)
+	EnvStorageBackend = "KUBE_STORAGE_BACKEND"
 	// EnvPublicIP names the environment variable that specifies
 	// the public IP address of the node
 	EnvPublicIP = "PLANET_PUBLIC_IP"
@@ -24,20 +29,27 @@ const (
 	// EnvAPIServerName names the environment variable that specifies
 	// the address of the API server
 	EnvAPIServerName = "KUBE_APISERVER"
-
 	// See https://coreos.com/etcd/docs/latest/v2/configuration.html
 	// EnvEtcdProxy names the environment variable that specifies
 	// the value of the proxy mode setting
-	EnvEtcdProxy = "ETCD_PROXY"
+	EnvEtcdProxy = "PLANET_ETCD_PROXY"
 	// EnvEtcdMemberName names the environment variable that specifies
 	// the name of this node in the etcd cluster
-	EnvEtcdMemberName = "ETCD_MEMBER_NAME"
+	EnvEtcdMemberName = "PLANET_ETCD_MEMBER_NAME"
 	// EnvEtcdInitialClusterState names the environment variable that specifies
 	// the initial etcd cluster configuration for bootstrapping
 	EnvEtcdInitialCluster = "ETCD_INITIAL_CLUSTER"
+	// EnvEtcdGatewayEndpoints is a list of endpoints the etcd gateway can use
+	// to reach the etcd cluster
+	EnvEtcdGatewayEndpoints = "PLANET_ETCD_GW_ENDPOINTS"
 	// EnvEtcdInitialClusterState names the environment variable that specifies
 	// the initial etcd cluster state
 	EnvEtcdInitialClusterState = "ETCD_INITIAL_CLUSTER_STATE"
+	// EnvEtcdVersion names the environment variable that specifies
+	// the version of etcd to use
+	EnvEtcdVersion = "PLANET_ETCD_VERSION"
+	// EnvEtcdPrevVersion points to the previously installed version used for rollback
+	EnvEtcdPrevVersion = "PLANET_ETCD_PREV_VERSION"
 	// EnvEtcdctlCertFile names the environment variable that specifies the location
 	// of the certificate file
 	EnvEtcdctlCertFile = "ETCDCTL_CERT_FILE"
@@ -131,6 +143,8 @@ const (
 	DefaultLeaderTerm = 10 * time.Second
 	// DefaultEtcdEndpoints specifies the default etcd endpoint
 	DefaultEtcdEndpoints = "https://127.0.0.1:2379"
+	// DefaultEtcdUpgradeEndpoints specified the endpoint for the temporary etcd used during upgrades
+	DefaultEtcdUpgradeEndpoints = "https://127.0.0.2:2379"
 
 	// DefaultSecretsMountDir specifies the default location for certificates
 	// as mapped inside the container
@@ -141,6 +155,16 @@ const (
 	DefaultEtcdctlKeyFile = DefaultSecretsMountDir + "/etcd.key"
 	// DefaultEtcdctlCAFile is the path to the etcd CA certificate file
 	DefaultEtcdctlCAFile = DefaultSecretsMountDir + "/root.cert"
+
+	// DefaultEtcdStoreBase is the base path to etcd data on disk
+	DefaultEtcdStoreBase = "/ext/etcd"
+	// DefaultEtcdCurrentVersionFile is the file location that contains version information about the etcd datastore
+	DefaultEtcdCurrentVersionFile = "/ext/etcd/etcd-version.txt"
+	// DefaultPlanetReleaseFile is the planet file that indicates the latest available etcd version
+	DefaultPlanetReleaseFile = "/etc/planet-release"
+
+	// AssumeEtcdVersion is the etcd version we assume we're using if we're unable to locate the running version
+	AssumeEtcdVersion = "v2.3.8"
 
 	// LegacyAPIServerDNSName is the domain name of a current leader server
 	// as used to be in previous versions.
@@ -172,8 +196,15 @@ const (
 
 	// ETCDServiceName names the service unit for etcd
 	ETCDServiceName = "etcd.service"
+	// ETCDUpgradeServiceName is a temporary etcd service used only during upgrades
+	ETCDUpgradeServiceName = "etcd-upgrade.service"
 	// APIServerServiceName names the service unit for k8s apiserver
 	APIServerServiceName = "kube-apiserver.service"
+	// PlanetAgentServiceName is the name of the planet agent
+	PlanetAgentServiceName = "planet-agent.service"
+
+	// ETCDDropinPath is the location of the systemd dropin when etcd is in gateway mode
+	ETCDGatewayDropinPath = "/etc/systemd/system/etcd.service.d/10-gateway.conf"
 
 	// PlanetResolv is planet local resolver
 	PlanetResolv = "resolv.gravity.conf"
@@ -244,6 +275,21 @@ const (
 	ServiceUser string = "planet"
 	// ServiceGroup specifies the name of the service group as seen inside the container.
 	ServiceGroup string = "planet"
+
+	// ETCDBackupTimeout specifies the timeout when attempting to backup/restore etcd
+	ETCDBackupTimeout = 5 * time.Minute
+
+	// ETCDRegistryPrefix is the etcd directory for the k8s api server data in etcd
+	ETCDRegistryPrefix = "/registry"
+
+	// WaitInterval is the amount of time to sleep between loops
+	WaitInterval = 100 * time.Millisecond
+
+	// ServiceTimeout is the amount of time when trying to start/stop a systemd service
+	ServiceTimeout = 1 * time.Minute
+
+	// EtcdUpgradeTimeout is the amount of time to wait for operations during the etcd upgrade
+	EtcdUpgradeTimeout = 15 * time.Minute
 )
 
 // K8sSearchDomains are default k8s search domain settings

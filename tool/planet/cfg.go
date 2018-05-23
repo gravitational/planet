@@ -70,6 +70,8 @@ type Config struct {
 	// EtcdInitialCluster configures the value of ETCD_INITIAL_CLUSTER environment variable
 	// inside the container
 	EtcdInitialCluster string
+	// EtcdGatewayList is a list of etcd endpoints that the etcd gateway can use to reach the cluster
+	EtcdGatewayList string
 	// EtcdInitialClusterState configures the value of ETCD_INITIAL_CLUSTER_STATE environment variable
 	// inside the container
 	EtcdInitialClusterState string

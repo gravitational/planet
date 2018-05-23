@@ -30,7 +30,8 @@ build:
 		make -e \
 			KUBE_VER=$(KUBE_VER) \
 			FLANNEL_VER=$(FLANNEL_VER) \
-			ETCD_VER=$(ETCD_VER) \
+			ETCD_VER="$(ETCD_VER)" \
+			ETCD_LATEST_VER=$(ETCD_LATEST_VER) \
 			-C /assets/makefiles -f $(TARGET)-docker.mk
 ifeq ($(TARGET),master)
 	$(MAKE) -C $(ASSETS)/makefiles/master/k8s-master -e -f containers.mk
@@ -38,6 +39,7 @@ endif
 
 planet-image:
 	cp $(ASSETS)/orbit.manifest.json $(TARGETDIR)
+	sed -i "s/REPLACE_ETCD_LATEST_VERSION/$(ETCD_LATEST_VER)/g" $(TARGETDIR)/orbit.manifest.json
 	cp $(ASSETDIR)/planet $(ROOTFS)/usr/bin/
 	cp $(ASSETDIR)/docker-import $(ROOTFS)/usr/bin/
 	@echo -e "\n---> Moving current symlink to $(TARGETDIR)\n"

@@ -66,7 +66,12 @@
 [[projects]]
   name = "github.com/coreos/etcd"
   packages = [
+    "auth/authpb",
     "client",
+    "clientv3",
+    "etcdserver/api/v3rpc/rpctypes",
+    "etcdserver/etcdserverpb",
+    "mvcc/mvccpb",
     "pkg/pathutil",
     "pkg/srv",
     "pkg/tlsutil",
@@ -74,8 +79,8 @@
     "pkg/types",
     "version"
   ]
-  revision = "c31bec0f29facff13f7c3e3d948e55dd6689ed42"
-  version = "v3.2.4"
+  revision = "e348b1aedd9167360c466ae98f7343d3e22281f8"
+  version = "v3.3.3"
 
 [[projects]]
   name = "github.com/coreos/go-semver"
@@ -89,8 +94,20 @@
     "dbus",
     "util"
   ]
-  revision = "b4a58d95188dd092ae20072bac14cece0e67c388"
-  version = "v4"
+  revision = "40e2722dffead74698ca12a750f64ef313ddce05"
+  version = "v16"
+
+[[projects]]
+  name = "github.com/coreos/pkg"
+  packages = ["dlopen"]
+  revision = "3ac0863d7acf3bc44daf49afef8919af12f704ef"
+  version = "v3"
+
+[[projects]]
+  name = "github.com/davecgh/go-spew"
+  packages = ["spew"]
+  revision = "346938d642f2ec3594ed81d874461961cd0faa76"
+  version = "v1.1.0"
 
 [[projects]]
   name = "github.com/docker/docker"
@@ -164,7 +181,9 @@
 [[projects]]
   name = "github.com/gogo/protobuf"
   packages = [
+    "gogoproto",
     "proto",
+    "protoc-gen-gogo/descriptor",
     "sortkeys"
   ]
   revision = "100ba4e885062801d56799d78530b73b178a78f3"
@@ -223,7 +242,13 @@
     "config",
     "leader"
   ]
-  revision = "435d9c7a6e6b6fa8494668df7067fc0c22d19ef9"
+  revision = "2bc9a83f6fe22919202fb09bfa01f2ff8b7784cb"
+
+[[projects]]
+  branch = "master"
+  name = "github.com/gravitational/etcd-backup"
+  packages = ["lib/etcd"]
+  revision = "692ce153711a83913e03d3860c48b1b790af3ec0"
 
 [[projects]]
   branch = "master"
@@ -461,7 +486,8 @@
 [[projects]]
   name = "github.com/ugorji/go"
   packages = ["codec"]
-  revision = "646ae4a518c1c3be0739df898118d9bccf993858"
+  revision = "b4c50a2b199d93b13dc15e78929cfb23bfdf21ab"
+  version = "v1.1.1"
 
 [[projects]]
   name = "github.com/vishvananda/netlink"
@@ -524,24 +550,31 @@
   packages = [
     ".",
     "balancer",
+    "balancer/base",
+    "balancer/roundrobin",
     "codes",
     "connectivity",
     "credentials",
+    "encoding",
+    "encoding/proto",
     "grpclb/grpc_lb_v1/messages",
     "grpclog",
+    "health/grpc_health_v1",
     "internal",
     "keepalive",
     "metadata",
     "naming",
     "peer",
     "resolver",
+    "resolver/dns",
+    "resolver/passthrough",
     "stats",
     "status",
     "tap",
     "transport"
   ]
-  revision = "f7bf885db0b7479a537ec317c6e48ce53145f3db"
-  version = "v1.7.0"
+  revision = "d11072e7ca9811b1100b80ca0269ac831f06d024"
+  version = "v1.11.3"
 
 [[projects]]
   name = "gopkg.in/alecthomas/kingpin.v2"
@@ -705,6 +738,6 @@
 [solve-meta]
   analyzer-name = "dep"
   analyzer-version = 1
-  inputs-digest = "4fc8efb35235fd4869bb3e878bd5b10a75883825d85c545e748c409142f76396"
+  inputs-digest = "6e914c397784942d9d6217e8c1c50db75628c4a1c37fe22cd81c7991903586be"
   solver-name = "gps-cdcl"
   solver-version = 1

@@ -18,11 +18,11 @@ ExecStartPre=/usr/bin/etcdctl \
     --cert-file=/var/state/etcd.cert \
     --key-file=/var/state/etcd.key \
     --ca-file=/var/state/root.cert \
-    --peers https://127.0.0.1:4001 set /coreos.com/network/config '{"Network":"${KUBE_POD_SUBNET}", "Backend": {"Type": "${FLANNEL_BACKEND}", "RouteTableFilter": ["tag:KubernetesCluster=${KUBE_CLUSTER_ID}"]}}'
+    --peers https://127.0.0.1:2379 set /coreos.com/network/config '{"Network":"${KUBE_POD_SUBNET}", "Backend": {"Type": "${FLANNEL_BACKEND}", "RouteTableFilter": ["tag:KubernetesCluster=${KUBE_CLUSTER_ID}"]}}'
 ExecStartPre=/bin/systemctl is-active etcd.service
 ExecStart=/usr/bin/flanneld \
     --ip-masq=true \
-    --etcd-endpoints https://127.0.0.1:4001,https://127.0.0.1:2379 \
+    --etcd-endpoints https://127.0.0.1:2379 \
     --etcd-cafile=/var/state/root.cert \
     --etcd-certfile=/var/state/etcd.cert \
     --etcd-keyfile=/var/state/etcd.key \

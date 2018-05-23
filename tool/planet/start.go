@@ -7,6 +7,7 @@ import (
 	"io/ioutil"
 	"net"
 	"os"
+	"path"
 	"path/filepath"
 	"sort"
 	"strconv"
@@ -127,6 +128,7 @@ func start(config *Config, monitorc chan<- bool) (*runtimeContext, error) {
 		box.EnvPair{Name: EnvEtcdProxy, Val: config.EtcdProxy},
 		box.EnvPair{Name: EnvEtcdMemberName, Val: config.EtcdMemberName},
 		box.EnvPair{Name: EnvEtcdInitialCluster, Val: config.EtcdInitialCluster},
+		box.EnvPair{Name: EnvEtcdGatewayEndpoints, Val: config.EtcdGatewayList},
 		box.EnvPair{Name: EnvEtcdInitialClusterState, Val: config.EtcdInitialClusterState},
 		box.EnvPair{Name: EnvRole, Val: config.Roles[0]},
 		box.EnvPair{Name: EnvClusterID, Val: config.ClusterID},
@@ -144,6 +146,11 @@ func start(config *Config, monitorc chan<- bool) (*runtimeContext, error) {
 	addKubeletOptions(config)
 	setupFlannel(config)
 	if err = setupCloudOptions(config); err != nil {
+		return nil, trace.Wrap(err)
+	}
+
+	err = setupEtcd(config)
+	if err != nil {
 		return nil, trace.Wrap(err)
 	}
 
@@ -433,6 +440,37 @@ func addEtcdOptions(config *Config) {
 	}
 }
 
+// setupEtcd runs setup tasks for etcd.
+// If this is a proxy node, symlink in the etcd gateway dropin, so the etcd service runs the gateway and not etcd
+// If this is a master node, and we don't detect an existing data directory, start the latest etcd, since we default
+// to using the oldest etcd during an upgrade
+func setupEtcd(config *Config) error {
+	dropinPath := path.Join(config.Rootfs, ETCDGatewayDropinPath)
+
+	if strings.ToLower(config.EtcdProxy) != "on" {
+		err := os.Remove(dropinPath)
+		if err != nil && !os.IsNotExist(err) {
+			return trace.Wrap(err)
+		}
+		return nil
+	}
+
+	err := os.MkdirAll(path.Join(config.Rootfs, "etc/systemd/system/etcd.service.d/"), 0755)
+	if err != nil {
+		return trace.Wrap(err)
+	}
+
+	err = os.Symlink(
+		"/lib/systemd/system/etcd-gateway.dropin",
+		dropinPath,
+	)
+	if err != nil && !os.IsExist(err) {
+		return trace.Wrap(err)
+	}
+
+	return nil
+}
+
 // addKubeletOptions sets extra kubelet command line arguments in environment
 func addKubeletOptions(config *Config) {
 	if config.KubeletOptions != "" {
@@ -675,9 +713,14 @@ func checkRequiredMounts(cfg *Config) error {
 			expected[dst] = true
 		}
 		if dst == ETCDWorkDir {
+			// remove the latest symlink, as it won't point to a valid path during chown below
+			// and will get recreated during etcd initialization
+			// if the file doesn't exist or we fail, it doesn't really matter if later steps are working
+			_ = os.Remove(path.Join(m.Src, "latest"))
+
 			// chown <service user>:<service group> /ext/etcd -r
 			if err := chownDir(m.Src, cfg.ServiceUser.Uid, cfg.ServiceUser.Gid); err != nil {
-				return err
+				return trace.Wrap(err)
 			}
 		}
 		if dst == DockerWorkDir {
@@ -737,6 +780,7 @@ var nodeUnits = []string{
 	"docker",
 	"kube-proxy",
 	"kube-kubelet",
+	"etcd",
 }
 
 func appendUnique(a, b []string) []string {

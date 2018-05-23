@@ -4,6 +4,11 @@ Documentation=https://github.com/GoogleCloudPlatform/kubernetes
 Wants=etcd.service
 
 [Service]
+# Default to etcd storage backend
+# TODO - remove when we no longer support etcd2 upgrade paths
+Environment=KUBE_STORAGE_BACKEND=etcd2
+# Override KUBE_STORAGE_BACKEND if we're using a version 3 compatible etcd
+EnvironmentFile=-/ext/etcd/etcd-version.txt
 EnvironmentFile=/etc/container-environment
 ExecStartPre=/usr/bin/scripts/wait-for-etcd.sh
 ExecStartPre=/bin/systemctl is-active etcd.service
@@ -30,7 +35,7 @@ ExecStart=/usr/bin/kube-apiserver \
         --etcd-cafile=/var/state/root.cert \
         --etcd-certfile=/var/state/etcd.cert \
         --etcd-keyfile=/var/state/etcd.key \
-        --storage-backend=etcd2 \
+        --storage-backend=${KUBE_STORAGE_BACKEND} \
         --event-ttl=24h0m0s \
         --bind-address=${PLANET_PUBLIC_IP} \
         --logtostderr=true $KUBE_CLOUD_FLAGS \
