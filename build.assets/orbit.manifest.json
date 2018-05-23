@@ -196,9 +196,15 @@
             },
             {
                 "type": "String",
-                "name": "dnsoverrides",
-                "env": "PLANET_DNS_OVERRIDES",
-                "cli": {"name": "dns-overrides"}
+                "name": "dnshosts",
+                "env": "PLANET_DNS_HOSTS",
+                "cli": {"name": "dns-hosts"}
+            },
+            {
+                "type": "String",
+                "name": "dnszones",
+                "env": "PLANET_DNS_ZONES",
+                "cli": {"name": "dns-zones"}
             },
             {
                 "type": "String",
