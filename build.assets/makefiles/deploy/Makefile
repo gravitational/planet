@@ -38,5 +38,5 @@ deploy-s3:
 
 .PHONY: deploy-quay
 deploy-quay: image
-	docker tag $(PLANET_IMAGE) $(REMOTE_IMAGE)
+	docker tag $(REMOTE_IMAGE) $(PLANET_IMAGE)
 	docker push $(REMOTE_IMAGE)
