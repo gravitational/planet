@@ -1,9 +1,10 @@
-FROM planet/base
+ARG PLANET_BASE_IMAGE=planet/base:latest
+FROM $PLANET_BASE_IMAGE
 
 ENV GOPATH /gopath
 ENV GOROOT /opt/go
 ENV PATH $PATH:$GOPATH/bin:$GOROOT/bin
-ENV GOVERSION 1.8.3
+ARG GOVERSION=go1.9
 
 # Have our own /etc/passwd with users populated from 990 to 1000
 COPY passwd /etc/passwd
@@ -12,7 +13,7 @@ COPY passwd /etc/passwd
 RUN apt-get update && apt-get -t stretch-backports install -y libc6-dev libudev-dev && \
 	apt-get install -y curl make git gcc tar gzip vim screen
 RUN mkdir -p /opt && cd /opt && curl https://storage.googleapis.com/golang/go$GOVERSION.linux-amd64.tar.gz | tar xz
-RUN mkdir -p $GOPATH/src $GOPATH/bin;go get github.com/tools/godep
+RUN mkdir -p $GOPATH/src $GOPATH/bin
 RUN go get github.com/gravitational/version/cmd/linkflags
 RUN chmod a+w $GOPATH -R
 RUN chmod a+w $GOROOT -R
