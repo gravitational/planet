@@ -24,7 +24,6 @@ all:
 	rm -rf $(ROOTFS)/usr/share/man
 	rm -rf $(ROOTFS)/usr/share/doc
 	rm -rf $(ROOTFS)/var/lib/apt
-	rm -rf $(ROOTFS)/var/lib/dpkg
 	rm -rf $(ROOTFS)/var/log/*
 	rm -rf $(ROOTFS)/var/cache
 	rm -rf $(ROOTFS)/lib/systemd/system/sysinit.target.wants/proc-sys-fs-binfmt_misc.automount

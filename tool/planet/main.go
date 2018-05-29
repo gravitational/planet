@@ -9,7 +9,6 @@ import (
 	"os"
 	"os/signal"
 	"path/filepath"
-	"runtime"
 	"strings"
 	"syscall"
 	"time"
@@ -25,7 +24,6 @@ import (
 	"github.com/gravitational/satellite/agent/backend/inmemory"
 	"github.com/gravitational/trace"
 	"github.com/gravitational/version"
-	"github.com/opencontainers/runc/libcontainer"
 	"github.com/opencontainers/runc/libcontainer/configs"
 	log "github.com/sirupsen/logrus"
 	"gopkg.in/alecthomas/kingpin.v2"
@@ -350,7 +348,7 @@ func run() error {
 
 	// "init" command
 	case cinit.FullCommand():
-		err = initLibcontainer()
+		err = box.Init()
 
 	// "enter" command
 	case center.FullCommand():
@@ -477,18 +475,6 @@ func HostPort(s kingpin.Settings) *hostPort {
 
 	s.SetValue(result)
 	return result
-}
-
-// initCmd is implicitly called by the libcontainer logic and is used to start
-// a process in the new namespaces and cgroups
-func initLibcontainer() error {
-	runtime.GOMAXPROCS(1)
-	runtime.LockOSThread()
-	factory, _ := libcontainer.New("")
-	if err := factory.StartInitialization(); err != nil {
-		log.Fatalf("error: %v", err)
-	}
-	return trace.Errorf("not reached")
 }
 
 // findRootfs returns the full path of RootFS this executalbe is in

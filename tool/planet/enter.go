@@ -74,7 +74,7 @@ func stop(rootfs, socketPath string) error {
 	return enter(rootfs, socketPath, cfg)
 }
 
-// enterCommand is a helper function that runs a command as a root
+// enterCommand is a helper function that runs a command as root
 // in the namespace of planet's container. It returns error
 // if command failed, or command standard output otherwise
 func enterCommand(rootfs, socketPath string, args []string) ([]byte, error) {

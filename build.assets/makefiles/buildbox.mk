@@ -1,20 +1,19 @@
-# This makefile runs on the host and it uses buildbox Docker image
-# to kick off inside-buildbox building
-SHELL:=/bin/bash
-TARGETDIR:=$(BUILDDIR)/$(TARGET)
-ASSETDIR:=$(BUILDDIR)/assets
-ROOTFS:=$(TARGETDIR)/rootfs
-CONTAINERNAME:=planet-base-$(TARGET)
-TARBALL:=$(TARGETDIR)/planet-$(TARGET).tar.gz
+# This makefile is used inside the buildbox container
+SHELL := /bin/bash
+TARGETDIR ?= $(BUILDDIR)/planet
+ASSETDIR ?= $(BUILDDIR)/assets
+ROOTFS ?= $(TARGETDIR)/rootfs
+CONTAINERNAME ?= planet-base-build
+TARBALL ?= $(BUILDDIR)/planet.tar.gz
 export
-TMPFS_SIZE?=900m
+TMPFS_SIZE ?= 900m
 
-.PHONY: all build clean planet-image
-
+.PHONY: all
 all: $(ROOTFS)/bin/bash build planet-image
 
+.PHONY: build
 build:
-	@echo -e "\n---> Launching 'buildbox' Docker container to build $(TARGET):\n"
+	@echo -e "\n---> Launching 'buildbox' Docker container to build planet:\n"
 	@mkdir -p $(ASSETDIR)
 	docker run -i -u $$(id -u) --rm=true \
 		--volume=$(ASSETS):/assets \
@@ -31,18 +30,16 @@ build:
 			KUBE_VER=$(KUBE_VER) \
 			FLANNEL_VER=$(FLANNEL_VER) \
 			ETCD_VER=$(ETCD_VER) \
-			-C /assets/makefiles -f $(TARGET)-docker.mk
-ifeq ($(TARGET),master)
+			-C /assets/makefiles -f planet.mk
 	$(MAKE) -C $(ASSETS)/makefiles/master/k8s-master -e -f containers.mk
-endif
 
+.PHONY: planet-image
 planet-image:
-	cp $(ASSETS)/orbit.manifest.json $(TARGETDIR)
 	cp $(ASSETDIR)/planet $(ROOTFS)/usr/bin/
 	cp $(ASSETDIR)/docker-import $(ROOTFS)/usr/bin/
+	cp $(ASSETS)/docker/os-rootfs/etc/planet/orbit.manifest.json $(TARGETDIR)/
 	@echo -e "\n---> Moving current symlink to $(TARGETDIR)\n"
 	@rm -f $(BUILDDIR)/current
-	@cd $(BUILDDIR) && ln -fs $(TARGET) $(BUILDDIR)/current
 	@echo -e "\n---> Creating Planet image...\n"
 	cd $(TARGETDIR) && fakeroot -- sh -c ' \
 		chown -R 1000:1000 . ; \
@@ -50,7 +47,8 @@ planet-image:
 		tar -czf $(TARBALL) orbit.manifest.json rootfs'
 	@echo -e "\nDone --> $(TARBALL)"
 
-enter_buildbox:
+.PHONY: enter-buildbox
+enter-buildbox:
 	docker run -ti -u $$(id -u) --rm=true \
 		--volume=$(ASSETS):/assets \
 		--volume=$(ROOTFS):/rootfs \
@@ -71,12 +69,13 @@ $(ROOTFS)/bin/bash: clean-rootfs
 	if [ ! -z $$MEMROOTFS ]; then \
 	  sudo mount -t tmpfs -o size=$(TMPFS_SIZE) tmpfs $(ROOTFS) ;\
 	fi
-# populate Rootfs using docker image 'planet/base'
-	docker create --name=$(CONTAINERNAME) planet/base
+# populate rootfs using docker image 'planet/base'
+	docker create --name=$(CONTAINERNAME) $(PLANET_IMAGE)
 	@echo "Exporting base Docker image into a fresh RootFS into $(ROOTFS)...."
 	cd $(ROOTFS) && docker export $(CONTAINERNAME) | tar -x
 
 
+.PHONY: clean-rootfs
 clean-rootfs:
 # umount tmps volume for rootfs:
 	if [[ $$(mount | grep $(ROOTFS)) ]]; then \
@@ -87,5 +86,6 @@ clean-rootfs:
 		docker rm -f $(CONTAINERNAME) ;\
 	fi
 
+.PHONY: clean
 clean: clean-rootfs
 	rm -rf $(TARGETDIR)

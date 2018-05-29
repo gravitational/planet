@@ -28,11 +28,15 @@ type ContainerServer interface {
 	Enter(cfg ProcessConfig) error
 }
 
+// Box defines a running planet container.
+//
+// A box manages a number of resources including an init process
+// and an API server that exposes a unix socket endpoint.
+// Once started, the box can be shut down with Close.
 type Box struct {
-	Process     *libcontainer.Process
-	Container   libcontainer.Container
-	ContainerID string
-	listener    net.Listener
+	Process   *libcontainer.Process
+	Container libcontainer.Container
+	listener  net.Listener
 }
 
 // Close shuts down the box. It is written to be safe to call multiple
@@ -53,6 +57,8 @@ func (b *Box) Close() error {
 	return err
 }
 
+// Wait blocks waiting the init process to finish.
+// Returns the state of the init process.
 func (b *Box) Wait() (*os.ProcessState, error) {
 	log.Infof("box.Wait() is called")
 	st, err := b.Process.Wait()
@@ -62,6 +68,8 @@ func (b *Box) Wait() (*os.ProcessState, error) {
 	return st, err
 }
 
+// Starts the container described by cfg.
+// Returns a Box instance or an error.
 func Start(cfg Config) (*Box, error) {
 	log.Infof("[BOX] starting with config: %#v", cfg)
 
@@ -90,31 +98,99 @@ func Start(cfg Config) (*Box, error) {
 		}
 	}
 
-	root, err := libcontainer.New(cfg.DataDir, libcontainer.Cgroupfs)
+	// Resolve the paths for {newuidmap,newgidmap} from the context of runc,
+	// to avoid doing a path lookup in the nsexec context.
+	// TODO: the binary names are not currently configurable.
+	newuidmap, err := exec.LookPath("newuidmap")
 	if err != nil {
-		return nil, trace.Wrap(err)
+		newuidmap = ""
+	}
+	newgidmap, err := exec.LookPath("newgidmap")
+	if err != nil {
+		newgidmap = ""
 	}
 
-	// find all existing loop devices on a host and re-create them inside the container
-	hostLoops, err := filepath.Glob("/dev/loop?")
+	root, err := libcontainer.New(cfg.DataDir, libcontainer.Cgroupfs,
+		libcontainer.NewuidmapPath(newuidmap),
+		libcontainer.NewgidmapPath(newgidmap))
 	if err != nil {
 		return nil, trace.Wrap(err)
-	}
-	loopDevices := make([]*configs.Device, len(hostLoops))
-	for i := range hostLoops {
-		loopDevices[i] = &configs.Device{
-			Type:        'b',
-			Path:        fmt.Sprintf("/dev/loop%d", i),
-			Major:       7,
-			Minor:       int64(i),
-			Uid:         0,
-			Gid:         0,
-			Permissions: "rwm",
-			FileMode:    0660,
-		}
 	}
 
 	containerID := uuid.New()
+	config, err := getLibcontainerConfig(containerID, rootfs, cfg)
+	if err != nil {
+		return nil, trace.Wrap(err)
+	}
+
+	// Bootstrap the container.
+	//
+	//
+	// In this step, runc will execute the special "planet init" command
+	// that will set things up for the container:
+	//
+	// The command runs nsexec code required to initialize namespaces _before_
+	// the Go runtime.
+	//
+	// Then it runs the factory.StartInitialization to set up the container.
+	//
+	// After all of the above is done, "planet init" will block waiting for execve
+	// to start the container's init process (see container.Start below).
+	container, err := root.Create(containerID, config)
+	if err != nil {
+		return nil, trace.Wrap(err)
+	}
+	defer func() {
+		if err != nil {
+			container.Destroy()
+		}
+	}()
+
+	// start the API server
+	socketPath := serverSockPath(cfg.Rootfs, cfg.SocketPath)
+	listener, err := net.Listen("unix", socketPath)
+	if err != nil {
+		return nil, trace.Wrap(err)
+	}
+	defer func() {
+		if err != nil {
+			listener.Close()
+		}
+	}()
+
+	err = startWebServer(listener, container)
+	if err != nil {
+		return nil, trace.Wrap(err)
+	}
+
+	process := &libcontainer.Process{
+		Args:   cfg.InitArgs,
+		Env:    cfg.InitEnv,
+		User:   cfg.InitUser,
+		Stdin:  os.Stdin,
+		Stdout: os.Stdout,
+		Stderr: os.Stderr,
+	}
+
+	// Run the container by starting the init process.
+	if err := container.Run(process); err != nil {
+		return nil, trace.Wrap(err)
+	}
+
+	status, err := container.Status()
+	if err != nil {
+		return nil, trace.Wrap(err)
+	}
+	log.Infof("Container status: %v (err=%v).", status, err)
+
+	return &Box{
+		Process:   process,
+		Container: container,
+		listener:  listener,
+	}, nil
+}
+
+func getLibcontainerConfig(containerID, rootfs string, cfg Config) (*configs.Config, error) {
 	hostname, err := os.Hostname()
 	if err != nil {
 		return nil, trace.Wrap(err, "failed to get hostname")
@@ -127,6 +203,12 @@ func Start(cfg Config) (*Box, error) {
 	devices, err := enum.Devices()
 	if err != nil {
 		return nil, trace.Wrap(err, "failed to enumerate available devices")
+	}
+
+	// find all existing loop devices on a host and re-create them inside the container
+	hostLoops, err := filepath.Glob("/dev/loop?")
+	if err != nil {
+		return nil, trace.Wrap(err)
 	}
 
 	var disks []*configs.Device
@@ -145,9 +227,32 @@ func Start(cfg Config) (*Box, error) {
 		}
 	}
 
+	loopDevices := make([]*configs.Device, len(hostLoops))
+	for i := range hostLoops {
+		loopDevices[i] = &configs.Device{
+			Type:        'b',
+			Path:        fmt.Sprintf("/dev/loop%d", i),
+			Major:       7,
+			Minor:       int64(i),
+			Uid:         0,
+			Gid:         0,
+			Permissions: "rwm",
+			FileMode:    0660,
+		}
+	}
+
+	capabilities := configs.Capabilities{
+		Bounding:    cfg.Capabilities,
+		Effective:   cfg.Capabilities,
+		Inheritable: cfg.Capabilities,
+		Permitted:   cfg.Capabilities,
+		Ambient:     cfg.Capabilities,
+	}
+
+	allowAllDevices := true
 	config := &configs.Config{
 		Rootfs:       rootfs,
-		Capabilities: cfg.Capabilities,
+		Capabilities: &capabilities,
 		Namespaces: configs.Namespaces([]configs.Namespace{
 			{Type: configs.NEWNS},
 			{Type: configs.NEWUTS},
@@ -202,7 +307,7 @@ func Start(cfg Config) (*Box, error) {
 			Name:   containerID,
 			Parent: "system",
 			Resources: &configs.Resources{
-				AllowAllDevices:  true,
+				AllowAllDevices:  &allowAllDevices,
 				AllowedDevices:   configs.DefaultAllowedDevices,
 				MemorySwappiness: nil, // nil means "machine-default" and that's what we need because we don't care
 			},
@@ -229,52 +334,7 @@ func Start(cfg Config) (*Box, error) {
 		config.Mounts = append(config.Mounts, mnt)
 	}
 
-	container, err := root.Create(containerID, config)
-	if err != nil {
-		return nil, trace.Wrap(err)
-	}
-
-	// start the API webserver (the sooner the better, so if it can't start we can
-	// fail sooner)
-	socketPath := serverSockPath(cfg.Rootfs, cfg.SocketPath)
-	listener, err := net.Listen("unix", socketPath)
-	if err != nil {
-		return nil, trace.Wrap(err)
-	}
-	err = startWebServer(listener, container)
-	if err != nil {
-		return nil, trace.Wrap(err)
-	}
-
-	process := &libcontainer.Process{
-		Args:   cfg.InitArgs,
-		Env:    cfg.InitEnv,
-		User:   cfg.InitUser,
-		Stdin:  os.Stdin,
-		Stdout: os.Stdout,
-		Stderr: os.Stderr,
-	}
-
-	// this will cause libcontainer to exec this binary again
-	// with "init" command line argument.  (this is the default setting)
-	// then our init() function comes into play
-	if err := container.Start(process); err != nil {
-		// kill the webserver (so it would close the socket)
-		listener.Close()
-		return nil, trace.Wrap(err)
-	}
-
-	status, err := container.Status()
-	if err != nil {
-		return nil, trace.Wrap(err)
-	}
-	log.Infof("container status: %v (err=%v)", status, err)
-
-	return &Box{
-		Process:     process,
-		ContainerID: containerID,
-		Container:   container,
-		listener:    listener}, nil
+	return config, nil
 }
 
 func getEnvironment(env EnvVars) []string {
@@ -357,22 +417,22 @@ func ReadEnvironment(path string) (vars EnvVars, err error) {
 	return vars, nil
 }
 
-func checkPath(p string, executable bool) (string, error) {
-	if p == "" {
-		return "", trace.Errorf("path to root filesystem can not be empty")
+func checkPath(path string, executable bool) (absPath string, err error) {
+	if path == "" {
+		return "", trace.BadParameter("path to root filesystem can not be empty")
 	}
-	cp, err := filepath.Abs(p)
+	absPath, err = filepath.Abs(path)
 	if err != nil {
 		return "", trace.Wrap(err)
 	}
-	fi, err := os.Stat(cp)
+	fi, err := os.Stat(absPath)
 	if err != nil {
 		return "", trace.Wrap(err)
 	}
 	if executable && (fi.Mode()&0111 == 0) {
-		return "", trace.Errorf("file %v is not executable", cp)
+		return "", trace.BadParameter("file %v is not executable", absPath)
 	}
-	return cp, nil
+	return absPath, nil
 }
 
 const defaultMountFlags = syscall.MS_NOEXEC | syscall.MS_NOSUID | syscall.MS_NODEV
