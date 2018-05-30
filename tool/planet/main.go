@@ -70,6 +70,7 @@ func run() error {
 		cstartIgnoreChecks            = cstart.Flag("ignore-checks", "Force start ignoring some failed host checks (e.g. kernel version)").OverrideDefaultFromEnvar("PLANET_FORCE").Bool()
 		cstartEnv                     = EnvVars(cstart.Flag("env", "Set environment variable").OverrideDefaultFromEnvar("PLANET_ENV"))
 		cstartMounts                  = Mounts(cstart.Flag("volume", "External volume to mount").OverrideDefaultFromEnvar("PLANET_VOLUME"))
+		cstartDevices                 = Devices(cstart.Flag("device", "Device to create inside container").OverrideDefaultFromEnvar("PLANET_DEVICE"))
 		cstartRoles                   = List(cstart.Flag("role", "Roles such as 'master' or 'node'").OverrideDefaultFromEnvar("PLANET_ROLE"))
 		cstartSecretsDir              = cstart.Flag("secrets-dir", "Directory with master secrets - certificate authority and certificates").OverrideDefaultFromEnvar("PLANET_SECRETS_DIR").ExistingDir()
 		cstartServiceSubnet           = kv.CIDRFlag(cstart.Flag("service-subnet", "subnet dedicated to the services in cluster").Default(DefaultServiceSubnet).OverrideDefaultFromEnvar("PLANET_SERVICE_SUBNET"))
@@ -312,6 +313,7 @@ func run() error {
 			SocketPath:     *socketPath,
 			Env:            *cstartEnv,
 			Mounts:         *cstartMounts,
+			Devices:        *cstartDevices,
 			IgnoreChecks:   *cstartIgnoreChecks,
 			Roles:          *cstartRoles,
 			MasterIP:       cstartMasterIP.String(),
@@ -448,6 +450,12 @@ func EnvVars(s kingpin.Settings) *box.EnvVars {
 
 func Mounts(s kingpin.Settings) *box.Mounts {
 	vars := new(box.Mounts)
+	s.SetValue(vars)
+	return vars
+}
+
+func Devices(s kingpin.Settings) *box.Devices {
+	vars := new(box.Devices)
 	s.SetValue(vars)
 	return vars
 }

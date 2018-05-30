@@ -334,7 +334,59 @@ func getLibcontainerConfig(containerID, rootfs string, cfg Config) (*configs.Con
 		config.Mounts = append(config.Mounts, mnt)
 	}
 
+	for _, d := range cfg.Devices {
+		devices, err := convertToDevices(d)
+		if err != nil {
+			return nil, trace.Wrap(err)
+		}
+		config.Devices = append(config.Devices, devices...)
+	}
+
 	return config, nil
+}
+
+func convertToDevices(device Device) (devices []*configs.Device, err error) {
+	// each device path passed on CLI is treated as a glob
+	devicePaths, err := filepath.Glob(device.Path)
+	if err != nil {
+		return nil, trace.Wrap(err)
+	}
+	for _, devicePath := range devicePaths {
+		deviceInfo, err := getDeviceInfo(devicePath)
+		if err != nil {
+			return nil, trace.Wrap(err)
+		}
+		// fill in other fields from the parameters passed on CLI
+		deviceInfo.Permissions = device.Permissions
+		deviceInfo.FileMode = device.FileMode
+		deviceInfo.Uid = device.UID
+		deviceInfo.Gid = device.GID
+		devices = append(devices, deviceInfo)
+	}
+	return devices, nil
+}
+
+func getDeviceInfo(devicePath string) (*configs.Device, error) {
+	stat := syscall.Stat_t{}
+	if err := syscall.Stat(devicePath, &stat); err != nil {
+		return nil, trace.Wrap(err)
+	}
+	// determine device type, char or block
+	var deviceType rune
+	switch stat.Mode & syscall.S_IFMT {
+	case syscall.S_IFBLK:
+		deviceType = 'b'
+	case syscall.S_IFCHR:
+		deviceType = 'c'
+	default:
+		return nil, trace.BadParameter("unsupported device type: %q", devicePath)
+	}
+	return &configs.Device{
+		Type:  deviceType,
+		Path:  devicePath,
+		Major: int64(stat.Rdev / 256),
+		Minor: int64(stat.Rdev % 256),
+	}, nil
 }
 
 func getEnvironment(env EnvVars) []string {

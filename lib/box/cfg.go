@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"io"
 	"os"
+	"strconv"
 	"strings"
 
 	"github.com/gravitational/configure/cstrings"
@@ -34,6 +35,8 @@ type Config struct {
 
 	// Mounts is a list of device moutns passed to the server
 	Mounts Mounts
+	// Devices is a list of devices to create inside the container
+	Devices Devices
 	// Capabilities is a list of capabilities of this container
 	Capabilities []string
 	// DataDir is a directory where libcontainer stores the container state
@@ -202,3 +205,114 @@ func (m *Mounts) String() string {
 	}
 	return b.String()
 }
+
+// Device represents a device that should be created in planet
+type Device struct {
+	// Path is the device path, treated as a glob
+	Path string
+	// Permissions is the device permissions
+	Permissions string
+	// FileMode is the device file mode
+	FileMode os.FileMode
+	// UID is the device user ID
+	UID uint32
+	// GID is the device group ID
+	GID uint32
+}
+
+// Format formats the device to a string
+func (d Device) Format() string {
+	parts := []string{fmt.Sprintf("%v=%v", devicePath, d.Path)}
+	if d.Permissions != "" {
+		parts = append(parts, fmt.Sprintf("%v=%v", devicePermissions, d.Permissions))
+	}
+	if d.FileMode != 0 {
+		parts = append(parts, fmt.Sprintf("%v=0%o", deviceFileMode, d.FileMode))
+	}
+	if d.UID != 0 {
+		parts = append(parts, fmt.Sprintf("%v=%v", deviceUID, d.UID))
+	}
+	if d.GID != 0 {
+		parts = append(parts, fmt.Sprintf("%v=%v", deviceGID, d.GID))
+	}
+	return strings.Join(parts, ";")
+}
+
+// Devices represents a list of devices
+type Devices []Device
+
+// Set sets the devices from CLI flags
+func (d *Devices) Set(v string) error {
+	for _, i := range cstrings.SplitComma(v) {
+		if err := d.setItem(i); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+func (d *Devices) setItem(v string) error {
+	device, err := parseDevice(v)
+	if err != nil {
+		return trace.Wrap(err)
+	}
+	*d = append(*d, *device)
+	return nil
+}
+
+// String converts devices to a string
+func (d *Devices) String() string {
+	if len(*d) == 0 {
+		return ""
+	}
+	var formats []string
+	for _, device := range *d {
+		formats = append(formats, device.Format())
+	}
+	return strings.Join(formats, ";")
+}
+
+// parseDevice parses a single device value in the format:
+// path=/dev/nvidia*;permissions=rwm;fileMode=0666
+func parseDevice(value string) (*Device, error) {
+	device := &Device{}
+	for _, part := range strings.Split(value, ";") {
+		kv := strings.Split(part, "=")
+		if len(kv) != 2 {
+			return nil, trace.BadParameter("malformed device format: %q", value)
+		}
+		switch kv[0] {
+		case devicePath:
+			device.Path = kv[1]
+		case devicePermissions:
+			device.Permissions = kv[1]
+		case deviceFileMode:
+			fileMode, err := strconv.ParseUint(kv[1], 8, 32)
+			if err != nil {
+				return nil, trace.Wrap(err)
+			}
+			device.FileMode = os.FileMode(fileMode)
+		case deviceUID:
+			uid, err := strconv.ParseUint(kv[1], 0, 32)
+			if err != nil {
+				return nil, trace.Wrap(err)
+			}
+			device.UID = uint32(uid)
+		case deviceGID:
+			gid, err := strconv.ParseUint(kv[1], 0, 32)
+			if err != nil {
+				return nil, trace.Wrap(err)
+			}
+			device.GID = uint32(gid)
+		}
+	}
+	return device, nil
+}
+
+const (
+	devicePath        = "path"
+	devicePermissions = "permissions"
+	deviceFileMode    = "fileMode"
+	deviceUID         = "uid"
+	deviceGID         = "gid"
+)
