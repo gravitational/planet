@@ -43,6 +43,8 @@ type Config struct {
 	Env box.EnvVars
 	// Mounts specifies the list of additional mounts
 	Mounts box.Mounts
+	// Devices is the list of devices to create inside container
+	Devices box.Devices
 	// Files are files to be shared inside the container
 	Files []box.File
 	// IgnoreChecks disables kernel checks during start up

@@ -159,6 +159,15 @@
                 }
             },
             {
+                "type": "List",
+                "name": "devices",
+                "spec": {
+                    "name": "device",
+                    "env": "PLANET_DEVICE",
+                    "type": "String"
+                }
+            },
+            {
                 "type": "String",
                 "name": "initialcluster",
                 "env": "PLANET_INITIAL_CLUSTER",
