@@ -346,7 +346,7 @@ func setupCloudOptions(c *Config) error {
 	flags := []string{fmt.Sprintf("--cloud-provider=%v", c.CloudProvider)}
 
 	switch c.CloudProvider {
-	case CloudProviderAWS:
+	case constants.CloudProviderAWS:
 		if c.ClusterID != "" {
 			flags = append(flags, "--cloud-config=/etc/cloud-config.conf")
 			c.Files = append(c.Files, box.File{
@@ -355,7 +355,7 @@ func setupCloudOptions(c *Config) error {
 					awsCloudConfig, c.ClusterID)),
 			})
 		}
-	case CloudProviderGCE:
+	case constants.CloudProviderGCE:
 		if c.ClusterID != "" {
 			nodeTags := c.ClusterID
 			if c.GCENodeTags != "" {
@@ -684,9 +684,9 @@ func mountSecrets(config *Config) {
 
 func setupFlannel(config *Config) {
 	switch config.CloudProvider {
-	case CloudProviderAWS:
+	case constants.CloudProviderAWS:
 		config.Env.Upsert("FLANNEL_BACKEND", "aws-vpc")
-	case CloudProviderGCE:
+	case constants.CloudProviderGCE:
 		config.Env.Upsert("FLANNEL_BACKEND", "gce")
 	default:
 		config.Env.Upsert("FLANNEL_BACKEND", "vxlan")

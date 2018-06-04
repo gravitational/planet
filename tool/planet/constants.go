@@ -176,12 +176,6 @@ const (
 	// TelekubeDomain is the domain for local telekube cluster
 	TelekubeDomain = "telekube.local"
 
-	// CloudProviderAWS defines the name of the AWS cloud provider used to
-	// setup AWS integration in kubernetes
-	CloudProviderAWS = "aws"
-	// CloudProviderGCE is the Google Compute Engine cloud provider ID
-	CloudProviderGCE = "gce"
-
 	// See resolv.conf(5) on a Linux machine
 	//
 	// DNSNdots defines the threshold for amount of dots that must appear in a name

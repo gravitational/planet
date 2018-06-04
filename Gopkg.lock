@@ -41,6 +41,38 @@
   revision = "06b60999766278efd6d2b5d8418a58c3d5b99e87"
 
 [[projects]]
+  name = "github.com/aws/aws-sdk-go"
+  packages = [
+    "aws",
+    "aws/awserr",
+    "aws/awsutil",
+    "aws/client",
+    "aws/client/metadata",
+    "aws/corehandlers",
+    "aws/credentials",
+    "aws/credentials/ec2rolecreds",
+    "aws/credentials/endpointcreds",
+    "aws/credentials/stscreds",
+    "aws/defaults",
+    "aws/ec2metadata",
+    "aws/endpoints",
+    "aws/request",
+    "aws/session",
+    "aws/signer/v4",
+    "internal/sdkio",
+    "internal/sdkrand",
+    "internal/shareddefaults",
+    "private/protocol",
+    "private/protocol/query",
+    "private/protocol/query/queryutil",
+    "private/protocol/rest",
+    "private/protocol/xml/xmlutil",
+    "service/sts"
+  ]
+  revision = "5197757a58a794d49d2d0c50a932997157734100"
+  version = "v1.13.60"
+
+[[projects]]
   name = "github.com/beorn7/perks"
   packages = ["quantile"]
   revision = "b965b613227fddccbfffe13eae360ed3fa822f8d"
@@ -147,6 +179,12 @@
   packages = ["."]
   revision = "0ca9ea5df5451ffdf184b4428c902747c2c11cd7"
   version = "v1.0.0"
+
+[[projects]]
+  name = "github.com/go-ini/ini"
+  packages = ["."]
+  revision = "06f5f3d67269ccec1fe5fe4134ba6e982984f7f5"
+  version = "v1.37.0"
 
 [[projects]]
   branch = "master"
@@ -263,6 +301,7 @@
   revision = "f39421c51f636f6a03a79a168aacc628e37a584b"
 
 [[projects]]
+  branch = "kevin/3453-check-iam-credentials"
   name = "github.com/gravitational/satellite"
   packages = [
     "agent",
@@ -275,8 +314,7 @@
     "monitoring/collector",
     "utils"
   ]
-  revision = "78cbbb8312b7556eca0226c2cfb51481e2c589cf"
-  version = "0.0.17"
+  revision = "1e2b30186a36c0fa4529559b59a8fd040a98e663"
 
 [[projects]]
   name = "github.com/gravitational/trace"
@@ -334,6 +372,11 @@
   name = "github.com/imdario/mergo"
   packages = ["."]
   revision = "50d4dbd4eb0e84778abe37cefef140271d96fade"
+
+[[projects]]
+  name = "github.com/jmespath/go-jmespath"
+  packages = ["."]
+  revision = "0b12d6b5"
 
 [[projects]]
   name = "github.com/jonboulle/clockwork"
@@ -738,6 +781,6 @@
 [solve-meta]
   analyzer-name = "dep"
   analyzer-version = 1
-  inputs-digest = "6e914c397784942d9d6217e8c1c50db75628c4a1c37fe22cd81c7991903586be"
+  inputs-digest = "71c2c45a04c62baaf23d00b001b176796dc8e18b19125746e2b0f22999fbc321"
   solver-name = "gps-cdcl"
   solver-version = 1

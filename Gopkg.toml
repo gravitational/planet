@@ -76,7 +76,8 @@ ignored = ["github.com/Sirupsen/logrus"]
 
 [[constraint]]
   name = "github.com/gravitational/satellite"
-  version = "0.0.17"
+  # version = "0.0.17"
+  branch = "kevin/3453-check-iam-credentials"
 
 [[constraint]]
   name = "github.com/gravitational/trace"
