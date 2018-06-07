@@ -30,5 +30,4 @@ ExecStart=/usr/bin/planet agent \
         --etcd-certfile=/var/state/etcd.cert \
         --etcd-keyfile=/var/state/etcd.key \
         --nameservers=${PLANET_DNS_UPSTREAM_NAMESERVERS} \
-        --dns-zones=${PLANET_DNS_ZONES} \
-        --cloud-provider=${KUBE_CLOUD_PROVIDER}
+        --dns-zones=${PLANET_DNS_ZONES}
