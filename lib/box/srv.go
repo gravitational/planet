@@ -317,21 +317,34 @@ func getLibcontainerConfig(containerID, rootfs string, cfg Config) (*configs.Con
 		Hostname: hostname,
 	}
 
-	for _, m := range cfg.Mounts {
-		src, err := checkPath(m.Src, false)
+	for _, mountSpec := range cfg.Mounts {
+		matches, err := filepath.Glob(mountSpec.Src)
 		if err != nil {
-			return nil, trace.Wrap(err)
+			return nil, trace.Wrap(err, "invalid glob pattern %q", mountSpec.Src)
 		}
-		mnt := &configs.Mount{
-			Device:      "bind",
-			Source:      src,
-			Destination: m.Dst,
-			Flags:       syscall.MS_BIND,
+
+		if len(matches) == 0 && mountSpec.SkipIfMissing {
+			// Skip the non-existent mount source
+			continue
 		}
-		if m.Readonly {
-			mnt.Flags |= syscall.MS_RDONLY
+
+		for _, match := range matches {
+			targetPath := mountSpec.Dst
+			if match != mountSpec.Src {
+				// For glob patterns, targetPath implicitly equals the source
+				targetPath = match
+			}
+			mount := &configs.Mount{
+				Device:      "bind",
+				Source:      match,
+				Destination: targetPath,
+				Flags:       syscall.MS_BIND,
+			}
+			if mountSpec.Readonly {
+				mount.Flags |= syscall.MS_RDONLY
+			}
+			config.Mounts = append(config.Mounts, mount)
 		}
-		config.Mounts = append(config.Mounts, mnt)
 	}
 
 	for _, d := range cfg.Devices {
@@ -479,7 +492,7 @@ func checkPath(path string, executable bool) (absPath string, err error) {
 	}
 	fi, err := os.Stat(absPath)
 	if err != nil {
-		return "", trace.Wrap(err)
+		return "", trace.ConvertSystemError(err)
 	}
 	if executable && (fi.Mode()&0111 == 0) {
 		return "", trace.BadParameter("file %v is not executable", absPath)

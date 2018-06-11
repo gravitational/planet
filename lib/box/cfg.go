@@ -33,7 +33,7 @@ type Config struct {
 	// Ignored with systemd socket-activation.
 	SocketPath string
 
-	// Mounts is a list of device moutns passed to the server
+	// Mounts is a list of device/directory/file mounts passed to the server
 	Mounts Mounts
 	// Devices is a list of devices to create inside the container
 	Devices Devices
@@ -165,10 +165,16 @@ func (vars *EnvVars) String() string {
 	return b.String()
 }
 
+// Mount defines a mapping from a host location to some location inside the container
 type Mount struct {
-	Src      string
-	Dst      string
+	// Src defines the source for the mount on host
+	Src string
+	// Dst defines the mount point inside the container
+	Dst string
+	// Readonly specifies that the mount is created readonly
 	Readonly bool
+	// SkipIfMissing instructs to skip the mount if the Src is non-existent
+	SkipIfMissing bool
 }
 
 type Mounts []Mount
@@ -184,11 +190,19 @@ func (m *Mounts) Set(v string) error {
 
 func (m *Mounts) setItem(v string) error {
 	vals := strings.Split(v, ":")
-	if len(vals) != 2 {
-		return trace.Errorf(
-			"set mounts separated by : e.g. src:dst")
+	if len(vals) < 2 {
+		return trace.BadParameter(
+			"expected a mount specified as src:dst[:options], but got %q", v)
 	}
-	*m = append(*m, Mount{Src: vals[0], Dst: vals[1]})
+	mount := Mount{Src: vals[0], Dst: vals[1]}
+	if len(vals) > 2 {
+		options := vals[2:]
+		err := parseMountOptions(options, &mount)
+		if err != nil {
+			return trace.BadParameter("failed to parse mount options %q", options)
+		}
+	}
+	*m = append(*m, mount)
 	return nil
 }
 
@@ -199,11 +213,41 @@ func (m *Mounts) String() string {
 	b := &bytes.Buffer{}
 	for i, v := range *m {
 		fmt.Fprintf(b, "%v:%v", v.Src, v.Dst)
+		options := formatMountOptions(v)
+		if len(options) != 0 {
+			fmt.Fprint(b, strings.Join(options, ":"))
+		}
 		if i != len(*m)-1 {
 			fmt.Fprintf(b, " ")
 		}
 	}
 	return b.String()
+}
+
+func formatMountOptions(mount Mount) (options []string) {
+	if mount.SkipIfMissing {
+		options = append(options, "skip")
+	}
+	if mount.Readonly {
+		options = append(options, "ro")
+	}
+	return options
+}
+
+func parseMountOptions(options []string, mount *Mount) error {
+	for _, option := range options {
+		switch option {
+		case "r", "ro":
+			mount.Readonly = true
+		case "rw", "w":
+			mount.Readonly = false
+		case "skip":
+			mount.SkipIfMissing = true
+		default:
+			return trace.BadParameter("unknown option %q", option)
+		}
+	}
+	return nil
 }
 
 // Device represents a device that should be created in planet
