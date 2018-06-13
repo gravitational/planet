@@ -215,7 +215,7 @@ func (m *Mounts) String() string {
 		fmt.Fprintf(b, "%v:%v", v.Src, v.Dst)
 		options := formatMountOptions(v)
 		if len(options) != 0 {
-			fmt.Fprint(b, strings.Join(options, ":"))
+			fmt.Fprint(b, ":", strings.Join(options, ":"))
 		}
 		if i != len(*m)-1 {
 			fmt.Fprintf(b, " ")
