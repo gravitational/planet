@@ -8,6 +8,7 @@ import (
 	"io"
 	"io/ioutil"
 	"net/http"
+	"strings"
 
 	"github.com/gravitational/planet/lib/constants"
 
@@ -39,6 +40,8 @@ type Config struct {
 	DisableInterPodCheck bool
 	// ETCDConfig defines etcd-specific configuration
 	ETCDConfig etcdconf.Config
+	// CloudProvider is the cloud provider backend this cluster is using
+	CloudProvider string
 }
 
 // LocalTransport returns http transport that is set up with local certificate authority
@@ -96,6 +99,12 @@ func addToMaster(node agent.Agent, config *Config, etcdConfig *monitoring.ETCDCo
 		node.AddChecker(monitoring.InterPodCommunication(config.KubeAddr, config.NettestContainerImage))
 	}
 	node.AddChecker(NewVersionCollector())
+
+	// Add checkers specific to cloud provider backend
+	switch strings.ToLower(config.CloudProvider) {
+	case constants.CloudProviderAWS:
+		node.AddChecker(monitoring.NewAWSHasProfileChecker())
+	}
 	return nil
 }
 
@@ -111,6 +120,12 @@ func addToNode(node agent.Agent, config *Config, etcdConfig *monitoring.ETCDConf
 	node.AddChecker(NewVersionCollector())
 	node.AddChecker(monitoring.NewIPForwardChecker())
 	node.AddChecker(monitoring.NewBridgeNetfilterChecker())
+
+	// Add checkers specific to cloud provider backend
+	switch strings.ToLower(config.CloudProvider) {
+	case constants.CloudProviderAWS:
+		node.AddChecker(monitoring.NewAWSHasProfileChecker())
+	}
 	return nil
 }
 
