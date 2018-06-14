@@ -68,7 +68,7 @@ func run() error {
 		cstartClusterID               = cstart.Flag("cluster-id", "ID of the cluster").OverrideDefaultFromEnvar("PLANET_CLUSTER_ID").String()
 		cstartGCENodeTags             = cstart.Flag("gce-node-tags", "Node tag to set in the cloud configuration file on GCE as comma-separated values").OverrideDefaultFromEnvar(EnvGCENodeTags).String()
 		cstartIgnoreChecks            = cstart.Flag("ignore-checks", "Force start ignoring some failed host checks (e.g. kernel version)").OverrideDefaultFromEnvar("PLANET_FORCE").Bool()
-		cstartEnv                     = EnvVars(cstart.Flag("env", "Set environment variable").OverrideDefaultFromEnvar("PLANET_ENV"))
+		cstartEnv                     = EnvVars(cstart.Flag("env", "Set environment variable as comma-separated list of name=value pairs").OverrideDefaultFromEnvar("PLANET_ENV"))
 		cstartMounts                  = Mounts(cstart.Flag("volume", "External volume to mount, as a src:dst[:options] tuple").OverrideDefaultFromEnvar("PLANET_VOLUME"))
 		cstartDevices                 = Devices(cstart.Flag("device", "Device to create inside container").OverrideDefaultFromEnvar("PLANET_DEVICE"))
 		cstartRoles                   = List(cstart.Flag("role", "Roles such as 'master' or 'node'").OverrideDefaultFromEnvar("PLANET_ROLE"))
