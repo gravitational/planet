@@ -98,13 +98,18 @@ func (e *ProcessConfig) Environment() []string {
 	return out
 }
 
+// EnvPair defines an environment variable
 type EnvPair struct {
+	// Name is the name of the environment variable
 	Name string `json:"name"`
-	Val  string `json:"val"`
+	// Val defines the value of the environment variable
+	Val string `json:"val"`
 }
 
+// EnvVars is a list of environment variables
 type EnvVars []EnvPair
 
+// Get returns the value of the environment variable named v
 func (vars *EnvVars) Get(v string) string {
 	for _, p := range *vars {
 		if p.Name == v {
@@ -114,6 +119,7 @@ func (vars *EnvVars) Get(v string) string {
 	return ""
 }
 
+// Append adds a new environment variable given with k, v and delimiter delim
 func (vars *EnvVars) Append(k, v, delim string) {
 	if existing := vars.Get(k); existing != "" {
 		vars.Upsert(k, strings.Join([]string{existing, v}, delim))
@@ -122,6 +128,8 @@ func (vars *EnvVars) Append(k, v, delim string) {
 	}
 }
 
+// Upsert adds a new environment variable given with k and v.
+// If the environment variable with the name k already exists, it is updated
 func (vars *EnvVars) Upsert(k, v string) {
 	for i, p := range *vars {
 		if p.Name == k {
@@ -132,6 +140,7 @@ func (vars *EnvVars) Upsert(k, v string) {
 	*vars = append(*vars, EnvPair{Name: k, Val: v})
 }
 
+// Set parses v as a comma-separated list of name=value pairs
 func (vars *EnvVars) Set(v string) error {
 	for _, i := range cstrings.SplitComma(v) {
 		if err := vars.setItem(i); err != nil {
@@ -141,28 +150,42 @@ func (vars *EnvVars) Set(v string) error {
 	return nil
 }
 
-func (vars *EnvVars) setItem(v string) error {
-	vals := strings.Split(v, ":")
-	if len(vals) != 2 {
-		return trace.Errorf(
-			"set environment variable separated by ':', e.g. KEY:VAL")
-	}
-	*vars = append(*vars, EnvPair{Name: vals[0], Val: vals[1]})
-	return nil
-}
-
+// String formats this object as a string with comma-separated list
+// of name=value pairs
 func (vars *EnvVars) String() string {
-	if len(*vars) == 0 {
+	if vars == nil || len(*vars) == 0 {
 		return ""
 	}
 	b := &bytes.Buffer{}
 	for i, v := range *vars {
 		fmt.Fprintf(b, "%v=%v", v.Name, v.Val)
 		if i != len(*vars)-1 {
-			fmt.Fprintf(b, " ")
+			fmt.Fprintf(b, ",")
 		}
 	}
 	return b.String()
+}
+
+// Environ returns this EnvVars as a list of name=value pairs
+func (vars *EnvVars) Environ() (environ []string) {
+	if vars == nil || len(*vars) == 0 {
+		return nil
+	}
+	for _, envvar := range *vars {
+		environ = append(environ, fmt.Sprintf("%v=%v",
+			envvar.Name, envvar.Val))
+	}
+	return environ
+}
+
+func (vars *EnvVars) setItem(v string) error {
+	vals := strings.Split(v, "=")
+	if len(vals) != 2 {
+		return trace.Errorf(
+			"set environment variable as name=value")
+	}
+	*vars = append(*vars, EnvPair{Name: vals[0], Val: vals[1]})
+	return nil
 }
 
 // Mount defines a mapping from a host location to some location inside the container
