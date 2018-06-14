@@ -178,13 +178,13 @@ func (vars *EnvVars) Environ() (environ []string) {
 	return environ
 }
 
-func (vars *EnvVars) setItem(v string) error {
-	vals := strings.Split(v, "=")
-	if len(vals) != 2 {
+func (vars *EnvVars) setItem(input string) error {
+	indexEquals := strings.Index(input, "=")
+	if indexEquals == -1 {
 		return trace.Errorf(
 			"set environment variable as name=value")
 	}
-	*vars = append(*vars, EnvPair{Name: vals[0], Val: vals[1]})
+	*vars = append(*vars, EnvPair{Name: input[:indexEquals], Val: input[indexEquals+1:]})
 	return nil
 }
 
