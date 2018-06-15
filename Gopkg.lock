@@ -41,6 +41,39 @@
   revision = "06b60999766278efd6d2b5d8418a58c3d5b99e87"
 
 [[projects]]
+  name = "github.com/aws/aws-sdk-go"
+  packages = [
+    "aws",
+    "aws/awserr",
+    "aws/awsutil",
+    "aws/client",
+    "aws/client/metadata",
+    "aws/corehandlers",
+    "aws/credentials",
+    "aws/credentials/ec2rolecreds",
+    "aws/credentials/endpointcreds",
+    "aws/credentials/stscreds",
+    "aws/csm",
+    "aws/defaults",
+    "aws/ec2metadata",
+    "aws/endpoints",
+    "aws/request",
+    "aws/session",
+    "aws/signer/v4",
+    "internal/sdkio",
+    "internal/sdkrand",
+    "internal/shareddefaults",
+    "private/protocol",
+    "private/protocol/query",
+    "private/protocol/query/queryutil",
+    "private/protocol/rest",
+    "private/protocol/xml/xmlutil",
+    "service/sts"
+  ]
+  revision = "47309c012812d9e9c488a54313e5cdfa7479df93"
+  version = "v1.14.1"
+
+[[projects]]
   name = "github.com/beorn7/perks"
   packages = ["quantile"]
   revision = "b965b613227fddccbfffe13eae360ed3fa822f8d"
@@ -89,7 +122,13 @@
     "dbus",
     "util"
   ]
-  revision = "b4a58d95188dd092ae20072bac14cece0e67c388"
+  revision = "40e2722dffead74698ca12a750f64ef313ddce05"
+  version = "v16"
+
+[[projects]]
+  name = "github.com/coreos/pkg"
+  packages = ["dlopen"]
+  revision = "97fdf19511ea361ae1c100dd393cc47f8dcfa1e1"
   version = "v4"
 
 [[projects]]
@@ -130,6 +169,12 @@
   packages = ["."]
   revision = "0ca9ea5df5451ffdf184b4428c902747c2c11cd7"
   version = "v1.0.0"
+
+[[projects]]
+  name = "github.com/go-ini/ini"
+  packages = ["."]
+  revision = "06f5f3d67269ccec1fe5fe4134ba6e982984f7f5"
+  version = "v1.37.0"
 
 [[projects]]
   branch = "master"
@@ -250,8 +295,8 @@
     "monitoring/collector",
     "utils"
   ]
-  revision = "78cbbb8312b7556eca0226c2cfb51481e2c589cf"
-  version = "0.0.17"
+  revision = "bbabe6ecb98a07c544f546bf35c4bc89cde8ab7d"
+  version = "0.0.20"
 
 [[projects]]
   name = "github.com/gravitational/trace"
@@ -309,6 +354,11 @@
   name = "github.com/imdario/mergo"
   packages = ["."]
   revision = "50d4dbd4eb0e84778abe37cefef140271d96fade"
+
+[[projects]]
+  name = "github.com/jmespath/go-jmespath"
+  packages = ["."]
+  revision = "0b12d6b5"
 
 [[projects]]
   name = "github.com/jonboulle/clockwork"
@@ -705,6 +755,6 @@
 [solve-meta]
   analyzer-name = "dep"
   analyzer-version = 1
-  inputs-digest = "4fc8efb35235fd4869bb3e878bd5b10a75883825d85c545e748c409142f76396"
+  inputs-digest = "79dfdfc0f78877f2ed9b77f24a6d8ffc99d2583da60332bdc0c4631b4f84643c"
   solver-name = "gps-cdcl"
   solver-version = 1
