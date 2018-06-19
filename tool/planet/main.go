@@ -34,10 +34,10 @@ func main() {
 	var err error
 
 	if err = run(); err != nil {
-		log.Errorf("Failed to run: '%v'\n", trace.DebugReport(err))
 		if errExit, ok := trace.Unwrap(err).(*box.ExitError); ok {
 			exitCode = errExit.Code
 		} else {
+			log.Errorf("Failed to run: %v.", trace.DebugReport(err))
 			exitCode = 1
 		}
 	}
