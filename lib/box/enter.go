@@ -75,7 +75,7 @@ func StartProcessTTY(c libcontainer.Container, cfg ProcessConfig) error {
 		return trace.Wrap(err)
 	}
 
-	log.Infof("process started")
+	log.Debugf("Process %#v started.", p)
 
 	// wait for the process to finish.
 	_, err = p.Wait()
