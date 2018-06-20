@@ -17,6 +17,7 @@ import (
 	"strconv"
 
 	"github.com/gravitational/trace"
+	log "github.com/sirupsen/logrus"
 	"golang.org/x/net/websocket"
 )
 
@@ -74,7 +75,9 @@ func (c *client) Enter(cfg ProcessConfig) error {
 	// a user hits "Enter" (which causes it to exit io.Copy() loop because it will
 	// fail writing to container's closed handle).
 	go func() {
-		io.Copy(clt, cfg.In)
+		if _, err := io.Copy(clt, cfg.In); err != nil {
+			log.Warnf("Failed to copy input to container: %v.", err)
+		}
 	}()
 
 	// only wait for output handle to be closed
