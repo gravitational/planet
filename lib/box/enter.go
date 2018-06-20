@@ -54,7 +54,7 @@ func StartProcessTTY(c libcontainer.Container, cfg ProcessConfig) error {
 	if err := c.Run(p); err != nil {
 		return trace.Wrap(err)
 	}
-	log.Info("Process started.")
+	log.Debugf("Process %#v started.", p)
 
 	containerConsole, err := getContainerConsole(context.TODO(), parentConsole)
 	if err != nil {
