@@ -402,11 +402,11 @@ func startWebServer(listener net.Listener, c libcontainer.Container) error {
 	go func() {
 		defer func() {
 			if err := listener.Close(); err != nil {
-				log.Warningf("failed to remove socket file: %v", err)
+				log.Warnf("Failed to remove socket file: %v.", err)
 			}
 		}()
 		if err := srv.Serve(listener); err != nil {
-			log.Infof("server stopped with: %v", err)
+			log.Warnf("Server finished with %v.", err)
 		}
 	}()
 	return nil
