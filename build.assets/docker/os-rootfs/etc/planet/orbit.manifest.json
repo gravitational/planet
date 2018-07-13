@@ -4,7 +4,7 @@
       {"name": "os", "value": "linux"},
       {"name": "version-etcd", "value": "REPLACE_ETCD_LATEST_VERSION"},
       {"name": "version-k8s", "value": "REPLACE_KUBE_LATEST_VERSION"},
-      {"name": "version-flannel", "value": "REPLACE_FLANNEL_LATEST_VERSIO"},
+      {"name": "version-flannel", "value": "REPLACE_FLANNEL_LATEST_VERSION"},
       {"name": "version-docker", "value": "REPLACE_DOCKER_LATEST_VERSION"},
       {"name": "version-helm", "value": "REPLACE_HELM_LATEST_VERSION"}
     ],

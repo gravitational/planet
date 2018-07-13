@@ -12,10 +12,12 @@ VER_UPDATES = ETCD_LATEST_VER KUBE_VER FLANNEL_VER DOCKER_VER HELM_VER
 .PHONY: all
 all: $(ROOTFS)/bin/bash build planet-image
 
-.PHONY: build
-build:
-	@echo -e "\n---> Launching 'buildbox' Docker container to build planet:\n"
+$(ASSETDIR):
 	@mkdir -p $(ASSETDIR)
+
+.PHONY: build
+build: | $(ASSETDIR)
+	@echo -e "\n---> Launching 'buildbox' Docker container to build planet:\n"
 	docker run -i -u $$(id -u) --rm=true \
 		--volume=$(ASSETS):/assets \
 		--volume=$(ROOTFS):/rootfs \
