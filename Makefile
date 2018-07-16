@@ -102,7 +102,7 @@ enter-buildbox:
 # Run package tests
 .PHONY: test
 test: remove-temp-files
-	go test -race -v -test.parallel=1 $(allpackages)
+	go test -race -v -test.parallel=1 ./tool/... ./lib/...
 
 .PHONY: test-package-with-etcd
 test-package-with-etcd: remove-temp-files
@@ -206,12 +206,3 @@ fix-logrus:
 .PHONY: get-version
 get-version:
 	@echo $(PLANET_BUILD_TAG)
-
-# http://blog.jgc.org/2016/07/lazy-gnu-make-variables.html
-# https://github.com/cloudflare/hellogopher
-# lazy-evaluate the packages only on first use
-_allpackages = $(shell (go list ./... 2>&1 1>&3 | \
-    grep -v -e "^$$" $(addprefix -e ,$(IGNORED_PACKAGES)) 1>&2 ) 3>&1 | \
-    grep -v -e "^$$" $(addprefix -e ,$(IGNORED_PACKAGES)))
-
-allpackages = $(if $(__allpackages),,$(eval __allpackages := $$(_allpackages)))$(__allpackages)
