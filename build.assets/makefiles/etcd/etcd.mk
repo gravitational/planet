@@ -1,12 +1,18 @@
-.PHONY: all
-
+MAKEFILE := $(lastword $(MAKEFILE_LIST))
+OS := linux
 ARCH := amd64
+targets = $(addprefix $(ROOTFS)/usr/bin/etcd-, $(ETCD_VER))
 
+# outputs parameters with a prefix and a suffix new line
+define print
+	@echo "" && echo $1 && echo ""
+endef
 
-all: $(ETCD_VER)
-	@echo -e "\n---> Building etcd:\n"
-
-	@echo -e "\n---> Setup etcd services:\n"
+.PHONY: all
+all: require-ASSETDIR require-ETCD_VER require-ROOTFS
+all: $(targets)
+	$(call print, "---> Building etcd:")
+	$(call print, "---> Setup etcd services:")
 	cd $(ASSETDIR)
 	cp -afv ./etcd.service $(ROOTFS)/lib/systemd/system/
 	cp -afv ./etcd-upgrade.service $(ROOTFS)/lib/systemd/system/
@@ -22,14 +28,26 @@ all: $(ETCD_VER)
 	echo PLANET_ETCD_VERSION=$(ETCD_LATEST_VER) >> $(ROOTFS)/etc/planet-release
 
 .PHONY: $(ETCD_VER)
+$(ETCD_VER): output=etcd-$@-$(OS)-$(ARCH).tar.gz
+$(ETCD_VER): targetdir=$(ASSETDIR)/etcd-$@-$(OS)-$(ARCH)
 $(ETCD_VER):
-	@echo -e "\n---> $@ - Downloading etcd\n"
-	curl -L https://github.com/coreos/etcd/releases/download/$@/etcd-$@-linux-$(ARCH).tar.gz \
-	-o $(ASSETDIR)/$@.tar.gz;
+	$(call print, "---> $@ - Downloading etcd")
+	curl -L https://github.com/coreos/etcd/releases/download/$@/$(output) \
+		-o $(ASSETDIR)/$(output)
 
-	@echo -e "\n---> $@ - Extracting etcd\n"
-	cd $(ASSETDIR)
-	tar -xzf $(ASSETDIR)/$@.tar.gz
+	$(call print, "---> $@ - Extracting etcd")
+	tar -xzf $(ASSETDIR)/$(output) -C $(ASSETDIR)
 
-	cp -afv etcd-$@-linux-$(ARCH)/etcd $(ROOTFS)/usr/bin/etcd-$@
-	cp -afv etcd-$@-linux-$(ARCH)/etcdctl $(ROOTFS)/usr/bin/etcdctl-$@
+	cp -afv $(targetdir)/etcd $(ROOTFS)/usr/bin/etcd-$@
+	cp -afv $(targetdir)/etcdctl $(ROOTFS)/usr/bin/etcdctl-$@
+
+
+$(targets): version=$(lastword $(subst -, ,$(notdir $@)))
+$(targets):
+	$(MAKE) -f $(MAKEFILE) $(version)
+
+require-%: FORCE
+	@if [ -z '${${*}}' ]; then echo 'Environment variable $* not set.' && exit 1; fi
+
+.PHONY: FORCE
+FORCE:

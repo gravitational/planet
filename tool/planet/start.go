@@ -206,6 +206,7 @@ func start(config *Config, monitorc chan<- bool) (*runtimeContext, error) {
 		},
 		Files:        config.Files,
 		Mounts:       config.Mounts,
+		Devices:      config.Devices,
 		DataDir:      "/var/run/planet",
 		InitUser:     "root",
 		InitArgs:     []string{"/bin/systemd"},
