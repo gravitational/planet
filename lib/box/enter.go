@@ -2,15 +2,14 @@ package box
 
 import (
 	"bytes"
+	"context"
 	"io"
 	"os"
 
-	"github.com/docker/docker/pkg/term"
 	"github.com/gravitational/trace"
-	log "github.com/sirupsen/logrus"
-
 	"github.com/opencontainers/runc/libcontainer"
-	_ "github.com/opencontainers/runc/libcontainer/nsenter" // this line is important for enter, nothing will work without it
+	libcontainerutils "github.com/opencontainers/runc/libcontainer/utils"
+	log "github.com/sirupsen/logrus"
 )
 
 func CombinedOutput(c libcontainer.Container, cfg ProcessConfig) ([]byte, error) {
@@ -36,18 +35,32 @@ func StartProcess(c libcontainer.Container, cfg ProcessConfig) error {
 
 func StartProcessTTY(c libcontainer.Container, cfg ProcessConfig) error {
 	p := &libcontainer.Process{
-		Args: cfg.Args,
-		User: cfg.User,
-		Env:  append(cfg.Environment(), "TERM=xterm", "LC_ALL=en_US.UTF-8"),
+		Args:          cfg.Args,
+		User:          cfg.User,
+		Env:           append(cfg.Environment(), "TERM=xterm", "LC_ALL=en_US.UTF-8"),
+		ConsoleHeight: uint16(cfg.TTY.H),
+		ConsoleWidth:  uint16(cfg.TTY.W),
 	}
 
-	containerConsole, err := p.NewConsole(0)
+	parentConsole, childConsole, err := libcontainerutils.NewSockPair("console")
 	if err != nil {
+		return trace.Wrap(err, "failed to create a console socket pair")
+	}
+	p.ConsoleSocket = childConsole
+
+	// this will cause libcontainer to exec this binary again
+	// with "init" command line argument.  (this is the default setting)
+	// then our init() function comes into play
+	if err := c.Run(p); err != nil {
 		return trace.Wrap(err)
 	}
+	log.Debugf("Process %#v started.", p)
 
-	term.SetWinsize(containerConsole.Fd(),
-		&term.Winsize{Height: uint16(cfg.TTY.H), Width: uint16(cfg.TTY.W)})
+	containerConsole, err := getContainerConsole(context.TODO(), parentConsole)
+	if err != nil {
+		return trace.Wrap(err, "failed to create container console")
+	}
+	defer containerConsole.Close()
 
 	// start copying output from the process of the container's console
 	// into the caller's output:
@@ -67,15 +80,6 @@ func StartProcessTTY(c libcontainer.Container, cfg ProcessConfig) error {
 	if cfg.In != nil {
 		go io.Copy(containerConsole, cfg.In)
 	}
-
-	// this will cause libcontainer to exec this binary again
-	// with "init" command line argument.  (this is the default setting)
-	// then our init() function comes into play
-	if err := c.Start(p); err != nil {
-		return trace.Wrap(err)
-	}
-
-	log.Debugf("Process %#v started.", p)
 
 	// wait for the process to finish.
 	_, err = p.Wait()

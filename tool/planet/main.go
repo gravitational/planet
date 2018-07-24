@@ -9,7 +9,6 @@ import (
 	"os"
 	"os/signal"
 	"path/filepath"
-	"runtime"
 	"strings"
 	"syscall"
 	"time"
@@ -25,7 +24,6 @@ import (
 	"github.com/gravitational/satellite/agent/backend/inmemory"
 	"github.com/gravitational/trace"
 	"github.com/gravitational/version"
-	"github.com/opencontainers/runc/libcontainer"
 	"github.com/opencontainers/runc/libcontainer/configs"
 	log "github.com/sirupsen/logrus"
 	"gopkg.in/alecthomas/kingpin.v2"
@@ -70,8 +68,9 @@ func run() error {
 		cstartClusterID               = cstart.Flag("cluster-id", "ID of the cluster").OverrideDefaultFromEnvar("PLANET_CLUSTER_ID").String()
 		cstartGCENodeTags             = cstart.Flag("gce-node-tags", "Node tag to set in the cloud configuration file on GCE as comma-separated values").OverrideDefaultFromEnvar(EnvGCENodeTags).String()
 		cstartIgnoreChecks            = cstart.Flag("ignore-checks", "Force start ignoring some failed host checks (e.g. kernel version)").OverrideDefaultFromEnvar("PLANET_FORCE").Bool()
-		cstartEnv                     = EnvVars(cstart.Flag("env", "Set environment variable").OverrideDefaultFromEnvar("PLANET_ENV"))
-		cstartMounts                  = Mounts(cstart.Flag("volume", "External volume to mount").OverrideDefaultFromEnvar("PLANET_VOLUME"))
+		cstartEnv                     = EnvVars(cstart.Flag("env", "Set environment variable as comma-separated list of name=value pairs").OverrideDefaultFromEnvar("PLANET_ENV"))
+		cstartMounts                  = Mounts(cstart.Flag("volume", "External volume to mount, as a src:dst[:options] tuple").OverrideDefaultFromEnvar("PLANET_VOLUME"))
+		cstartDevices                 = Devices(cstart.Flag("device", "Device to create inside container").OverrideDefaultFromEnvar("PLANET_DEVICE"))
 		cstartRoles                   = List(cstart.Flag("role", "Roles such as 'master' or 'node'").OverrideDefaultFromEnvar("PLANET_ROLE"))
 		cstartSecretsDir              = cstart.Flag("secrets-dir", "Directory with master secrets - certificate authority and certificates").OverrideDefaultFromEnvar("PLANET_SECRETS_DIR").ExistingDir()
 		cstartServiceSubnet           = kv.CIDRFlag(cstart.Flag("service-subnet", "subnet dedicated to the services in cluster").Default(DefaultServiceSubnet).OverrideDefaultFromEnvar("PLANET_SERVICE_SUBNET"))
@@ -336,6 +335,7 @@ func run() error {
 			SocketPath:     *socketPath,
 			Env:            *cstartEnv,
 			Mounts:         *cstartMounts,
+			Devices:        *cstartDevices,
 			IgnoreChecks:   *cstartIgnoreChecks,
 			Roles:          *cstartRoles,
 			MasterIP:       cstartMasterIP.String(),
@@ -374,7 +374,7 @@ func run() error {
 
 	// "init" command
 	case cinit.FullCommand():
-		err = initLibcontainer()
+		err = box.Init()
 
 	// "enter" command
 	case center.FullCommand():
@@ -499,6 +499,12 @@ func Mounts(s kingpin.Settings) *box.Mounts {
 	return vars
 }
 
+func Devices(s kingpin.Settings) *box.Devices {
+	vars := new(box.Devices)
+	s.SetValue(vars)
+	return vars
+}
+
 // DNSOverrides returns a CLI flag for DNS host/zone overrides
 func DNSOverrides(s kingpin.Settings) *box.DNSOverrides {
 	vars := &box.DNSOverrides{}
@@ -529,18 +535,6 @@ func HostPort(s kingpin.Settings) *hostPort {
 
 	s.SetValue(result)
 	return result
-}
-
-// initCmd is implicitly called by the libcontainer logic and is used to start
-// a process in the new namespaces and cgroups
-func initLibcontainer() error {
-	runtime.GOMAXPROCS(1)
-	runtime.LockOSThread()
-	factory, _ := libcontainer.New("")
-	if err := factory.StartInitialization(); err != nil {
-		log.Fatalf("error: %v", err)
-	}
-	return trace.Errorf("not reached")
 }
 
 // findRootfs returns the full path of RootFS this executalbe is in
