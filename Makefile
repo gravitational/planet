@@ -72,6 +72,10 @@ all: production image
 build: $(BUILD_ASSETS)/planet $(BUILDDIR)/planet.tar.gz
 	cp -f $< $(OUTPUTDIR)/rootfs/usr/bin/
 
+.PHONY: planet-bin
+planet-bin:
+	go build -o $(BUILDDIR)/planet github.com/gravitational/planet/tool/planet
+
 # Deploys the build artifacts to Amazon S3
 .PHONY: deploy
 deploy:
