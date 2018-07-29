@@ -11,11 +11,15 @@ import (
 	log "github.com/sirupsen/logrus"
 )
 
-func enterConsole(rootfs, socketPath, cmd, user string, tty bool, args []string) (err error) {
+func enterConsole(rootfs, socketPath, cmd, user string, tty bool, stdin bool, args []string) (err error) {
 	cfg := &box.ProcessConfig{
-		In:   os.Stdin,
 		Out:  os.Stdout,
 		Args: append([]string{cmd}, args...),
+	}
+
+	// tty allocation implies stdin
+	if stdin || tty {
+		cfg.In = os.Stdin
 	}
 
 	if tty {

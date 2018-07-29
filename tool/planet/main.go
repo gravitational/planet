@@ -125,11 +125,18 @@ func run() error {
 		// stop a running container
 		cstop = app.Command("stop", "Stop planet container")
 
-		// enter a running container
-		center      = app.Command("enter", "Enter running planet container")
+		// enter a running container, deprecated, so hide it
+		center      = app.Command("enter", "[DEPRECATED] Enter running planet container").Hidden()
 		centerArgs  = center.Arg("cmd", "command to execute").Default("/bin/bash").String()
 		centerNoTTY = center.Flag("notty", "do not attach TTY to this process").Bool()
 		centerUser  = center.Flag("user", "user to execute the command").Default("root").String()
+
+		// exec into running container
+		cexec      = app.Command("exec", "Run a command in a running container")
+		cexecTTY   = cexec.Flag("tty", "Allocate a pseudo-TTY").Short('t').Bool()
+		cexecStdin = cexec.Flag("interactive", "Keep stdin open").Short('i').Bool()
+		cexecCmd   = cexec.Arg("command", "Command to execute").Required().String()
+		cexecArgs  = cexec.Arg("args", "Command arguments").Strings()
 
 		// report status of the cluster
 		cstatus            = app.Command("status", "Query the planet cluster status")
@@ -383,7 +390,16 @@ func run() error {
 			break
 		}
 		err = enterConsole(
-			rootfs, *socketPath, *centerArgs, *centerUser, !*centerNoTTY, extraArgs)
+			rootfs, *socketPath, *centerArgs, *centerUser, !*centerNoTTY, true, extraArgs)
+
+	// "exec" command
+	case cexec.FullCommand():
+		rootfs, err = findRootfs()
+		if err != nil {
+			break
+		}
+		err = enterConsole(
+			rootfs, *socketPath, *cexecCmd, "", *cexecTTY, *cexecStdin, *cexecArgs)
 
 	// "stop" command
 	case cstop.FullCommand():

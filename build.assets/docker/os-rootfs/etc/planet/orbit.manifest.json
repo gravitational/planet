@@ -12,6 +12,7 @@
       {"name": "start", "args": ["rootfs/usr/bin/planet", "start"]},
       {"name": "stop", "args": ["rootfs/usr/bin/planet", "stop"]},
       {"name": "enter", "args": ["rootfs/usr/bin/planet", "enter"]},
+      {"name": "exec", "args": ["rootfs/usr/bin/planet", "exec"]},
       {"name": "status", "args": ["rootfs/usr/bin/planet", "status"]},
       {"name": "local-status", "args": ["rootfs/usr/bin/planet", "status", "--local"]},
       {"name": "secrets-init", "args": ["rootfs/usr/bin/planet", "secrets", "init"]},
