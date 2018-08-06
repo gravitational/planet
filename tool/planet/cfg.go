@@ -144,6 +144,13 @@ func (cfg *Config) inRootfs(paths ...string) string {
 
 type list []string
 
+// IsCumulative determines if this flag can be specified multiple times.
+// Implements kingpin.repeatableFlag
+func (l *list) IsCumulative() bool {
+	return true
+}
+
+// Set sets the value for this flag from command line
 func (l *list) Set(val string) error {
 	for _, r := range cstrings.SplitComma(val) {
 		*l = append(*l, r)
@@ -151,6 +158,7 @@ func (l *list) Set(val string) error {
 	return nil
 }
 
+// String returns a textual representation of the flag
 func (l *list) String() string {
 	return fmt.Sprintf("%v", []string(*l))
 }

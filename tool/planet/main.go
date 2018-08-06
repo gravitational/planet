@@ -15,6 +15,7 @@ import (
 
 	"github.com/gravitational/planet/lib/box"
 	"github.com/gravitational/planet/lib/monitoring"
+	"github.com/gravitational/planet/lib/utils"
 	"github.com/gravitational/planet/test/e2e"
 
 	kv "github.com/gravitational/configure"
@@ -45,8 +46,6 @@ func main() {
 }
 
 func run() error {
-	args, extraArgs := cstrings.SplitAt(os.Args, "--")
-
 	var (
 		app             = kingpin.New("planet", "Planet is a Kubernetes delivered as RunC container")
 		debug           = app.Flag("debug", "Enable debug mode").Bool()
@@ -200,7 +199,17 @@ func run() error {
 		cleaderViewKey       = cleaderView.Flag("leader-key", "Etcd key holding the new leader").Required().String()
 	)
 
-	cmd, err := app.Parse(args[1:])
+	args, extraArgs := cstrings.SplitAt(os.Args[1:], "--")
+	context, err := app.ParseContext(args)
+	if err != nil {
+		// Keep the remaining arguments that the parser failed to parse.
+		// These will be relayed to commands that support specification of external command
+		// line parameters and need them unaltered
+		args = utils.RemoveSubset(args, context.RemainingArgs)
+	}
+	extraArgs = append(extraArgs, context.RemainingArgs...)
+
+	cmd, err := app.Parse(args)
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "Failed parsing command line arguments: %s.\nTry planet --help\n", err.Error())
 		return err

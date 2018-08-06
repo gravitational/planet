@@ -15,6 +15,12 @@ func enterConsole(rootfs, socketPath, cmd, user string, tty bool, stdin bool, ar
 	cfg := &box.ProcessConfig{
 		Out:  os.Stdout,
 		Args: append([]string{cmd}, args...),
+		Env: box.EnvVars{
+			box.EnvPair{
+				Name: EnvPath,
+				Val:  DefaultEnvPath,
+			},
+		},
 	}
 
 	// tty allocation implies stdin
