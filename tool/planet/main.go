@@ -136,7 +136,6 @@ func run() error {
 		cexecTTY   = cexec.Flag("tty", "Allocate a pseudo-TTY").Short('t').Bool()
 		cexecStdin = cexec.Flag("interactive", "Keep stdin open").Short('i').Bool()
 		cexecCmd   = cexec.Arg("command", "Command to execute").Required().String()
-		cexecArgs  = cexec.Arg("args", "Command arguments").Strings()
 
 		// report status of the cluster
 		cstatus            = app.Command("status", "Query the planet cluster status")
@@ -399,7 +398,7 @@ func run() error {
 			break
 		}
 		err = enterConsole(
-			rootfs, *socketPath, *cexecCmd, "", *cexecTTY, *cexecStdin, *cexecArgs)
+			rootfs, *socketPath, *cexecCmd, "", *cexecTTY, *cexecStdin, extraArgs)
 
 	// "stop" command
 	case cstop.FullCommand():
