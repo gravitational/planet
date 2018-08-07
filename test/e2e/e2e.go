@@ -20,7 +20,7 @@ type Config struct {
 
 // RunTests runs e2e tests using ginkgo as a test runner.
 // extraArgs may specify additional arguments to the test runner.
-func RunTests(config *Config, extraArgs ...string) error {
+func RunTests(config *Config, extraArgs []string) error {
 	var args []string
 	var cmd *exec.Cmd
 	var binDir string

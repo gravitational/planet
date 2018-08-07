@@ -13,6 +13,7 @@ import (
 	"syscall"
 	"time"
 
+	"github.com/gravitational/configure/cstrings"
 	"github.com/gravitational/planet/lib/box"
 	"github.com/gravitational/planet/lib/monitoring"
 	"github.com/gravitational/planet/test/e2e"
@@ -127,7 +128,6 @@ func run() error {
 		centerNoTTY = center.Flag("notty", "Do not attach TTY to this process").Bool()
 		centerUser  = center.Flag("user", "User to execute the command").Default("root").String()
 		centerCmd   = center.Arg("cmd", "Command to execute").Default("/bin/bash").String()
-		centerArgs  = center.Arg("arg", "Additional arguments to command").Strings()
 
 		// exec into running container
 		cexec      = app.Command("exec", "Run a command in a running container").Interspersed(false)
@@ -200,7 +200,8 @@ func run() error {
 		cleaderViewKey       = cleaderView.Flag("leader-key", "Etcd key holding the new leader").Required().String()
 	)
 
-	cmd, err := app.Parse(os.Args[1:])
+	args, extraArgs := cstrings.SplitAt(os.Args[1:], "--")
+	cmd, err := app.Parse(args)
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "Failed parsing command line arguments: %s.\nTry planet --help\n", err.Error())
 		return err
@@ -373,7 +374,7 @@ func run() error {
 			DockerPromiscuousMode:   *cstartDockerPromiscuousMode,
 		}
 		if *cstartSelfTest {
-			err = selfTest(config, *cstartTestKubeRepoPath, *cstartTestSpec)
+			err = selfTest(config, *cstartTestKubeRepoPath, *cstartTestSpec, extraArgs)
 		} else {
 			err = startAndWait(config)
 		}
@@ -389,7 +390,7 @@ func run() error {
 			break
 		}
 		err = enterConsole(
-			rootfs, *socketPath, *centerCmd, *centerUser, !*centerNoTTY, true, *centerArgs)
+			rootfs, *socketPath, *centerCmd, *centerUser, !*centerNoTTY, true, extraArgs)
 
 	// "exec" command
 	case cexec.FullCommand():
@@ -423,7 +424,7 @@ func run() error {
 			KubeRepoPath:   *ctestKubeRepoPath,
 			AssetDir:       *ctestAssetPath,
 		}
-		err = e2e.RunTests(config)
+		err = e2e.RunTests(config, extraArgs)
 
 	case cdeviceAdd.FullCommand():
 		var device configs.Device
@@ -468,7 +469,7 @@ func run() error {
 
 const monitoringDbFile = "monitoring.db"
 
-func selfTest(config *Config, repoDir, spec string) error {
+func selfTest(config *Config, repoDir, spec string, extraArgs []string) error {
 	var ctx *runtimeContext
 	var err error
 	const idleTimeout = 30 * time.Second
@@ -484,12 +485,11 @@ func selfTest(config *Config, repoDir, spec string) error {
 		select {
 		case clusterUp := <-monitorc:
 			if clusterUp {
-				var args []string
 				if spec != "" {
 					log.Infof("Testing: %s", spec)
-					args = []string{fmt.Sprintf("-focus=%s", spec)}
+					extraArgs = append(extraArgs, fmt.Sprintf("-focus=%s", spec))
 				}
-				err = e2e.RunTests(testConfig, args...)
+				err = e2e.RunTests(testConfig, extraArgs)
 			} else {
 				err = trace.Errorf("cannot start testing: cluster not running")
 			}
