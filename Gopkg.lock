@@ -658,7 +658,7 @@
 [[projects]]
   name = "gopkg.in/alecthomas/kingpin.v2"
   packages = ["."]
-  revision = "0ac40eba9bdc4732e287b07ae69d6d16470d3816"
+  revision = "e20d4433e8bd6991a8690c7a4c831170c27da1d6"
   source = "github.com/a-palchikov/kingpin"
 
 [[projects]]
@@ -817,6 +817,6 @@
 [solve-meta]
   analyzer-name = "dep"
   analyzer-version = 1
-  inputs-digest = "57c9dbfbb517a721274fecdf168b3d59403ab3c3b07a0caaf848ed3364b22bd7"
+  inputs-digest = "230372ce2d9e0ab297a2061d3d8e03780fd9d522810a25c720baf154fe93dd38"
   solver-name = "gps-cdcl"
   solver-version = 1

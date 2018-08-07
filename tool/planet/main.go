@@ -15,11 +15,9 @@ import (
 
 	"github.com/gravitational/planet/lib/box"
 	"github.com/gravitational/planet/lib/monitoring"
-	"github.com/gravitational/planet/lib/utils"
 	"github.com/gravitational/planet/test/e2e"
 
 	kv "github.com/gravitational/configure"
-	"github.com/gravitational/configure/cstrings"
 	etcdconf "github.com/gravitational/coordinate/config"
 	"github.com/gravitational/satellite/agent"
 	"github.com/gravitational/satellite/agent/backend/inmemory"
@@ -125,16 +123,19 @@ func run() error {
 		cstop = app.Command("stop", "Stop planet container")
 
 		// enter a running container, deprecated, so hide it
-		center      = app.Command("enter", "[DEPRECATED] Enter running planet container").Hidden()
-		centerArgs  = center.Arg("cmd", "command to execute").Default("/bin/bash").String()
-		centerNoTTY = center.Flag("notty", "do not attach TTY to this process").Bool()
-		centerUser  = center.Flag("user", "user to execute the command").Default("root").String()
+		center      = app.Command("enter", "[DEPRECATED] Enter running planet container").Hidden().Interspersed(false)
+		centerNoTTY = center.Flag("notty", "Do not attach TTY to this process").Bool()
+		centerUser  = center.Flag("user", "User to execute the command").Default("root").String()
+		centerCmd   = center.Arg("cmd", "Command to execute").Default("/bin/bash").String()
+		centerArgs  = center.Arg("arg", "Additional arguments to command").Strings()
 
 		// exec into running container
-		cexec      = app.Command("exec", "Run a command in a running container")
+		cexec      = app.Command("exec", "Run a command in a running container").Interspersed(false)
 		cexecTTY   = cexec.Flag("tty", "Allocate a pseudo-TTY").Short('t').Bool()
 		cexecStdin = cexec.Flag("interactive", "Keep stdin open").Short('i').Bool()
+		cexecUser  = cexec.Flag("user", "User to execute the command with").String()
 		cexecCmd   = cexec.Arg("command", "Command to execute").Required().String()
+		cexecArgs  = cexec.Arg("arg", "Additional arguments to command").Strings()
 
 		// report status of the cluster
 		cstatus            = app.Command("status", "Query the planet cluster status")
@@ -199,17 +200,7 @@ func run() error {
 		cleaderViewKey       = cleaderView.Flag("leader-key", "Etcd key holding the new leader").Required().String()
 	)
 
-	args, extraArgs := cstrings.SplitAt(os.Args[1:], "--")
-	context, err := app.ParseContext(args)
-	if err != nil {
-		// Keep the remaining arguments that the parser failed to parse.
-		// These will be relayed to commands that support specification of external command
-		// line parameters and need them unaltered
-		args = utils.RemoveSubset(args, context.RemainingArgs)
-	}
-	extraArgs = append(extraArgs, context.RemainingArgs...)
-
-	cmd, err := app.Parse(args)
+	cmd, err := app.Parse(os.Args[1:])
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "Failed parsing command line arguments: %s.\nTry planet --help\n", err.Error())
 		return err
@@ -382,7 +373,7 @@ func run() error {
 			DockerPromiscuousMode:   *cstartDockerPromiscuousMode,
 		}
 		if *cstartSelfTest {
-			err = selfTest(config, *cstartTestKubeRepoPath, *cstartTestSpec, extraArgs)
+			err = selfTest(config, *cstartTestKubeRepoPath, *cstartTestSpec)
 		} else {
 			err = startAndWait(config)
 		}
@@ -398,7 +389,7 @@ func run() error {
 			break
 		}
 		err = enterConsole(
-			rootfs, *socketPath, *centerArgs, *centerUser, !*centerNoTTY, true, extraArgs)
+			rootfs, *socketPath, *centerCmd, *centerUser, !*centerNoTTY, true, *centerArgs)
 
 	// "exec" command
 	case cexec.FullCommand():
@@ -407,7 +398,7 @@ func run() error {
 			break
 		}
 		err = enterConsole(
-			rootfs, *socketPath, *cexecCmd, "", *cexecTTY, *cexecStdin, extraArgs)
+			rootfs, *socketPath, *cexecCmd, *cexecUser, *cexecTTY, *cexecStdin, *cexecArgs)
 
 	// "stop" command
 	case cstop.FullCommand():
@@ -432,7 +423,7 @@ func run() error {
 			KubeRepoPath:   *ctestKubeRepoPath,
 			AssetDir:       *ctestAssetPath,
 		}
-		err = e2e.RunTests(config, extraArgs)
+		err = e2e.RunTests(config)
 
 	case cdeviceAdd.FullCommand():
 		var device configs.Device
@@ -477,7 +468,7 @@ func run() error {
 
 const monitoringDbFile = "monitoring.db"
 
-func selfTest(config *Config, repoDir, spec string, extraArgs []string) error {
+func selfTest(config *Config, repoDir, spec string) error {
 	var ctx *runtimeContext
 	var err error
 	const idleTimeout = 30 * time.Second
@@ -493,11 +484,12 @@ func selfTest(config *Config, repoDir, spec string, extraArgs []string) error {
 		select {
 		case clusterUp := <-monitorc:
 			if clusterUp {
+				var args []string
 				if spec != "" {
 					log.Infof("Testing: %s", spec)
-					extraArgs = append(extraArgs, fmt.Sprintf("-focus=%s", spec))
+					args = []string{fmt.Sprintf("-focus=%s", spec)}
 				}
-				err = e2e.RunTests(testConfig, extraArgs)
+				err = e2e.RunTests(testConfig, args...)
 			} else {
 				err = trace.Errorf("cannot start testing: cluster not running")
 			}
