@@ -87,7 +87,6 @@ type ParseElement struct {
 // *ArgClause and *CmdClause values and their corresponding arguments (if
 // any).
 type ParseContext struct {
-	// SelectedCommand is the command parser has selected as the match so far
 	SelectedCommand *CmdClause
 	ignoreDefault   bool
 	argsOnly        bool
@@ -323,7 +322,8 @@ loop:
 			}
 
 		case TokenArg:
-			if cmds.have() {
+			switch {
+			case cmds.have():
 				selectedDefault := false
 				cmd, ok := cmds.commands[token.String()]
 				if !ok {
@@ -349,7 +349,7 @@ loop:
 				if cmd.noInterspersed {
 					noInterspersed = true
 				}
-			} else if context.arguments.have() {
+			case context.arguments.have():
 				if noInterspersed {
 					// no more flags
 					context.argsOnly = true
@@ -360,7 +360,7 @@ loop:
 				}
 				context.matchedArg(arg, token.String())
 				context.Next()
-			} else {
+			default:
 				break loop
 			}
 

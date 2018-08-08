@@ -113,9 +113,9 @@ ignored = ["github.com/Sirupsen/logrus"]
 
 [[constraint]]
   name = "gopkg.in/alecthomas/kingpin.v2"
-  source = "github.com/a-palchikov/kingpin"
+  source = "github.com/gravitational/kingpin"
   #version = "=v2.2.7"
-  revision = "e20d4433e8bd6991a8690c7a4c831170c27da1d6"
+  branch = "telekube"
 
 [[constraint]]
   name = "k8s.io/client-go"

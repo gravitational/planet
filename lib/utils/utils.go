@@ -52,28 +52,3 @@ func WriteDropIn(dropInDir, dropInFile string, contents []byte) error {
 func DropInDir(unit string) string {
 	return fmt.Sprintf("%v.d", unit)
 }
-
-// RemoveSubset removes subset from s
-func RemoveSubset(s []string, subset []string) []string {
-	if len(subset) == 0 {
-		return s
-	}
-	for i, item := range s {
-		if item == subset[0] && len(s[i:]) >= len(subset) && equalSlices(s[i:i+len(subset)], subset) {
-			return append(s[:i], s[i+len(subset):]...)
-		}
-	}
-	return s
-}
-
-func equalSlices(a, b []string) bool {
-	if len(a) != len(b) {
-		return false
-	}
-	for i := range a {
-		if a[i] != b[i] {
-			return false
-		}
-	}
-	return true
-}
