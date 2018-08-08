@@ -11,7 +11,7 @@ else
 fi
 
 # determine the absolute path to the planet rootfs
-PLANET_ROOT=${DIR}/../../../
+PLANET_ROOT=$(realpath ${DIR}/../../../)
 
-# invoke the real kubectl binary with a proper config and propagating all arguments as-is
+# invoke the real kubectl binary with a proper config and propage all arguments as-is
 ${PLANET_ROOT}/usr/bin/kubectl --kubeconfig=${PLANET_ROOT}/etc/kubernetes/kubectl.kubeconfig $@
