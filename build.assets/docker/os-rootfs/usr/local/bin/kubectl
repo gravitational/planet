@@ -1,0 +1,17 @@
+#!/bin/bash
+set -eu
+
+# find out the real absolute path to this script, it may include the planet rootfs path
+if [ -L $0 ]; then
+    # invoked from host via a kubectl symlink set up during installation
+    DIR=$(dirname $(readlink $0))
+else
+    # invoked directly, e.g. from inside the planet
+    DIR=$(dirname $0)
+fi
+
+# determine the absolute path to the planet rootfs
+PLANET_ROOT=$(realpath ${DIR}/../../../)
+
+# invoke the real kubectl binary with a proper config and propage all arguments as-is
+${PLANET_ROOT}/usr/bin/kubectl --kubeconfig=${PLANET_ROOT}/etc/kubernetes/kubectl.kubeconfig $@
