@@ -18,7 +18,7 @@ func formatTwoColumns(w io.Writer, indent, padding, width int, rows [][2]string)
 	// Find size of first column.
 	s := 0
 	for _, row := range rows {
-		if c := len(row[0]); c > s && c < 20 {
+		if c := len(row[0]); c > s && c < 30 {
 			s = c
 		}
 	}
@@ -31,7 +31,7 @@ func formatTwoColumns(w io.Writer, indent, padding, width int, rows [][2]string)
 		doc.ToText(buf, row[1], "", preIndent, width-s-padding-indent)
 		lines := strings.Split(strings.TrimRight(buf.String(), "\n"), "\n")
 		fmt.Fprintf(w, "%s%-*s%*s", indentStr, s, row[0], padding, "")
-		if len(row[0]) >= 20 {
+		if len(row[0]) >= 30 {
 			fmt.Fprintf(w, "\n%s%s", indentStr, offsetStr)
 		}
 		fmt.Fprintf(w, "%s\n", lines[0])
@@ -44,7 +44,7 @@ func formatTwoColumns(w io.Writer, indent, padding, width int, rows [][2]string)
 // Usage writes application usage to w. It parses args to determine
 // appropriate help context, such as which command to show help for.
 func (a *Application) Usage(args []string) {
-	context, err := a.ParseContext(args)
+	context, err := a.parseContext(true, args)
 	a.FatalIfError(err, "")
 	if err := a.UsageForContextWithTemplate(context, 2, a.usageTemplate); err != nil {
 		panic(err)
@@ -73,14 +73,27 @@ func formatCmdUsage(app *ApplicationModel, cmd *CmdModel) string {
 	return strings.Join(s, " ")
 }
 
-func formatFlag(flag *FlagModel) string {
+func formatFlagCompact(haveShort bool, flag *FlagModel) string {
 	flagString := ""
 	if flag.Short != 0 {
-		flagString += fmt.Sprintf("-%c, ", flag.Short)
+		flagString += fmt.Sprintf("-%c, --%s", flag.Short, flag.Name)
+	} else {
+		if haveShort {
+			flagString += fmt.Sprintf("    --%s", flag.Name)
+		} else {
+			flagString += fmt.Sprintf("--%s", flag.Name)
+		}
 	}
-	flagString += fmt.Sprintf("--%s", flag.Name)
+	return flagString
+}
+
+func formatFlag(haveShort bool, flag *FlagModel) string {
+	flagString := formatFlagCompact(haveShort, flag)
 	if !flag.IsBoolFlag() {
 		flagString += fmt.Sprintf("=%s", flag.FormatPlaceHolder())
+	}
+	if v, ok := flag.Value.(repeatableFlag); ok && v.IsCumulative() {
+		flagString += " ..."
 	}
 	return flagString
 }
@@ -105,7 +118,15 @@ func (a *Application) UsageForContext(context *ParseContext) error {
 
 // UsageForContextWithTemplate is the base usage function. You generally don't need to use this.
 func (a *Application) UsageForContextWithTemplate(context *ParseContext, indent int, tmpl string) error {
-	width := guessWidth(a.writer)
+	shortFlagsPresent := func(f []*FlagModel) bool {
+		for _, flag := range f {
+			if flag.Short != 0 {
+				return true
+			}
+		}
+		return false
+	}
+	width := guessWidth(a.usageWriter)
 	funcs := template.FuncMap{
 		"Indent": func(level int) string {
 			return strings.Repeat(" ", level*indent)
@@ -113,18 +134,48 @@ func (a *Application) UsageForContextWithTemplate(context *ParseContext, indent 
 		"Wrap": func(indent int, s string) string {
 			buf := bytes.NewBuffer(nil)
 			indentText := strings.Repeat(" ", indent)
-			doc.ToText(buf, s, indentText, indentText, width)
+			doc.ToText(buf, s, indentText, "  "+indentText, width-indent)
 			return buf.String()
 		},
-		"FormatFlag": formatFlag,
-		"FlagsToTwoColumns": func(f []*FlagModel) [][2]string {
+		"FormatFlag":        formatFlag,
+		"FormatFlagCompact": formatFlagCompact,
+		"FlagsToTwoColumnsCompact": func(f []*FlagModel) [][2]string {
 			rows := [][2]string{}
+			haveShort := shortFlagsPresent(f)
 			for _, flag := range f {
 				if !flag.Hidden {
-					rows = append(rows, [2]string{formatFlag(flag), flag.Help})
+					rows = append(rows, [2]string{formatFlagCompact(haveShort, flag), flag.Help})
 				}
 			}
 			return rows
+		},
+		"FlagsToTwoColumns": func(f []*FlagModel) [][2]string {
+			rows := [][2]string{}
+			haveShort := shortFlagsPresent(f)
+			for _, flag := range f {
+				if !flag.Hidden {
+					rows = append(rows, [2]string{formatFlag(haveShort, flag), flag.Help})
+				}
+			}
+			return rows
+		},
+		"RequiredFlags": func(f []*FlagModel) []*FlagModel {
+			requiredFlags := []*FlagModel{}
+			for _, flag := range f {
+				if flag.Required {
+					requiredFlags = append(requiredFlags, flag)
+				}
+			}
+			return requiredFlags
+		},
+		"OptionalFlags": func(f []*FlagModel) []*FlagModel {
+			optionalFlags := []*FlagModel{}
+			for _, flag := range f {
+				if !flag.Required {
+					optionalFlags = append(optionalFlags, flag)
+				}
+			}
+			return optionalFlags
 		},
 		"ArgsToTwoColumns": func(a []*ArgModel) [][2]string {
 			rows := [][2]string{}
@@ -150,8 +201,8 @@ func (a *Application) UsageForContextWithTemplate(context *ParseContext, indent 
 		"FormatAppUsage":     formatAppUsage,
 		"FormatCommandUsage": formatCmdUsage,
 		"IsCumulative": func(value Value) bool {
-			_, ok := value.(remainderArg)
-			return ok
+			r, ok := value.(remainderArg)
+			return ok && r.IsCumulative()
 		},
 		"Char": func(c rune) string {
 			return string(c)
@@ -174,5 +225,5 @@ func (a *Application) UsageForContextWithTemplate(context *ParseContext, indent 
 			ArgGroupModel:   context.arguments.Model(),
 		},
 	}
-	return t.Execute(a.writer, ctx)
+	return t.Execute(a.usageWriter, ctx)
 }

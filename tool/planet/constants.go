@@ -127,6 +127,13 @@ const (
 	// EnvGCENodeTags names the environment variable that defines network node tags on GCE
 	EnvGCENodeTags = "PLANET_GCE_NODE_TAGS"
 
+	// EnvPath is the PATH environment variable
+	EnvPath = "PATH"
+
+	// DefaultEnvPath defines the default value for PATH environment variable
+	// when executing commands inside the container
+	DefaultEnvPath = "/usr/local/bin:/usr/local/sbin:/usr/bin:/usr/sbin:/bin:/sbin"
+
 	// PlanetRoleMaster specifies the value of the node role to be master.
 	// A master node runs additional runtime tests as well as additional
 	// set of services

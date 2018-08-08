@@ -656,10 +656,11 @@
   version = "v1.11.3"
 
 [[projects]]
+  branch = "telekube"
   name = "gopkg.in/alecthomas/kingpin.v2"
   packages = ["."]
-  revision = "3eb8ffbc54a2f5e806181081e23098b67fe06d06"
-  version = "v2.0.11"
+  revision = "85085db9f49ba33b8901e3d176e7436178b53530"
+  source = "github.com/gravitational/kingpin"
 
 [[projects]]
   name = "gopkg.in/check.v1"
@@ -817,6 +818,6 @@
 [solve-meta]
   analyzer-name = "dep"
   analyzer-version = 1
-  inputs-digest = "cf13ec31e8b362a1b8c0f8303f32940b55e376e8d450a920b7ec49344295f9fd"
+  inputs-digest = "bdfe47d3fb13b81cdd35341d864195e53118f9e46c9a575c174ee697cf764677"
   solver-name = "gps-cdcl"
   solver-version = 1

@@ -13,12 +13,12 @@ import (
 	"syscall"
 	"time"
 
+	"github.com/gravitational/configure/cstrings"
 	"github.com/gravitational/planet/lib/box"
 	"github.com/gravitational/planet/lib/monitoring"
 	"github.com/gravitational/planet/test/e2e"
 
 	kv "github.com/gravitational/configure"
-	"github.com/gravitational/configure/cstrings"
 	etcdconf "github.com/gravitational/coordinate/config"
 	"github.com/gravitational/satellite/agent"
 	"github.com/gravitational/satellite/agent/backend/inmemory"
@@ -45,8 +45,6 @@ func main() {
 }
 
 func run() error {
-	args, extraArgs := cstrings.SplitAt(os.Args, "--")
-
 	var (
 		app             = kingpin.New("planet", "Planet is a Kubernetes delivered as RunC container")
 		debug           = app.Flag("debug", "Enable debug mode").Bool()
@@ -126,17 +124,18 @@ func run() error {
 		cstop = app.Command("stop", "Stop planet container")
 
 		// enter a running container, deprecated, so hide it
-		center      = app.Command("enter", "[DEPRECATED] Enter running planet container").Hidden()
-		centerArgs  = center.Arg("cmd", "command to execute").Default("/bin/bash").String()
-		centerNoTTY = center.Flag("notty", "do not attach TTY to this process").Bool()
-		centerUser  = center.Flag("user", "user to execute the command").Default("root").String()
+		center      = app.Command("enter", "[DEPRECATED] Enter running planet container").Hidden().Interspersed(false)
+		centerNoTTY = center.Flag("notty", "Do not attach TTY to this process").Bool()
+		centerUser  = center.Flag("user", "User to execute the command").Default("root").String()
+		centerCmd   = center.Arg("cmd", "Command to execute").Default("/bin/bash").String()
 
 		// exec into running container
-		cexec      = app.Command("exec", "Run a command in a running container")
+		cexec      = app.Command("exec", "Run a command in a running container").Interspersed(false)
 		cexecTTY   = cexec.Flag("tty", "Allocate a pseudo-TTY").Short('t').Bool()
 		cexecStdin = cexec.Flag("interactive", "Keep stdin open").Short('i').Bool()
+		cexecUser  = cexec.Flag("user", "User to execute the command with").String()
 		cexecCmd   = cexec.Arg("command", "Command to execute").Required().String()
-		cexecArgs  = cexec.Arg("args", "Command arguments").Strings()
+		cexecArgs  = cexec.Arg("arg", "Additional arguments to command").Strings()
 
 		// report status of the cluster
 		cstatus            = app.Command("status", "Query the planet cluster status")
@@ -201,7 +200,8 @@ func run() error {
 		cleaderViewKey       = cleaderView.Flag("leader-key", "Etcd key holding the new leader").Required().String()
 	)
 
-	cmd, err := app.Parse(args[1:])
+	args, extraArgs := cstrings.SplitAt(os.Args[1:], "--")
+	cmd, err := app.Parse(args)
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "Failed parsing command line arguments: %s.\nTry planet --help\n", err.Error())
 		return err
@@ -390,7 +390,7 @@ func run() error {
 			break
 		}
 		err = enterConsole(
-			rootfs, *socketPath, *centerArgs, *centerUser, !*centerNoTTY, true, extraArgs)
+			rootfs, *socketPath, *centerCmd, *centerUser, !*centerNoTTY, true, extraArgs)
 
 	// "exec" command
 	case cexec.FullCommand():
@@ -399,7 +399,7 @@ func run() error {
 			break
 		}
 		err = enterConsole(
-			rootfs, *socketPath, *cexecCmd, "", *cexecTTY, *cexecStdin, *cexecArgs)
+			rootfs, *socketPath, *cexecCmd, *cexecUser, *cexecTTY, *cexecStdin, *cexecArgs)
 
 	// "stop" command
 	case cstop.FullCommand():
