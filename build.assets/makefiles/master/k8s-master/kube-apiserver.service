@@ -24,7 +24,6 @@ ExecStart=/usr/bin/kube-apiserver \
         --apiserver-count=1 \
         --tls-cert-file=/var/state/apiserver.cert \
         --tls-private-key-file=/var/state/apiserver.key \
-        --tls-ca-file=/var/state/root.cert \
         --kubelet-https=true \
         --kubelet-certificate-authority=/var/state/root.cert \
         --kubelet-client-certificate=/var/state/apiserver.cert \
