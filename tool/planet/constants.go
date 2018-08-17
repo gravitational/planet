@@ -15,6 +15,8 @@ const (
 	// EnvPODSubnet names the environment variable that specifies
 	// the subnet CIDR for k8s pods
 	EnvPODSubnet = "KUBE_POD_SUBNET"
+	// EnvVxlanPort is the environment variable with overlay network port
+	EnvVxlanPort = "PLANET_VXLAN_PORT"
 	// EnvPublicIP names the environment variable that specifies
 	// the public IP address of the node
 	EnvPublicIP = "PLANET_PUBLIC_IP"
@@ -229,6 +231,8 @@ const (
 	DefaultServiceSubnet = "10.100.0.0/16"
 	// DefaultPODSubnet specifies the subnet CIDR used for k8s Pods by default
 	DefaultPODSubnet = "10.244.0.0/16"
+	// DefaultVxlanPort is the default overlay network port
+	DefaultVxlanPort = 8472
 
 	// ServiceUser specifies the name of the service user as seen inside the container.
 	// Service user inside the container will be mapped to an existing user (not necessarily
