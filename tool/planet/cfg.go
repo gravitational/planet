@@ -53,7 +53,7 @@ type Config struct {
 	// PODSubnet defines the kubernetes Pod subnet CIDR
 	PODSubnet kv.CIDR
 	// VxlanPort is the overlay network port
-	VxlanPort string
+	VxlanPort int
 	// InitialCluster is the initial cluster configuration for etcd
 	InitialCluster kv.KeyVal
 	// EtcdProxy configures the value of ETCD_PROXY environment variable
@@ -100,6 +100,10 @@ func (cfg *Config) checkAndSetDefaults() error {
 	}
 
 	cfg.ServiceUser.User = *u
+
+	if cfg.VxlanPort <= 0 {
+		cfg.VxlanPort = DefaultVxlanPort
+	}
 
 	return nil
 }

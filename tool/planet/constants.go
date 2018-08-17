@@ -232,7 +232,7 @@ const (
 	// DefaultPODSubnet specifies the subnet CIDR used for k8s Pods by default
 	DefaultPODSubnet = "10.244.0.0/16"
 	// DefaultVxlanPort is the default overlay network port
-	DefaultVxlanPort = "8472"
+	DefaultVxlanPort = 8472
 
 	// ServiceUser specifies the name of the service user as seen inside the container.
 	// Service user inside the container will be mapped to an existing user (not necessarily
