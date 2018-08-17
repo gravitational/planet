@@ -73,6 +73,12 @@
                 "cli": {"name": "service-subnet"}
             },
             {
+                "type": "String",
+                "name": "vxlanport",
+                "env": "PLANET_VXLAN_PORT",
+                "cli": {"name": "vxlan-port"}
+            },
+            {
                 "type": "Bool",
                 "name": "force",
                 "env": "PLANET_FORCE"

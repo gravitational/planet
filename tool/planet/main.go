@@ -75,6 +75,7 @@ func run() error {
 		cstartSecretsDir              = cstart.Flag("secrets-dir", "Directory with master secrets - certificate authority and certificates").OverrideDefaultFromEnvar("PLANET_SECRETS_DIR").ExistingDir()
 		cstartServiceSubnet           = kv.CIDRFlag(cstart.Flag("service-subnet", "subnet dedicated to the services in cluster").Default(DefaultServiceSubnet).OverrideDefaultFromEnvar("PLANET_SERVICE_SUBNET"))
 		cstartPODSubnet               = kv.CIDRFlag(cstart.Flag("pod-subnet", "subnet dedicated to the pods in the cluster").Default(DefaultPODSubnet).OverrideDefaultFromEnvar("PLANET_POD_SUBNET"))
+		cstartVxlanPort               = cstart.Flag("vxlan-port", "overlay network port").Default(DefaultVxlanPort).OverrideDefaultFromEnvar(EnvVxlanPort).String()
 		cstartServiceUID              = cstart.Flag("service-uid", "service user ID. Service user is used for services that do not require elevated permissions").OverrideDefaultFromEnvar(EnvServiceUID).String()
 		cstartSelfTest                = cstart.Flag("self-test", "Run end-to-end tests on the started cluster").Bool()
 		cstartTestSpec                = cstart.Flag("test-spec", "Regexp of the test specs to run (self-test mode only)").Default("Networking|Pods").String()
@@ -322,6 +323,7 @@ func run() error {
 			SecretsDir:     *cstartSecretsDir,
 			ServiceSubnet:  *cstartServiceSubnet,
 			PODSubnet:      *cstartPODSubnet,
+			VxlanPort:      *cstartVxlanPort,
 			InitialCluster: *cstartInitialCluster,
 			ServiceUser: serviceUser{
 				UID: *cstartServiceUID,
