@@ -17,6 +17,8 @@ const (
 	// EnvPODSubnet names the environment variable that specifies
 	// the subnet CIDR for k8s pods
 	EnvPODSubnet = "KUBE_POD_SUBNET"
+	// EnvVxlanPort is the environment variable with overlay network port
+	EnvVxlanPort = "PLANET_VXLAN_PORT"
 	// EnvStorageBackend names the environment variable that specifies
 	// which storage backend kubernetes should use (etcd2/etcd3)
 	EnvStorageBackend = "KUBE_STORAGE_BACKEND"
@@ -269,6 +271,8 @@ const (
 	DefaultServiceSubnet = "10.100.0.0/16"
 	// DefaultPODSubnet specifies the subnet CIDR used for k8s Pods by default
 	DefaultPODSubnet = "10.244.0.0/16"
+	// DefaultVxlanPort is the default overlay network port
+	DefaultVxlanPort = 8472
 
 	// ServiceUser specifies the name of the service user as seen inside the container.
 	// Service user inside the container will be mapped to an existing user (not necessarily
