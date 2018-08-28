@@ -452,10 +452,19 @@ func setupEtcd(config *Config) error {
 	// Gravity does not persist promoting an etcd proxy to a member
 	// so we need to override the gravity configuration if we detect
 	// that we were previously running as an etcd master
-	memberPath := path.Join(config.Rootfs, DefaultEtcdIsMemberFile)
+	var etcdMountDir string
+	// Find the path to the etcd store on the local filesystem
+	for _, mount := range config.Mounts {
+		if mount.Dst == DefaultEtcdStoreBase {
+			etcdMountDir = mount.Src
+		}
+	}
+	memberPath := path.Join(etcdMountDir, DefaultEtcdIsMemberFile)
 	if _, err := os.Stat(memberPath); err == nil {
+		log.Info("Detected etcd master, setting etcd proxy to off.")
 		config.EtcdProxy = "off"
 	}
+	// End Hack
 
 	dropinPath := path.Join(config.Rootfs, ETCDGatewayDropinPath)
 	if strings.ToLower(config.EtcdProxy) != "on" {
