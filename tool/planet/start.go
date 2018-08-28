@@ -14,6 +14,8 @@ import (
 	"strings"
 	"time"
 
+	"github.com/davecgh/go-spew/spew"
+
 	"github.com/gravitational/planet/lib/box"
 	"github.com/gravitational/planet/lib/check"
 	"github.com/gravitational/planet/lib/constants"
@@ -459,7 +461,10 @@ func setupEtcd(config *Config) error {
 			etcdMountDir = mount.Src
 		}
 	}
+	log.Info("etcdMountDir: ", etcdMountDir)
+	log.Info("mounts: ", spew.Sdump(config.Mounts))
 	memberPath := path.Join(etcdMountDir, DefaultEtcdIsMemberFile)
+	log.Info("memberPath: ", memberPath)
 	if _, err := os.Stat(memberPath); err == nil {
 		log.Info("Detected etcd master, setting etcd proxy to off.")
 		config.EtcdProxy = "off"
