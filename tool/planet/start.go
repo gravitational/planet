@@ -114,6 +114,11 @@ func start(config *Config, monitorc chan<- bool) (*runtimeContext, error) {
 		return nil, trace.Errorf("--role parameter must be set")
 	}
 
+	err = setupEtcd(config)
+	if err != nil {
+		return nil, trace.Wrap(err)
+	}
+
 	config.Env = append(config.Env,
 		box.EnvPair{Name: EnvMasterIP, Val: config.MasterIP},
 		box.EnvPair{Name: EnvCloudProvider, Val: config.CloudProvider},
@@ -147,11 +152,6 @@ func start(config *Config, monitorc chan<- bool) (*runtimeContext, error) {
 	addKubeletOptions(config)
 	setupFlannel(config)
 	if err = setupCloudOptions(config); err != nil {
-		return nil, trace.Wrap(err)
-	}
-
-	err = setupEtcd(config)
-	if err != nil {
 		return nil, trace.Wrap(err)
 	}
 
