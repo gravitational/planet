@@ -449,6 +449,15 @@ func addEtcdOptions(config *Config) {
 func setupEtcd(config *Config) error {
 	dropinPath := path.Join(config.Rootfs, ETCDGatewayDropinPath)
 
+	// Hack
+	// Gravity does not persist promoting an etcd proxy to a member
+	// so we need to override the gravity configuration if we detect
+	// that we were previously running as an etcd master
+	memberPath := path.Join(config.Rootfs, DefaultEtcdIsMemberFile)
+	if _, err := os.Stat(memberPath); err == nil {
+		config.EtcdProxy = "off"
+	}
+
 	if strings.ToLower(config.EtcdProxy) != "on" {
 		err := os.Remove(dropinPath)
 		if err != nil && !os.IsNotExist(err) {

@@ -169,6 +169,9 @@ const (
 	DefaultEtcdStoreBase = "/ext/etcd"
 	// DefaultEtcdCurrentVersionFile is the file location that contains version information about the etcd datastore
 	DefaultEtcdCurrentVersionFile = "/ext/etcd/etcd-version.txt"
+	// DefaultEtcdIsMemberFile is a file that will be written if this node is promoted from a proxy to member
+	// As a workaround to gravity not persisting the promotion
+	DefaultEtcdIsMemberFile = "/ext/etcd/is-member"
 	// DefaultPlanetReleaseFile is the planet file that indicates the latest available etcd version
 	DefaultPlanetReleaseFile = "/etc/planet-release"
 
