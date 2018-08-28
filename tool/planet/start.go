@@ -447,7 +447,6 @@ func addEtcdOptions(config *Config) {
 // If this is a master node, and we don't detect an existing data directory, start the latest etcd, since we default
 // to using the oldest etcd during an upgrade
 func setupEtcd(config *Config) error {
-	dropinPath := path.Join(config.Rootfs, ETCDGatewayDropinPath)
 
 	// Hack
 	// Gravity does not persist promoting an etcd proxy to a member
@@ -458,6 +457,7 @@ func setupEtcd(config *Config) error {
 		config.EtcdProxy = "off"
 	}
 
+	dropinPath := path.Join(config.Rootfs, ETCDGatewayDropinPath)
 	if strings.ToLower(config.EtcdProxy) != "on" {
 		err := os.Remove(dropinPath)
 		if err != nil && !os.IsNotExist(err) {
