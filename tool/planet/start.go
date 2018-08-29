@@ -14,6 +14,8 @@ import (
 	"strings"
 	"time"
 
+	"github.com/davecgh/go-spew/spew"
+
 	"github.com/gravitational/planet/lib/box"
 	"github.com/gravitational/planet/lib/check"
 	"github.com/gravitational/planet/lib/constants"
@@ -114,6 +116,11 @@ func start(config *Config, monitorc chan<- bool) (*runtimeContext, error) {
 		return nil, trace.Errorf("--role parameter must be set")
 	}
 
+	err = setupEtcd(config)
+	if err != nil {
+		return nil, trace.Wrap(err)
+	}
+
 	config.Env = append(config.Env,
 		box.EnvPair{Name: EnvMasterIP, Val: config.MasterIP},
 		box.EnvPair{Name: EnvCloudProvider, Val: config.CloudProvider},
@@ -147,11 +154,6 @@ func start(config *Config, monitorc chan<- bool) (*runtimeContext, error) {
 	addKubeletOptions(config)
 	setupFlannel(config)
 	if err = setupCloudOptions(config); err != nil {
-		return nil, trace.Wrap(err)
-	}
-
-	err = setupEtcd(config)
-	if err != nil {
 		return nil, trace.Wrap(err)
 	}
 
@@ -447,8 +449,29 @@ func addEtcdOptions(config *Config) {
 // If this is a master node, and we don't detect an existing data directory, start the latest etcd, since we default
 // to using the oldest etcd during an upgrade
 func setupEtcd(config *Config) error {
-	dropinPath := path.Join(config.Rootfs, ETCDGatewayDropinPath)
 
+	// Hack
+	// Gravity does not persist promoting an etcd proxy to a member
+	// so we need to override the gravity configuration if we detect
+	// that we were previously running as an etcd master
+	var etcdMountDir string
+	// Find the path to the etcd store on the local filesystem
+	for _, mount := range config.Mounts {
+		if mount.Dst == DefaultEtcdStoreBase {
+			etcdMountDir = mount.Src
+		}
+	}
+	log.Info("etcdMountDir: ", etcdMountDir)
+	log.Info("mounts: ", spew.Sdump(config.Mounts))
+	memberPath := path.Join(etcdMountDir, DefaultEtcdIsMemberFile)
+	log.Info("memberPath: ", memberPath)
+	if _, err := os.Stat(memberPath); err == nil {
+		log.Info("Detected etcd master, setting etcd proxy to off.")
+		config.EtcdProxy = "off"
+	}
+	// End Hack
+
+	dropinPath := path.Join(config.Rootfs, ETCDGatewayDropinPath)
 	if strings.ToLower(config.EtcdProxy) != "on" {
 		err := os.Remove(dropinPath)
 		if err != nil && !os.IsNotExist(err) {

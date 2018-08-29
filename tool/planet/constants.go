@@ -1,6 +1,7 @@
 package main
 
 import (
+	"path"
 	"time"
 )
 
@@ -169,6 +170,9 @@ const (
 	DefaultEtcdStoreBase = "/ext/etcd"
 	// DefaultEtcdCurrentVersionFile is the file location that contains version information about the etcd datastore
 	DefaultEtcdCurrentVersionFile = "/ext/etcd/etcd-version.txt"
+	// DefaultEtcdIsMemberFile is a file that will be written if this node is promoted from a proxy to member
+	// As a workaround to gravity not persisting the promotion
+	DefaultEtcdIsMemberFile = "is-member"
 	// DefaultPlanetReleaseFile is the planet file that indicates the latest available etcd version
 	DefaultPlanetReleaseFile = "/etc/planet-release"
 
@@ -343,3 +347,8 @@ var allCaps = []string{
 	"CAP_SYSLOG",
 	"CAP_WAKE_ALARM",
 }
+
+var (
+	// DefaultEtcdIsMemberPath i the path to the is-member file from inside the planet container
+	DefaultEtcdIsMemberPath = path.Join(DefaultEtcdStoreBase, DefaultEtcdIsMemberFile)
+)

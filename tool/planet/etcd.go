@@ -45,6 +45,15 @@ func etcdPromote(name, initialCluster, initialClusterState string) error {
 		return nil
 	}
 
+	// Hack:
+	// persist the promotion to an empty file, so that if planet is restarted
+	// it can detect and override incorrect proxy setting passed by planet
+	f, err := os.OpenFile(DefaultEtcdIsMemberPath, os.O_RDONLY|os.O_CREATE, 0666)
+	if err != nil {
+		return trace.Wrap(err)
+	}
+	f.Close()
+
 	newEnv := map[string]string{
 		EnvEtcdProxy:               EtcdProxyOff,
 		EnvEtcdMemberName:          name,
