@@ -119,7 +119,7 @@ func etcdInit() error {
 			// If the etcd data directory doesn't exist, we can assume this
 			// is a new install of etcd, and use the latest version.
 			log.Info("New installation detected, using etcd version: ", desiredVersion)
-			err = writeEtcdEnvironment(DefaultEtcdCurrentVersionFile, desiredVersion, "")
+			err = writeEtcdEnvironment(DefaultEtcdCurrentVersionFile, desiredVersion, "", true)
 			if err != nil {
 				return trace.Wrap(err)
 			}
@@ -287,7 +287,7 @@ func etcdUpgrade(rollback bool) error {
 	if rollback {
 		// in order to rollback, write the backup version as the current version, with no backup version
 		if backupVersion != "" {
-			err = writeEtcdEnvironment(DefaultEtcdCurrentVersionFile, backupVersion, "")
+			err = writeEtcdEnvironment(DefaultEtcdCurrentVersionFile, backupVersion, "", false)
 			if err != nil {
 				return trace.Wrap(err)
 			}
@@ -296,7 +296,7 @@ func etcdUpgrade(rollback bool) error {
 		// in order to upgrade, write the new version to disk with the current version as backup
 		// if current version == desired version, we must have already run this step
 		if currentVersion != desiredVersion {
-			err = writeEtcdEnvironment(DefaultEtcdCurrentVersionFile, desiredVersion, currentVersion)
+			err = writeEtcdEnvironment(DefaultEtcdCurrentVersionFile, desiredVersion, currentVersion, true)
 			if err != nil {
 				return trace.Wrap(err)
 			}
@@ -509,7 +509,7 @@ func readEtcdVersion(path string) (currentVersion string, prevVersion string, er
 	return currentVersion, prevVersion, nil
 }
 
-func writeEtcdEnvironment(path string, version string, prevVersion string) error {
+func writeEtcdEnvironment(path string, version string, prevVersion string, latest bool) error {
 	err := os.MkdirAll(filepath.Dir(path), 644)
 	if err != nil {
 		return trace.ConvertSystemError(err)
@@ -545,6 +545,28 @@ func writeEtcdEnvironment(path string, version string, prevVersion string) error
 	_, err = fmt.Fprint(f, EnvStorageBackend, "=", backend, "\n")
 	if err != nil {
 		return err
+	}
+
+	// if we're on the latest version, we can set env variables for any new flags to run etcd with
+	if latest {
+		// Use Mozilla Modern compatibiliy recommendations for cipher list
+		// https://wiki.mozilla.org/Security/Server_Side_TLS
+		// TODO(knisbet) hardcode cipher selection when we no longer support etcd older than
+		// v3.2.22+, v3.3.7+, and v3.4+ which doesn't have the --cipher-suites flag
+		ciphers := []string{
+			"TLS_ECDHE_ECDSA_WITH_AES_256_GCM_SHA384",
+			"TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384",
+			"TLS_ECDHE_ECDSA_WITH_CHACHA20_POLY1305",
+			"TLS_ECDHE_RSA_WITH_CHACHA20_POLY1305",
+			"TLS_ECDHE_ECDSA_WITH_AES_128_GCM_SHA256",
+			"TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256",
+			"TLS_ECDHE_ECDSA_WITH_AES_128_CBC_SHA256",
+			"TLS_ECDHE_RSA_WITH_AES_128_CBC_SHA256",
+		}
+		_, err = fmt.Fprint(f, EnvEtcdCiphers, "=\"--cipher-suites=", strings.Join(ciphers, ","), "\"\n")
+		if err != nil {
+			return err
+		}
 	}
 
 	return nil

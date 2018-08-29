@@ -26,6 +26,7 @@ ExecStart=/usr/bin/etcd \
         --peer-cert-file=/var/state/etcd.cert \
         --peer-key-file=/var/state/etcd.key \
         --peer-trusted-ca-file=/var/state/root.cert \
+        ${PLANET_ETCD_CIPHER_SUITES} \
         --peer-client-cert-auth $ETCD_OPTS
 User=planet
 Group=planet

@@ -52,6 +52,8 @@ const (
 	EnvEtcdVersion = "PLANET_ETCD_VERSION"
 	// EnvEtcdPrevVersion points to the previously installed version used for rollback
 	EnvEtcdPrevVersion = "PLANET_ETCD_PREV_VERSION"
+	// EnvEtcdCiphers is an environment variable for the etcd TLS ciphers to enable
+	EnvEtcdCiphers = "PLANET_ETCD_CIPHER_SUITES"
 	// EnvEtcdctlCertFile names the environment variable that specifies the location
 	// of the certificate file
 	EnvEtcdctlCertFile = "ETCDCTL_CERT_FILE"

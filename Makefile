@@ -44,9 +44,9 @@ HELM_VER := v2.8.1
 
 # ETCD Versions to include in the release
 # This list needs to include every version of etcd that we can upgrade from + latest
-ETCD_VER := v2.3.8 v3.3.4
+ETCD_VER := v2.3.8 v3.3.4 v3.3.9
 # This is the version of etcd we should upgrade to (from the version list)
-ETCD_LATEST_VER := v3.3.4
+ETCD_LATEST_VER := v3.3.9
 
 BUILDBOX_GO_VER ?= 1.10.1
 PLANET_BUILD_TAG ?= $(shell git describe --tags)
