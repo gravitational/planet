@@ -41,6 +41,7 @@ ExecStart=/usr/bin/kube-apiserver \
         --client-ca-file=/var/state/root.cert \
         --anonymous-auth=false \
         --profiling=false \
+        --audit-policy-file=/etc/kubernetes/audit-policy.yaml \
         --audit-log-path=/var/log/apiserver/audit.log \
         --audit-log-maxage=30 \
         --audit-log-maxbackup=10 \
