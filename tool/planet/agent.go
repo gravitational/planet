@@ -328,18 +328,28 @@ func getEtcdClient(conf *etcdconf.Config) (etcd.KeysAPI, error) {
 	return etcdapi, nil
 }
 
+type statusConfig struct {
+	rpcPort        int
+	local          bool
+	prettyPrint    bool
+	timeout        time.Duration
+	caFile         string
+	clientCertFile string
+	clientKeyFile  string
+}
+
 // status obtains either the status of the planet cluster or that of
 // the local node from the local planet agent.
-func status(rpcPort int, local, prettyPrint bool, timeout time.Duration, certFile string) (ok bool, err error) {
-	client, err := agent.NewClient(rpcAddr(rpcPort), certFile)
+func status(c statusConfig) (ok bool, err error) {
+	client, err := agent.NewClient(rpcAddr(c.rpcPort), c.caFile, c.clientCertFile, c.clientKeyFile)
 	if err != nil {
 		return false, trace.Wrap(err)
 	}
 	var statusJson []byte
 	var statusBlob interface{}
-	ctx, cancel := context.WithTimeout(context.TODO(), timeout)
+	ctx, cancel := context.WithTimeout(context.TODO(), c.timeout)
 	defer cancel()
-	if local {
+	if c.local {
 		status, err := client.LocalStatus(ctx)
 		if err != nil {
 			if agent.IsUnavailableError(err) {
@@ -360,7 +370,7 @@ func status(rpcPort int, local, prettyPrint bool, timeout time.Duration, certFil
 		ok = status.Status == pb.SystemStatus_Running
 		statusBlob = status
 	}
-	if prettyPrint {
+	if c.prettyPrint {
 		statusJson, err = json.MarshalIndent(statusBlob, "", "   ")
 	} else {
 		statusJson, err = json.Marshal(statusBlob)
