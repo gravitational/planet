@@ -124,7 +124,7 @@ func start(config *Config, monitorc chan<- bool) (*runtimeContext, error) {
 		// Default agent name to the name of the etcd member
 		box.EnvPair{Name: EnvAgentName, Val: config.EtcdMemberName},
 		box.EnvPair{Name: EnvInitialCluster, Val: toKeyValueList(config.InitialCluster)},
-		box.EnvPair{Name: EnvClusterDNSIP, Val: config.SkyDNSResolverIP()},
+		box.EnvPair{Name: EnvClusterDNSIP, Val: config.KubeDNSResolverIP()},
 		box.EnvPair{Name: EnvAPIServerName, Val: APIServerDNSName},
 		box.EnvPair{Name: EnvEtcdProxy, Val: config.EtcdProxy},
 		box.EnvPair{Name: EnvEtcdMemberName, Val: config.EtcdMemberName},
@@ -138,6 +138,7 @@ func start(config *Config, monitorc chan<- bool) (*runtimeContext, error) {
 		box.EnvPair{Name: EnvDockerPromiscuousMode, Val: strconv.FormatBool(config.DockerPromiscuousMode)},
 		box.EnvPair{Name: EnvDNSHosts, Val: config.DNSHosts.String()},
 		box.EnvPair{Name: EnvDNSZones, Val: config.DNSZones.String()},
+		box.EnvPair{Name: EnvDnsmasqOptions, Val: config.DnsmasqOptions},
 	)
 
 	if err = addDockerOptions(config); err != nil {
@@ -520,15 +521,12 @@ func setDNSMasq(config *Config) error {
 	fmt.Fprintf(out, "no-resolv\n")
 	// Never forward plain names (without a dot or domain part)
 	fmt.Fprintf(out, "domain-needed\n")
-	// Listen on local interfaces, it's important to set those,
-	// otherwise you hit this bug:
-	// https://bugs.launchpad.net/ubuntu/+source/dnsmasq/+bug/1414887
-	fmt.Fprintf(out, "listen-address=127.0.0.1\n")
-	fmt.Fprintf(out, "interface=lo\n")
+	// Restrict dnsmasq to listen only on the configured address
+	fmt.Fprintf(out, "listen-address=%v\n", config.DNSListenAddr)
 	fmt.Fprintf(out, "bind-interfaces\n")
-	// Use SkyDNS K8s resolver for cluster local stuff
+	// Use kubernetes DNS resolver for cluster local stuff
 	for _, searchDomain := range K8sSearchDomains {
-		fmt.Fprintf(out, "server=/%v/%v\n", searchDomain, config.SkyDNSResolverIP())
+		fmt.Fprintf(out, "server=/%v/%v\n", searchDomain, config.KubeDNSResolverIP())
 	}
 	for zone, nameservers := range config.DNSZones {
 		for _, nameserver := range nameservers {
@@ -587,7 +585,7 @@ func addResolv(config *Config) (upstreamNameservers []string, err error) {
 	}
 
 	planetResolv := config.inRootfs("etc", PlanetResolv)
-	if err := copyResolvFile(*cfg, planetResolv, []string{"127.0.0.1"}); err != nil {
+	if err := copyResolvFile(*cfg, planetResolv, []string{config.DNSListenAddr}); err != nil {
 		return nil, trace.Wrap(err)
 	}
 

@@ -198,6 +198,12 @@
                 "cli": {"name": "kubelet-options"}
             },
             {
+                "type": "String",
+                "name": "dnsmasqoptions",
+                "env": "PLANET_DNSMASQ_OPTIONS",
+                "cli": {"name": "dnsmasq-options"}
+            },
+            {
                 "type": "Bool",
                 "name": "electionenabled",
                 "env": "PLANET_ELECTION_ENABLED",
@@ -238,6 +244,12 @@
                 "name": "gcenodetags",
                 "env": "PLANET_GCE_NODE_TAGS",
                 "cli": {"name": "gce-node-tags"}
+            },
+            {
+                "type": "String",
+                "name": "dnslistenaddr",
+                "env": "PLANET_DNS_LISTEN_ADDR",
+                "cli": {"name": "dns-listen-addr"}
             }
         ]
     }

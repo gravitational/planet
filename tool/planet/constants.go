@@ -132,6 +132,22 @@ const (
 	// EnvPath is the PATH environment variable
 	EnvPath = "PATH"
 
+	// EnvPlanetKubeletOptions is the environment variable with additional options for kubelet
+	EnvPlanetKubeletOptions = "PLANET_KUBELET_OPTIONS"
+
+	// EnvPlanetDnsmasqOptions is the environment variable with additional options for dnsmasq
+	EnvPlanetDnsmasqOptions = "PLANET_DNSMASQ_OPTIONS"
+
+	// EnvPlanetDNSListenAddr is the environment variable with the interface for dnsmasq to bind on
+	EnvPlanetDNSListenAddr = "PLANET_DNS_LISTEN_ADDR"
+
+	// EnvDnsmasqOptions specifies the name of the environment variable
+	// with additional dnsmasq configuration
+	EnvDnsmasqOptions = "DNSMASQ_OPTS"
+
+	// DNSListenAddr is the default IP address dnsmasq will listen on
+	DNSListenAddr = "127.0.0.2"
+
 	// DefaultEnvPath defines the default value for PATH environment variable
 	// when executing commands inside the container
 	DefaultEnvPath = "/usr/local/bin:/usr/local/sbin:/usr/bin:/usr/sbin:/bin:/sbin"
@@ -193,9 +209,6 @@ const (
 	// DNSTimeout is the amount time resolver will wait for response before retrying
 	// the query with a different name server. Measured in seconds
 	DNSTimeout = 1
-
-	// LocalDNSIP is the IP of the local DNS server
-	LocalDNSIP = "127.0.0.1"
 
 	// ETCDServiceName names the service unit for etcd
 	ETCDServiceName = "etcd.service"

@@ -93,7 +93,9 @@ func run() error {
 		cstartElectionEnabled       = Bool(cstart.Flag("election-enabled", "Boolean flag to control if the agent initially starts with election participation on").OverrideDefaultFromEnvar(EnvElectionEnabled))
 		cstartDNSHosts              = DNSOverrides(cstart.Flag("dns-hosts", "Comma-separated list of domain name to IP address mappings as 'domain/ip' pairs").OverrideDefaultFromEnvar(EnvDNSHosts))
 		cstartDNSZones              = DNSOverrides(cstart.Flag("dns-zones", "Comma-separated list of DNS zone to nameserver IP mappings as 'zone/nameserver' pairs").OverrideDefaultFromEnvar(EnvDNSZones))
-		cstartKubeletOptions        = cstart.Flag("kubelet-options", "Additional command line options to pass to kubelet").OverrideDefaultFromEnvar("PLANET_KUBELET_OPTIONS").String()
+		cstartKubeletOptions        = cstart.Flag("kubelet-options", "Additional command line options to pass to kubelet").OverrideDefaultFromEnvar(EnvPlanetKubeletOptions).String()
+		cstartDnsmasqOptions        = cstart.Flag("dnsmasq-options", "Additional command line options to pass to dnsmasq").OverrideDefaultFromEnvar(EnvPlanetDnsmasqOptions).String()
+		cstartDNSListenAddr         = cstart.Flag("dns-listen-addr", "Address for dnsmasq to listen on").OverrideDefaultFromEnvar(EnvPlanetDNSListenAddr).Default(DNSListenAddr).String()
 		cstartDockerPromiscuousMode = cstart.Flag("docker-promiscuous-mode", "Whether to put docker bridge into promiscuous mode").OverrideDefaultFromEnvar(EnvDockerPromiscuousMode).Bool()
 
 		// start the planet agent
@@ -375,6 +377,8 @@ func run() error {
 			DNSZones:                *cstartDNSZones,
 			KubeletOptions:          *cstartKubeletOptions,
 			DockerPromiscuousMode:   *cstartDockerPromiscuousMode,
+			DnsmasqOptions:          *cstartDnsmasqOptions,
+			DNSListenAddr:           *cstartDNSListenAddr,
 		}
 		if *cstartSelfTest {
 			err = selfTest(config, *cstartTestKubeRepoPath, *cstartTestSpec, extraArgs)
