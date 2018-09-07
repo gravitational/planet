@@ -522,7 +522,10 @@ func setDNSMasq(config *Config) error {
 	// Never forward plain names (without a dot or domain part)
 	fmt.Fprintf(out, "domain-needed\n")
 	// Restrict dnsmasq to listen only on the configured address
-	fmt.Fprintf(out, "listen-address=%v\n", config.DNSListenAddr)
+	for _, addr := range config.DNSListenAddrs {
+		fmt.Fprintf(out, "listen-address=%v\n", addr)
+	}
+	fmt.Fprintf(out, "port=%v\n", config.DNSPort)
 	fmt.Fprintf(out, "bind-interfaces\n")
 	// Use kubernetes DNS resolver for cluster local stuff
 	for _, searchDomain := range K8sSearchDomains {
@@ -585,7 +588,7 @@ func addResolv(config *Config) (upstreamNameservers []string, err error) {
 	}
 
 	planetResolv := config.inRootfs("etc", PlanetResolv)
-	if err := copyResolvFile(*cfg, planetResolv, []string{config.DNSListenAddr}); err != nil {
+	if err := copyResolvFile(*cfg, planetResolv, config.DNSListenAddrs); err != nil {
 		return nil, trace.Wrap(err)
 	}
 

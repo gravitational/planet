@@ -141,12 +141,18 @@ const (
 	// EnvPlanetDNSListenAddr is the environment variable with the interface for dnsmasq to bind on
 	EnvPlanetDNSListenAddr = "PLANET_DNS_LISTEN_ADDR"
 
+	// EnvPlanetDNSPort is the environment variable with the DNS port
+	EnvPlanetDNSPort = "PLANET_DNS_PORT"
+
 	// EnvDnsmasqOptions specifies the name of the environment variable
 	// with additional dnsmasq configuration
 	EnvDnsmasqOptions = "DNSMASQ_OPTS"
 
 	// DNSListenAddr is the default IP address dnsmasq will listen on
 	DNSListenAddr = "127.0.0.2"
+
+	// DNSPort is the default DNS port
+	DNSPort = 53
 
 	// DefaultEnvPath defines the default value for PATH environment variable
 	// when executing commands inside the container

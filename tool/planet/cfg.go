@@ -99,8 +99,10 @@ type Config struct {
 	ServiceUser serviceUser
 	// DockerPromiscuousMode specifies whether to put docker bridge into promiscuous mode
 	DockerPromiscuousMode bool
-	// DNSListenAddr specifies the IP address for dnsmasq to listen on
-	DNSListenAddr string
+	// DNSListenAddrs specifies the IP addresses for dnsmasq to listen on
+	DNSListenAddrs []string
+	// DNSPort specifies the DNS port
+	DNSPort int
 }
 
 func (cfg *Config) checkAndSetDefaults() error {
