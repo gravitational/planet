@@ -87,10 +87,6 @@ type Config struct {
 	NodeName string
 	// Hostname specifies the new hostname inside the container
 	Hostname string
-	// DNSHosts is a host->ip mapping
-	DNSHosts box.DNSOverrides
-	// DNSZones is a zone->nameserver mapping
-	DNSZones box.DNSOverrides
 	// KubeletOptions defines additional kubelet parameters
 	KubeletOptions string
 	// DnsmasqOptions specifies additional options for dnsmasq
@@ -99,10 +95,24 @@ type Config struct {
 	ServiceUser serviceUser
 	// DockerPromiscuousMode specifies whether to put docker bridge into promiscuous mode
 	DockerPromiscuousMode bool
-	// DNSListenAddrs specifies the IP addresses for dnsmasq to listen on
-	DNSListenAddrs []string
-	// DNSPort specifies the DNS port
-	DNSPort int
+	// DNS is the dnsmasq configuration
+	DNS DNS
+}
+
+// DNS describes DNS server configuration
+type DNS struct {
+	// Hosts is a host->ip mapping
+	Hosts box.DNSOverrides
+	// Zones is a zone->nameserver mapping
+	Zones box.DNSOverrides
+	// ListenAddrs specifies the IP addresses for dnsmasq to listen on
+	ListenAddrs []string
+	// Interfaces specifies the interfaces for dnsmasq to listen on
+	Interfaces []string
+	// Port specifies the DNS port
+	Port int
+	// DnsmasqOptions specifies additional options for dnsmasq
+	DnsmasqOptions string
 }
 
 func (cfg *Config) checkAndSetDefaults() error {

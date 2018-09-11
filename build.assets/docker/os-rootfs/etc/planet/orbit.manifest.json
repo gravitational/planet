@@ -246,10 +246,22 @@
                 "cli": {"name": "gce-node-tags"}
             },
             {
-                "type": "String",
+                "type": "List",
                 "name": "dnslistenaddr",
-                "env": "PLANET_DNS_LISTEN_ADDR",
-                "cli": {"name": "dns-listen-addr"}
+                "spec": {
+                    "name": "dns-listen-addr",
+                    "env": "PLANET_DNS_LISTEN_ADDR",
+                    "type": "String"
+                }
+            },
+            {
+                "type": "List",
+                "name": "dnsinterface",
+                "spec": {
+                    "name": "dns-interface",
+                    "env": "PLANET_DNS_INTERFACE",
+                    "type": "String"
+                }
             },
             {
                 "type": "String",

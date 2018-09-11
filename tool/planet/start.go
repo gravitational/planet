@@ -136,9 +136,9 @@ func start(config *Config, monitorc chan<- bool) (*runtimeContext, error) {
 		box.EnvPair{Name: EnvNodeName, Val: config.NodeName},
 		box.EnvPair{Name: EnvElectionEnabled, Val: strconv.FormatBool(config.ElectionEnabled)},
 		box.EnvPair{Name: EnvDockerPromiscuousMode, Val: strconv.FormatBool(config.DockerPromiscuousMode)},
-		box.EnvPair{Name: EnvDNSHosts, Val: config.DNSHosts.String()},
-		box.EnvPair{Name: EnvDNSZones, Val: config.DNSZones.String()},
-		box.EnvPair{Name: EnvDnsmasqOptions, Val: config.DnsmasqOptions},
+		box.EnvPair{Name: EnvDNSHosts, Val: config.DNS.Hosts.String()},
+		box.EnvPair{Name: EnvDNSZones, Val: config.DNS.Zones.String()},
+		box.EnvPair{Name: EnvDnsmasqOptions, Val: config.DNS.DnsmasqOptions},
 	)
 
 	if err = addDockerOptions(config); err != nil {
@@ -521,17 +521,20 @@ func setDNSMasq(config *Config) error {
 	fmt.Fprintf(out, "no-resolv\n")
 	// Never forward plain names (without a dot or domain part)
 	fmt.Fprintf(out, "domain-needed\n")
-	// Restrict dnsmasq to listen only on the configured address
-	for _, addr := range config.DNSListenAddrs {
+	// Restrict dnsmasq to listen only on the configured addresses
+	for _, addr := range config.DNS.ListenAddrs {
 		fmt.Fprintf(out, "listen-address=%v\n", addr)
 	}
-	fmt.Fprintf(out, "port=%v\n", config.DNSPort)
+	for _, iface := range config.DNS.Interfaces {
+		fmt.Fprintf(out, "interface=%v\n", iface)
+	}
+	fmt.Fprintf(out, "port=%v\n", config.DNS.Port)
 	fmt.Fprintf(out, "bind-interfaces\n")
 	// Use kubernetes DNS resolver for cluster local stuff
 	for _, searchDomain := range K8sSearchDomains {
 		fmt.Fprintf(out, "server=/%v/%v\n", searchDomain, config.KubeDNSResolverIP())
 	}
-	for zone, nameservers := range config.DNSZones {
+	for zone, nameservers := range config.DNS.Zones {
 		for _, nameserver := range nameservers {
 			ns, err := formatNameserver(nameserver)
 			if err != nil {
@@ -540,7 +543,7 @@ func setDNSMasq(config *Config) error {
 			fmt.Fprintf(out, "server=/%v/%v\n", zone, ns)
 		}
 	}
-	for hostname, ips := range config.DNSHosts {
+	for hostname, ips := range config.DNS.Hosts {
 		for _, ip := range ips {
 			fmt.Fprintf(out, "address=/%v/%v\n", hostname, ip)
 		}
@@ -588,7 +591,12 @@ func addResolv(config *Config) (upstreamNameservers []string, err error) {
 	}
 
 	planetResolv := config.inRootfs("etc", PlanetResolv)
-	if err := copyResolvFile(*cfg, planetResolv, config.DNSListenAddrs); err != nil {
+	var dnsAddrs []string
+	if len(config.DNS.ListenAddrs) != 0 {
+		// Use the first configured DNS listen address in /etc/resolv.conf
+		dnsAddrs = config.DNS.ListenAddrs[:1]
+	}
+	if err := copyResolvFile(*cfg, planetResolv, dnsAddrs); err != nil {
 		return nil, trace.Wrap(err)
 	}
 

@@ -138,8 +138,11 @@ const (
 	// EnvPlanetDnsmasqOptions is the environment variable with additional options for dnsmasq
 	EnvPlanetDnsmasqOptions = "PLANET_DNSMASQ_OPTIONS"
 
-	// EnvPlanetDNSListenAddr is the environment variable with the interface for dnsmasq to bind on
+	// EnvPlanetDNSListenAddr is the environment variable with the list of listen addresses for dnsmasq
 	EnvPlanetDNSListenAddr = "PLANET_DNS_LISTEN_ADDR"
+
+	// EnvPlanetDNSInterface is the environment variable with the list of interfaces for dnsmasq
+	EnvPlanetDNSInterface = "PLANET_DNS_INTERFACE"
 
 	// EnvPlanetDNSPort is the environment variable with the DNS port
 	EnvPlanetDNSPort = "PLANET_DNS_PORT"

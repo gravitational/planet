@@ -95,7 +95,8 @@ func run() error {
 		cstartDNSZones              = DNSOverrides(cstart.Flag("dns-zones", "Comma-separated list of DNS zone to nameserver IP mappings as 'zone/nameserver' pairs").OverrideDefaultFromEnvar(EnvDNSZones))
 		cstartKubeletOptions        = cstart.Flag("kubelet-options", "Additional command line options to pass to kubelet").OverrideDefaultFromEnvar(EnvPlanetKubeletOptions).String()
 		cstartDnsmasqOptions        = cstart.Flag("dnsmasq-options", "Additional command line options to pass to dnsmasq").OverrideDefaultFromEnvar(EnvPlanetDnsmasqOptions).String()
-		cstartDNSListenAddrs        = cstart.Flag("dns-listen-addr", "Address for dnsmasq to listen on").OverrideDefaultFromEnvar(EnvPlanetDNSListenAddr).Default(DNSListenAddr).Strings()
+		cstartDNSListenAddrs        = List(cstart.Flag("dns-listen-addr", "Comma-separated list of addresses for dnsmasq to listen on").OverrideDefaultFromEnvar(EnvPlanetDNSListenAddr).Default(DNSListenAddr))
+		cstartDNSInterfaces         = List(cstart.Flag("dns-interface", "Comma-separated list of interfaces for dnsmasq to listen on").OverrideDefaultFromEnvar(EnvPlanetDNSInterface))
 		cstartDNSPort               = cstart.Flag("dns-port", "DNS port for dnsmasq").OverrideDefaultFromEnvar(EnvPlanetDNSPort).Default(strconv.Itoa(DNSPort)).Int()
 		cstartDockerPromiscuousMode = cstart.Flag("docker-promiscuous-mode", "Whether to put docker bridge into promiscuous mode").OverrideDefaultFromEnvar(EnvDockerPromiscuousMode).Bool()
 
@@ -374,13 +375,16 @@ func run() error {
 			DockerBackend:           *cstartDockerBackend,
 			DockerOptions:           *cstartDockerOptions,
 			ElectionEnabled:         bool(*cstartElectionEnabled),
-			DNSHosts:                *cstartDNSHosts,
-			DNSZones:                *cstartDNSZones,
-			KubeletOptions:          *cstartKubeletOptions,
-			DockerPromiscuousMode:   *cstartDockerPromiscuousMode,
-			DnsmasqOptions:          *cstartDnsmasqOptions,
-			DNSListenAddrs:          *cstartDNSListenAddrs,
-			DNSPort:                 *cstartDNSPort,
+			DNS: DNS{
+				Hosts:          *cstartDNSHosts,
+				Zones:          *cstartDNSZones,
+				ListenAddrs:    *cstartDNSListenAddrs,
+				Interfaces:     *cstartDNSInterfaces,
+				Port:           *cstartDNSPort,
+				DnsmasqOptions: *cstartDnsmasqOptions,
+			},
+			KubeletOptions:        *cstartKubeletOptions,
+			DockerPromiscuousMode: *cstartDockerPromiscuousMode,
 		}
 		if *cstartSelfTest {
 			err = selfTest(config, *cstartTestKubeRepoPath, *cstartTestSpec, extraArgs)
