@@ -89,8 +89,6 @@ type Config struct {
 	Hostname string
 	// KubeletOptions defines additional kubelet parameters
 	KubeletOptions string
-	// DnsmasqOptions specifies additional options for dnsmasq
-	DnsmasqOptions string
 	// ServiceUser defines the user context for container's service user
 	ServiceUser serviceUser
 	// DockerPromiscuousMode specifies whether to put docker bridge into promiscuous mode
@@ -111,8 +109,6 @@ type DNS struct {
 	Interfaces []string
 	// Port specifies the DNS port
 	Port int
-	// DnsmasqOptions specifies additional options for dnsmasq
-	DnsmasqOptions string
 }
 
 func (cfg *Config) checkAndSetDefaults() error {

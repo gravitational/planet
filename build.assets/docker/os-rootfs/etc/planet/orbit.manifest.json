@@ -198,12 +198,6 @@
                 "cli": {"name": "kubelet-options"}
             },
             {
-                "type": "String",
-                "name": "dnsmasqoptions",
-                "env": "PLANET_DNSMASQ_OPTIONS",
-                "cli": {"name": "dnsmasq-options"}
-            },
-            {
                 "type": "Bool",
                 "name": "electionenabled",
                 "env": "PLANET_ELECTION_ENABLED",
@@ -249,18 +243,20 @@
                 "type": "List",
                 "name": "dnslistenaddr",
                 "spec": {
-                    "name": "dns-listen-addr",
+                    "name": "dnslistenaddr",
                     "env": "PLANET_DNS_LISTEN_ADDR",
-                    "type": "String"
+                    "type": "String",
+                    "cli": {"name": "dns-listen-addr"}
                 }
             },
             {
                 "type": "List",
                 "name": "dnsinterface",
                 "spec": {
-                    "name": "dns-interface",
+                    "name": "dnsinterface",
                     "env": "PLANET_DNS_INTERFACE",
-                    "type": "String"
+                    "type": "String",
+                    "cli": {"name": "dns-interface"}
                 }
             },
             {

@@ -135,21 +135,17 @@ const (
 	// EnvPlanetKubeletOptions is the environment variable with additional options for kubelet
 	EnvPlanetKubeletOptions = "PLANET_KUBELET_OPTIONS"
 
-	// EnvPlanetDnsmasqOptions is the environment variable with additional options for dnsmasq
-	EnvPlanetDnsmasqOptions = "PLANET_DNSMASQ_OPTIONS"
-
 	// EnvPlanetDNSListenAddr is the environment variable with the list of listen addresses for dnsmasq
+	// See https://linux.die.net/man/8/dnsmasq, -a, --listen-address=<ipaddr>
 	EnvPlanetDNSListenAddr = "PLANET_DNS_LISTEN_ADDR"
 
 	// EnvPlanetDNSInterface is the environment variable with the list of interfaces for dnsmasq
+	// See https://linux.die.net/man/8/dnsmasq, -i, --interface=<interface name>
 	EnvPlanetDNSInterface = "PLANET_DNS_INTERFACE"
 
 	// EnvPlanetDNSPort is the environment variable with the DNS port
+	// See https://linux.die.net/man/8/dnsmasq, -p/--port=<port>
 	EnvPlanetDNSPort = "PLANET_DNS_PORT"
-
-	// EnvDnsmasqOptions specifies the name of the environment variable
-	// with additional dnsmasq configuration
-	EnvDnsmasqOptions = "DNSMASQ_OPTS"
 
 	// DNSListenAddr is the default IP address dnsmasq will listen on
 	DNSListenAddr = "127.0.0.2"
