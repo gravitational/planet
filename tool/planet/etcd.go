@@ -23,81 +23,6 @@ import (
 	log "github.com/sirupsen/logrus"
 )
 
-// etcdPromote promotes running etcd proxy to a full member; does nothing if it's already
-// running in proxy mode.
-//
-// Parameters name, initial cluster and state are ones produced by the 'member add'
-// command.
-//
-// Whether etcd is running in proxy mode is determined by ETCD_PROXY environment variable
-// normally set in /etc/container-environment inside planet.
-//
-// To promote proxy to a member we update ETCD_PROXY to disable proxy mode, wipe out
-// its state directory and restart the service, as suggested by etcd docs.
-func etcdPromote(name, initialCluster, initialClusterState string) error {
-	env, err := box.ReadEnvironment(ContainerEnvironmentFile)
-	if err != nil {
-		return trace.Wrap(err)
-	}
-
-	if env.Get(EnvEtcdProxy) == EtcdProxyOff {
-		log.Info("etcd is not running in proxy mode, nothing to do")
-		return nil
-	}
-
-	newEnv := map[string]string{
-		EnvEtcdProxy:               EtcdProxyOff,
-		EnvEtcdMemberName:          name,
-		EnvEtcdInitialCluster:      initialCluster,
-		EnvEtcdInitialClusterState: initialClusterState,
-	}
-
-	log.Infof("updating etcd environment: %v", newEnv)
-	for k, v := range newEnv {
-		env.Upsert(k, v)
-	}
-
-	if err := box.WriteEnvironment(ContainerEnvironmentFile, env); err != nil {
-		return trace.Wrap(err)
-	}
-
-	out, err := exec.Command("/bin/systemctl", "stop", "etcd").CombinedOutput()
-	log.Infof("stopping etcd: %v", string(out))
-	if err != nil {
-		return trace.Wrap(err, "failed to stop etcd: %v", string(out))
-	}
-
-	log.Infof("removing %v", ETCDProxyDir)
-	if err := os.RemoveAll(ETCDProxyDir); err != nil {
-		return trace.Wrap(err)
-	}
-
-	setupEtcd(&Config{
-		Rootfs:    "/",
-		EtcdProxy: "off",
-	})
-
-	out, err = exec.Command("/bin/systemctl", "daemon-reload").CombinedOutput()
-	log.Infof("systemctl daemon-reload: %v", string(out))
-	if err != nil {
-		return trace.Wrap(err, "failed to trigger systemctl daemon-reload: %v", string(out))
-	}
-
-	out, err = exec.Command("/bin/systemctl", "start", ETCDServiceName).CombinedOutput()
-	log.Infof("starting etcd: %v", string(out))
-	if err != nil {
-		return trace.Wrap(err, "failed to start etcd: %v", string(out))
-	}
-
-	out, err = exec.Command("/bin/systemctl", "restart", PlanetAgentServiceName).CombinedOutput()
-	log.Infof("restarting planet-agent: %v", string(out))
-	if err != nil {
-		return trace.Wrap(err, "failed to restart planet-agent: %v", string(out))
-	}
-
-	return nil
-}
-
 // etcdInit detects which version of etcd should be running, and sets symlinks to point
 // to the correct version
 func etcdInit() error {
@@ -367,6 +292,59 @@ func etcdRestore(file string) error {
 	}
 
 	log.Info("Restore complete")
+	return nil
+}
+
+// etcdWipe wipes out all local etcd data
+func etcdWipe(autoConfirm bool) error {
+	dataDir, err := getEtcdDataDir()
+	if err != nil {
+		return trace.Wrap(err)
+	}
+	if !autoConfirm {
+		err := getConfirmation(fmt.Sprintf(wipeoutPrompt, dataDir),
+			wipeoutConfirmation)
+		if err != nil {
+			return trace.Wrap(err)
+		}
+	}
+	log.Warnf("Deleting etcd data at %v.", dataDir)
+	err = os.RemoveAll(dataDir)
+	if err != nil {
+		return trace.Wrap(err)
+	}
+	return nil
+}
+
+// wipeoutConfirmation is the expected user response to confirm data delete action
+const wipeoutConfirmation = "yes"
+
+// wipeoutPrompt is the user prompt for data delete action
+var wipeoutPrompt = "Danger! This operation will delete all etcd data in %v " +
+	"and is not reversible. Type '" + wipeoutConfirmation + "' to proceed."
+
+// getEtcdDataDir returns full path to etcd data directory
+func getEtcdDataDir() (string, error) {
+	version, _, err := readEtcdVersion(DefaultEtcdCurrentVersionFile)
+	if err != nil && !trace.IsNotFound(err) {
+		return "", trace.Wrap(err)
+	}
+	if trace.IsNotFound(err) {
+		version = AssumeEtcdVersion
+	}
+	return getBaseEtcdDir(version), nil
+}
+
+// getConfirmation obtains action confirmation from the user
+func getConfirmation(prompt, confirmationResponse string) error {
+	fmt.Printf("%v ", prompt)
+	userResponse, err := bufio.NewReader(os.Stdin).ReadSlice('\n')
+	if err != nil {
+		return trace.Wrap(err)
+	}
+	if strings.TrimSpace(string(userResponse)) != confirmationResponse {
+		return trace.BadParameter("action cancelled by user")
+	}
 	return nil
 }
 

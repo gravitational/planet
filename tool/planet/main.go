@@ -166,11 +166,6 @@ func run() error {
 		// etcd related commands
 		cetcd = app.Command("etcd", "Commands related to etcd")
 
-		cetcdPromote                    = cetcd.Command("promote", "Promote etcd running in proxy mode to a full member")
-		cetcdPromoteName                = cetcdPromote.Flag("name", "Member name, as output by 'member add' command").Required().String()
-		cetcdPromoteInitialCluster      = cetcdPromote.Flag("initial-cluster", "Initial cluster, as output by 'member add' command").Required().String()
-		cetcdPromoteInitialClusterState = cetcdPromote.Flag("initial-cluster-state", "Initial cluster state, as output by 'member add' command").Required().String()
-
 		cetcdInit = cetcd.Command("init", "Setup etcd to run the correct version").Hidden()
 
 		cetcdBackup     = cetcd.Command("backup", "Backup the etcd datastore to a file")
@@ -187,6 +182,9 @@ func run() error {
 
 		cetcdRestore     = cetcd.Command("restore", "Restore etcd backup as part of the upgrade")
 		cetcdRestoreFile = cetcdRestore.Arg("file", "A previously taken backup file to use during upgrade").Required().ExistingFile()
+
+		cetcdWipe        = cetcd.Command("wipe", "Wipe out all local etcd data").Hidden()
+		cetcdWipeConfirm = cetcdWipe.Flag("confirm", "Auto-confirm the action").Bool()
 
 		// leader election commands
 		cleader              = app.Command("leader", "Leader election control")
@@ -439,9 +437,6 @@ func run() error {
 	case cdeviceRemove.FullCommand():
 		err = removeDevice(*cdeviceRemoveNode)
 
-	case cetcdPromote.FullCommand():
-		err = etcdPromote(*cetcdPromoteName, *cetcdPromoteInitialCluster, *cetcdPromoteInitialClusterState)
-
 	case cetcdInit.FullCommand():
 		err = etcdInit()
 
@@ -462,6 +457,9 @@ func run() error {
 
 	case cetcdRestore.FullCommand():
 		err = etcdRestore(*cetcdRestoreFile)
+
+	case cetcdWipe.FullCommand():
+		err = etcdWipe(*cetcdWipeConfirm)
 
 	default:
 		err = trace.Errorf("unsupported command: %v", cmd)
