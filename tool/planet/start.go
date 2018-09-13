@@ -592,7 +592,8 @@ func addResolv(config *Config) (upstreamNameservers []string, err error) {
 	planetResolv := config.inRootfs("etc", PlanetResolv)
 	var dnsAddrs []string
 	if len(config.DNS.ListenAddrs) != 0 {
-		// Use the first configured DNS listen address in /etc/resolv.conf
+		// Use the first configured listen address for planet
+		// DNS resolution
 		dnsAddrs = config.DNS.ListenAddrs[:1]
 	}
 	if err := copyResolvFile(*cfg, planetResolv, dnsAddrs); err != nil {

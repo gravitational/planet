@@ -147,8 +147,8 @@ const (
 	// See https://linux.die.net/man/8/dnsmasq, -p/--port=<port>
 	EnvPlanetDNSPort = "PLANET_DNS_PORT"
 
-	// DNSListenAddr is the default IP address dnsmasq will listen on
-	DNSListenAddr = "127.0.0.2"
+	// DefaultDNSListenAddr is the default IP address dnsmasq will listen on
+	DefaultDNSListenAddr = "127.0.0.2"
 
 	// DNSPort is the default DNS port
 	DNSPort = 53

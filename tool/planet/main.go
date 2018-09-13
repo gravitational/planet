@@ -94,7 +94,7 @@ func run() error {
 		cstartDNSHosts              = DNSOverrides(cstart.Flag("dns-hosts", "Comma-separated list of domain name to IP address mappings as 'domain/ip' pairs").OverrideDefaultFromEnvar(EnvDNSHosts))
 		cstartDNSZones              = DNSOverrides(cstart.Flag("dns-zones", "Comma-separated list of DNS zone to nameserver IP mappings as 'zone/nameserver' pairs").OverrideDefaultFromEnvar(EnvDNSZones))
 		cstartKubeletOptions        = cstart.Flag("kubelet-options", "Additional command line options to pass to kubelet").OverrideDefaultFromEnvar(EnvPlanetKubeletOptions).String()
-		cstartDNSListenAddrs        = List(cstart.Flag("dns-listen-addr", "Comma-separated list of addresses for dnsmasq to listen on").OverrideDefaultFromEnvar(EnvPlanetDNSListenAddr).Default(DNSListenAddr))
+		cstartDNSListenAddrs        = List(cstart.Flag("dns-listen-addr", "Comma-separated list of addresses for dnsmasq to listen on").OverrideDefaultFromEnvar(EnvPlanetDNSListenAddr).Default(DefaultDNSListenAddr))
 		cstartDNSInterfaces         = List(cstart.Flag("dns-interface", "Comma-separated list of interfaces for dnsmasq to listen on").OverrideDefaultFromEnvar(EnvPlanetDNSInterface))
 		cstartDNSPort               = cstart.Flag("dns-port", "DNS port for dnsmasq").OverrideDefaultFromEnvar(EnvPlanetDNSPort).Default(strconv.Itoa(DNSPort)).Int()
 		cstartDockerPromiscuousMode = cstart.Flag("docker-promiscuous-mode", "Whether to put docker bridge into promiscuous mode").OverrideDefaultFromEnvar(EnvDockerPromiscuousMode).Bool()
