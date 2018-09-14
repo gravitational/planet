@@ -263,6 +263,7 @@
   revision = "f39421c51f636f6a03a79a168aacc628e37a584b"
 
 [[projects]]
+  branch = "kevin/inotify-watches"
   name = "github.com/gravitational/satellite"
   packages = [
     "agent",
@@ -275,8 +276,7 @@
     "monitoring/collector",
     "utils"
   ]
-  revision = "d98d9356c5639c48c775d9abe8d663b20cc99c0c"
-  version = "5.2.3"
+  revision = "f296cd67aeb200b10a9121594f994452be003669"
 
 [[projects]]
   name = "github.com/gravitational/trace"
@@ -758,6 +758,6 @@
 [solve-meta]
   analyzer-name = "dep"
   analyzer-version = 1
-  inputs-digest = "fcff4199702237b25ba8f6990852c608bc611cc1f2178bb95b350b300d87f8f2"
+  inputs-digest = "ad05b916471c3f02c7edc49af5b877dc14bb2c7551e67b67a1b29dbce23bcfa7"
   solver-name = "gps-cdcl"
   solver-version = 1
