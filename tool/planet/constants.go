@@ -115,9 +115,19 @@ const (
 	// EnvKubeletOptions names the environment variable that specifies additional
 	// kubelet command line options
 	EnvKubeletOptions = "KUBELET_OPTS"
-	// EnvPlanetAgentCertFile names the environment variable that specifies the location
+
+	// EnvPlanetAgentCAFile names the environment variable that specifies the location
+	// of the agent ca certificate file
+	EnvPlanetAgentCAFile = "PLANET_AGENT_CAFILE"
+
+	// EnvPlanetAgentClientCertFile names the environment variable that specifies the location
 	// of the agent certificate file
-	EnvPlanetAgentCertFile = "PLANET_AGENT_CERTFILE"
+	EnvPlanetAgentClientCertFile = "PLANET_AGENT_CLIENT_CERTFILE"
+
+	// EnvPlanetAgentClientKeyFile names the environment variable that specifies the location
+	// of the agent key file
+	EnvPlanetAgentClientKeyFile = "PLANET_AGENT_CLIENT_KEYFILE"
+
 	// EnvDockerPromiscuousMode names the environment variable that specifies the
 	// promiscuous mode for docker
 	EnvDockerPromiscuousMode = "PLANET_DOCKER_PROMISCUOUS_MODE"
@@ -252,8 +262,14 @@ const (
 	// AgentStatusTimeout specifies the default status query timeout
 	AgentStatusTimeout = 5 * time.Second
 
+	// ClientRPCCAPath specifies the path to the CA certificate for agent RPC
+	ClientRPCCAPath = "/var/state/root.cert"
+
 	// ClientRPCCertPath specifies the path to the CA certificate for agent RPC
-	ClientRPCCertPath = "/var/state/root.cert"
+	ClientRPCCertPath = "/var/state/planet-rpc-client.cert"
+
+	// ClientRPCKeyPath specifies the path to the CA certificate for agent RPC
+	ClientRPCKeyPath = "/var/state/planet-rpc-client.key"
 
 	// DefaultDockerBridge specifies the default name of the docker bridge
 	DefaultDockerBridge = "docker0"
