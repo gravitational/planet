@@ -263,7 +263,6 @@
   revision = "f39421c51f636f6a03a79a168aacc628e37a584b"
 
 [[projects]]
-  branch = "kevin/mtls-monitoring"
   name = "github.com/gravitational/satellite"
   packages = [
     "agent",
@@ -276,7 +275,8 @@
     "monitoring/collector",
     "utils"
   ]
-  revision = "557a03524c249f4986ffaf37943bf0cf31f954fe"
+  revision = "d98d9356c5639c48c775d9abe8d663b20cc99c0c"
+  version = "5.2.3"
 
 [[projects]]
   name = "github.com/gravitational/trace"
@@ -758,6 +758,6 @@
 [solve-meta]
   analyzer-name = "dep"
   analyzer-version = 1
-  inputs-digest = "0d5d108ac31e34c22d42f49c62884d3d57e971464ba68732733a79c1cb5d32a1"
+  inputs-digest = "fcff4199702237b25ba8f6990852c608bc611cc1f2178bb95b350b300d87f8f2"
   solver-name = "gps-cdcl"
   solver-version = 1

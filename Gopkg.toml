@@ -88,8 +88,7 @@ ignored = ["github.com/Sirupsen/logrus"]
 
 [[constraint]]
   name = "github.com/gravitational/satellite"
-  branch = "kevin/mtls-monitoring"
-  # version = "0.0.20"
+  version = "5.2.3"
 
 [[constraint]]
   name = "github.com/gravitational/trace"
