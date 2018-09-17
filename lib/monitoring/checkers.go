@@ -96,7 +96,7 @@ func addToMaster(node agent.Agent, config *Config, etcdConfig *monitoring.ETCDCo
 	node.AddChecker(monitoring.NewIPForwardChecker())
 	node.AddChecker(monitoring.NewBridgeNetfilterChecker())
 	node.AddChecker(monitoring.NewMayDetachMountsChecker())
-	node.AddChecker(monitoring.NewINotifyChecker())
+	node.AddChecker(monitoring.NewInotifyChecker())
 	if !config.DisableInterPodCheck {
 		node.AddChecker(monitoring.InterPodCommunication(config.KubeAddr, config.NettestContainerImage))
 	}
@@ -123,7 +123,7 @@ func addToNode(node agent.Agent, config *Config, etcdConfig *monitoring.ETCDConf
 	node.AddChecker(monitoring.NewIPForwardChecker())
 	node.AddChecker(monitoring.NewBridgeNetfilterChecker())
 	node.AddChecker(monitoring.NewMayDetachMountsChecker())
-	node.AddChecker(monitoring.NewINotifyChecker())
+	node.AddChecker(monitoring.NewInotifyChecker())
 
 	// Add checkers specific to cloud provider backend
 	switch strings.ToLower(config.CloudProvider) {
