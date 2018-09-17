@@ -238,6 +238,32 @@
                 "name": "gcenodetags",
                 "env": "PLANET_GCE_NODE_TAGS",
                 "cli": {"name": "gce-node-tags"}
+            },
+            {
+                "type": "List",
+                "name": "dnslistenaddr",
+                "spec": {
+                    "name": "dnslistenaddr",
+                    "env": "PLANET_DNS_LISTEN_ADDR",
+                    "type": "String",
+                    "cli": {"name": "dns-listen-addr"}
+                }
+            },
+            {
+                "type": "List",
+                "name": "dnsinterface",
+                "spec": {
+                    "name": "dnsinterface",
+                    "env": "PLANET_DNS_INTERFACE",
+                    "type": "String",
+                    "cli": {"name": "dns-interface"}
+                }
+            },
+            {
+                "type": "String",
+                "name": "dnsport",
+                "env": "PLANET_DNS_PORT",
+                "cli": {"name": "dns-port"}
             }
         ]
     }

@@ -87,16 +87,28 @@ type Config struct {
 	NodeName string
 	// Hostname specifies the new hostname inside the container
 	Hostname string
-	// DNSHosts is a host->ip mapping
-	DNSHosts box.DNSOverrides
-	// DNSZones is a zone->nameserver mapping
-	DNSZones box.DNSOverrides
 	// KubeletOptions defines additional kubelet parameters
 	KubeletOptions string
 	// ServiceUser defines the user context for container's service user
 	ServiceUser serviceUser
 	// DockerPromiscuousMode specifies whether to put docker bridge into promiscuous mode
 	DockerPromiscuousMode bool
+	// DNS is the dnsmasq configuration
+	DNS DNS
+}
+
+// DNS describes DNS server configuration
+type DNS struct {
+	// Hosts is a host->ip mapping
+	Hosts box.DNSOverrides
+	// Zones is a zone->nameserver mapping
+	Zones box.DNSOverrides
+	// ListenAddrs specifies the IP addresses for dnsmasq to listen on
+	ListenAddrs []string
+	// Interfaces specifies the interfaces for dnsmasq to listen on
+	Interfaces []string
+	// Port specifies the DNS port
+	Port int
 }
 
 func (cfg *Config) checkAndSetDefaults() error {
@@ -125,7 +137,7 @@ type serviceUser struct {
 	UID string
 }
 
-func (cfg *Config) SkyDNSResolverIP() string {
+func (cfg *Config) KubeDNSResolverIP() string {
 	return cfg.ServiceSubnet.RelativeIP(3).String()
 }
 

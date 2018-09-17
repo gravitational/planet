@@ -124,7 +124,7 @@ func start(config *Config, monitorc chan<- bool) (*runtimeContext, error) {
 		// Default agent name to the name of the etcd member
 		box.EnvPair{Name: EnvAgentName, Val: config.EtcdMemberName},
 		box.EnvPair{Name: EnvInitialCluster, Val: toKeyValueList(config.InitialCluster)},
-		box.EnvPair{Name: EnvClusterDNSIP, Val: config.SkyDNSResolverIP()},
+		box.EnvPair{Name: EnvClusterDNSIP, Val: config.KubeDNSResolverIP()},
 		box.EnvPair{Name: EnvAPIServerName, Val: APIServerDNSName},
 		box.EnvPair{Name: EnvEtcdProxy, Val: config.EtcdProxy},
 		box.EnvPair{Name: EnvEtcdMemberName, Val: config.EtcdMemberName},
@@ -136,8 +136,8 @@ func start(config *Config, monitorc chan<- bool) (*runtimeContext, error) {
 		box.EnvPair{Name: EnvNodeName, Val: config.NodeName},
 		box.EnvPair{Name: EnvElectionEnabled, Val: strconv.FormatBool(config.ElectionEnabled)},
 		box.EnvPair{Name: EnvDockerPromiscuousMode, Val: strconv.FormatBool(config.DockerPromiscuousMode)},
-		box.EnvPair{Name: EnvDNSHosts, Val: config.DNSHosts.String()},
-		box.EnvPair{Name: EnvDNSZones, Val: config.DNSZones.String()},
+		box.EnvPair{Name: EnvDNSHosts, Val: config.DNS.Hosts.String()},
+		box.EnvPair{Name: EnvDNSZones, Val: config.DNS.Zones.String()},
 	)
 
 	if err = addDockerOptions(config); err != nil {
@@ -520,17 +520,20 @@ func setDNSMasq(config *Config) error {
 	fmt.Fprintf(out, "no-resolv\n")
 	// Never forward plain names (without a dot or domain part)
 	fmt.Fprintf(out, "domain-needed\n")
-	// Listen on local interfaces, it's important to set those,
-	// otherwise you hit this bug:
-	// https://bugs.launchpad.net/ubuntu/+source/dnsmasq/+bug/1414887
-	fmt.Fprintf(out, "listen-address=127.0.0.1\n")
-	fmt.Fprintf(out, "interface=lo\n")
-	fmt.Fprintf(out, "bind-interfaces\n")
-	// Use SkyDNS K8s resolver for cluster local stuff
-	for _, searchDomain := range K8sSearchDomains {
-		fmt.Fprintf(out, "server=/%v/%v\n", searchDomain, config.SkyDNSResolverIP())
+	// Restrict dnsmasq to listen only on the configured addresses
+	for _, addr := range config.DNS.ListenAddrs {
+		fmt.Fprintf(out, "listen-address=%v\n", addr)
 	}
-	for zone, nameservers := range config.DNSZones {
+	for _, iface := range config.DNS.Interfaces {
+		fmt.Fprintf(out, "interface=%v\n", iface)
+	}
+	fmt.Fprintf(out, "port=%v\n", config.DNS.Port)
+	fmt.Fprintf(out, "bind-interfaces\n")
+	// Use kubernetes DNS resolver for cluster local stuff
+	for _, searchDomain := range K8sSearchDomains {
+		fmt.Fprintf(out, "server=/%v/%v\n", searchDomain, config.KubeDNSResolverIP())
+	}
+	for zone, nameservers := range config.DNS.Zones {
 		for _, nameserver := range nameservers {
 			ns, err := formatNameserver(nameserver)
 			if err != nil {
@@ -539,7 +542,7 @@ func setDNSMasq(config *Config) error {
 			fmt.Fprintf(out, "server=/%v/%v\n", zone, ns)
 		}
 	}
-	for hostname, ips := range config.DNSHosts {
+	for hostname, ips := range config.DNS.Hosts {
 		for _, ip := range ips {
 			fmt.Fprintf(out, "address=/%v/%v\n", hostname, ip)
 		}
@@ -587,7 +590,13 @@ func addResolv(config *Config) (upstreamNameservers []string, err error) {
 	}
 
 	planetResolv := config.inRootfs("etc", PlanetResolv)
-	if err := copyResolvFile(*cfg, planetResolv, []string{"127.0.0.1"}); err != nil {
+	var dnsAddrs []string
+	if len(config.DNS.ListenAddrs) != 0 {
+		// Use the first configured listen address for planet
+		// DNS resolution
+		dnsAddrs = config.DNS.ListenAddrs[:1]
+	}
+	if err := copyResolvFile(*cfg, planetResolv, dnsAddrs); err != nil {
 		return nil, trace.Wrap(err)
 	}
 
