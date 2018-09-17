@@ -41,6 +41,7 @@ DOCKER_VER ?= 17.03.2
 # we currently use our own flannel fork: gravitational/flannel
 FLANNEL_VER := v0.10.0-gravitational
 HELM_VER := v2.8.1
+COREDNS_VER := 1.2.2
 
 # ETCD Versions to include in the release
 # This list needs to include every version of etcd that we can upgrade from + latest

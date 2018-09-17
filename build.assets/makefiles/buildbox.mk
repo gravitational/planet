@@ -7,7 +7,7 @@ CONTAINERNAME ?= planet-base-build
 TARBALL ?= $(BUILDDIR)/planet.tar.gz
 export
 TMPFS_SIZE ?= 900m
-VER_UPDATES = ETCD_LATEST_VER KUBE_VER FLANNEL_VER DOCKER_VER HELM_VER
+VER_UPDATES = ETCD_LATEST_VER KUBE_VER FLANNEL_VER DOCKER_VER HELM_VER COREDNS_VER
 
 .PHONY: all
 all: $(ROOTFS)/bin/bash build planet-image
@@ -47,6 +47,7 @@ planet-image:
 	sed -i "s/REPLACE_FLANNEL_LATEST_VERSION/$(FLANNEL_VER)/g" $(TARGETDIR)/orbit.manifest.json
 	sed -i "s/REPLACE_DOCKER_LATEST_VERSION/$(DOCKER_VER)/g" $(TARGETDIR)/orbit.manifest.json
 	sed -i "s/REPLACE_HELM_LATEST_VERSION/$(HELM_VER)/g" $(TARGETDIR)/orbit.manifest.json
+	sed -i "s/REPLACE_COREDNS_LATEST_VERSION/$(COREDNS_VER)/g" $(TARGETDIR)/orbit.manifest.json
 	@echo -e "\n---> Creating Planet image...\n"
 	cd $(TARGETDIR) && fakeroot -- sh -c ' \
 		chown -R 1000:1000 . ; \

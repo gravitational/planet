@@ -3,6 +3,7 @@ FROM planet/os
 ARG SECCOMP_VER
 ARG DOCKER_VER
 ARG HELM_VER
+ARG COREDNS_VER
 
 # FIXME: allowing downgrades and pinning the version of libip4tc0 for iptables
 # as the package has a dependency on the older version as the one available.
@@ -63,3 +64,8 @@ RUN curl https://storage.googleapis.com/kubernetes-helm/helm-$HELM_VER-linux-amd
 
 RUN groupadd --system --non-unique --gid 1000 planet ;\
     useradd --system --non-unique --no-create-home -g 1000 -u 1000 planet
+
+RUN curl https://github.com/coredns/coredns/releases/download/v${COREDNS_VER}/release.coredns_${COREDNS_VER}_linux_amd64.tgz -o /tmp/coredns-${COREDNS_VER}.tar.gz && \
+    mkdir -p /tmp/coredns && tar -xvzf /tmp/release.coredns_${COREDNS_VER}_linux_amd64.tgz -C /tmp/coredns && \
+    cp /tmp/coredns/coredns /usr/bin && \
+    rm -rf /tmp/coredns*   

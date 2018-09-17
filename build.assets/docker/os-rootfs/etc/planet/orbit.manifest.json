@@ -7,6 +7,7 @@
       {"name": "version-flannel", "value": "REPLACE_FLANNEL_LATEST_VERSION"},
       {"name": "version-docker", "value": "REPLACE_DOCKER_LATEST_VERSION"},
       {"name": "version-helm", "value": "REPLACE_HELM_LATEST_VERSION"}
+      {"name": "version-coredns", "value": "REPLACE_COREDNS_LATEST_VERSION"}
     ],
     "commands": [
       {"name": "start", "args": ["rootfs/usr/bin/planet", "start"]},
