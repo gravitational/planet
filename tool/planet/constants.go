@@ -142,6 +142,27 @@ const (
 	// EnvPath is the PATH environment variable
 	EnvPath = "PATH"
 
+	// EnvPlanetKubeletOptions is the environment variable with additional options for kubelet
+	EnvPlanetKubeletOptions = "PLANET_KUBELET_OPTIONS"
+
+	// EnvPlanetDNSListenAddr is the environment variable with the list of listen addresses for dnsmasq
+	// See https://linux.die.net/man/8/dnsmasq, -a, --listen-address=<ipaddr>
+	EnvPlanetDNSListenAddr = "PLANET_DNS_LISTEN_ADDR"
+
+	// EnvPlanetDNSInterface is the environment variable with the list of interfaces for dnsmasq
+	// See https://linux.die.net/man/8/dnsmasq, -i, --interface=<interface name>
+	EnvPlanetDNSInterface = "PLANET_DNS_INTERFACE"
+
+	// EnvPlanetDNSPort is the environment variable with the DNS port
+	// See https://linux.die.net/man/8/dnsmasq, -p/--port=<port>
+	EnvPlanetDNSPort = "PLANET_DNS_PORT"
+
+	// DefaultDNSListenAddr is the default IP address dnsmasq will listen on
+	DefaultDNSListenAddr = "127.0.0.2"
+
+	// DNSPort is the default DNS port
+	DNSPort = 53
+
 	// DefaultEnvPath defines the default value for PATH environment variable
 	// when executing commands inside the container
 	DefaultEnvPath = "/usr/local/bin:/usr/local/sbin:/usr/bin:/usr/sbin:/bin:/sbin"
@@ -203,9 +224,6 @@ const (
 	// DNSTimeout is the amount time resolver will wait for response before retrying
 	// the query with a different name server. Measured in seconds
 	DNSTimeout = 1
-
-	// LocalDNSIP is the IP of the local DNS server
-	LocalDNSIP = "127.0.0.1"
 
 	// ETCDServiceName names the service unit for etcd
 	ETCDServiceName = "etcd.service"
