@@ -190,8 +190,8 @@ func run() error {
 		cetcdRestore     = cetcd.Command("restore", "Restore etcd backup as part of the upgrade")
 		cetcdRestoreFile = cetcdRestore.Arg("file", "A previously taken backup file to use during upgrade").Required().ExistingFile()
 
-		cetcdWipe        = cetcd.Command("wipe", "Wipe out all local etcd data").Hidden()
-		cetcdWipeConfirm = cetcdWipe.Flag("confirm", "Auto-confirm the action").Bool()
+		cetcdWipe          = cetcd.Command("wipe", "Wipe out all local etcd data").Hidden()
+		cetcdWipeConfirmed = cetcdWipe.Flag("confirm", "Auto-confirm the action").Bool()
 
 		// leader election commands
 		cleader              = app.Command("leader", "Leader election control")
@@ -479,7 +479,7 @@ func run() error {
 		err = etcdRestore(*cetcdRestoreFile)
 
 	case cetcdWipe.FullCommand():
-		err = etcdWipe(*cetcdWipeConfirm)
+		err = etcdWipe(*cetcdWipeConfirmed)
 
 	default:
 		err = trace.Errorf("unsupported command: %v", cmd)

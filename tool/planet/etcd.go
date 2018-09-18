@@ -296,12 +296,12 @@ func etcdRestore(file string) error {
 }
 
 // etcdWipe wipes out all local etcd data
-func etcdWipe(autoConfirm bool) error {
+func etcdWipe(confirmed bool) error {
 	dataDir, err := getEtcdDataDir()
 	if err != nil {
 		return trace.Wrap(err)
 	}
-	if !autoConfirm {
+	if !confirmed {
 		err := getConfirmation(fmt.Sprintf(wipeoutPrompt, dataDir),
 			wipeoutConfirmation)
 		if err != nil {
