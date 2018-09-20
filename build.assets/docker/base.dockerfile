@@ -46,8 +46,7 @@ RUN apt-get update && apt-get install -q -y --allow-downgrades bridge-utils \
         nfs-common \
         jq \
         conntrack \
-        strace \
-        dnsmasq ; \
+        strace ; \
     apt-get -t testing install -y lvm2; \
     apt-get -y autoclean; apt-get -y clean
 
