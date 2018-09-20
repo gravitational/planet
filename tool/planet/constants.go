@@ -95,16 +95,16 @@ const (
 	// of the kubernetes configuration file
 	EnvKubeConfig = "KUBECONFIG"
 	// EnvDNSHosts is the environment variable that specifies DNS hostname
-	// overrides for the dnsmasq config
+	// overrides for the CoreDNS config
 	EnvDNSHosts = "PLANET_DNS_HOSTS"
 	// EnvDNSZones is the environment variable that specified DNS zone
-	// overrides for the dnsmasq config
+	// overrides for the CoreDNS config
 	EnvDNSZones = "PLANET_DNS_ZONES"
 	// EnvHostname names the environment variable that specifies the new
 	// hostname
 	EnvHostname = "PLANET_HOSTNAME"
 	// EnvDNSUpstreamNameservers names the environment variable that specifies
-	// additional nameservers to add to the container's dnsmasq configuration
+	// additional nameservers to add to the container's CoreDNS configuration
 	EnvDNSUpstreamNameservers = "PLANET_DNS_UPSTREAM_NAMESERVERS"
 	// EnvDockerOptions names the environment variable that specifies additional
 	// command line options for docker
@@ -145,19 +145,13 @@ const (
 	// EnvPlanetKubeletOptions is the environment variable with additional options for kubelet
 	EnvPlanetKubeletOptions = "PLANET_KUBELET_OPTIONS"
 
-	// EnvPlanetDNSListenAddr is the environment variable with the list of listen addresses for dnsmasq
-	// See https://linux.die.net/man/8/dnsmasq, -a, --listen-address=<ipaddr>
+	// EnvPlanetDNSListenAddr is the environment variable with the list of listen addresses for CoreDNS
 	EnvPlanetDNSListenAddr = "PLANET_DNS_LISTEN_ADDR"
 
-	// EnvPlanetDNSInterface is the environment variable with the list of interfaces for dnsmasq
-	// See https://linux.die.net/man/8/dnsmasq, -i, --interface=<interface name>
-	EnvPlanetDNSInterface = "PLANET_DNS_INTERFACE"
-
 	// EnvPlanetDNSPort is the environment variable with the DNS port
-	// See https://linux.die.net/man/8/dnsmasq, -p/--port=<port>
 	EnvPlanetDNSPort = "PLANET_DNS_PORT"
 
-	// DefaultDNSListenAddr is the default IP address dnsmasq will listen on
+	// DefaultDNSListenAddr is the default IP address CoreDNS will listen on
 	DefaultDNSListenAddr = "127.0.0.2"
 
 	// DNSPort is the default DNS port
@@ -249,14 +243,11 @@ const (
 	// SharedReadWriteMask is a mask for a shared file with read/write access for everyone
 	SharedReadWriteMask = 0666
 
-	// DNSMasqK8sConf is DNSMasq DNS server K8s config
-	DNSMasqK8sConf = "/etc/dnsmasq.d/k8s.conf"
-
-	// DNSMasqAPIServerConf is the dnsmasq configuration file for apiserver
-	DNSMasqAPIServerConf = "/etc/dnsmasq.d/apiserver.conf"
-
 	// CoreDNSConf is the location of the coredns configuration file
 	CoreDNSConf = "/etc/coredns/coredns.conf"
+
+	// CoreDNSHosts is the location of a hostsfile to be served by CoreDNS
+	CoreDNSHosts = "/etc/coredns/coredns.hosts"
 
 	// HostsFile specifies the location of the hosts configuration file
 	HostsFile = "/etc/hosts"

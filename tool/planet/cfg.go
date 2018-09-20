@@ -93,7 +93,7 @@ type Config struct {
 	ServiceUser serviceUser
 	// DockerPromiscuousMode specifies whether to put docker bridge into promiscuous mode
 	DockerPromiscuousMode bool
-	// DNS is the dnsmasq configuration
+	// DNS is the local DNS configuration
 	DNS DNS
 }
 
@@ -103,10 +103,8 @@ type DNS struct {
 	Hosts box.DNSOverrides
 	// Zones is a zone->nameserver mapping
 	Zones box.DNSOverrides
-	// ListenAddrs specifies the IP addresses for dnsmasq to listen on
+	// ListenAddrs specifies the IP addresses for CoreDNS to listen on
 	ListenAddrs []string
-	// Interfaces specifies the interfaces for dnsmasq to listen on
-	Interfaces []string
 	// Port specifies the DNS port
 	Port int
 }

@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"io"
 	"io/ioutil"
-	"net"
 	"os"
 	"path"
 	"path/filepath"
@@ -167,9 +166,6 @@ func start(config *Config, monitorc chan<- bool) (*runtimeContext, error) {
 			Val:  strings.Join(upstreamNameservers, ","),
 		})
 
-	/*if err = setDNSMasq(config); err != nil {
-		return nil, trace.Wrap(err)
-	}*/
 	if err = setCoreDNS(config); err != nil {
 		return nil, trace.Wrap(err)
 	}
@@ -514,58 +510,6 @@ func setKubeConfigOwnership(config *Config) error {
 	return trace.NewAggregate(errors...)
 }
 
-func setDNSMasq(config *Config) error {
-	resolv, err := readHostResolv()
-	if err != nil {
-		return trace.Wrap(err)
-	}
-	out := &bytes.Buffer{}
-	// Do not use local resolver
-	fmt.Fprintf(out, "no-resolv\n")
-	// Never forward plain names (without a dot or domain part)
-	fmt.Fprintf(out, "domain-needed\n")
-	// Restrict dnsmasq to listen only on the configured addresses
-	for _, addr := range config.DNS.ListenAddrs {
-		fmt.Fprintf(out, "listen-address=%v\n", addr)
-	}
-	for _, iface := range config.DNS.Interfaces {
-		fmt.Fprintf(out, "interface=%v\n", iface)
-	}
-	fmt.Fprintf(out, "port=%v\n", config.DNS.Port)
-	fmt.Fprintf(out, "bind-interfaces\n")
-	// Use kubernetes DNS resolver for cluster local stuff
-	for _, searchDomain := range K8sSearchDomains {
-		fmt.Fprintf(out, "server=/%v/%v\n", searchDomain, config.KubeDNSResolverIP())
-	}
-	for zone, nameservers := range config.DNS.Zones {
-		for _, nameserver := range nameservers {
-			ns, err := formatNameserver(nameserver)
-			if err != nil {
-				return trace.Wrap(err)
-			}
-			fmt.Fprintf(out, "server=/%v/%v\n", zone, ns)
-		}
-	}
-	for hostname, ips := range config.DNS.Hosts {
-		for _, ip := range ips {
-			fmt.Fprintf(out, "address=/%v/%v\n", hostname, ip)
-		}
-	}
-	// Use host DNS for everything else
-	for _, hostNameserver := range resolv.Servers {
-		fmt.Fprintf(out, "server=%v\n", hostNameserver)
-	}
-	// do not send local requests to upstream servers
-	fmt.Fprintf(out, "local=/cluster.local/\n")
-
-	err = ioutil.WriteFile(filepath.Join(config.Rootfs, DNSMasqK8sConf), out.Bytes(), SharedFileMask)
-	if err != nil {
-		return trace.Wrap(err)
-	}
-	err = writeLocalLeader(filepath.Join(config.Rootfs, DNSMasqAPIServerConf), config.MasterIP)
-	return trace.Wrap(err)
-}
-
 // setCoreDNS generates CoreDNS configuration for this server
 func setCoreDNS(config *Config) error {
 	resolv, err := readHostResolv()
@@ -631,27 +575,6 @@ import /etc/coredns/configmap/*
   }
 }
 `
-
-// formatNameserver formats the nameserver in the format <ip>[:<port>] to
-// the format expected by dnsmasq config
-func formatNameserver(nameserver string) (string, error) {
-	// if this is an IP w/o a port, return as-is
-	if net.ParseIP(nameserver) != nil {
-		return nameserver, nil
-	}
-	// otherwise it includes port, dnsmasq expects <ip>#<port>
-	host, port, err := net.SplitHostPort(nameserver)
-	if err != nil {
-		return "", trace.Wrap(err, "expected nameserver in the <ip> or <ip>:<port> format, got: %q",
-			nameserver)
-	}
-	// host must be an IP address
-	if net.ParseIP(host) == nil {
-		return "", trace.BadParameter("nameserver should be an IP address, got: %q",
-			nameserver)
-	}
-	return fmt.Sprintf("%v#%v", host, port), nil
-}
 
 func addResolv(config *Config) (upstreamNameservers []string, err error) {
 	cfg, err := readHostResolv()

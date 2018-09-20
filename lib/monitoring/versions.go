@@ -48,7 +48,7 @@ var infoCheckers = []infoChecker{
 	{command: []string{"/usr/bin/docker", "info"}, component: "docker-version"},
 	{command: []string{"/usr/bin/etcd", "--version"}, component: "etcd-version"},
 	{command: []string{"/usr/bin/kubelet", "--version"}, component: "kubelet-version"},
-	{command: []string{"/usr/sbin/dnsmasq", "--version"}, component: "dnsmasq-version"},
+	{command: []string{"/usr/bin/coredns", "-version"}, component: "coredns-version"},
 	{command: []string{"/usr/bin/dbus-daemon", "--version"}, component: "dbus-version"},
 	{command: []string{"/usr/bin/serf", "--version"}, component: "serf-version"},
 	{command: []string{"/usr/bin/flanneld", "--version"}, component: "flanneld-version"},
