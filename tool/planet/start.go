@@ -12,6 +12,7 @@ import (
 	"sort"
 	"strconv"
 	"strings"
+	"text/template"
 	"time"
 
 	"github.com/gravitational/planet/lib/box"
@@ -166,7 +167,10 @@ func start(config *Config, monitorc chan<- bool) (*runtimeContext, error) {
 			Val:  strings.Join(upstreamNameservers, ","),
 		})
 
-	if err = setDNSMasq(config); err != nil {
+	/*if err = setDNSMasq(config); err != nil {
+		return nil, trace.Wrap(err)
+	}*/
+	if err = setCoreDNS(config); err != nil {
 		return nil, trace.Wrap(err)
 	}
 
@@ -561,6 +565,72 @@ func setDNSMasq(config *Config) error {
 	err = writeLocalLeader(filepath.Join(config.Rootfs, DNSMasqAPIServerConf), config.MasterIP)
 	return trace.Wrap(err)
 }
+
+// setCoreDNS generates CoreDNS configuration for this server
+func setCoreDNS(config *Config) error {
+	resolv, err := readHostResolv()
+	if err != nil {
+		return trace.Wrap(err)
+	}
+
+	corednsConfig, err := generateCoreDNSConfig(config, resolv)
+	if err != nil {
+		return trace.Wrap(err)
+	}
+
+	err = ioutil.WriteFile(filepath.Join(config.Rootfs, CoreDNSConf), []byte(corednsConfig), SharedFileMask)
+	if err != nil {
+		return trace.Wrap(err)
+	}
+
+	return nil
+}
+
+func generateCoreDNSConfig(config *Config, resolv *utils.DNSConfig) (string, error) {
+	t, err := template.New("coredns").Parse(coreDNSTemplate)
+	if err != nil {
+		return "", trace.Wrap(err)
+	}
+
+	var coredns bytes.Buffer
+	err = t.Execute(&coredns, struct {
+		DNS    DNS
+		Resolv utils.DNSConfig
+	}{
+		DNS:    config.DNS,
+		Resolv: *resolv,
+	})
+	if err != nil {
+		return "", trace.Wrap(err)
+	}
+	return coredns.String(), nil
+}
+
+var coreDNSTemplate = `
+import /etc/coredns/configmap/*
+
+.:{{.DNS.Port}} {
+  reload
+  bind {{range $bind := .DNS.ListenAddrs}}{{$bind}} {{end}}
+  errors
+  hosts /etc/coredns/coredns.hosts { {{range $hostname, $ips := .DNS.Hosts}}{{range $ip := $ips}}
+    {{$ip}} {{$hostname}}{{end}}{{end}}
+    fallthrough
+  }
+  kubernetes cluster.local in-addr.arpa ip6.arpa {
+    endpoint https://leader.telekube.local:6443
+    tls /var/state/apiserver-kubelet-client.cert /var/state/apiserver-kubelet-client.key /var/state/root.cert
+    pods disabled
+  }{{range $zone, $servers := .DNS.Zones}}
+  proxy {{$zone}} {{range $server := $servers}}{{$server}} {{end}}{
+    policy sequential
+  }{{end}}
+  forward . {{range $server := .Resolv.Servers}}{{$server}} {{end}}{
+    {{if .Resolv.Rotate}}policy random{{else}}policy sequential{{end}}
+    health_check 0
+  }
+}
+`
 
 // formatNameserver formats the nameserver in the format <ip>[:<port>] to
 // the format expected by dnsmasq config

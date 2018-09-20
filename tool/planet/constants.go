@@ -255,6 +255,9 @@ const (
 	// DNSMasqAPIServerConf is the dnsmasq configuration file for apiserver
 	DNSMasqAPIServerConf = "/etc/dnsmasq.d/apiserver.conf"
 
+	// CoreDNSConf is the location of the coredns configuration file
+	CoreDNSConf = "/etc/coredns/coredns.conf"
+
 	// HostsFile specifies the location of the hosts configuration file
 	HostsFile = "/etc/hosts"
 

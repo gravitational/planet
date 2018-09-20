@@ -1,0 +1,11 @@
+import /etc/coredns/*
+
+.:53 {
+  bind 127.0.0.2
+  errors
+  log
+  hosts /coredns/hosts {
+    fallthrough
+  }
+  forward . 169.254.169.254
+}
