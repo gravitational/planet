@@ -13,6 +13,9 @@ const (
 	// DNSResourceName specifies the name for the DNS resources
 	DNSResourceName = "kube-dns"
 
+	// CoreDNSConfigMapName is the location of the user supplied configmap for CoreDNS configuration
+	CoreDNSConfigMapName = "coredns"
+
 	// ExitCodeUnknown is equivalent to EX_SOFTWARE as defined by sysexits(3)
 	ExitCodeUnknown = 70
 
@@ -30,4 +33,7 @@ const (
 	CloudProviderAWS = "aws"
 	// CloudProviderGCE is the Google Compute Engine cloud provider ID
 	CloudProviderGCE = "gce"
+
+	// OverlayInterfaceName is the name of the linux network interface connected to the overlay network
+	OverlayInterfaceName = "docker0"
 )

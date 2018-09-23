@@ -517,7 +517,14 @@ func setCoreDNS(config *Config) error {
 		return trace.Wrap(err)
 	}
 
-	corednsConfig, err := generateCoreDNSConfig(config, resolv)
+	corednsConfig, err := generateCoreDNSConfig(coreDNSConfig{
+		Zones:               config.DNS.Zones,
+		Hosts:               config.DNS.Hosts,
+		ListenAddrs:         config.DNS.ListenAddrs,
+		Port:                config.DNS.Port,
+		UpstreamNameservers: resolv.Servers,
+		Rotate:              resolv.Rotate,
+	})
 	if err != nil {
 		return trace.Wrap(err)
 	}
@@ -530,34 +537,37 @@ func setCoreDNS(config *Config) error {
 	return nil
 }
 
-func generateCoreDNSConfig(config *Config, resolv *utils.DNSConfig) (string, error) {
+func generateCoreDNSConfig(config coreDNSConfig) (string, error) {
 	t, err := template.New("coredns").Parse(coreDNSTemplate)
 	if err != nil {
 		return "", trace.Wrap(err)
 	}
 
 	var coredns bytes.Buffer
-	err = t.Execute(&coredns, struct {
-		DNS    DNS
-		Resolv utils.DNSConfig
-	}{
-		DNS:    config.DNS,
-		Resolv: *resolv,
-	})
+	err = t.Execute(&coredns, config)
 	if err != nil {
 		return "", trace.Wrap(err)
 	}
 	return coredns.String(), nil
 }
 
+type coreDNSConfig struct {
+	Zones               map[string][]string
+	Hosts               map[string][]string
+	ListenAddrs         []string
+	Port                int
+	UpstreamNameservers []string
+	Rotate              bool
+}
+
 var coreDNSTemplate = `
 import /etc/coredns/configmap/*
 
-.:{{.DNS.Port}} {
+.:{{.Port}} {
   reload
-  bind {{range $bind := .DNS.ListenAddrs}}{{$bind}} {{end}}
+  bind {{range $bind := .ListenAddrs}}{{$bind}} {{end}}
   errors
-  hosts /etc/coredns/coredns.hosts { {{range $hostname, $ips := .DNS.Hosts}}{{range $ip := $ips}}
+  hosts /etc/coredns/coredns.hosts { {{range $hostname, $ips := .Hosts}}{{range $ip := $ips}}
     {{$ip}} {{$hostname}}{{end}}{{end}}
     fallthrough
   }
@@ -565,12 +575,13 @@ import /etc/coredns/configmap/*
     endpoint https://leader.telekube.local:6443
     tls /var/state/apiserver-kubelet-client.cert /var/state/apiserver-kubelet-client.key /var/state/root.cert
     pods disabled
-  }{{range $zone, $servers := .DNS.Zones}}
+    fallthrough in-addr.arpa ip6.arpa
+  }{{range $zone, $servers := .Zones}}
   proxy {{$zone}} {{range $server := $servers}}{{$server}} {{end}}{
     policy sequential
   }{{end}}
-  forward . {{range $server := .Resolv.Servers}}{{$server}} {{end}}{
-    {{if .Resolv.Rotate}}policy random{{else}}policy sequential{{end}}
+  forward . {{range $server := .UpstreamNameservers}}{{$server}} {{end}}{
+    {{if .Rotate}}policy random{{else}}policy sequential{{end}}
     health_check 0
   }
 }
