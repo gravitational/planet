@@ -15,6 +15,7 @@ import (
 
 	etcdconf "github.com/gravitational/coordinate/config"
 	"github.com/gravitational/coordinate/leader"
+	"github.com/gravitational/planet/lib/constants"
 	"github.com/gravitational/planet/lib/monitoring"
 	"github.com/gravitational/satellite/agent"
 	pb "github.com/gravitational/satellite/agent/proto/agentpb"
@@ -178,7 +179,7 @@ func startLeaderClient(conf *LeaderConfig, errorC chan error) (leaderClient io.C
 }
 
 func writeLocalLeader(target string, masterIP string) error {
-	contents := fmt.Sprint(masterIP, " ", APIServerDNSName, " ", LegacyAPIServerDNSName, "\n")
+	contents := fmt.Sprint(masterIP, " ", constants.APIServerDNSName, " ", LegacyAPIServerDNSName, "\n")
 	err := ioutil.WriteFile(
 		target,
 		[]byte(contents),
@@ -217,6 +218,8 @@ func unitsCommand(command string) error {
 // runAgent starts the master election / health check loops in background and
 // blocks until a signal has been received.
 func runAgent(conf *agent.Config, monitoringConf *monitoring.Config, leaderConf *LeaderConfig, peers []string) error {
+	ctx, cancelCtx := context.WithCancel(context.Background())
+
 	if conf.Tags == nil {
 		conf.Tags = make(map[string]string)
 	}
@@ -262,6 +265,14 @@ func runAgent(conf *agent.Config, monitoringConf *monitoring.Config, leaderConf 
 			agent:               monitoringAgent,
 		}
 		go dns.createLoop()
+
+		err = runCoreDNSMonitor(ctx, coreDNSConfig{
+			UpstreamNameservers: monitoringConf.UpstreamNameservers,
+			Zones:               monitoringConf.DNSZones,
+		})
+		if err != nil {
+			return trace.Wrap(err)
+		}
 	}
 
 	signalc := make(chan os.Signal, 2)
@@ -272,6 +283,8 @@ func runAgent(conf *agent.Config, monitoringConf *monitoring.Config, leaderConf 
 	case err := <-errorC:
 		return trace.Wrap(err)
 	}
+	cancelCtx()
+
 	return nil
 }
 

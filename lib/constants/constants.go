@@ -1,5 +1,7 @@
 package constants
 
+import "fmt"
+
 const (
 	// KubectlConfigPath is the path to kubectl configuration file
 	KubectlConfigPath = "/etc/kubernetes/kubectl.kubeconfig"
@@ -36,4 +38,13 @@ const (
 
 	// OverlayInterfaceName is the name of the linux network interface connected to the overlay network
 	OverlayInterfaceName = "docker0"
+
+	// APIServerDNSName is the domain name of a current leader server
+	APIServerDNSName = "leader.telekube.local"
+	// TelekubeDomain is the domain for local telekube cluster
+	TelekubeDomain = "telekube.local"
+)
+
+var (
+	KubeAPIEndpoint = fmt.Sprint("https://%v:6443", APIServerDNSName)
 )

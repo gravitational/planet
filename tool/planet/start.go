@@ -125,7 +125,7 @@ func start(config *Config, monitorc chan<- bool) (*runtimeContext, error) {
 		box.EnvPair{Name: EnvAgentName, Val: config.EtcdMemberName},
 		box.EnvPair{Name: EnvInitialCluster, Val: toKeyValueList(config.InitialCluster)},
 		box.EnvPair{Name: EnvClusterDNSIP, Val: config.KubeDNSResolverIP()},
-		box.EnvPair{Name: EnvAPIServerName, Val: APIServerDNSName},
+		box.EnvPair{Name: EnvAPIServerName, Val: constants.APIServerDNSName},
 		box.EnvPair{Name: EnvEtcdProxy, Val: config.EtcdProxy},
 		box.EnvPair{Name: EnvEtcdMemberName, Val: config.EtcdMemberName},
 		box.EnvPair{Name: EnvEtcdInitialCluster, Val: config.EtcdInitialCluster},

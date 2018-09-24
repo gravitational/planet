@@ -205,11 +205,6 @@ const (
 	// This is kept for backwards-compatibility
 	LegacyAPIServerDNSName = "apiserver"
 
-	// APIServerDNSName is the domain name of a current leader server
-	APIServerDNSName = "leader.telekube.local"
-	// TelekubeDomain is the domain for local telekube cluster
-	TelekubeDomain = "telekube.local"
-
 	// See resolv.conf(5) on a Linux machine
 	//
 	// DNSNdots defines the threshold for amount of dots that must appear in a name

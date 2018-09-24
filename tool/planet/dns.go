@@ -3,6 +3,10 @@ package main
 import (
 	"context"
 	"encoding/json"
+	"net"
+	"time"
+
+	"github.com/davecgh/go-spew/spew"
 
 	"github.com/gravitational/planet/lib/constants"
 	"github.com/gravitational/planet/lib/utils"
@@ -14,10 +18,15 @@ import (
 
 	log "github.com/sirupsen/logrus"
 	"k8s.io/api/core/v1"
+	api "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/fields"
+	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/util/intstr"
+	"k8s.io/apimachinery/pkg/watch"
 	kube "k8s.io/client-go/kubernetes"
+	"k8s.io/client-go/tools/cache"
 )
 
 const serviceNamespace = "kube-system"
@@ -156,4 +165,128 @@ func (r *DNSBootstrapper) createConfigmap(client *kube.Clientset, namespace, nam
 		}
 	}
 	return nil
+}
+
+type coreDNSMonitor struct {
+	config     coreDNSConfig
+	controller cache.Controller
+	store      cache.Store
+}
+
+// NewCoreDNSMonitor updates local coreDNS configuration based on defaults or a config map present
+// in k8s.
+func runCoreDNSMonitor(ctx context.Context, config coreDNSConfig) error {
+	client, err := monitoring.ConnectToKube(constants.KubeAPIEndpoint, constants.KubeletConfigPath)
+	if err != nil {
+		return trace.Wrap(err)
+	}
+
+	go coreDnsLoop(ctx, config, client)
+	return nil
+}
+
+func coreDnsLoop(ctx context.Context, config coreDNSConfig, client *kube.Clientset) {
+	var overlayAddrs []string
+	var err error
+
+	ticker := time.NewTicker(5 * time.Second)
+T:
+	for {
+		select {
+		case <-ticker.C:
+			overlayAddrs, err = getOverlayAddress()
+			if err != nil && !trace.IsNotFound(err) {
+				log.Warnf("unexpected error attempting to find interface %v addresses: %v",
+					constants.OverlayInterfaceName, trace.DebugReport(err))
+			}
+			if err == nil {
+				break T
+			}
+
+		case <-ctx.Done():
+			return
+		}
+	}
+	ticker.Stop()
+
+	// replace the ListenAddrs with the overlay network address(es)
+	// since this is replacing the cluster dns IP
+	config.ListenAddrs = overlayAddrs
+	monitor := coreDNSMonitor{
+		config: config,
+	}
+
+	monitor.monitorConfigMap(client)
+
+	// hold the goroutine until cancelled
+	<-ctx.Done()
+}
+
+func getOverlayAddress() ([]string, error) {
+	ifaces, err := net.Interfaces()
+	if err != nil {
+		return nil, trace.Wrap(err)
+	}
+	for _, i := range ifaces {
+		if i.Name == constants.OverlayInterfaceName {
+			a, err := i.Addrs()
+			if err != nil {
+				return nil, trace.Wrap(err)
+			}
+			addrs := make([]string, len(a))
+			for _, addr := range a {
+				addrs = append(addrs, addr.String())
+			}
+			return addrs, nil
+		}
+	}
+	return nil, trace.NotFound("interface %v not found", constants.OverlayInterfaceName)
+}
+
+func (c *coreDNSMonitor) monitorConfigMap(client *kube.Clientset) {
+	c.store, c.controller = cache.NewInformer(
+		&cache.ListWatch{
+			ListFunc: func(options metav1.ListOptions) (runtime.Object, error) {
+				options.FieldSelector = fields.OneTermEqualSelector(
+					"metadata.Name",
+					constants.CoreDNSConfigMapName,
+				).String()
+				return client.CoreV1().ConfigMaps(metav1.NamespaceSystem).List(options)
+			},
+			WatchFunc: func(options metav1.ListOptions) (watch.Interface, error) {
+				options.FieldSelector = fields.OneTermEqualSelector(
+					"metadata.Name",
+					constants.CoreDNSConfigMapName,
+				).String()
+				return client.CoreV1().ConfigMaps(metav1.NamespaceSystem).Watch(options)
+			},
+		},
+		&api.ConfigMap{},
+		15*time.Minute,
+		cache.ResourceEventHandlerFuncs{},
+	)
+}
+
+func (c *coreDNSMonitor) add(obj interface{}) {
+	log.Warn("coreDNSMonitor.add")
+	c.processCoreDNSConfigChange(obj)
+}
+
+func (c *coreDNSMonitor) delete(obj interface{}) {
+	log.Warn("coreDNSMonitor.delete")
+	c.processCoreDNSConfigChange(nil)
+}
+
+func (c *coreDNSMonitor) update(oldObj, newObj interface{}) {
+	log.Warn("coreDNSMonitor.update")
+	c.processCoreDNSConfigChange(newObj)
+}
+
+func (c *coreDNSMonitor) processCoreDNSConfigChange(newObj interface{}) {
+	log.Warn("processCoreDNSConfigChange: ", spew.Sdump(newObj))
+	// If the object is nil, we generate a default configuration
+	// because there isn't a configuration present in kubernetes
+	if newObj == nil {
+
+	}
 }
