@@ -124,6 +124,7 @@ func run() error {
 		cagentDNSUpstreamNameservers = List(cagent.Flag("nameservers", "List of additional upstream nameservers to add to DNS configuration as a comma-separated list of IPs").OverrideDefaultFromEnvar(EnvDNSUpstreamNameservers))
 		cagentDNSZones               = DNSOverrides(cagent.Flag("dns-zones", "Comma-separated list of DNS zone to nameserver IP mappings as 'zone/nameserver' pairs").OverrideDefaultFromEnvar(EnvDNSZones))
 		cagentCloudProvider          = cagent.Flag("cloud-provider", "Which cloud provider backend the cluster is using").OverrideDefaultFromEnvar(EnvCloudProvider).String()
+		cagentHighWatermark          = cagent.Flag("high-watermark", "Usage percentage of monitored directories and devicemapper which is considered degrading").Default(strconv.Itoa(HighWatermark)).Uint64()
 
 		// stop a running container
 		cstop = app.Command("stop", "Stop planet container")
@@ -294,6 +295,7 @@ func run() error {
 			ETCDConfig:            etcdConf,
 			DisableInterPodCheck:  disableInterPodCheck,
 			CloudProvider:         *cagentCloudProvider,
+			HighWatermark:         uint(*cagentHighWatermark),
 		}
 		leaderConf := &LeaderConfig{
 			PublicIP:        cagentPublicIP.String(),

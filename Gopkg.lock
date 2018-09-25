@@ -276,7 +276,7 @@
     "monitoring/collector",
     "utils"
   ]
-  revision = "6efafea934c9a06c26d9b060ddc43f66aeb48d39"
+  revision = "e101aaee3d4519c2a69bd9cfc0791005666d39ce"
 
 [[projects]]
   name = "github.com/gravitational/trace"
