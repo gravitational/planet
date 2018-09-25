@@ -116,6 +116,10 @@ const (
 	// kubelet command line options
 	EnvKubeletOptions = "KUBELET_OPTS"
 
+	// EnvOverlayAddresses is an environment variable with a comma seperated list of
+	// IPv4 addresses assigned to the overlay network interface of the host
+	EnvOverlayAddresses = "OVERLAY_ADDRESSES"
+
 	// EnvPlanetAgentCAFile names the environment variable that specifies the location
 	// of the agent ca certificate file
 	EnvPlanetAgentCAFile = "PLANET_AGENT_CAFILE"
@@ -238,8 +242,12 @@ const (
 	// SharedReadWriteMask is a mask for a shared file with read/write access for everyone
 	SharedReadWriteMask = 0666
 
-	// CoreDNSConf is the location of the coredns configuration file
+	// CoreDNSConf is the location of the coredns configuration file within planet
 	CoreDNSConf = "/etc/coredns/coredns.conf"
+
+	// CoreDNSClusterConf is the location of the coredns configuration file for the overlay network
+	// and updated via k8s configmap
+	CoreDNSClusterConf = "/etc/coredns/configmaps/overlay.conf"
 
 	// CoreDNSHosts is the location of a hostsfile to be served by CoreDNS
 	CoreDNSHosts = "/etc/coredns/coredns.hosts"
@@ -296,6 +304,10 @@ const (
 	DefaultPODSubnet = "10.244.0.0/16"
 	// DefaultVxlanPort is the default overlay network port
 	DefaultVxlanPort = 8472
+
+	// OverlayEnvFile specified the file location to write information about the overlay network
+	// in use to be picked up by scripts
+	OverlayEnvFile = "/run/overlay.env"
 
 	// ServiceUser specifies the name of the service user as seen inside the container.
 	// Service user inside the container will be mapped to an existing user (not necessarily

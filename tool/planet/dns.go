@@ -3,7 +3,11 @@ package main
 import (
 	"context"
 	"encoding/json"
+	"fmt"
+	"io/ioutil"
 	"net"
+	"path/filepath"
+	"strings"
 	"time"
 
 	"github.com/davecgh/go-spew/spew"
@@ -176,7 +180,8 @@ type coreDNSMonitor struct {
 // NewCoreDNSMonitor updates local coreDNS configuration based on defaults or a config map present
 // in k8s.
 func runCoreDNSMonitor(ctx context.Context, config coreDNSConfig) error {
-	client, err := monitoring.ConnectToKube(constants.KubeAPIEndpoint, constants.KubeletConfigPath)
+	log.Debug("runCoreDNSMonitor")
+	client, err := monitoring.ConnectToKube(constants.KubeAPIEndpoint, constants.KubectlConfigPath)
 	if err != nil {
 		return trace.Wrap(err)
 	}
@@ -186,24 +191,43 @@ func runCoreDNSMonitor(ctx context.Context, config coreDNSConfig) error {
 }
 
 func coreDnsLoop(ctx context.Context, config coreDNSConfig, client *kube.Clientset) {
+	log.Debug("coreDNSLoop")
+
 	var overlayAddrs []string
 	var err error
 
 	ticker := time.NewTicker(5 * time.Second)
 T:
 	for {
+		log.Debug("in timing loop")
 		select {
 		case <-ticker.C:
-			overlayAddrs, err = getOverlayAddress()
+			log.Debug("trying to find overlay network address")
+			overlayAddrs, err = getAddressesByInterface(constants.OverlayInterfaceName)
+
 			if err != nil && !trace.IsNotFound(err) {
 				log.Warnf("unexpected error attempting to find interface %v addresses: %v",
 					constants.OverlayInterfaceName, trace.DebugReport(err))
 			}
-			if err == nil {
-				break T
+
+			if err != nil {
+				log.Debug("error retrieving overlay address: ", trace.DebugReport(err))
+				continue
 			}
 
+			log.Debug("retrieved overlay network addresses: ", overlayAddrs)
+
+			line := fmt.Sprintf("%v=\"%v\"\n", EnvOverlayAddresses, strings.Join(overlayAddrs, ","))
+			err = ioutil.WriteFile(OverlayEnvFile, []byte(line), 644)
+			if err != nil {
+				log.Warnf("Failed to write overlay environment %v: %v", OverlayEnvFile, err)
+				continue
+			}
+
+			break T
+
 		case <-ctx.Done():
+			log.Debug("coredns context cancelled")
 			return
 		}
 	}
@@ -216,46 +240,60 @@ T:
 		config: config,
 	}
 
-	monitor.monitorConfigMap(client)
+	log.Debug("monitoring kube-system/coredns configmap")
+	monitor.monitorConfigMap(ctx, client)
 
 	// hold the goroutine until cancelled
+	log.Debug("waiting for shutdown")
 	<-ctx.Done()
 }
 
-func getOverlayAddress() ([]string, error) {
+func getAddressesByInterface(iface string) ([]string, error) {
 	ifaces, err := net.Interfaces()
 	if err != nil {
 		return nil, trace.Wrap(err)
 	}
 	for _, i := range ifaces {
-		if i.Name == constants.OverlayInterfaceName {
+		if i.Name == iface {
 			a, err := i.Addrs()
 			if err != nil {
 				return nil, trace.Wrap(err)
 			}
 			addrs := make([]string, len(a))
 			for _, addr := range a {
-				addrs = append(addrs, addr.String())
+				var ip net.IP
+				switch v := addr.(type) {
+				case *net.IPNet:
+					ip = v.IP
+				case *net.IPAddr:
+					ip = v.IP
+				}
+				if ip == nil || ip.IsLoopback() {
+					continue
+				}
+				if ip.To4() != nil {
+					addrs = append(addrs, ip.String())
+				}
 			}
 			return addrs, nil
 		}
 	}
-	return nil, trace.NotFound("interface %v not found", constants.OverlayInterfaceName)
+	return nil, trace.NotFound("interface %v not found", iface)
 }
 
-func (c *coreDNSMonitor) monitorConfigMap(client *kube.Clientset) {
+func (c *coreDNSMonitor) monitorConfigMap(ctx context.Context, client *kube.Clientset) {
 	c.store, c.controller = cache.NewInformer(
 		&cache.ListWatch{
 			ListFunc: func(options metav1.ListOptions) (runtime.Object, error) {
 				options.FieldSelector = fields.OneTermEqualSelector(
-					"metadata.Name",
+					"metadata.name",
 					constants.CoreDNSConfigMapName,
 				).String()
 				return client.CoreV1().ConfigMaps(metav1.NamespaceSystem).List(options)
 			},
 			WatchFunc: func(options metav1.ListOptions) (watch.Interface, error) {
 				options.FieldSelector = fields.OneTermEqualSelector(
-					"metadata.Name",
+					"metadata.name",
 					constants.CoreDNSConfigMapName,
 				).String()
 				return client.CoreV1().ConfigMaps(metav1.NamespaceSystem).Watch(options)
@@ -263,8 +301,14 @@ func (c *coreDNSMonitor) monitorConfigMap(client *kube.Clientset) {
 		},
 		&api.ConfigMap{},
 		15*time.Minute,
-		cache.ResourceEventHandlerFuncs{},
+		cache.ResourceEventHandlerFuncs{
+			AddFunc:    c.add,
+			UpdateFunc: c.update,
+			DeleteFunc: c.delete,
+		},
 	)
+	c.controller.Run(ctx.Done())
+
 }
 
 func (c *coreDNSMonitor) add(obj interface{}) {
@@ -284,9 +328,34 @@ func (c *coreDNSMonitor) update(oldObj, newObj interface{}) {
 
 func (c *coreDNSMonitor) processCoreDNSConfigChange(newObj interface{}) {
 	log.Warn("processCoreDNSConfigChange: ", spew.Sdump(newObj))
-	// If the object is nil, we generate a default configuration
-	// because there isn't a configuration present in kubernetes
-	if newObj == nil {
+	template := coreDNSTemplate
 
+	// If we have a configuration we can use from a kubernetes configmap
+	// use it as a template to generate our config, otherwise, generate
+	// using the default template embedded
+	if newObj != nil {
+		configMap, ok := newObj.(*api.ConfigMap)
+		if !ok {
+			log.Errorf("recieved unexpected object callback: %T", newObj)
+			return
+		}
+
+		t, ok := configMap.Data["Corefile"]
+		if !ok {
+			log.Warn("recieved configmap doesn't contain corefile key: ", spew.Sdump(configMap))
+		} else {
+			template = t
+		}
+	}
+
+	config, err := generateCoreDNSConfig(c.config, template)
+	if err != nil {
+		log.Error("failed to template coredns configuration: ", err)
+		return
+	}
+
+	err = ioutil.WriteFile(filepath.Join(CoreDNSClusterConf), []byte(config), SharedFileMask)
+	if err != nil {
+		log.Errorf("failed to write coredns configuration to %v: %v", CoreDNSClusterConf, err)
 	}
 }

@@ -524,7 +524,7 @@ func setCoreDNS(config *Config) error {
 		Port:                config.DNS.Port,
 		UpstreamNameservers: resolv.Servers,
 		Rotate:              resolv.Rotate,
-	})
+	}, coreDNSTemplate)
 	if err != nil {
 		return trace.Wrap(err)
 	}
@@ -537,14 +537,14 @@ func setCoreDNS(config *Config) error {
 	return nil
 }
 
-func generateCoreDNSConfig(config coreDNSConfig) (string, error) {
-	t, err := template.New("coredns").Parse(coreDNSTemplate)
+func generateCoreDNSConfig(config coreDNSConfig, t string) (string, error) {
+	parsed, err := template.New("coredns").Parse(t)
 	if err != nil {
 		return "", trace.Wrap(err)
 	}
 
 	var coredns bytes.Buffer
-	err = t.Execute(&coredns, config)
+	err = parsed.Execute(&coredns, config)
 	if err != nil {
 		return "", trace.Wrap(err)
 	}
