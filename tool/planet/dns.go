@@ -262,7 +262,7 @@ func getAddressesByInterface(iface string) ([]string, error) {
 			if err != nil {
 				return nil, trace.Wrap(err)
 			}
-			addrs := make([]string)
+			addrs := make([]string, 0)
 			for _, addr := range a {
 				var ip net.IP
 				switch v := addr.(type) {
