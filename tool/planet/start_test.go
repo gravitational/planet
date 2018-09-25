@@ -97,7 +97,7 @@ import /etc/coredns/configmap/*
 	}
 
 	for _, tt := range configTable {
-		config, err := generateCoreDNSConfig(tt.config)
+		config, err := generateCoreDNSConfig(tt.config, coreDNSTemplate)
 
 		c.Assert(err, check.IsNil)
 		c.Assert(config, check.Equals, tt.expected)

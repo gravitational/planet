@@ -269,6 +269,7 @@ func runAgent(conf *agent.Config, monitoringConf *monitoring.Config, leaderConf 
 		err = runCoreDNSMonitor(ctx, coreDNSConfig{
 			UpstreamNameservers: monitoringConf.UpstreamNameservers,
 			Zones:               monitoringConf.DNSZones,
+			Port:                DNSPort,
 		})
 		if err != nil {
 			return trace.Wrap(err)

@@ -561,7 +561,7 @@ type coreDNSConfig struct {
 }
 
 var coreDNSTemplate = `
-import /etc/coredns/configmap/*
+import /etc/coredns/configmaps/*
 
 .:{{.Port}} {
   reload

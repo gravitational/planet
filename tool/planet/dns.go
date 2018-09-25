@@ -240,6 +240,9 @@ T:
 		config: config,
 	}
 
+	// make sure we generate a default configuration during startup
+	monitor.processCoreDNSConfigChange(nil)
+
 	log.Debug("monitoring kube-system/coredns configmap")
 	monitor.monitorConfigMap(ctx, client)
 
@@ -259,7 +262,7 @@ func getAddressesByInterface(iface string) ([]string, error) {
 			if err != nil {
 				return nil, trace.Wrap(err)
 			}
-			addrs := make([]string, len(a))
+			addrs := make([]string)
 			for _, addr := range a {
 				var ip net.IP
 				switch v := addr.(type) {
@@ -328,7 +331,7 @@ func (c *coreDNSMonitor) update(oldObj, newObj interface{}) {
 
 func (c *coreDNSMonitor) processCoreDNSConfigChange(newObj interface{}) {
 	log.Warn("processCoreDNSConfigChange: ", spew.Sdump(newObj))
-	template := coreDNSTemplate
+	template := coreDNSOverlayTemplate
 
 	// If we have a configuration we can use from a kubernetes configmap
 	// use it as a template to generate our config, otherwise, generate
@@ -359,3 +362,20 @@ func (c *coreDNSMonitor) processCoreDNSConfigChange(newObj interface{}) {
 		log.Errorf("failed to write coredns configuration to %v: %v", CoreDNSClusterConf, err)
 	}
 }
+
+// coreDNSOverlayTemplate is a coredns configuration bound to the overlay network
+// it's slightly innefficient though, as it forwards all requests to itself, by
+// default on 127.0.0.2 or as configured via resolv.conf. Also, uses a short cache
+// to reduce query load for rapidly repeated requests
+var coreDNSOverlayTemplate = `
+.:{{.Port}} {
+	reload
+	bind {{range $bind := .ListenAddrs}}{{$bind}} {{end}}
+	errors
+	forward . /etc/resolv.conf {
+		policy sequential
+		max_fails 0
+	}
+	cache 15
+}
+`
