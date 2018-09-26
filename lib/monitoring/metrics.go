@@ -9,7 +9,7 @@ import (
 )
 
 // AddMetrics exposes specific metrics to Prometheus
-func AddMetrics(node agent.Agent, config *Config) error {
+func AddMetrics(node agent.Agent, config *Config, kubeConfig monitoring.KubeConfig) error {
 	etcdConfig := &monitoring.ETCDConfig{
 		Endpoints: config.ETCDConfig.Endpoints,
 		CAFile:    config.ETCDConfig.CAFile,
@@ -22,9 +22,12 @@ func AddMetrics(node agent.Agent, config *Config) error {
 
 	switch config.Role {
 	case agent.RoleMaster:
-		mc, err = collector.NewMetricsCollector(etcdConfig, config.KubeAddr, agent.RoleMaster)
+		mc, err = collector.NewMetricsCollector(etcdConfig, kubeConfig, agent.RoleMaster)
 	case agent.RoleNode:
-		mc, err = collector.NewMetricsCollector(etcdConfig, config.KubeAddr, agent.RoleNode)
+		mc, err = collector.NewMetricsCollector(etcdConfig, kubeConfig, agent.RoleNode)
+	}
+	if err != nil {
+		return trace.Wrap(err)
 	}
 	if err = prometheus.Register(mc); err != nil {
 		return trace.Wrap(err)

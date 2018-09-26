@@ -17,6 +17,8 @@ import (
 	"github.com/gravitational/satellite/agent/health"
 	"github.com/gravitational/satellite/monitoring"
 	"github.com/gravitational/trace"
+	"k8s.io/client-go/kubernetes"
+	"k8s.io/client-go/tools/clientcmd"
 )
 
 // Config represents configuration for setting up monitoring checkers.
@@ -42,6 +44,8 @@ type Config struct {
 	ETCDConfig etcdconf.Config
 	// CloudProvider is the cloud provider backend this cluster is using
 	CloudProvider string
+	// NodeName is the name of this node as see by kubernetes
+	NodeName string
 	// HighWatermark is the usage limit percentage of monitored directories and devicemapper
 	HighWatermark uint
 }
@@ -73,8 +77,20 @@ func (c *Config) LocalTransport() (*http.Transport, error) {
 		}}, nil
 }
 
+// GetKubeClient returns a Kubernetes client that uses kubelet
+// certificate for authentication
+func GetKubeClient() (*kubernetes.Clientset, error) {
+	return getKubeClient(constants.KubectlConfigPath)
+}
+
+// GetPrivilegedKubeClient returns a Kubernetes client that uses scheduler
+// certificate for authentication
+func GetPrivilegedKubeClient() (*kubernetes.Clientset, error) {
+	return getKubeClient(constants.SchedulerConfigPath)
+}
+
 // AddCheckers adds checkers to the agent.
-func AddCheckers(node agent.Agent, config *Config) {
+func AddCheckers(node agent.Agent, config *Config, kubeConfig monitoring.KubeConfig) (err error) {
 	etcdConfig := &monitoring.ETCDConfig{
 		Endpoints: config.ETCDConfig.Endpoints,
 		CAFile:    config.ETCDConfig.CAFile,
@@ -83,22 +99,28 @@ func AddCheckers(node agent.Agent, config *Config) {
 	}
 	switch config.Role {
 	case agent.RoleMaster:
-		addToMaster(node, config, etcdConfig)
+		err = addToMaster(node, config, etcdConfig, kubeConfig)
 	case agent.RoleNode:
-		addToNode(node, config, etcdConfig)
+		err = addToNode(node, config, etcdConfig, kubeConfig)
 	}
+	if err != nil {
+		return trace.Wrap(err)
+	}
+	return nil
 }
 
-func addToMaster(node agent.Agent, config *Config, etcdConfig *monitoring.ETCDConfig) error {
+func addToMaster(node agent.Agent, config *Config, etcdConfig *monitoring.ETCDConfig, kubeConfig monitoring.KubeConfig) error {
 	localTransport, err := config.LocalTransport()
 	if err != nil {
 		return trace.Wrap(err)
 	}
+
 	etcdChecker, err := monitoring.EtcdHealth(etcdConfig)
 	if err != nil {
 		return trace.Wrap(err)
 	}
-	node.AddChecker(monitoring.KubeAPIServerHealth(config.KubeAddr, constants.SchedulerConfigPath))
+
+	node.AddChecker(monitoring.KubeAPIServerHealth(kubeConfig))
 	node.AddChecker(monitoring.DockerHealth("/var/run/docker.sock"))
 	node.AddChecker(dockerRegistryHealth(config.RegistryAddr, localTransport))
 	node.AddChecker(etcdChecker)
@@ -107,8 +129,9 @@ func addToMaster(node agent.Agent, config *Config, etcdConfig *monitoring.ETCDCo
 	node.AddChecker(monitoring.NewBridgeNetfilterChecker())
 	node.AddChecker(monitoring.NewMayDetachMountsChecker())
 	node.AddChecker(monitoring.NewInotifyChecker())
+	node.AddChecker(monitoring.NewNodeStatusChecker(kubeConfig, config.NodeName))
 	if !config.DisableInterPodCheck {
-		node.AddChecker(monitoring.InterPodCommunication(config.KubeAddr, config.NettestContainerImage))
+		node.AddChecker(monitoring.InterPodCommunication(kubeConfig, config.NettestContainerImage))
 	}
 	node.AddChecker(NewVersionCollector())
 	node.AddChecker(monitoring.NewStorageChecker(monitoring.StorageConfig{
@@ -129,7 +152,7 @@ func addToMaster(node agent.Agent, config *Config, etcdConfig *monitoring.ETCDCo
 	return nil
 }
 
-func addToNode(node agent.Agent, config *Config, etcdConfig *monitoring.ETCDConfig) error {
+func addToNode(node agent.Agent, config *Config, etcdConfig *monitoring.ETCDConfig, kubeConfig monitoring.KubeConfig) error {
 	etcdChecker, err := monitoring.EtcdHealth(etcdConfig)
 	if err != nil {
 		return trace.Wrap(err)
@@ -143,6 +166,7 @@ func addToNode(node agent.Agent, config *Config, etcdConfig *monitoring.ETCDConf
 	node.AddChecker(monitoring.NewBridgeNetfilterChecker())
 	node.AddChecker(monitoring.NewMayDetachMountsChecker())
 	node.AddChecker(monitoring.NewInotifyChecker())
+	node.AddChecker(monitoring.NewNodeStatusChecker(kubeConfig, config.NodeName))
 	node.AddChecker(monitoring.NewStorageChecker(monitoring.StorageConfig{
 		Path:          constants.GravityDataDir,
 		HighWatermark: config.HighWatermark,
@@ -194,4 +218,17 @@ func newCertPool(CAFiles []string) (*x509.CertPool, error) {
 	}
 
 	return certPool, nil
+}
+
+func getKubeClient(kubeconfigPath string) (*kubernetes.Clientset, error) {
+	config, err := clientcmd.BuildConfigFromFlags("", kubeconfigPath)
+	if err != nil {
+		return nil, trace.Wrap(err)
+	}
+
+	client, err := kubernetes.NewForConfig(config)
+	if err != nil {
+		return nil, trace.Wrap(err)
+	}
+	return client, nil
 }

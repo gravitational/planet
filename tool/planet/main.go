@@ -111,6 +111,7 @@ func run() error {
 		cagentMetricsAddr      = cagent.Flag("metrics-addr", "Address to listen on for web interface and telemetry for Prometheus metrics").Default("127.0.0.1:7580").String()
 		cagentKubeAddr         = cagent.Flag("kube-addr", "Address of the kubernetes API server.  Will default to apiserver-dns:8080").String()
 		cagentName             = cagent.Flag("name", "Agent name.  Must be the same as the name of the local serf node").OverrideDefaultFromEnvar(EnvAgentName).String()
+		cagentNodeName         = cagent.Flag("node-name", "Kubernetes node name").OverrideDefaultFromEnvar(EnvNodeName).String()
 		cagentSerfRPCAddr      = cagent.Flag("serf-rpc-addr", "RPC address of the local serf node").Default("127.0.0.1:7373").String()
 		cagentInitialCluster   = KeyValueList(cagent.Flag("initial-cluster", "Initial planet cluster configuration as a comma-separated list of peers").OverrideDefaultFromEnvar(EnvInitialCluster))
 		cagentClusterDNS       = cagent.Flag("cluster-dns", "IP for a cluster DNS server.").OverrideDefaultFromEnvar(EnvClusterDNSIP).IP()
@@ -296,6 +297,7 @@ func run() error {
 			DisableInterPodCheck:  disableInterPodCheck,
 			CloudProvider:         *cagentCloudProvider,
 			HighWatermark:         uint(*cagentHighWatermark),
+			NodeName:              *cagentNodeName,
 		}
 		leaderConf := &LeaderConfig{
 			PublicIP:        cagentPublicIP.String(),

@@ -5,13 +5,12 @@ import (
 	"encoding/json"
 
 	"github.com/gravitational/planet/lib/constants"
+	"github.com/gravitational/planet/lib/monitoring"
 	"github.com/gravitational/planet/lib/utils"
 
 	"github.com/gravitational/satellite/agent"
 	pb "github.com/gravitational/satellite/agent/proto/agentpb"
-	"github.com/gravitational/satellite/monitoring"
 	"github.com/gravitational/trace"
-
 	log "github.com/sirupsen/logrus"
 	"k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
@@ -46,7 +45,7 @@ func (r *DNSBootstrapper) createLoop() {
 		// kube client is also a part of the retry loop as the kubernetes
 		// API server might not be available at first connect
 		if client == nil {
-			client, err = monitoring.ConnectToKube(r.kubeAddr, constants.SchedulerConfigPath)
+			client, err = monitoring.GetPrivilegedKubeClient()
 			if err != nil {
 				return trace.ConnectionProblem(err, "failed to connect to kubernetes")
 			}

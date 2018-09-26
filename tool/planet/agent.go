@@ -14,14 +14,15 @@ import (
 	"syscall"
 	"time"
 
-	etcdconf "github.com/gravitational/coordinate/config"
-	"github.com/gravitational/coordinate/leader"
 	"github.com/gravitational/planet/lib/monitoring"
-	"github.com/gravitational/satellite/agent"
-	pb "github.com/gravitational/satellite/agent/proto/agentpb"
-	"github.com/gravitational/trace"
 
 	etcd "github.com/coreos/etcd/client"
+	etcdconf "github.com/gravitational/coordinate/config"
+	"github.com/gravitational/coordinate/leader"
+	"github.com/gravitational/satellite/agent"
+	pb "github.com/gravitational/satellite/agent/proto/agentpb"
+	libmonitoring "github.com/gravitational/satellite/monitoring"
+	"github.com/gravitational/trace"
 	log "github.com/sirupsen/logrus"
 )
 
@@ -240,8 +241,14 @@ func runAgent(conf *agent.Config, monitoringConf *monitoring.Config, leaderConf 
 	}
 	defer monitoringAgent.Close()
 
-	monitoring.AddMetrics(monitoringAgent, monitoringConf)
-	monitoring.AddCheckers(monitoringAgent, monitoringConf)
+	kubeClient, err := monitoring.GetKubeClient()
+	if err != nil {
+		return trace.Wrap(err)
+	}
+	kubeConfig := libmonitoring.KubeConfig{Client: kubeClient}
+
+	monitoring.AddMetrics(monitoringAgent, monitoringConf, kubeConfig)
+	monitoring.AddCheckers(monitoringAgent, monitoringConf, kubeConfig)
 	err = monitoringAgent.Start()
 	if err != nil {
 		return trace.Wrap(err)
