@@ -42,6 +42,16 @@ type Config struct {
 	ETCDConfig etcdconf.Config
 	// CloudProvider is the cloud provider backend this cluster is using
 	CloudProvider string
+	// HighWatermark is the usage limit percentage of monitored directories and devicemapper
+	HighWatermark uint
+}
+
+// Check validates monitoring configuration
+func (c Config) Check() error {
+	if c.HighWatermark > 100 {
+		return trace.BadParameter("high watermark percentage should be 0-100")
+	}
+	return nil
 }
 
 // LocalTransport returns http transport that is set up with local certificate authority
@@ -101,6 +111,15 @@ func addToMaster(node agent.Agent, config *Config, etcdConfig *monitoring.ETCDCo
 		node.AddChecker(monitoring.InterPodCommunication(config.KubeAddr, config.NettestContainerImage))
 	}
 	node.AddChecker(NewVersionCollector())
+	node.AddChecker(monitoring.NewStorageChecker(monitoring.StorageConfig{
+		Path:          constants.GravityDataDir,
+		HighWatermark: config.HighWatermark,
+	}))
+	// the following checker will be no-op if docker driver is not devicemapper
+	node.AddChecker(monitoring.NewDockerDevicemapperChecker(
+		monitoring.DockerDevicemapperConfig{
+			HighWatermark: config.HighWatermark,
+		}))
 
 	// Add checkers specific to cloud provider backend
 	switch strings.ToLower(config.CloudProvider) {
@@ -124,6 +143,15 @@ func addToNode(node agent.Agent, config *Config, etcdConfig *monitoring.ETCDConf
 	node.AddChecker(monitoring.NewBridgeNetfilterChecker())
 	node.AddChecker(monitoring.NewMayDetachMountsChecker())
 	node.AddChecker(monitoring.NewInotifyChecker())
+	node.AddChecker(monitoring.NewStorageChecker(monitoring.StorageConfig{
+		Path:          constants.GravityDataDir,
+		HighWatermark: config.HighWatermark,
+	}))
+	// the following checker will be no-op if docker driver is not devicemapper
+	node.AddChecker(monitoring.NewDockerDevicemapperChecker(
+		monitoring.DockerDevicemapperConfig{
+			HighWatermark: config.HighWatermark,
+		}))
 
 	// Add checkers specific to cloud provider backend
 	switch strings.ToLower(config.CloudProvider) {

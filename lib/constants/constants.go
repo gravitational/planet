@@ -30,4 +30,7 @@ const (
 	CloudProviderAWS = "aws"
 	// CloudProviderGCE is the Google Compute Engine cloud provider ID
 	CloudProviderGCE = "gce"
+
+	// GravityDataDir is the directory where gravity data is stored in planet
+	GravityDataDir = "/var/lib/gravity"
 )
