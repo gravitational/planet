@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"io/ioutil"
 	"net"
+	"os/exec"
 	"path/filepath"
 	"strings"
 	"time"
@@ -360,6 +361,11 @@ func (c *coreDNSMonitor) processCoreDNSConfigChange(newObj interface{}) {
 	err = ioutil.WriteFile(filepath.Join(CoreDNSClusterConf), []byte(config), SharedFileMask)
 	if err != nil {
 		log.Errorf("failed to write coredns configuration to %v: %v", CoreDNSClusterConf, err)
+	}
+
+	err = exec.Command("killall", "-SIGUSR1", "coredns").Run()
+	if err != nil {
+		log.Errorf("error sending SIGUSR1 to coredns: ", err)
 	}
 }
 
