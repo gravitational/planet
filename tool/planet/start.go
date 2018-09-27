@@ -573,7 +573,7 @@ import /etc/coredns/configmaps/*
   }
   kubernetes cluster.local in-addr.arpa ip6.arpa {
     endpoint https://leader.telekube.local:6443
-    tls /var/state/apiserver-kubelet-client.cert /var/state/apiserver-kubelet-client.key /var/state/root.cert
+    tls /var/state/coredns.cert /var/state/coredns.key /var/state/root.cert
     pods disabled
     fallthrough in-addr.arpa ip6.arpa
   }{{range $zone, $servers := .Zones}}

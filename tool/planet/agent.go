@@ -256,24 +256,13 @@ func runAgent(conf *agent.Config, monitoringConf *monitoring.Config, leaderConf 
 	}
 	defer client.Close()
 
-	if monitoringConf.Role == agent.RoleMaster {
-		dns := &DNSBootstrapper{
-			clusterIP:           monitoringConf.ClusterDNS,
-			upstreamNameservers: monitoringConf.UpstreamNameservers,
-			dnsZones:            monitoringConf.DNSZones,
-			kubeAddr:            monitoringConf.KubeAddr,
-			agent:               monitoringAgent,
-		}
-		go dns.createLoop()
-
-		err = runCoreDNSMonitor(ctx, coreDNSConfig{
-			UpstreamNameservers: monitoringConf.UpstreamNameservers,
-			Zones:               monitoringConf.DNSZones,
-			Port:                DNSPort,
-		})
-		if err != nil {
-			return trace.Wrap(err)
-		}
+	err = runCoreDNSMonitor(ctx, coreDNSConfig{
+		UpstreamNameservers: monitoringConf.UpstreamNameservers,
+		Zones:               monitoringConf.DNSZones,
+		Port:                DNSPort,
+	})
+	if err != nil {
+		return trace.Wrap(err)
 	}
 
 	signalc := make(chan os.Signal, 2)
