@@ -182,7 +182,7 @@ type coreDNSMonitor struct {
 // in k8s.
 func runCoreDNSMonitor(ctx context.Context, config coreDNSConfig) error {
 	log.Debug("runCoreDNSMonitor")
-	client, err := monitoring.ConnectToKube(constants.KubeAPIEndpoint, constants.KubectlConfigPath)
+	client, err := monitoring.ConnectToKube(constants.KubeAPIEndpoint, constants.CoreDNSConfigPath)
 	if err != nil {
 		return trace.Wrap(err)
 	}
