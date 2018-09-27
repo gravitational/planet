@@ -44,7 +44,7 @@ type Config struct {
 	ETCDConfig etcdconf.Config
 	// CloudProvider is the cloud provider backend this cluster is using
 	CloudProvider string
-	// NodeName is the name of this node as see by kubernetes
+	// NodeName is the kubernetes name of this node
 	NodeName string
 	// HighWatermark is the usage limit percentage of monitored directories and devicemapper
 	HighWatermark uint
@@ -77,8 +77,7 @@ func (c *Config) LocalTransport() (*http.Transport, error) {
 		}}, nil
 }
 
-// GetKubeClient returns a Kubernetes client that uses kubelet
-// certificate for authentication
+// GetKubeClient returns a regular Kubernetes client
 func GetKubeClient() (*kubernetes.Clientset, error) {
 	return getKubeClient(constants.KubectlConfigPath)
 }
