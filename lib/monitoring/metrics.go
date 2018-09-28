@@ -9,16 +9,20 @@ import (
 )
 
 // AddMetrics exposes specific metrics to Prometheus
-func AddMetrics(node agent.Agent, config *Config, kubeConfig monitoring.KubeConfig) error {
+func AddMetrics(node agent.Agent, config *Config) error {
 	etcdConfig := &monitoring.ETCDConfig{
 		Endpoints: config.ETCDConfig.Endpoints,
 		CAFile:    config.ETCDConfig.CAFile,
 		CertFile:  config.ETCDConfig.CertFile,
 		KeyFile:   config.ETCDConfig.KeyFile,
 	}
+	client, err := GetKubeClient()
+	if err != nil {
+		return trace.Wrap(err)
+	}
+	kubeConfig := monitoring.KubeConfig{Client: client}
 
 	var mc *collector.MetricsCollector
-	var err error
 
 	switch config.Role {
 	case agent.RoleMaster:

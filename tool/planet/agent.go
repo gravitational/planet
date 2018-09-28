@@ -21,7 +21,6 @@ import (
 	"github.com/gravitational/coordinate/leader"
 	"github.com/gravitational/satellite/agent"
 	pb "github.com/gravitational/satellite/agent/proto/agentpb"
-	libmonitoring "github.com/gravitational/satellite/monitoring"
 	"github.com/gravitational/trace"
 	log "github.com/sirupsen/logrus"
 )
@@ -241,14 +240,8 @@ func runAgent(conf *agent.Config, monitoringConf *monitoring.Config, leaderConf 
 	}
 	defer monitoringAgent.Close()
 
-	kubeClient, err := monitoring.GetKubeClient()
-	if err != nil {
-		return trace.Wrap(err)
-	}
-	kubeConfig := libmonitoring.KubeConfig{Client: kubeClient}
-
-	monitoring.AddMetrics(monitoringAgent, monitoringConf, kubeConfig)
-	monitoring.AddCheckers(monitoringAgent, monitoringConf, kubeConfig)
+	monitoring.AddMetrics(monitoringAgent, monitoringConf)
+	monitoring.AddCheckers(monitoringAgent, monitoringConf)
 	err = monitoringAgent.Start()
 	if err != nil {
 		return trace.Wrap(err)

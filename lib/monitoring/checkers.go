@@ -79,28 +79,57 @@ func (c *Config) LocalTransport() (*http.Transport, error) {
 
 // GetKubeClient returns a regular Kubernetes client
 func GetKubeClient() (*kubernetes.Clientset, error) {
-	return getKubeClient(constants.KubectlConfigPath)
+	return getKubeClientFromPath(constants.KubectlConfigPath)
 }
 
 // GetPrivilegedKubeClient returns a Kubernetes client that uses scheduler
 // certificate for authentication
 func GetPrivilegedKubeClient() (*kubernetes.Clientset, error) {
-	return getKubeClient(constants.SchedulerConfigPath)
+	return getKubeClientFromPath(constants.SchedulerConfigPath)
+}
+
+// getKubeClientFromPath returns a Kubernetes client using the given kubeconfig file
+func getKubeClientFromPath(kubeconfigPath string) (*kubernetes.Clientset, error) {
+	config, err := clientcmd.BuildConfigFromFlags("", kubeconfigPath)
+	if err != nil {
+		return nil, trace.Wrap(err)
+	}
+
+	client, err := kubernetes.NewForConfig(config)
+	if err != nil {
+		return nil, trace.Wrap(err)
+	}
+	return client, nil
 }
 
 // AddCheckers adds checkers to the agent.
-func AddCheckers(node agent.Agent, config *Config, kubeConfig monitoring.KubeConfig) (err error) {
+func AddCheckers(node agent.Agent, config *Config) (err error) {
 	etcdConfig := &monitoring.ETCDConfig{
 		Endpoints: config.ETCDConfig.Endpoints,
 		CAFile:    config.ETCDConfig.CAFile,
 		CertFile:  config.ETCDConfig.CertFile,
 		KeyFile:   config.ETCDConfig.KeyFile,
 	}
+
+	client, err := GetKubeClient()
+	if err != nil {
+		return trace.Wrap(err)
+	}
+
+	// Create a different client for nodes to be able to query node information
+	nodeClient, err := getKubeClientFromPath(constants.KubeletConfigPath)
+	if err != nil {
+		return trace.Wrap(err)
+	}
+
+	kubeConfig := monitoring.KubeConfig{Client: client}
+	nodeConfig := monitoring.KubeConfig{Client: nodeClient}
+
 	switch config.Role {
 	case agent.RoleMaster:
 		err = addToMaster(node, config, etcdConfig, kubeConfig)
 	case agent.RoleNode:
-		err = addToNode(node, config, etcdConfig, kubeConfig)
+		err = addToNode(node, config, etcdConfig, nodeConfig)
 	}
 	if err != nil {
 		return trace.Wrap(err)
@@ -217,17 +246,4 @@ func newCertPool(CAFiles []string) (*x509.CertPool, error) {
 	}
 
 	return certPool, nil
-}
-
-func getKubeClient(kubeconfigPath string) (*kubernetes.Clientset, error) {
-	config, err := clientcmd.BuildConfigFromFlags("", kubeconfigPath)
-	if err != nil {
-		return nil, trace.Wrap(err)
-	}
-
-	client, err := kubernetes.NewForConfig(config)
-	if err != nil {
-		return nil, trace.Wrap(err)
-	}
-	return client, nil
 }
