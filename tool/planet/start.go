@@ -524,6 +524,7 @@ func setCoreDNS(config *Config) error {
 		Port:                config.DNS.Port,
 		UpstreamNameservers: resolv.Servers,
 		Rotate:              resolv.Rotate,
+		Import:              true,
 	}, coreDNSTemplate)
 	if err != nil {
 		return trace.Wrap(err)
@@ -558,11 +559,13 @@ type coreDNSConfig struct {
 	Port                int
 	UpstreamNameservers []string
 	Rotate              bool
+	Import              bool
 }
 
 var coreDNSTemplate = `
+{{if .Import}}
 import /etc/coredns/configmaps/*
-
+{{end}}
 .:{{.Port}} {
   reload
   bind {{range $bind := .ListenAddrs}}{{$bind}} {{end}}
