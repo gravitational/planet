@@ -77,9 +77,10 @@ func (c *Config) LocalTransport() (*http.Transport, error) {
 		}}, nil
 }
 
-// GetKubeClient returns a regular Kubernetes client
+// GetKubeClient returns a Kubernetes client that uses kubectl certificate
+// for authentication
 func GetKubeClient() (*kubernetes.Clientset, error) {
-	return getKubeClientFromPath(constants.KubectlConfigPath)
+	return getKubeClientFromPath(constants.KubeletConfigPath)
 }
 
 // GetPrivilegedKubeClient returns a Kubernetes client that uses scheduler
@@ -111,25 +112,11 @@ func AddCheckers(node agent.Agent, config *Config) (err error) {
 		KeyFile:   config.ETCDConfig.KeyFile,
 	}
 
-	client, err := GetKubeClient()
-	if err != nil {
-		return trace.Wrap(err)
-	}
-
-	// Create a different client for nodes to be able to query node information
-	nodeClient, err := getKubeClientFromPath(constants.KubeletConfigPath)
-	if err != nil {
-		return trace.Wrap(err)
-	}
-
-	kubeConfig := monitoring.KubeConfig{Client: client}
-	nodeConfig := monitoring.KubeConfig{Client: nodeClient}
-
 	switch config.Role {
 	case agent.RoleMaster:
-		err = addToMaster(node, config, etcdConfig, kubeConfig)
+		err = addToMaster(node, config, etcdConfig)
 	case agent.RoleNode:
-		err = addToNode(node, config, etcdConfig, nodeConfig)
+		err = addToNode(node, config, etcdConfig)
 	}
 	if err != nil {
 		return trace.Wrap(err)
@@ -137,7 +124,7 @@ func AddCheckers(node agent.Agent, config *Config) (err error) {
 	return nil
 }
 
-func addToMaster(node agent.Agent, config *Config, etcdConfig *monitoring.ETCDConfig, kubeConfig monitoring.KubeConfig) error {
+func addToMaster(node agent.Agent, config *Config, etcdConfig *monitoring.ETCDConfig) error {
 	localTransport, err := config.LocalTransport()
 	if err != nil {
 		return trace.Wrap(err)
@@ -148,7 +135,19 @@ func addToMaster(node agent.Agent, config *Config, etcdConfig *monitoring.ETCDCo
 		return trace.Wrap(err)
 	}
 
-	node.AddChecker(monitoring.KubeAPIServerHealth(kubeConfig))
+	client, err := GetKubeClient()
+	if err != nil {
+		return trace.Wrap(err)
+	}
+
+	// Kubelet certificate does not have permissions to query ComponentStatuses
+	apiServerClient, err := getKubeClientFromPath(constants.KubectlConfigPath)
+	if err != nil {
+		return trace.Wrap(err)
+	}
+
+	kubeConfig := monitoring.KubeConfig{Client: client}
+	node.AddChecker(monitoring.KubeAPIServerHealth(monitoring.KubeConfig{Client: apiServerClient}))
 	node.AddChecker(monitoring.DockerHealth("/var/run/docker.sock"))
 	node.AddChecker(dockerRegistryHealth(config.RegistryAddr, localTransport))
 	node.AddChecker(etcdChecker)
@@ -180,11 +179,19 @@ func addToMaster(node agent.Agent, config *Config, etcdConfig *monitoring.ETCDCo
 	return nil
 }
 
-func addToNode(node agent.Agent, config *Config, etcdConfig *monitoring.ETCDConfig, kubeConfig monitoring.KubeConfig) error {
+func addToNode(node agent.Agent, config *Config, etcdConfig *monitoring.ETCDConfig) error {
 	etcdChecker, err := monitoring.EtcdHealth(etcdConfig)
 	if err != nil {
 		return trace.Wrap(err)
 	}
+
+	// Create a different client for nodes to be able to query node information
+	nodeClient, err := getKubeClientFromPath(constants.KubeletConfigPath)
+	if err != nil {
+		return trace.Wrap(err)
+	}
+
+	nodeConfig := monitoring.KubeConfig{Client: nodeClient}
 	node.AddChecker(monitoring.KubeletHealth("http://127.0.0.1:10248"))
 	node.AddChecker(monitoring.DockerHealth("/var/run/docker.sock"))
 	node.AddChecker(etcdChecker)
@@ -194,7 +201,7 @@ func addToNode(node agent.Agent, config *Config, etcdConfig *monitoring.ETCDConf
 	node.AddChecker(monitoring.NewBridgeNetfilterChecker())
 	node.AddChecker(monitoring.NewMayDetachMountsChecker())
 	node.AddChecker(monitoring.NewInotifyChecker())
-	node.AddChecker(monitoring.NewNodeStatusChecker(kubeConfig, config.NodeName))
+	node.AddChecker(monitoring.NewNodeStatusChecker(nodeConfig, config.NodeName))
 	node.AddChecker(monitoring.NewStorageChecker(monitoring.StorageConfig{
 		Path:          constants.GravityDataDir,
 		HighWatermark: config.HighWatermark,
