@@ -20,7 +20,7 @@
 #  name = "github.com/x/y"
 #  version = "2.4.0"
 
-ignored = ["github.com/Sirupsen/logrus"]
+ignored = ["github.com/Sirupsen/logrus", "github.com/gravitational/planet/build/*"]
 
 [prune]
   go-tests = true
@@ -88,7 +88,7 @@ ignored = ["github.com/Sirupsen/logrus"]
 
 [[constraint]]
   name = "github.com/gravitational/satellite"
-  version = "5.2.5"
+  version = "5.2.6"
 
 [[constraint]]
   name = "github.com/gravitational/trace"

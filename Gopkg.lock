@@ -275,8 +275,8 @@
     "monitoring/collector",
     "utils"
   ]
-  revision = "ba4554077d8004424bee95e17419288573d7f8a3"
-  version = "5.2.5"
+  revision = "682472121b75f6fb0b3aeafdfe8fe34e0842ae8c"
+  version = "5.2.6"
 
 [[projects]]
   name = "github.com/gravitational/trace"
@@ -758,6 +758,6 @@
 [solve-meta]
   analyzer-name = "dep"
   analyzer-version = 1
-  inputs-digest = "f6aea63f4b24789cc45c3015259796b5b21551ad700cb96ec8a5fbafb6ec239b"
+  inputs-digest = "8486435844fc08d62853367cdc61b44717f7a636863db3fdaa368407f00b762c"
   solver-name = "gps-cdcl"
   solver-version = 1

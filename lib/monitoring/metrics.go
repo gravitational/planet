@@ -16,15 +16,22 @@ func AddMetrics(node agent.Agent, config *Config) error {
 		CertFile:  config.ETCDConfig.CertFile,
 		KeyFile:   config.ETCDConfig.KeyFile,
 	}
+	client, err := GetKubeClient()
+	if err != nil {
+		return trace.Wrap(err)
+	}
+	kubeConfig := monitoring.KubeConfig{Client: client}
 
 	var mc *collector.MetricsCollector
-	var err error
 
 	switch config.Role {
 	case agent.RoleMaster:
-		mc, err = collector.NewMetricsCollector(etcdConfig, config.KubeAddr, agent.RoleMaster)
+		mc, err = collector.NewMetricsCollector(etcdConfig, kubeConfig, agent.RoleMaster)
 	case agent.RoleNode:
-		mc, err = collector.NewMetricsCollector(etcdConfig, config.KubeAddr, agent.RoleNode)
+		mc, err = collector.NewMetricsCollector(etcdConfig, kubeConfig, agent.RoleNode)
+	}
+	if err != nil {
+		return trace.Wrap(err)
 	}
 	if err = prometheus.Register(mc); err != nil {
 		return trace.Wrap(err)

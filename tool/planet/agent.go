@@ -14,14 +14,14 @@ import (
 	"syscall"
 	"time"
 
+	"github.com/gravitational/planet/lib/monitoring"
+
+	etcd "github.com/coreos/etcd/client"
 	etcdconf "github.com/gravitational/coordinate/config"
 	"github.com/gravitational/coordinate/leader"
-	"github.com/gravitational/planet/lib/monitoring"
 	"github.com/gravitational/satellite/agent"
 	pb "github.com/gravitational/satellite/agent/proto/agentpb"
 	"github.com/gravitational/trace"
-
-	etcd "github.com/coreos/etcd/client"
 	log "github.com/sirupsen/logrus"
 )
 
