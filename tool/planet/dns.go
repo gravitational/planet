@@ -13,10 +13,10 @@ import (
 	"github.com/davecgh/go-spew/spew"
 
 	"github.com/gravitational/planet/lib/constants"
+	"github.com/gravitational/planet/lib/monitoring"
 
 	"github.com/gravitational/satellite/monitoring"
 	"github.com/gravitational/trace"
-
 	log "github.com/sirupsen/logrus"
 	api "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"

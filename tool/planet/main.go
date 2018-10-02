@@ -110,6 +110,7 @@ func run() error {
 		cagentMetricsAddr      = cagent.Flag("metrics-addr", "Address to listen on for web interface and telemetry for Prometheus metrics").Default("127.0.0.1:7580").String()
 		cagentKubeAddr         = cagent.Flag("kube-addr", "Address of the kubernetes API server.  Will default to apiserver-dns:8080").String()
 		cagentName             = cagent.Flag("name", "Agent name.  Must be the same as the name of the local serf node").OverrideDefaultFromEnvar(EnvAgentName).String()
+		cagentNodeName         = cagent.Flag("node-name", "Kubernetes node name").OverrideDefaultFromEnvar(EnvNodeName).String()
 		cagentSerfRPCAddr      = cagent.Flag("serf-rpc-addr", "RPC address of the local serf node").Default("127.0.0.1:7373").String()
 		cagentInitialCluster   = KeyValueList(cagent.Flag("initial-cluster", "Initial planet cluster configuration as a comma-separated list of peers").OverrideDefaultFromEnvar(EnvInitialCluster))
 		cagentClusterDNS       = cagent.Flag("cluster-dns", "IP for a cluster DNS server.").OverrideDefaultFromEnvar(EnvClusterDNSIP).IP()
@@ -123,6 +124,7 @@ func run() error {
 		cagentDNSUpstreamNameservers = List(cagent.Flag("nameservers", "List of additional upstream nameservers to add to DNS configuration as a comma-separated list of IPs").OverrideDefaultFromEnvar(EnvDNSUpstreamNameservers))
 		cagentDNSZones               = DNSOverrides(cagent.Flag("dns-zones", "Comma-separated list of DNS zone to nameserver IP mappings as 'zone/nameserver' pairs").OverrideDefaultFromEnvar(EnvDNSZones))
 		cagentCloudProvider          = cagent.Flag("cloud-provider", "Which cloud provider backend the cluster is using").OverrideDefaultFromEnvar(EnvCloudProvider).String()
+		cagentHighWatermark          = cagent.Flag("high-watermark", "Usage percentage of monitored directories and devicemapper which is considered degrading").Default(strconv.Itoa(HighWatermark)).Uint64()
 
 		// stop a running container
 		cstop = app.Command("stop", "Stop planet container")
@@ -172,11 +174,6 @@ func run() error {
 		// etcd related commands
 		cetcd = app.Command("etcd", "Commands related to etcd")
 
-		cetcdPromote                    = cetcd.Command("promote", "Promote etcd running in proxy mode to a full member")
-		cetcdPromoteName                = cetcdPromote.Flag("name", "Member name, as output by 'member add' command").Required().String()
-		cetcdPromoteInitialCluster      = cetcdPromote.Flag("initial-cluster", "Initial cluster, as output by 'member add' command").Required().String()
-		cetcdPromoteInitialClusterState = cetcdPromote.Flag("initial-cluster-state", "Initial cluster state, as output by 'member add' command").Required().String()
-
 		cetcdInit = cetcd.Command("init", "Setup etcd to run the correct version").Hidden()
 
 		cetcdBackup     = cetcd.Command("backup", "Backup the etcd datastore to a file")
@@ -193,6 +190,9 @@ func run() error {
 
 		cetcdRestore     = cetcd.Command("restore", "Restore etcd backup as part of the upgrade")
 		cetcdRestoreFile = cetcdRestore.Arg("file", "A previously taken backup file to use during upgrade").Required().ExistingFile()
+
+		cetcdWipe          = cetcd.Command("wipe", "Wipe out all local etcd data").Hidden()
+		cetcdWipeConfirmed = cetcdWipe.Flag("confirm", "Auto-confirm the action").Bool()
 
 		// leader election commands
 		cleader              = app.Command("leader", "Leader election control")
@@ -295,6 +295,8 @@ func run() error {
 			ETCDConfig:            etcdConf,
 			DisableInterPodCheck:  disableInterPodCheck,
 			CloudProvider:         *cagentCloudProvider,
+			HighWatermark:         uint(*cagentHighWatermark),
+			NodeName:              *cagentNodeName,
 		}
 		leaderConf := &LeaderConfig{
 			PublicIP:        cagentPublicIP.String(),
@@ -457,9 +459,6 @@ func run() error {
 	case cdeviceRemove.FullCommand():
 		err = removeDevice(*cdeviceRemoveNode)
 
-	case cetcdPromote.FullCommand():
-		err = etcdPromote(*cetcdPromoteName, *cetcdPromoteInitialCluster, *cetcdPromoteInitialClusterState)
-
 	case cetcdInit.FullCommand():
 		err = etcdInit()
 
@@ -480,6 +479,9 @@ func run() error {
 
 	case cetcdRestore.FullCommand():
 		err = etcdRestore(*cetcdRestoreFile)
+
+	case cetcdWipe.FullCommand():
+		err = etcdWipe(*cetcdWipeConfirmed)
 
 	default:
 		err = trace.Errorf("unsupported command: %v", cmd)

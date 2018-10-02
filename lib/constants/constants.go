@@ -49,4 +49,7 @@ const (
 
 var (
 	KubeAPIEndpoint = fmt.Sprint("https://%v:6443", APIServerDNSName)
+
+	// GravityDataDir is the directory where gravity data is stored in planet
+	GravityDataDir = "/var/lib/gravity"
 )

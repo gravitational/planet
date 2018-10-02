@@ -13,15 +13,21 @@ import (
 	"syscall"
 	"time"
 
+	"github.com/gravitational/planet/lib/monitoring"
+
+	etcd "github.com/coreos/etcd/client"
 	etcdconf "github.com/gravitational/coordinate/config"
 	"github.com/gravitational/coordinate/leader"
+<<<<<<< HEAD
 	"github.com/gravitational/planet/lib/constants"
 	"github.com/gravitational/planet/lib/monitoring"
+||||||| merged common ancestors
+	"github.com/gravitational/planet/lib/monitoring"
+=======
+>>>>>>> origin/master
 	"github.com/gravitational/satellite/agent"
 	pb "github.com/gravitational/satellite/agent/proto/agentpb"
 	"github.com/gravitational/trace"
-
-	etcd "github.com/coreos/etcd/client"
 	log "github.com/sirupsen/logrus"
 )
 
@@ -220,6 +226,10 @@ func unitsCommand(command string) error {
 func runAgent(conf *agent.Config, monitoringConf *monitoring.Config, leaderConf *LeaderConfig, peers []string) error {
 	ctx, cancelCtx := context.WithCancel(context.Background())
 
+	err := monitoringConf.Check()
+	if err != nil {
+		return trace.Wrap(err)
+	}
 	if conf.Tags == nil {
 		conf.Tags = make(map[string]string)
 	}
