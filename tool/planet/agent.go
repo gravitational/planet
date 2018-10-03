@@ -18,13 +18,8 @@ import (
 	etcd "github.com/coreos/etcd/client"
 	etcdconf "github.com/gravitational/coordinate/config"
 	"github.com/gravitational/coordinate/leader"
-<<<<<<< HEAD
 	"github.com/gravitational/planet/lib/constants"
 	"github.com/gravitational/planet/lib/monitoring"
-||||||| merged common ancestors
-	"github.com/gravitational/planet/lib/monitoring"
-=======
->>>>>>> origin/master
 	"github.com/gravitational/satellite/agent"
 	pb "github.com/gravitational/satellite/agent/proto/agentpb"
 	"github.com/gravitational/trace"
