@@ -13,8 +13,6 @@ import (
 	"syscall"
 	"time"
 
-	"github.com/gravitational/planet/lib/monitoring"
-
 	etcd "github.com/coreos/etcd/client"
 	etcdconf "github.com/gravitational/coordinate/config"
 	"github.com/gravitational/coordinate/leader"

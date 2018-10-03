@@ -13,9 +13,7 @@ import (
 	"github.com/davecgh/go-spew/spew"
 
 	"github.com/gravitational/planet/lib/constants"
-	"github.com/gravitational/planet/lib/monitoring"
-
-	"github.com/gravitational/satellite/monitoring"
+	"github.com/gravitational/satellite/cmd"
 	"github.com/gravitational/trace"
 	log "github.com/sirupsen/logrus"
 	api "k8s.io/api/core/v1"
@@ -37,7 +35,7 @@ type coreDNSMonitor struct {
 // it will monitor k8s for a configmap, and use the configmap to generate the local coredns configuration
 // if the configmap isn't present, it will generate the configuraiton based on defaults
 func runCoreDNSMonitor(ctx context.Context, config coreDNSConfig) error {
-	client, err := monitoring.ConnectToKube(constants.KubeAPIEndpoint, constants.CoreDNSConfigPath)
+	client, err := cmd.GetKubeClientFromPath(constants.CoreDNSConfigPath)
 	if err != nil {
 		return trace.Wrap(err)
 	}

@@ -351,7 +351,7 @@
 
 [[projects]]
   branch = "kevin/coredns"
-  digest = "1:a114f5ad2821a43263f504f668e2fbfd5c954c37de8ab2b6ae3b6109dbadcb93"
+  digest = "1:efc86fe990882d23649999ed5e0676b993c0d43a5ef4daae72ba5041a69862ba"
   name = "github.com/gravitational/satellite"
   packages = [
     "agent",
@@ -359,13 +359,14 @@
     "agent/cache",
     "agent/health",
     "agent/proto/agentpb",
+    "cmd",
     "lib/kubernetes",
     "monitoring",
     "monitoring/collector",
     "utils",
   ]
   pruneopts = "UT"
-  revision = "3795ee8ea0ea870a940f0cbbd35d29a275cb107d"
+  revision = "2ff23886a1c99c944a312b6d2d8e3736b50b9840"
 
 [[projects]]
   digest = "1:89dfd879adc40793de2e59f4f7c42c1b4ad6bdab32fcb5d6b769c1fcc6fc452a"
@@ -1085,6 +1086,7 @@
     "github.com/gravitational/satellite/agent/backend/inmemory",
     "github.com/gravitational/satellite/agent/health",
     "github.com/gravitational/satellite/agent/proto/agentpb",
+    "github.com/gravitational/satellite/cmd",
     "github.com/gravitational/satellite/monitoring",
     "github.com/gravitational/satellite/monitoring/collector",
     "github.com/gravitational/trace",
