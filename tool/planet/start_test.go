@@ -31,9 +31,10 @@ func (_ *StartSuite) TestCoreDNSConf(c *check.C) {
 					"override2.com": []string{"1.2.3.4"},
 				},
 				UpstreamNameservers: []string{"1.1.1.1", "8.8.8.8"},
+				Import:              true,
 			},
 			`
-import /etc/coredns/configmap/*
+import /etc/coredns/configmaps/*
 
 .:53 {
   reload
@@ -70,9 +71,10 @@ import /etc/coredns/configmap/*
 				ListenAddrs:         []string{"127.0.0.2"},
 				UpstreamNameservers: []string{"1.1.1.1"},
 				Rotate:              true,
+				Import:              true,
 			},
 			`
-import /etc/coredns/configmap/*
+import /etc/coredns/configmaps/*
 
 .:55 {
   reload

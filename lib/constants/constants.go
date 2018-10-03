@@ -1,7 +1,5 @@
 package constants
 
-import "fmt"
-
 const (
 	// KubectlConfigPath is the path to kubectl configuration file
 	KubectlConfigPath = "/etc/kubernetes/kubectl.kubeconfig"
@@ -48,8 +46,6 @@ const (
 )
 
 var (
-	KubeAPIEndpoint = fmt.Sprint("https://%v:6443", APIServerDNSName)
-
 	// GravityDataDir is the directory where gravity data is stored in planet
 	GravityDataDir = "/var/lib/gravity"
 )

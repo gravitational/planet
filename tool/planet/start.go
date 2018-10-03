@@ -563,9 +563,8 @@ type coreDNSConfig struct {
 }
 
 var coreDNSTemplate = `
-{{if .Import}}
-import /etc/coredns/configmaps/*
-{{end}}
+{{if .Import}}import /etc/coredns/configmaps/*{{end}}
+
 .:{{.Port}} {
   reload
   bind {{range $bind := .ListenAddrs}}{{$bind}} {{end}}
