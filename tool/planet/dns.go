@@ -31,20 +31,20 @@ type coreDNSMonitor struct {
 	store      cache.Store
 }
 
-// NewCoreDNSMonitor updates local coreDNS configuration
+// runCoreDNSMonitor updates local coreDNS configuration
 // it will monitor k8s for a configmap, and use the configmap to generate the local coredns configuration
-// if the configmap isn't present, it will generate the configuraiton based on defaults
+// if the configmap isn't present, it will generate the configuration based on defaults
 func runCoreDNSMonitor(ctx context.Context, config coreDNSConfig) error {
 	client, err := cmd.GetKubeClientFromPath(constants.CoreDNSConfigPath)
 	if err != nil {
 		return trace.Wrap(err)
 	}
 
-	go coreDnsLoop(ctx, config, client)
+	go coreDNSLoop(ctx, config, client)
 	return nil
 }
 
-func coreDnsLoop(ctx context.Context, config coreDNSConfig, client *kube.Clientset) {
+func coreDNSLoop(ctx context.Context, config coreDNSConfig, client *kube.Clientset) {
 	var overlayAddrs []string
 	var err error
 
@@ -57,18 +57,17 @@ T:
 		select {
 		case <-ticker.C:
 			overlayAddrs, err = getAddressesByInterface(constants.OverlayInterfaceName)
-
 			if err != nil {
 				if trace.IsNotFound(err) {
 					continue
 				}
-				log.Warnf("unexpected error attempting to find interface %v addresses: %v",
+				log.Warnf("Unexpected error attempting to find interface %v addresses: %v",
 					constants.OverlayInterfaceName, trace.DebugReport(err))
 			}
 
-			line := fmt.Sprintf("%v=\"%v\"\n", EnvOverlayAddresses, strings.Join(overlayAddrs, ","))
+			line := fmt.Sprintf(`%v="%v"\n`, EnvOverlayAddresses, strings.Join(overlayAddrs, ","))
 			log.Debug("Creating overlay env: ", line)
-			err = ioutil.WriteFile(OverlayEnvFile, []byte(line), 644)
+			err = ioutil.WriteFile(OverlayEnvFile, []byte(line), constants.SharedReadMask)
 			if err != nil {
 				log.Warnf("Failed to write overlay environment %v: %v", OverlayEnvFile, err)
 				continue
@@ -93,9 +92,6 @@ T:
 	monitor.processCoreDNSConfigChange(nil)
 
 	monitor.monitorConfigMap(ctx, client)
-
-	// hold the goroutine until cancelled
-	<-ctx.Done()
 }
 
 // getAddressesByInterface inspects the local network interfaces, and returns a list of
@@ -106,32 +102,32 @@ func getAddressesByInterface(iface string) ([]string, error) {
 		return nil, trace.Wrap(err)
 	}
 	for _, i := range ifaces {
-		if i.Name == iface {
-			a, err := i.Addrs()
-			if err != nil {
-				return nil, trace.Wrap(err)
-			}
-			addrs := make([]string, 0)
-			for _, addr := range a {
-				var ip net.IP
-				switch v := addr.(type) {
-				case *net.IPNet:
-					ip = v.IP
-				case *net.IPAddr:
-					ip = v.IP
-				}
-				if ip == nil || ip.IsLoopback() {
-					continue
-				}
-				if ip.To4() != nil {
-					addrs = append(addrs, ip.String())
-				}
-			}
-			if len(addrs) > 0 {
-				return addrs, nil
-			}
-			return nil, trace.NotFound("no addresses found on %v", iface)
+		if i.Name != iface {
+			continue
 		}
+		a, err := i.Addrs()
+		if err != nil {
+			return nil, trace.Wrap(err)
+		}
+		addrs := make([]string, 0)
+		for _, addr := range a {
+			var ip net.IP
+			switch v := addr.(type) {
+			case *net.IPNet, *net.IPAddr:
+				ip = v.IP
+			}
+			if ip == nil || ip.IsLoopback() {
+				continue
+			}
+			if ip.To4() != nil {
+				addrs = append(addrs, ip.String())
+			}
+		}
+		if len(addrs) > 0 {
+			return addrs, nil
+		}
+		return nil, trace.NotFound("no addresses found on %v", iface)
+
 	}
 	return nil, trace.NotFound("interface %v not found", iface)
 }
@@ -163,7 +159,6 @@ func (c *coreDNSMonitor) monitorConfigMap(ctx context.Context, client *kube.Clie
 		},
 	)
 	c.controller.Run(ctx.Done())
-
 }
 
 func (c *coreDNSMonitor) add(obj interface{}) {
@@ -186,13 +181,13 @@ func (c *coreDNSMonitor) processCoreDNSConfigChange(newObj interface{}) {
 	if newObj != nil {
 		configMap, ok := newObj.(*api.ConfigMap)
 		if !ok {
-			log.Errorf("recieved unexpected object callback: %T", newObj)
+			log.Errorf("Received unexpected object callback: %T", newObj)
 			return
 		}
 
 		t, ok := configMap.Data["Corefile"]
 		if !ok {
-			log.Warn("recieved configmap doesn't contain Corefile data: ", spew.Sdump(configMap))
+			log.Warn("Received configmap doesn't contain Corefile data: ", spew.Sdump(configMap))
 		} else {
 			template = t
 		}
@@ -200,17 +195,17 @@ func (c *coreDNSMonitor) processCoreDNSConfigChange(newObj interface{}) {
 
 	config, err := generateCoreDNSConfig(c.config, template)
 	if err != nil {
-		log.Error("failed to template coredns configuration: ", err)
+		log.Error("Failed to template coredns configuration: ", err)
 		return
 	}
 
 	err = ioutil.WriteFile(filepath.Join(CoreDNSClusterConf), []byte(config), SharedFileMask)
 	if err != nil {
-		log.Errorf("failed to write coredns configuration to %v: %v", CoreDNSClusterConf, err)
+		log.Errorf("Failed to write coredns configuration to %v: %v", CoreDNSClusterConf, err)
 	}
 
 	err = exec.Command("killall", "-SIGUSR1", "coredns").Run()
 	if err != nil {
-		log.Errorf("error sending SIGUSR1 to coredns: %v", err)
+		log.Errorf("Error sending SIGUSR1 to coredns: %v", err)
 	}
 }

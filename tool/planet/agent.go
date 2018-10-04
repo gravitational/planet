@@ -218,6 +218,7 @@ func unitsCommand(command string) error {
 // blocks until a signal has been received.
 func runAgent(conf *agent.Config, monitoringConf *monitoring.Config, leaderConf *LeaderConfig, peers []string) error {
 	ctx, cancelCtx := context.WithCancel(context.Background())
+	defer cancelCtx()
 
 	err := monitoringConf.Check()
 	if err != nil {
@@ -276,7 +277,6 @@ func runAgent(conf *agent.Config, monitoringConf *monitoring.Config, leaderConf 
 	case err := <-errorC:
 		return trace.Wrap(err)
 	}
-	cancelCtx()
 
 	return nil
 }

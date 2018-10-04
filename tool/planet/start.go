@@ -538,8 +538,8 @@ func setCoreDNS(config *Config) error {
 	return nil
 }
 
-func generateCoreDNSConfig(config coreDNSConfig, t string) (string, error) {
-	parsed, err := template.New("coredns").Parse(t)
+func generateCoreDNSConfig(config coreDNSConfig, tpl string) (string, error) {
+	parsed, err := template.New("coredns").Parse(tpl)
 	if err != nil {
 		return "", trace.Wrap(err)
 	}

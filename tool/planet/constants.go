@@ -116,7 +116,7 @@ const (
 	// kubelet command line options
 	EnvKubeletOptions = "KUBELET_OPTS"
 
-	// EnvOverlayAddresses is an environment variable with a comma seperated list of
+	// EnvOverlayAddresses is an environment variable with a comma separated list of
 	// IPv4 addresses assigned to the overlay network interface of the host
 	EnvOverlayAddresses = "OVERLAY_ADDRESSES"
 
@@ -249,7 +249,7 @@ const (
 	// and updated via k8s configmap
 	CoreDNSClusterConf = "/etc/coredns/configmaps/overlay.conf"
 
-	// CoreDNSHosts is the location of a hostsfile to be served by CoreDNS
+	// CoreDNSHosts is the location of a hosts file to be served by CoreDNS
 	CoreDNSHosts = "/etc/coredns/coredns.hosts"
 
 	// HostsFile specifies the location of the hosts configuration file
@@ -305,7 +305,7 @@ const (
 	// DefaultVxlanPort is the default overlay network port
 	DefaultVxlanPort = 8472
 
-	// OverlayEnvFile specified the file location to write information about the overlay network
+	// OverlayEnvFile specifies the file location to write information about the overlay network
 	// in use to be picked up by scripts
 	OverlayEnvFile = "/run/overlay.env"
 
