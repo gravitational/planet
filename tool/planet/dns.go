@@ -113,7 +113,9 @@ func getAddressesByInterface(iface string) ([]string, error) {
 		for _, addr := range a {
 			var ip net.IP
 			switch v := addr.(type) {
-			case *net.IPNet, *net.IPAddr:
+			case *net.IPNet:
+				ip = v.IP
+			case *net.IPAddr:
 				ip = v.IP
 			}
 			if ip == nil || ip.IsLoopback() {
