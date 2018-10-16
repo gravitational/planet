@@ -15,6 +15,7 @@ ExecStart=/usr/bin/kube-controller-manager \
         --allocate-node-cidrs=false $KUBE_CLOUD_FLAGS \
         --profiling=false \
         --terminated-pod-gc-threshold=500 \
+        --secure-port=0 \
         --use-service-account-credentials=true
 Restart=always
 RestartSec=5
