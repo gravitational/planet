@@ -3,7 +3,6 @@ package main
 import (
 	"context"
 	"fmt"
-	"io/ioutil"
 	"net"
 	"os/exec"
 	"path/filepath"
@@ -13,6 +12,7 @@ import (
 	"github.com/davecgh/go-spew/spew"
 
 	"github.com/gravitational/planet/lib/constants"
+	"github.com/gravitational/planet/lib/utils"
 	"github.com/gravitational/satellite/cmd"
 	"github.com/gravitational/trace"
 	log "github.com/sirupsen/logrus"
@@ -67,7 +67,7 @@ T:
 
 			line := fmt.Sprintf(`%v="%v"\n`, EnvOverlayAddresses, strings.Join(overlayAddrs, ","))
 			log.Debug("Creating overlay env: ", line)
-			err = ioutil.WriteFile(OverlayEnvFile, []byte(line), constants.SharedReadMask)
+			err = utils.SafeWriteFile(OverlayEnvFile, []byte(line), constants.SharedReadMask)
 			if err != nil {
 				log.Warnf("Failed to write overlay environment %v: %v", OverlayEnvFile, err)
 				continue
@@ -201,7 +201,7 @@ func (c *coreDNSMonitor) processCoreDNSConfigChange(newObj interface{}) {
 		return
 	}
 
-	err = ioutil.WriteFile(filepath.Join(CoreDNSClusterConf), []byte(config), SharedFileMask)
+	err = utils.SafeWriteFile(filepath.Join(CoreDNSClusterConf), []byte(config), SharedFileMask)
 	if err != nil {
 		log.Errorf("Failed to write coredns configuration to %v: %v", CoreDNSClusterConf, err)
 	}
