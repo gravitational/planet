@@ -65,7 +65,7 @@ T:
 					constants.OverlayInterfaceName, trace.DebugReport(err))
 			}
 
-			line := fmt.Sprintln(EnvOverlayAddresses, "\"", strings.Join(overlayAddrs, ","), "\"")
+			line := fmt.Sprint("%v=\"%v\"\n", EnvOverlayAddresses, strings.Join(overlayAddrs, ","))
 			log.Debug("Creating overlay env: ", line)
 			err = utils.SafeWriteFile(OverlayEnvFile, []byte(line), constants.SharedReadMask)
 			if err != nil {
