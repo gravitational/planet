@@ -9,10 +9,10 @@ import (
 	"strings"
 	"time"
 
-	"github.com/davecgh/go-spew/spew"
-
 	"github.com/gravitational/planet/lib/constants"
 	"github.com/gravitational/planet/lib/utils"
+
+	"github.com/davecgh/go-spew/spew"
 	"github.com/gravitational/satellite/cmd"
 	"github.com/gravitational/trace"
 	log "github.com/sirupsen/logrus"

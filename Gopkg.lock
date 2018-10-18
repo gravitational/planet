@@ -350,8 +350,7 @@
   version = "v1.0.0"
 
 [[projects]]
-  branch = "kevin/coredns"
-  digest = "1:26f46d466ca2107c02f7a2026707a961995e646119ccfeb4edc8825d597b8e7b"
+  digest = "1:1b8f282ca3b267f6cb733563812a8a06ade017e3254180d7eb104ccf638522e6"
   name = "github.com/gravitational/satellite"
   packages = [
     "agent",
@@ -366,7 +365,8 @@
     "utils",
   ]
   pruneopts = "UT"
-  revision = "59f4b0e7e2ff4cf0c5be4a2df7bdcbe49382d837"
+  revision = "0c790c7a57aedc7b88f1c19f2e7f9f41de1bb2eb"
+  version = "5.3.1"
 
 [[projects]]
   digest = "1:89dfd879adc40793de2e59f4f7c42c1b4ad6bdab32fcb5d6b769c1fcc6fc452a"
