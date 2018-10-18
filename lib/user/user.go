@@ -5,110 +5,130 @@ import (
 	"fmt"
 	"io"
 	"os"
+	osuser "os/user"
+	"strconv"
 	"strings"
 
 	"github.com/gravitational/trace"
 	"github.com/opencontainers/runc/libcontainer/user"
 )
 
-// This file implements edit functions for passwd/group files.
-
-// LookupUID looks up a user by ID in the passwd database on the host.
-func LookupUID(uid int) (*User, error) {
-	u, err := lookupUser(func(u user.User) bool {
-		return u.Uid == uid
-	})
+// LookupID returns user for the specified uid
+func LookupID(uid string) (*User, error) {
+	user, err := osuser.LookupId(uid)
 	if err != nil {
 		return nil, trace.Wrap(err)
 	}
-	return (*User)(u), nil
-}
-
-// SysFile is a base interface of a passwd/group reader/writer.
-type SysFile interface {
-	Save(w io.Writer) error
+	return fromOSUser(*user)
 }
 
 // PasswdFile defines an interface to a passwd file.
 type PasswdFile interface {
-	SysFile
-
+	io.WriterTo
 	// Upsert creates or updates the user in the passwd database
-	Upsert(u User)
-	// GetByID returns an existing user given its ID
-	GetByID(id int) (u User, exists bool)
+	Upsert(u osuser.User)
 }
 
 // GroupFile defines an interface to a group file.
 type GroupFile interface {
-	SysFile
-
+	io.WriterTo
 	// Upsert creates or updates the group in the group database
-	Upsert(g Group)
-	// GetByID returns an existing group given its ID
-	GetByID(id int) (g Group, exists bool)
+	Upsert(g osuser.Group)
 }
 
+// User defines a user data type
 type User user.User
 
-// https://en.wikipedia.org/wiki/Passwd
+// Group returns group this user belongs to
+func (u User) Group() (*Group, error) {
+	group, err := osuser.LookupGroupId(strconv.Itoa(u.Gid))
+	if err != nil {
+		return nil, trace.Wrap(err)
+	}
+	return fromOSGroup(*group)
+}
+
+// String returns the user info in /etc/passwd format
 func (u User) String() string {
-	return fmt.Sprintf("%s:%s:%d:%d:%s:%s:%s",
-		u.Name, u.Pass, u.Uid, u.Gid, u.Gecos, u.Home, u.Shell)
+	return fmt.Sprintf("%v:%v:%v:%v:%v:%v:%v",
+		u.Name,
+		u.Pass,
+		u.Uid,
+		u.Gid,
+		u.Gecos,
+		u.Home,
+		u.Shell)
+}
+
+// fromOSUser converts stdlib user to our format
+func fromOSUser(u osuser.User) (*User, error) {
+	uid, err := strconv.Atoi(u.Uid)
+	if err != nil {
+		return nil, trace.Wrap(err)
+	}
+	gid, err := strconv.Atoi(u.Gid)
+	if err != nil {
+		return nil, trace.Wrap(err)
+	}
+	return &User{
+		Name:  u.Username,
+		Pass:  passPlaceholder,
+		Uid:   uid,
+		Gid:   gid,
+		Gecos: u.Name,
+		Home:  u.HomeDir,
+	}, nil
 }
 
 // passwdFile allows to read/write passwd files.
 type passwdFile struct {
-	users []user.User
+	users []User
 }
-
-var _ PasswdFile = (*passwdFile)(nil)
 
 // NewPasswd creates a passwd file reader.
 func NewPasswd(r io.Reader) (*passwdFile, error) {
-	users, err := user.ParsePasswd(r)
+	parsed, err := user.ParsePasswd(r)
 	if err != nil {
 		return nil, err
+	}
+	var users []User
+	for _, u := range parsed {
+		users = append(users, User(u))
 	}
 	return &passwdFile{users: users}, nil
 }
 
-// Upsert adds a new or replaces an existing user.
-func (r *passwdFile) Upsert(u User) {
-	var found bool
-	for i, usr := range r.users {
-		if usr.Name == u.Name {
-			r.users[i] = user.User(u)
-			found = true
-			break
-		}
+// NewPasswdFromFile create a passwd file reader from provided path
+func NewPasswdFromFile(path string) (*passwdFile, error) {
+	reader, err := os.Open(path)
+	if err != nil {
+		return nil, trace.Wrap(err)
 	}
-	if !found {
-		r.users = append(r.users, user.User(u))
-	}
+	defer reader.Close()
+	return NewPasswd(reader)
 }
 
-// GetID looks up existing user by ID.
-// Upon success exists will also be set to true.
-func (r *passwdFile) GetByID(id int) (u User, exists bool) {
-	for _, user := range r.users {
-		if user.Uid == id {
-			return User(user), true
+// Upsert adds a new or replaces an existing user.
+func (r *passwdFile) Upsert(u User) {
+	for i, usr := range r.users {
+		if usr.Name == u.Name {
+			r.users[i] = u
+			return
 		}
 	}
-	return User{}, false
+	r.users = append(r.users, u)
 }
 
 // Save stores the contents of this passwdFile into w.
-func (r *passwdFile) Save(w io.Writer) (err error) {
+func (r *passwdFile) WriteTo(w io.Writer) (n int64, err error) {
 	b := newBuffer(w)
 	for _, user := range r.users {
-		b.WriteLine(User(user).String())
+		n += int64(b.WriteLine(user.String()))
 	}
 	if b.err == nil {
 		err = b.Flush()
 	}
-	return b.err
+	return n, trace.Wrap(b.err)
 }
 
 // textLineBuffer simplifies the process of streaming lines of text into an io.Writer
@@ -123,112 +143,89 @@ func newBuffer(w io.Writer) *textLineBuffer {
 	}
 }
 
-func (r *textLineBuffer) WriteLine(s string) {
+func (r *textLineBuffer) WriteLine(s string) (n int) {
 	if r.err != nil {
-		return
+		return 0
 	}
-	_, r.err = r.WriteString(s + "\n")
+	n, r.err = r.WriteString(s + "\n")
+	return n
 }
 
+// Group defines a group data type
 type Group user.Group
 
-// http://www.cyberciti.biz/faq/understanding-etcgroup-file/
+// Strings returns the group info in /etc/group format
 func (g Group) String() string {
-	groups := strings.Join(g.List, ",")
-	return fmt.Sprintf("%s:%s:%d:%s", g.Name, g.Pass, g.Gid, groups)
+	return fmt.Sprintf("%s:%s:%d:%s",
+		g.Name,
+		g.Pass,
+		g.Gid,
+		strings.Join(g.List, ","))
+}
+
+// fromOSGroup converts stdlib group to our type
+func fromOSGroup(g osuser.Group) (*Group, error) {
+	gid, err := strconv.Atoi(g.Gid)
+	if err != nil {
+		return nil, trace.Wrap(err)
+	}
+	return &Group{
+		Name: g.Name,
+		Pass: passPlaceholder,
+		Gid:  gid,
+	}, nil
 }
 
 // groupFile allows to read/write group files.
 type groupFile struct {
-	groups []user.Group
+	groups []Group
 }
-
-var _ GroupFile = (*groupFile)(nil)
 
 // NewGroup creates a group file reader.
 func NewGroup(r io.Reader) (*groupFile, error) {
-	groups, err := user.ParseGroup(r)
+	parsed, err := user.ParseGroup(r)
 	if err != nil {
 		return nil, err
+	}
+	var groups []Group
+	for _, g := range parsed {
+		groups = append(groups, Group(g))
 	}
 	return &groupFile{groups: groups}, nil
 }
 
-// Upsert adds a new or replaces an existing group.
-func (r *groupFile) Upsert(g Group) {
-	var found bool
-	for i, group := range r.groups {
-		if group.Name == g.Name {
-			r.groups[i] = user.Group(g)
-			found = true
-			break
-		}
+// NewGroupFromFile creates a group file reader from provided path
+func NewGroupFromFile(path string) (*groupFile, error) {
+	reader, err := os.Open(path)
+	if err != nil {
+		return nil, trace.Wrap(err)
 	}
-	if !found {
-		r.groups = append(r.groups, user.Group(g))
-	}
+	defer reader.Close()
+	return NewGroup(reader)
 }
 
-// GetID looks up existing group by ID.
-// Upon success exists will also be set to true.
-func (r *groupFile) GetByID(id int) (g Group, exists bool) {
-	for _, group := range r.groups {
-		if group.Gid == id {
-			return Group(group), true
+// Upsert adds a new or replaces an existing group.
+func (r *groupFile) Upsert(g Group) {
+	for i, group := range r.groups {
+		if group.Name == g.Name {
+			r.groups[i] = g
+			return
 		}
 	}
-	return Group{}, false
+	r.groups = append(r.groups, g)
 }
 
 // Save stores the contents of this groupFile into w.
-func (r *groupFile) Save(w io.Writer) (err error) {
+func (r *groupFile) WriteTo(w io.Writer) (n int64, err error) {
 	b := newBuffer(w)
 	for _, group := range r.groups {
-		b.WriteLine(Group(group).String())
+		n += int64(b.WriteLine(group.String()))
 	}
 	if b.err == nil {
 		err = b.Flush()
 	}
-	return b.err
+	return n, trace.Wrap(b.err)
 }
 
-func lookupUser(filter func(u user.User) bool) (*user.User, error) {
-	// Get operating system-specific passwd reader.
-	passwd, err := getPasswdUbuntuCore()
-	if err != nil && !trace.IsNotFound(err) {
-		return nil, trace.Wrap(err)
-	}
-	if trace.IsNotFound(err) {
-		passwd, err = user.GetPasswd()
-		if err != nil {
-			return nil, trace.ConvertSystemError(err)
-		}
-	}
-	defer passwd.Close()
-
-	// Get the users.
-	users, err := user.ParsePasswdFilter(passwd, filter)
-	if err != nil {
-		return nil, trace.ConvertSystemError(err)
-	}
-
-	if len(users) == 0 {
-		return nil, trace.NotFound("no matching entries in passwd file")
-	}
-
-	// Assume the first entry is the "correct" one.
-	return &users[0], nil
-}
-
-func getPasswdUbuntuCore() (io.ReadCloser, error) {
-	f, err := os.Open(ubuntuCorePasswdPath)
-	if err != nil {
-		return nil, trace.ConvertSystemError(err)
-	}
-	return f, nil
-}
-
-// Ubuntu-Core-specific path to the passwd formatted file.
-const (
-	ubuntuCorePasswdPath = "/var/lib/extrausers/passwd"
-)
+// passPlaceholder is the password field placeholder user in passwd/group files
+const passPlaceholder = "x"
