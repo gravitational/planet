@@ -342,16 +342,16 @@
   revision = "4cc8baba3689adc2d4ec4cf0e8e6be7bb136a3d2"
 
 [[projects]]
-  branch = "master"
   digest = "1:e025b0f4997273273c5dc46a17caddb27ab7dc8b8aa9ffb50d326e7aeb4059c7"
   name = "github.com/gravitational/roundtrip"
   packages = ["."]
   pruneopts = "UT"
   revision = "e1e0cd6b05a6bb1791b262e63160038828fd7b3a"
+  version = "v1.0.0"
 
 [[projects]]
   branch = "kevin/coredns"
-  digest = "1:efc86fe990882d23649999ed5e0676b993c0d43a5ef4daae72ba5041a69862ba"
+  digest = "1:26f46d466ca2107c02f7a2026707a961995e646119ccfeb4edc8825d597b8e7b"
   name = "github.com/gravitational/satellite"
   packages = [
     "agent",
@@ -366,7 +366,7 @@
     "utils",
   ]
   pruneopts = "UT"
-  revision = "2ff23886a1c99c944a312b6d2d8e3736b50b9840"
+  revision = "59f4b0e7e2ff4cf0c5be4a2df7bdcbe49382d837"
 
 [[projects]]
   digest = "1:89dfd879adc40793de2e59f4f7c42c1b4ad6bdab32fcb5d6b769c1fcc6fc452a"
@@ -779,11 +779,12 @@
 
 [[projects]]
   branch = "release-branch.go1.9"
-  digest = "1:b77cbb13c8afa577248ab3950d588b1600203e0eaa0a4e03f75683c66e169e63"
+  digest = "1:04205e69d81f7a8272a9c62d9561803ac123fa33da001b2bb97ce373e0f100ca"
   name = "golang.org/x/net"
   packages = [
     "bpf",
     "context",
+    "context/ctxhttp",
     "http2",
     "http2/hpack",
     "idna",
@@ -798,6 +799,17 @@
   ]
   pruneopts = "UT"
   revision = "44b7c21cbf19450f38b337eb6b6fe4f6496fb5b3"
+
+[[projects]]
+  branch = "master"
+  digest = "1:1bce229fad01cbad9bd00e70ca32afff25ac2cea3dd710d50f88c967c1c3df65"
+  name = "golang.org/x/oauth2"
+  packages = [
+    ".",
+    "internal",
+  ]
+  pruneopts = "UT"
+  revision = "9dcd33a902f40452422c2367fefcb95b54f9f8f8"
 
 [[projects]]
   digest = "1:a8b6f3b4dc60e2fa266203e846ae58bde7fd2a737201080827375e21455b0d2e"
@@ -839,6 +851,22 @@
   packages = ["rate"]
   pruneopts = "UT"
   revision = "fbb02b2291d28baffd63558aa44b4b56f178d650"
+
+[[projects]]
+  digest = "1:6247f76e55a1e1a5c19a81e2d4b4dff6730461eeb5bbb0a16dd4a8ec8637ee93"
+  name = "google.golang.org/appengine"
+  packages = [
+    "internal",
+    "internal/base",
+    "internal/datastore",
+    "internal/log",
+    "internal/remote_api",
+    "internal/urlfetch",
+    "urlfetch",
+  ]
+  pruneopts = "UT"
+  revision = "ae0ab99deb4dc413a2b4bd6c8bdd0eb67f1e4d06"
+  version = "v1.2.0"
 
 [[projects]]
   branch = "master"
@@ -918,7 +946,7 @@
   version = "v2.2.1"
 
 [[projects]]
-  digest = "1:34ffbf9ed5e63a11e4e0aaab597dc36c552da8b5b6bd49d8f73dadd4afd7e677"
+  digest = "1:910ec974550174f4ca48b9f4a3caec16b693e584c3762dc726dc0dcf28f8e318"
   name = "k8s.io/api"
   packages = [
     "admissionregistration/v1alpha1",
@@ -932,10 +960,12 @@
     "authorization/v1beta1",
     "autoscaling/v1",
     "autoscaling/v2beta1",
+    "autoscaling/v2beta2",
     "batch/v1",
     "batch/v1beta1",
     "batch/v2alpha1",
     "certificates/v1beta1",
+    "coordination/v1beta1",
     "core/v1",
     "events/v1beta1",
     "extensions/v1beta1",
@@ -952,11 +982,11 @@
     "storage/v1beta1",
   ]
   pruneopts = "UT"
-  revision = "2d6f90ab1293a1fb871cf149423ebb72aa7423aa"
-  version = "kubernetes-1.11.2"
+  revision = "357ec6384fa7e10d6ea160d2299a98ddfdc3ab3c"
+  version = "kubernetes-1.12.1"
 
 [[projects]]
-  digest = "1:59c2f6f5f3d3bb99b1d0ca37341ec3ccfc2f30269a07955e119fe8a6280dbf63"
+  digest = "1:7898549c9a2af04d93977cc0b9c02ed413880034f2b7ce593f6bfcbd0e481a95"
   name = "k8s.io/apimachinery"
   packages = [
     "pkg/api/errors",
@@ -987,6 +1017,7 @@
     "pkg/util/framer",
     "pkg/util/intstr",
     "pkg/util/json",
+    "pkg/util/naming",
     "pkg/util/net",
     "pkg/util/rand",
     "pkg/util/runtime",
@@ -1000,11 +1031,11 @@
     "third_party/forked/golang/reflect",
   ]
   pruneopts = "UT"
-  revision = "103fd098999dc9c0c88536f5c9ad2e5da39373ae"
-  version = "kubernetes-1.11.2"
+  revision = "6dd46049f39503a1fc8d65de4bd566829e95faff"
+  version = "kubernetes-1.12.1"
 
 [[projects]]
-  digest = "1:024b0daaffb52bdf38e25a76b315dbe8445158ff9136aaa7818a7ec6c807dbc6"
+  digest = "1:5f64f1dfa0d1a59ea1b4830786dababffbd0ba4e6fb4c9eb4cdfb649bdd207a8"
   name = "k8s.io/client-go"
   packages = [
     "discovery",
@@ -1021,10 +1052,12 @@
     "kubernetes/typed/authorization/v1beta1",
     "kubernetes/typed/autoscaling/v1",
     "kubernetes/typed/autoscaling/v2beta1",
+    "kubernetes/typed/autoscaling/v2beta2",
     "kubernetes/typed/batch/v1",
     "kubernetes/typed/batch/v1beta1",
     "kubernetes/typed/batch/v2alpha1",
     "kubernetes/typed/certificates/v1beta1",
+    "kubernetes/typed/coordination/v1beta1",
     "kubernetes/typed/core/v1",
     "kubernetes/typed/events/v1beta1",
     "kubernetes/typed/extensions/v1beta1",
@@ -1065,8 +1098,8 @@
     "util/retry",
   ]
   pruneopts = "UT"
-  revision = "7d04d0e2a0a1a4d4a1cd6baa432a2301492e4e65"
-  version = "v8.0.0"
+  revision = "1638f8970cefaa404ff3a62950f88b08292b2696"
+  version = "v9.0.0"
 
 [solve-meta]
   analyzer-name = "dep"
