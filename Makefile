@@ -41,6 +41,7 @@ DOCKER_VER ?= 17.03.2
 # we currently use our own flannel fork: gravitational/flannel
 FLANNEL_VER := v0.10.0-gravitational
 HELM_VER := v2.8.1
+COREDNS_VER := 1.2.2
 
 # ETCD Versions to include in the release
 # This list needs to include every version of etcd that we can upgrade from + latest
@@ -153,7 +154,7 @@ os:
 base: os
 	@echo -e "\n---> Making Planet/Base Docker image based on Planet/OS...\n"
 	$(MAKE) -e BUILDIMAGE=$(PLANET_IMAGE) DOCKERFILE=base.dockerfile \
-		EXTRA_ARGS="--build-arg SECCOMP_VER=$(SECCOMP_VER) --build-arg DOCKER_VER=$(DOCKER_VER) --build-arg HELM_VER=$(HELM_VER)" \
+		EXTRA_ARGS="--build-arg SECCOMP_VER=$(SECCOMP_VER) --build-arg DOCKER_VER=$(DOCKER_VER) --build-arg HELM_VER=$(HELM_VER) --build-arg COREDNS_VER=$(COREDNS_VER)" \
 		make-docker-image
 
 # Build a container used for building the planet image

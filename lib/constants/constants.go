@@ -9,9 +9,14 @@ const (
 	ProxyConfigPath = "/etc/kubernetes/proxy.kubeconfig"
 	// KubeletConfigPath is the path to kubelet configuration file
 	KubeletConfigPath = "/etc/kubernetes/kubelet.kubeconfig"
+	// CoreDNSConfigPath is the path to coredns configuration file
+	CoreDNSConfigPath = "/etc/kubernetes/coredns.kubeconfig"
 
 	// DNSResourceName specifies the name for the DNS resources
 	DNSResourceName = "kube-dns"
+
+	// CoreDNSConfigMapName is the location of the user supplied configmap for CoreDNS configuration
+	CoreDNSConfigMapName = "coredns"
 
 	// ExitCodeUnknown is equivalent to EX_SOFTWARE as defined by sysexits(3)
 	ExitCodeUnknown = 70
@@ -31,6 +36,16 @@ const (
 	// CloudProviderGCE is the Google Compute Engine cloud provider ID
 	CloudProviderGCE = "gce"
 
+	// OverlayInterfaceName is the name of the linux network interface connected to the overlay network
+	OverlayInterfaceName = "docker0"
+
+	// APIServerDNSName is the domain name of a current leader server
+	APIServerDNSName = "leader.telekube.local"
+	// TelekubeDomain is the domain for local telekube cluster
+	TelekubeDomain = "telekube.local"
+)
+
+var (
 	// GravityDataDir is the directory where gravity data is stored in planet
 	GravityDataDir = "/var/lib/gravity"
 )

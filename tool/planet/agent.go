@@ -10,15 +10,14 @@ import (
 	"os/exec"
 	"os/signal"
 	"strconv"
-	"strings"
 	"syscall"
 	"time"
-
-	"github.com/gravitational/planet/lib/monitoring"
 
 	etcd "github.com/coreos/etcd/client"
 	etcdconf "github.com/gravitational/coordinate/config"
 	"github.com/gravitational/coordinate/leader"
+	"github.com/gravitational/planet/lib/constants"
+	"github.com/gravitational/planet/lib/monitoring"
 	"github.com/gravitational/satellite/agent"
 	pb "github.com/gravitational/satellite/agent/proto/agentpb"
 	"github.com/gravitational/trace"
@@ -179,28 +178,20 @@ func startLeaderClient(conf *LeaderConfig, errorC chan error) (leaderClient io.C
 }
 
 func writeLocalLeader(target string, masterIP string) error {
-	contents := strings.Join([]string{
-		fmt.Sprintf(`address=/%v/%v`, APIServerDNSName, masterIP),
-		fmt.Sprintf(`address=/%v/%v`, LegacyAPIServerDNSName, masterIP),
-	}, "\n")
+	contents := fmt.Sprint(masterIP, " ", constants.APIServerDNSName, " ", LegacyAPIServerDNSName, "\n")
 	err := ioutil.WriteFile(
 		target,
-		[]byte(contents+"\n"),
+		[]byte(contents),
 		SharedFileMask,
 	)
 	return trace.Wrap(err)
 }
 
 func updateDNS(conf *LeaderConfig, hostname string, newMasterIP string) error {
-	log.Debugf("setting %v to %v in %v", conf.APIServerDNS, newMasterIP, DNSMasqAPIServerConf)
-	err := writeLocalLeader(DNSMasqAPIServerConf, newMasterIP)
+	log.Infof("Setting new leader address to %v in %v", newMasterIP, CoreDNSHosts)
+	err := writeLocalLeader(CoreDNSHosts, newMasterIP)
 	if err != nil {
 		return trace.Wrap(err)
-	}
-	cmd := exec.Command("/bin/systemctl", "restart", "dnsmasq")
-	log.Infof("executing %v", cmd)
-	if err := cmd.Run(); err != nil {
-		return trace.Wrap(err, "failed to execute %v", cmd)
 	}
 	return nil
 }
@@ -226,6 +217,9 @@ func unitsCommand(command string) error {
 // runAgent starts the master election / health check loops in background and
 // blocks until a signal has been received.
 func runAgent(conf *agent.Config, monitoringConf *monitoring.Config, leaderConf *LeaderConfig, peers []string) error {
+	ctx, cancelCtx := context.WithCancel(context.Background())
+	defer cancelCtx()
+
 	err := monitoringConf.Check()
 	if err != nil {
 		return trace.Wrap(err)
@@ -266,15 +260,13 @@ func runAgent(conf *agent.Config, monitoringConf *monitoring.Config, leaderConf 
 	}
 	defer client.Close()
 
-	if monitoringConf.Role == agent.RoleMaster {
-		dns := &DNSBootstrapper{
-			clusterIP:           monitoringConf.ClusterDNS,
-			upstreamNameservers: monitoringConf.UpstreamNameservers,
-			dnsZones:            monitoringConf.DNSZones,
-			kubeAddr:            monitoringConf.KubeAddr,
-			agent:               monitoringAgent,
-		}
-		go dns.createLoop()
+	err = runCoreDNSMonitor(ctx, coreDNSConfig{
+		UpstreamNameservers: monitoringConf.UpstreamNameservers,
+		Zones:               monitoringConf.DNSZones,
+		Port:                DNSPort,
+	})
+	if err != nil {
+		return trace.Wrap(err)
 	}
 
 	signalc := make(chan os.Signal, 2)
@@ -285,6 +277,7 @@ func runAgent(conf *agent.Config, monitoringConf *monitoring.Config, leaderConf 
 	case err := <-errorC:
 		return trace.Wrap(err)
 	}
+
 	return nil
 }
 

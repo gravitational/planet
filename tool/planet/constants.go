@@ -95,16 +95,16 @@ const (
 	// of the kubernetes configuration file
 	EnvKubeConfig = "KUBECONFIG"
 	// EnvDNSHosts is the environment variable that specifies DNS hostname
-	// overrides for the dnsmasq config
+	// overrides for the CoreDNS config
 	EnvDNSHosts = "PLANET_DNS_HOSTS"
 	// EnvDNSZones is the environment variable that specified DNS zone
-	// overrides for the dnsmasq config
+	// overrides for the CoreDNS config
 	EnvDNSZones = "PLANET_DNS_ZONES"
 	// EnvHostname names the environment variable that specifies the new
 	// hostname
 	EnvHostname = "PLANET_HOSTNAME"
 	// EnvDNSUpstreamNameservers names the environment variable that specifies
-	// additional nameservers to add to the container's dnsmasq configuration
+	// additional nameservers to add to the container's CoreDNS configuration
 	EnvDNSUpstreamNameservers = "PLANET_DNS_UPSTREAM_NAMESERVERS"
 	// EnvDockerOptions names the environment variable that specifies additional
 	// command line options for docker
@@ -115,6 +115,10 @@ const (
 	// EnvKubeletOptions names the environment variable that specifies additional
 	// kubelet command line options
 	EnvKubeletOptions = "KUBELET_OPTS"
+
+	// EnvOverlayAddresses is an environment variable with a comma separated list of
+	// IPv4 addresses assigned to the overlay network interface of the host
+	EnvOverlayAddresses = "OVERLAY_ADDRESSES"
 
 	// EnvPlanetAgentCAFile names the environment variable that specifies the location
 	// of the agent ca certificate file
@@ -145,19 +149,13 @@ const (
 	// EnvPlanetKubeletOptions is the environment variable with additional options for kubelet
 	EnvPlanetKubeletOptions = "PLANET_KUBELET_OPTIONS"
 
-	// EnvPlanetDNSListenAddr is the environment variable with the list of listen addresses for dnsmasq
-	// See https://linux.die.net/man/8/dnsmasq, -a, --listen-address=<ipaddr>
+	// EnvPlanetDNSListenAddr is the environment variable with the list of listen addresses for CoreDNS
 	EnvPlanetDNSListenAddr = "PLANET_DNS_LISTEN_ADDR"
 
-	// EnvPlanetDNSInterface is the environment variable with the list of interfaces for dnsmasq
-	// See https://linux.die.net/man/8/dnsmasq, -i, --interface=<interface name>
-	EnvPlanetDNSInterface = "PLANET_DNS_INTERFACE"
-
 	// EnvPlanetDNSPort is the environment variable with the DNS port
-	// See https://linux.die.net/man/8/dnsmasq, -p/--port=<port>
 	EnvPlanetDNSPort = "PLANET_DNS_PORT"
 
-	// DefaultDNSListenAddr is the default IP address dnsmasq will listen on
+	// DefaultDNSListenAddr is the default IP address CoreDNS will listen on
 	DefaultDNSListenAddr = "127.0.0.2"
 
 	// DNSPort is the default DNS port
@@ -211,11 +209,6 @@ const (
 	// This is kept for backwards-compatibility
 	LegacyAPIServerDNSName = "apiserver"
 
-	// APIServerDNSName is the domain name of a current leader server
-	APIServerDNSName = "leader.telekube.local"
-	// TelekubeDomain is the domain for local telekube cluster
-	TelekubeDomain = "telekube.local"
-
 	// See resolv.conf(5) on a Linux machine
 	//
 	// DNSNdots defines the threshold for amount of dots that must appear in a name
@@ -249,11 +242,15 @@ const (
 	// SharedReadWriteMask is a mask for a shared file with read/write access for everyone
 	SharedReadWriteMask = 0666
 
-	// DNSMasqK8sConf is DNSMasq DNS server K8s config
-	DNSMasqK8sConf = "/etc/dnsmasq.d/k8s.conf"
+	// CoreDNSConf is the location of the coredns configuration file within planet
+	CoreDNSConf = "/etc/coredns/coredns.conf"
 
-	// DNSMasqAPIServerConf is the dnsmasq configuration file for apiserver
-	DNSMasqAPIServerConf = "/etc/dnsmasq.d/apiserver.conf"
+	// CoreDNSClusterConf is the location of the coredns configuration file for the overlay network
+	// and updated via k8s configmap
+	CoreDNSClusterConf = "/etc/coredns/configmaps/overlay.conf"
+
+	// CoreDNSHosts is the location of a hosts file to be served by CoreDNS
+	CoreDNSHosts = "/etc/coredns/coredns.hosts"
 
 	// HostsFile specifies the location of the hosts configuration file
 	HostsFile = "/etc/hosts"
@@ -307,6 +304,10 @@ const (
 	DefaultPODSubnet = "10.244.0.0/16"
 	// DefaultVxlanPort is the default overlay network port
 	DefaultVxlanPort = 8472
+
+	// OverlayEnvFile specifies the file location to write information about the overlay network
+	// in use to be picked up by scripts
+	OverlayEnvFile = "/run/overlay.env"
 
 	// ServiceUser specifies the name of the service user as seen inside the container.
 	// Service user inside the container will be mapped to an existing user (not necessarily
