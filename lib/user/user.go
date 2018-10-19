@@ -60,7 +60,7 @@ func (u User) String() string {
 		u.Shell)
 }
 
-// fromOSUser converts stdlib user to our format
+// fromOSUser converts stdlib user to User
 func fromOSUser(u osuser.User) (*User, error) {
 	uid, err := strconv.Atoi(u.Uid)
 	if err != nil {
@@ -98,7 +98,7 @@ func NewPasswd(r io.Reader) (*passwdFile, error) {
 	return &passwdFile{users: users}, nil
 }
 
-// NewPasswdFromFile create a passwd file reader from provided path
+// NewPasswdFromFile creates a passwd file reader from provided path
 func NewPasswdFromFile(path string) (*passwdFile, error) {
 	reader, err := os.Open(path)
 	if err != nil {
@@ -154,7 +154,7 @@ func (r *textLineBuffer) WriteLine(s string) (n int) {
 // Group defines a group data type
 type Group user.Group
 
-// Strings returns the group info in /etc/group format
+// String returns the group info in /etc/group format
 func (g Group) String() string {
 	return fmt.Sprintf("%s:%s:%d:%s",
 		g.Name,
@@ -163,7 +163,7 @@ func (g Group) String() string {
 		strings.Join(g.List, ","))
 }
 
-// fromOSGroup converts stdlib group to our type
+// fromOSGroup converts stdlib group to Group
 func fromOSGroup(g osuser.Group) (*Group, error) {
 	gid, err := strconv.Atoi(g.Gid)
 	if err != nil {
