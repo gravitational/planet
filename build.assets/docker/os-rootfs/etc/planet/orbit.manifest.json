@@ -402,7 +402,7 @@
                 "name": "taint",
                 "spec": {
                     "name": "taint",
-                    "env": "PLANET_TAINTS",
+                    "env": "PLANET_NODE_TAINTS",
                     "type": "String",
                     "cli": {
                         "name": "taint"

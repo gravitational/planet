@@ -156,7 +156,7 @@ const (
 	EnvPlanetDNSPort = "PLANET_DNS_PORT"
 
 	// EnvPlanetTaints is an environment variable for Kubernetes tains to apply to the node during creation
-	EnvPlanetTaints = "PLANET_TAINTS"
+	EnvPlanetTaints = "PLANET_NODE_TAINTS"
 
 	// DefaultDNSListenAddr is the default IP address CoreDNS will listen on
 	DefaultDNSListenAddr = "127.0.0.2"
