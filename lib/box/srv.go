@@ -343,6 +343,9 @@ func getLibcontainerConfig(containerID, rootfs string, cfg Config) (*configs.Con
 			if mountSpec.Readonly {
 				mount.Flags |= syscall.MS_RDONLY
 			}
+			if mountSpec.Recursive {
+				mount.Flags |= syscall.MS_REC
+			}
 			config.Mounts = append(config.Mounts, mount)
 		}
 	}
