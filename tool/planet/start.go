@@ -167,6 +167,14 @@ func start(config *Config, monitorc chan<- bool) (*runtimeContext, error) {
 			Val:  strings.Join(upstreamNameservers, ","),
 		})
 
+	if len(config.Taints) > 0 {
+		config.Env = append(config.Env,
+			box.EnvPair{
+				Name: EnvPlanetTaints,
+				Val:  strings.Join(config.Taints, ","),
+			})
+	}
+
 	if err = setCoreDNS(config); err != nil {
 		return nil, trace.Wrap(err)
 	}

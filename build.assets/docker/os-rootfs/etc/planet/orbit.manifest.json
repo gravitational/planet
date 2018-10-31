@@ -1,23 +1,95 @@
 {
     "version": "0.0.1",
     "labels": [
-      {"name": "os", "value": "linux"},
-      {"name": "version-etcd", "value": "REPLACE_ETCD_LATEST_VERSION"},
-      {"name": "version-k8s", "value": "REPLACE_KUBE_LATEST_VERSION"},
-      {"name": "version-flannel", "value": "REPLACE_FLANNEL_LATEST_VERSION"},
-      {"name": "version-docker", "value": "REPLACE_DOCKER_LATEST_VERSION"},
-      {"name": "version-helm", "value": "REPLACE_HELM_LATEST_VERSION"},
-      {"name": "version-coredns", "value": "REPLACE_COREDNS_LATEST_VERSION"}
+        {
+            "name": "os",
+            "value": "linux"
+        },
+        {
+            "name": "version-etcd",
+            "value": "REPLACE_ETCD_LATEST_VERSION"
+        },
+        {
+            "name": "version-k8s",
+            "value": "REPLACE_KUBE_LATEST_VERSION"
+        },
+        {
+            "name": "version-flannel",
+            "value": "REPLACE_FLANNEL_LATEST_VERSION"
+        },
+        {
+            "name": "version-docker",
+            "value": "REPLACE_DOCKER_LATEST_VERSION"
+        },
+        {
+            "name": "version-helm",
+            "value": "REPLACE_HELM_LATEST_VERSION"
+        },
+        {
+            "name": "version-coredns",
+            "value": "REPLACE_COREDNS_LATEST_VERSION"
+        }
     ],
     "commands": [
-      {"name": "start", "args": ["rootfs/usr/bin/planet", "start"]},
-      {"name": "stop", "args": ["rootfs/usr/bin/planet", "stop"]},
-      {"name": "enter", "args": ["rootfs/usr/bin/planet", "enter"]},
-      {"name": "exec", "args": ["rootfs/usr/bin/planet", "exec"]},
-      {"name": "status", "args": ["rootfs/usr/bin/planet", "status"]},
-      {"name": "local-status", "args": ["rootfs/usr/bin/planet", "status", "--local"]},
-      {"name": "secrets-init", "args": ["rootfs/usr/bin/planet", "secrets", "init"]},
-      {"name": "gen-cert", "args": ["rootfs/usr/bin/planet", "secrets", "gencert"]}
+        {
+            "name": "start",
+            "args": [
+                "rootfs/usr/bin/planet",
+                "start"
+            ]
+        },
+        {
+            "name": "stop",
+            "args": [
+                "rootfs/usr/bin/planet",
+                "stop"
+            ]
+        },
+        {
+            "name": "enter",
+            "args": [
+                "rootfs/usr/bin/planet",
+                "enter"
+            ]
+        },
+        {
+            "name": "exec",
+            "args": [
+                "rootfs/usr/bin/planet",
+                "exec"
+            ]
+        },
+        {
+            "name": "status",
+            "args": [
+                "rootfs/usr/bin/planet",
+                "status"
+            ]
+        },
+        {
+            "name": "local-status",
+            "args": [
+                "rootfs/usr/bin/planet",
+                "status",
+                "--local"
+            ]
+        },
+        {
+            "name": "secrets-init",
+            "args": [
+                "rootfs/usr/bin/planet",
+                "secrets",
+                "init"
+            ]
+        },
+        {
+            "name": "gen-cert",
+            "args": [
+                "rootfs/usr/bin/planet",
+                "secrets",
+                "gencert"
+            ]
+        }
     ],
     "service": {
         "StartCommand": "start",
@@ -41,49 +113,65 @@
                 "type": "String",
                 "name": "masterip",
                 "env": "PLANET_MASTER_IP",
-                "cli": {"name": "master-ip"}
+                "cli": {
+                    "name": "master-ip"
+                }
             },
             {
                 "type": "String",
                 "name": "publicip",
                 "env": "PLANET_PUBLIC_IP",
-                "cli": {"name": "public-ip"}
+                "cli": {
+                    "name": "public-ip"
+                }
             },
             {
                 "type": "String",
                 "name": "cloudprovider",
                 "env": "PLANET_CLOUD_PROVIDER",
-                "cli": {"name": "cloud-provider"}
+                "cli": {
+                    "name": "cloud-provider"
+                }
             },
             {
                 "type": "String",
                 "name": "clusterid",
                 "env": "PLANET_CLUSTER_ID",
-                "cli": {"name": "cluster-id"}
+                "cli": {
+                    "name": "cluster-id"
+                }
             },
             {
                 "type": "String",
                 "name": "secretsdir",
                 "env": "PLANET_SECRETS_DIR",
-                "cli": {"name": "secrets-dir"}
+                "cli": {
+                    "name": "secrets-dir"
+                }
             },
             {
                 "type": "String",
                 "name": "podsubnet",
                 "env": "PLANET_POD_SUBNET",
-                "cli": {"name": "pod-subnet"}
+                "cli": {
+                    "name": "pod-subnet"
+                }
             },
             {
                 "type": "String",
                 "name": "servicesubnet",
                 "env": "PLANET_SERVICE_SUBNET",
-                "cli": {"name": "service-subnet"}
+                "cli": {
+                    "name": "service-subnet"
+                }
             },
             {
                 "type": "String",
                 "name": "vxlanport",
                 "env": "PLANET_VXLAN_PORT",
-                "cli": {"name": "vxlan-port"}
+                "cli": {
+                    "name": "vxlan-port"
+                }
             },
             {
                 "type": "Bool",
@@ -103,31 +191,41 @@
                 "type": "String",
                 "name": "etcdproxy",
                 "env": "PLANET_ETCD_PROXY",
-                "cli": {"name": "etcd-proxy"}
+                "cli": {
+                    "name": "etcd-proxy"
+                }
             },
             {
                 "type": "String",
                 "name": "etcdmembername",
                 "env": "PLANET_ETCD_MEMBER_NAME",
-                "cli": {"name": "etcd-member-name"}
+                "cli": {
+                    "name": "etcd-member-name"
+                }
             },
             {
                 "type": "String",
                 "name": "etcdinitialcluster",
                 "env": "PLANET_ETCD_INITIAL_CLUSTER",
-                "cli": {"name": "etcd-initial-cluster"}
+                "cli": {
+                    "name": "etcd-initial-cluster"
+                }
             },
             {
                 "type": "String",
                 "name": "etcdinitialclusterstate",
                 "env": "PLANET_ETCD_INITIAL_CLUSTER_STATE",
-                "cli": {"name": "etcd-initial-cluster-state"}
+                "cli": {
+                    "name": "etcd-initial-cluster-state"
+                }
             },
             {
                 "type": "String",
                 "name": "etcdoptions",
                 "env": "PLANET_ETCD_OPTIONS",
-                "cli": {"name": "etcd-options"}
+                "cli": {
+                    "name": "etcd-options"
+                }
             },
             {
                 "type": "List",
@@ -137,7 +235,10 @@
                     "env": "PLANET_ROLE",
                     "type": "Enum",
                     "spec": {
-                        "values": ["master", "node"]
+                        "values": [
+                            "master",
+                            "node"
+                        ]
                     }
                 }
             },
@@ -172,73 +273,97 @@
                 "type": "String",
                 "name": "initialcluster",
                 "env": "PLANET_INITIAL_CLUSTER",
-                "cli": {"name": "initial-cluster"}
+                "cli": {
+                    "name": "initial-cluster"
+                }
             },
             {
                 "type": "String",
                 "name": "nodename",
                 "env": "PLANET_NODE_NAME",
-                "cli": {"name": "node-name"}
+                "cli": {
+                    "name": "node-name"
+                }
             },
             {
                 "type": "String",
                 "name": "dockerbackend",
                 "env": "PLANET_DOCKER_BACKEND",
-                "cli": {"name": "docker-backend"}
+                "cli": {
+                    "name": "docker-backend"
+                }
             },
             {
                 "type": "String",
                 "name": "dockeroptions",
                 "env": "PLANET_DOCKER_OPTIONS",
-                "cli": {"name": "docker-options"}
+                "cli": {
+                    "name": "docker-options"
+                }
             },
             {
                 "type": "String",
                 "name": "kubeletoptions",
                 "env": "PLANET_KUBELET_OPTIONS",
-                "cli": {"name": "kubelet-options"}
+                "cli": {
+                    "name": "kubelet-options"
+                }
             },
             {
                 "type": "Bool",
                 "name": "electionenabled",
                 "env": "PLANET_ELECTION_ENABLED",
-                "cli": {"name": "election-enabled"}
+                "cli": {
+                    "name": "election-enabled"
+                }
             },
             {
                 "type": "String",
                 "name": "dnshosts",
                 "env": "PLANET_DNS_HOSTS",
-                "cli": {"name": "dns-hosts"}
+                "cli": {
+                    "name": "dns-hosts"
+                }
             },
             {
                 "type": "String",
                 "name": "dnszones",
                 "env": "PLANET_DNS_ZONES",
-                "cli": {"name": "dns-zones"}
+                "cli": {
+                    "name": "dns-zones"
+                }
             },
             {
                 "type": "String",
                 "name": "hostname",
                 "env": "PLANET_HOSTNAME",
-                "cli": {"name": "hostname"}
+                "cli": {
+                    "name": "hostname"
+                }
             },
             {
                 "type": "Bool",
                 "name": "dockerpromiscuousmode",
                 "env": "PLANET_DOCKER_PROMISCUOUS_MODE",
-                "cli": {"name": "docker-promiscuous-mode"}
+                "cli": {
+                    "name": "docker-promiscuous-mode"
+                }
             },
             {
                 "type": "String",
                 "name": "serviceuid",
                 "env": "PLANET_SERVICE_UID",
-                "cli": {"name": "service-uid"}
+                "cli": {
+                    "name": "service-uid"
+                }
             },
             {
                 "type": "String",
                 "name": "gcenodetags",
                 "env": "PLANET_GCE_NODE_TAGS",
-                "cli": {"name": "gce-node-tags"}
+                "cli": {
+                    "name": "gce-node-tags"
+                }
             },
             {
                 "type": "List",
@@ -247,7 +372,9 @@
                     "name": "dnslistenaddr",
                     "env": "PLANET_DNS_LISTEN_ADDR",
                     "type": "String",
-                    "cli": {"name": "dns-listen-addr"}
+                    "cli": {
+                        "name": "dns-listen-addr"
+                    }
                 }
             },
             {
@@ -257,14 +384,30 @@
                     "name": "dnsinterface",
                     "env": "PLANET_DNS_INTERFACE",
                     "type": "String",
-                    "cli": {"name": "dns-interface"}
+                    "cli": {
+                        "name": "dns-interface"
+                    }
                 }
             },
             {
                 "type": "String",
                 "name": "dnsport",
                 "env": "PLANET_DNS_PORT",
-                "cli": {"name": "dns-port"}
+                "cli": {
+                    "name": "dns-port"
+                }
+            },
+            {
+                "type": "List",
+                "name": "taint",
+                "spec": {
+                    "name": "taint",
+                    "env": "PLANET_NODE_TAINTS",
+                    "type": "String",
+                    "cli": {
+                        "name": "taint"
+                    }
+                }
             }
         ]
     }
