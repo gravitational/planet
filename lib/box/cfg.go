@@ -198,6 +198,8 @@ type Mount struct {
 	Readonly bool
 	// SkipIfMissing instructs to skip the mount if the Src is non-existent
 	SkipIfMissing bool
+	// Recursive indicates that all mount points inside this mount should also be mounted
+	Recursive bool
 }
 
 type Mounts []Mount
@@ -291,6 +293,9 @@ func formatMountOptions(mount Mount) (options []string) {
 	if mount.Readonly {
 		options = append(options, "ro")
 	}
+	if mount.Recursive {
+		options = append(options, "rec")
+	}
 	return options
 }
 
@@ -303,6 +308,8 @@ func parseMountOptions(options []string, mount *Mount) error {
 			mount.Readonly = false
 		case "skip":
 			mount.SkipIfMissing = true
+		case "rec", "recursive":
+			mount.Recursive = true
 		default:
 			return trace.BadParameter("unknown option %q", option)
 		}
