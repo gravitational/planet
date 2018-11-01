@@ -530,7 +530,7 @@ var coreDNSTemplate = `
   kubernetes cluster.local in-addr.arpa ip6.arpa {
     endpoint https://leader.telekube.local:6443
     tls /var/state/coredns.cert /var/state/coredns.key /var/state/root.cert
-    pods disabled
+    pods verified
     fallthrough in-addr.arpa ip6.arpa
   }{{range $zone, $servers := .Zones}}
   proxy {{$zone}} {{range $server := $servers}}{{$server}} {{end}}{
