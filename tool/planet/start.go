@@ -668,7 +668,7 @@ func setupFlannel(config *Config) error {
 
 		err := os.Symlink(
 			"/lib/systemd/system/flanneld.service",
-			path.Join(config.Rootfs, "/lib/systemd/system/multi-user.target.wants/"),
+			path.Join(config.Rootfs, "/lib/systemd/system/multi-user.target.wants/flanneld.service"),
 		)
 		if err != nil && !os.IsExist(err) {
 			return trace.Wrap(err)
