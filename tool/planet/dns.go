@@ -73,6 +73,12 @@ T:
 				continue
 			}
 
+			// tell kubelet to restart, so that it uses the overlay environment file
+			err = exec.Command("systemctl", "restart", "kube-kubelet.service").Run()
+			if err != nil {
+				log.Errorf("Error with systemctl restart kube-kubelet: %v", err)
+			}
+
 			break T
 
 		case <-ctx.Done():
