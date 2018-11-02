@@ -146,7 +146,9 @@ func start(config *Config, monitorc chan<- bool) (*runtimeContext, error) {
 	}
 	addEtcdOptions(config)
 	addKubeletOptions(config)
-	setupFlannel(config)
+	if err = setupFlannel(config); err != nil {
+		return nil, trace.Wrap(err)
+	}
 	if err = setupCloudOptions(config); err != nil {
 		return nil, trace.Wrap(err)
 	}
@@ -653,16 +655,57 @@ func mountSecrets(config *Config) {
 	}...)
 }
 
-func setupFlannel(config *Config) {
-	switch config.CloudProvider {
-	case constants.CloudProviderAWS:
-		config.Env.Upsert("FLANNEL_BACKEND", "aws-vpc")
-	case constants.CloudProviderGCE:
-		config.Env.Upsert("FLANNEL_BACKEND", "gce")
-	default:
-		config.Env.Upsert("FLANNEL_BACKEND", "vxlan")
+func setupFlannel(config *Config) error {
+	if !config.DisableFlannel {
+		switch config.CloudProvider {
+		case constants.CloudProviderAWS:
+			config.Env.Upsert("FLANNEL_BACKEND", "aws-vpc")
+		case constants.CloudProviderGCE:
+			config.Env.Upsert("FLANNEL_BACKEND", "gce")
+		default:
+			config.Env.Upsert("FLANNEL_BACKEND", "vxlan")
+		}
+
+		err := os.Symlink(
+			"/lib/systemd/system/flanneld.service",
+			path.Join(config.Rootfs, "/lib/systemd/system/multi-user.target.wants/"),
+		)
+		if err != nil && !os.IsExist(err) {
+			return trace.Wrap(err)
+		}
+
+		err = utils.SafeWriteFile(
+			path.Join(config.Rootfs, "/etc/cni/net.d/10-flannel.conflist"),
+			[]byte(flannelConflist),
+			constants.SharedReadMask,
+		)
+		if err != nil {
+			return trace.Wrap(err)
+		}
 	}
+	return nil
 }
+
+var flannelConflist = `
+{
+	"name": "cbr0",
+	"cniVersion": "0.3.1",
+	"plugins": [
+	  {
+		"type": "flannel",
+		"delegate": {
+		  "isDefaultGateway": true
+		}
+	  },
+	  {
+		"type": "portmap",
+		"capabilities": {
+		  "portMappings": true
+		}
+	  }
+	]
+}
+`
 
 const (
 	ETCDWorkDir              = "/ext/etcd"
