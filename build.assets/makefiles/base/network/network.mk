@@ -16,8 +16,7 @@ all: $(BINARIES) network.mk
 # Setup CNI and include flannel as a plugin
 	mkdir -p $(ROOTFS)/etc/cni/net.d/ $(ROOTFS)/opt/cni/bin
 	curl -L --retry 5 https://github.com/containernetworking/plugins/releases/download/v0.7.1/cni-plugins-amd64-v0.7.1.tgz \
-    | tar -xz -C $(ROOTFS)/opt/cni/bin ./bridge ./loopback ./host-local ./portmap ./tuning
-	ln -sf /usr/bin/flanneld $(ROOTFS)/opt/cni/bin/flanneld
+    | tar -xz -C $(ROOTFS)/opt/cni/bin ./bridge ./loopback ./host-local ./portmap ./tuning ./flannel
 
 # script that allows waiting for etcd to come up
 	mkdir -p $(ROOTFS)/usr/bin/scripts
