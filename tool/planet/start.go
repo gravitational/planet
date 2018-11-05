@@ -656,6 +656,14 @@ func mountSecrets(config *Config) {
 }
 
 func setupFlannel(config *Config) error {
+	// TODO(knisbet) remove this
+	// temporary debug option, that allows flannel to be disabled by touching a file on the filesystem
+	disableFile := "/var/lib/gravity/planet/share/gravity-disable-flannel"
+	if _, err := os.Stat(disableFile); !os.IsNotExist(err) {
+		log.Warn("disabling flannel by ouch file: ", disableFile)
+		return nil
+	}
+
 	if !config.DisableFlannel {
 		switch config.CloudProvider {
 		case constants.CloudProviderAWS:
@@ -682,7 +690,15 @@ func setupFlannel(config *Config) error {
 		if err != nil {
 			return trace.Wrap(err)
 		}
+		return nil
 	}
+
+	// When running flannel, historically we use etcd for IPAM, and don't use the kubernetes IPAM / NodeSpec.PodCIDR
+	// and we don't want this to mismatch what flannel is doing
+	// However, when flannel is disabled, other plugins may expect / rely on the kubernetes IPAM to be running
+	// so we'll configure it in this case.
+	config.Env.Upsert("KUBE_ENABLE_IPAM", "true")
+
 	return nil
 }
 
