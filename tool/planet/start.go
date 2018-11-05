@@ -664,42 +664,43 @@ func setupFlannel(config *Config) error {
 		return nil
 	}
 
-	if !config.DisableFlannel {
-		switch config.CloudProvider {
-		case constants.CloudProviderAWS:
-			config.Env.Upsert("FLANNEL_BACKEND", "aws-vpc")
-		case constants.CloudProviderGCE:
-			config.Env.Upsert("FLANNEL_BACKEND", "gce")
-		default:
-			config.Env.Upsert("FLANNEL_BACKEND", "vxlan")
-		}
-
-		err := os.Symlink(
-			"/lib/systemd/system/flanneld.service",
-			path.Join(config.Rootfs, "/lib/systemd/system/multi-user.target.wants/flanneld.service"),
-		)
-		if err != nil && !os.IsExist(err) {
-			return trace.Wrap(err)
-		}
-
-		err = utils.SafeWriteFile(
-			path.Join(config.Rootfs, "/etc/cni/net.d/10-flannel.conflist"),
-			[]byte(flannelConflist),
-			constants.SharedReadMask,
-		)
-		if err != nil {
-			return trace.Wrap(err)
-		}
+	config.Env.Upsert("KUBE_ENABLE_IPAM", "false")
+	if config.DisableFlannel {
+		// When running flannel, historically we use etcd for IPAM, and don't use the kubernetes IPAM / NodeSpec.PodCIDR
+		// and we don't want this to mismatch what flannel is doing
+		// However, when flannel is disabled, other plugins may expect / rely on the kubernetes IPAM to be running
+		// so we'll configure it in this case.
+		config.Env.Upsert("KUBE_ENABLE_IPAM", "true")
 		return nil
 	}
 
-	// When running flannel, historically we use etcd for IPAM, and don't use the kubernetes IPAM / NodeSpec.PodCIDR
-	// and we don't want this to mismatch what flannel is doing
-	// However, when flannel is disabled, other plugins may expect / rely on the kubernetes IPAM to be running
-	// so we'll configure it in this case.
-	config.Env.Upsert("KUBE_ENABLE_IPAM", "true")
+	switch config.CloudProvider {
+	case constants.CloudProviderAWS:
+		config.Env.Upsert("FLANNEL_BACKEND", "aws-vpc")
+	case constants.CloudProviderGCE:
+		config.Env.Upsert("FLANNEL_BACKEND", "gce")
+	default:
+		config.Env.Upsert("FLANNEL_BACKEND", "vxlan")
+	}
 
+	err := os.Symlink(
+		"/lib/systemd/system/flanneld.service",
+		path.Join(config.Rootfs, "/lib/systemd/system/multi-user.target.wants/flanneld.service"),
+	)
+	if err != nil && !os.IsExist(err) {
+		return trace.Wrap(err)
+	}
+
+	err = utils.SafeWriteFile(
+		path.Join(config.Rootfs, "/etc/cni/net.d/10-flannel.conflist"),
+		[]byte(flannelConflist),
+		constants.SharedReadMask,
+	)
+	if err != nil {
+		return trace.Wrap(err)
+	}
 	return nil
+
 }
 
 var flannelConflist = `
