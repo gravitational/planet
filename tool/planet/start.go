@@ -656,12 +656,14 @@ func mountSecrets(config *Config) {
 }
 
 func setupFlannel(config *Config) error {
+	_ = os.Remove(path.Join(config.Rootfs, "/lib/systemd/system/multi-user.target.wants/flanneld.service"))
+
 	// TODO(knisbet) remove this
 	// temporary debug option, that allows flannel to be disabled by touching a file on the filesystem
 	disableFile := "/var/lib/gravity/planet/share/gravity-disable-flannel"
 	if _, err := os.Stat(disableFile); !os.IsNotExist(err) {
-		log.Warn("disabling flannel by ouch file: ", disableFile)
-		return nil
+		log.Warn("disabling flannel by touch file: ", disableFile)
+		config.DisableFlannel = true
 	}
 
 	config.Env.Upsert("KUBE_ENABLE_IPAM", "false")
