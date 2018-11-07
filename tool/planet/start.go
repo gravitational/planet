@@ -658,20 +658,12 @@ func mountSecrets(config *Config) {
 func setupFlannel(config *Config) error {
 	_ = os.Remove(path.Join(config.Rootfs, "/lib/systemd/system/multi-user.target.wants/flanneld.service"))
 
-	// TODO(knisbet) remove this
-	// temporary debug option, that allows flannel to be disabled by touching a file on the filesystem
-	disableFile := "/var/lib/gravity/planet/share/gravity-disable-flannel"
-	if _, err := os.Stat(disableFile); !os.IsNotExist(err) {
-		log.Warn("disabling flannel by touch file: ", disableFile)
-		config.DisableFlannel = true
-	}
-
 	config.Env.Upsert("KUBE_ENABLE_IPAM", "false")
 	if config.DisableFlannel {
-		// When running flannel, historically we use etcd for IPAM, and don't use the kubernetes IPAM / NodeSpec.PodCIDR
-		// and we don't want this to mismatch what flannel is doing
-		// However, when flannel is disabled, other plugins may expect / rely on the kubernetes IPAM to be running
-		// so we'll configure it in this case.
+		// Historically we use etcd for IPAM when running flannel
+		// In this case, we don't want to run the kubernetes IPAM, as the NodeSpec.PodCIDR may not match the flannel IPAM
+		// Other plugins may want the kubernetes IPAM enabled, but unless we pass configuration we won't know.
+		// For now, if flannel is disabled, assume the kubernetes IPAM should be enabled.
 		config.Env.Upsert("KUBE_ENABLE_IPAM", "true")
 		return nil
 	}
