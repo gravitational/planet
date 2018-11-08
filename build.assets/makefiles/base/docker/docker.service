@@ -13,7 +13,7 @@ Type=notify
 ExecStartPre=-/sbin/ip link set dev docker0 down
 ExecStartPre=-/sbin/brctl delbr docker0
 ExecStartPre=-/bin/rm -f /var/run/docker.pid
-ExecStart=/usr/bin/dockerd  --iptables=false --ip-masq=false --bip=${FLANNEL_SUBNET} --graph=/ext/docker $DOCKER_OPTS
+ExecStart=/usr/bin/dockerd  --iptables=false --ip-masq=false --graph=/ext/docker $DOCKER_OPTS
 ExecReload=/bin/kill -s HUP $MAINPID
 # Having non-zero Limit*s causes performance problems due to accounting overhead
 # in the kernel. We recommend using cgroups to do container-local accounting.
