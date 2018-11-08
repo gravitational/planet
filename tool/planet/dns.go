@@ -91,7 +91,7 @@ T:
 	// make sure we generate a default configuration during startup
 	monitor.processCoreDNSConfigChange(nil)
 
-	monitor.monitorConfigMap(ctx, client)
+	//monitor.monitorConfigMap(ctx, client)
 }
 
 // getAddressesByInterface inspects the local network interfaces, and returns a list of
