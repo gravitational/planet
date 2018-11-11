@@ -46,9 +46,7 @@ func runCoreDNSMonitor(ctx context.Context, config coreDNSConfig) error {
 }
 
 func coreDNSLoop(ctx context.Context, config coreDNSConfig, client *kube.Clientset) {
-	monitor := coreDNSMonitor{
-		config: config,
-	}
+	monitor := coreDNSMonitor{}
 
 	// make sure we generate a default configuration during startup
 	monitor.processPodChange(nil)
@@ -60,7 +58,7 @@ func (c *coreDNSMonitor) monitorDNSPod(ctx context.Context, client *kube.Clients
 	c.store, c.controller = cache.NewInformer(
 		&cache.ListWatch{
 			ListFunc: func(options metav1.ListOptions) (runtime.Object, error) {
-				options.FieldSelector = fields.OneTermEqualSelector("spec.nodeName", os.Getenv(EnvNodeName)).string()
+				options.FieldSelector = fields.OneTermEqualSelector("spec.nodeName", os.Getenv(EnvNodeName)).String()
 				options.LabelSelector = labels.Set{
 					"k8s-app": "kube-dns",
 				}.AsSelector().String()
@@ -68,7 +66,7 @@ func (c *coreDNSMonitor) monitorDNSPod(ctx context.Context, client *kube.Clients
 				return client.CoreV1().Pods(metav1.NamespaceSystem).List(options)
 			},
 			WatchFunc: func(options metav1.ListOptions) (watch.Interface, error) {
-				options.FieldSelector = fields.OneTermEqualSelector("spec.nodeName", os.Getenv(EnvNodeName)).string()
+				options.FieldSelector = fields.OneTermEqualSelector("spec.nodeName", os.Getenv(EnvNodeName)).String()
 				options.LabelSelector = labels.Set{
 					"k8s-app": "kube-dns",
 				}.AsSelector().String()
@@ -126,7 +124,7 @@ func (c *coreDNSMonitor) processPodChange(newObj interface{}) {
 	err = utils.SafeWriteFile(DNSEnvFile, []byte(line), constants.SharedReadMask)
 	if err != nil {
 		log.Warnf("Failed to write overlay environment %v: %v", DNSEnvFile, err)
-		continue
+		return
 	}
 
 	err = exec.Command("systemctl", "restart", "kube-kubelet").Run()
