@@ -36,7 +36,7 @@ type coreDNSMonitor struct {
 // it will monitor k8s for a configmap, and use the configmap to generate the local coredns configuration
 // if the configmap isn't present, it will generate the configuration based on defaults
 func runCoreDNSMonitor(ctx context.Context, config coreDNSConfig) error {
-	client, err := cmd.GetKubeClientFromPath(constants.CoreDNSConfigPath)
+	client, err := cmd.GetKubeClientFromPath(constants.KubeletConfigPath)
 	if err != nil {
 		return trace.Wrap(err)
 	}
@@ -74,7 +74,7 @@ func (c *coreDNSMonitor) monitorDNSPod(ctx context.Context, client *kube.Clients
 				return client.CoreV1().Pods(metav1.NamespaceSystem).Watch(options)
 			},
 		},
-		&api.ConfigMap{},
+		&api.Pod{},
 		15*time.Minute,
 		cache.ResourceEventHandlerFuncs{
 			AddFunc:    c.add,
