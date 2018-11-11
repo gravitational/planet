@@ -118,7 +118,7 @@ const (
 
 	// EnvOverlayAddresses is an environment variable with a comma separated list of
 	// IPv4 addresses assigned to the overlay network interface of the host
-	EnvOverlayAddresses = "OVERLAY_ADDRESSES"
+	EnvDNSAddresses = "DNS_ADDRESSES"
 
 	// EnvPlanetAgentCAFile names the environment variable that specifies the location
 	// of the agent ca certificate file
@@ -304,7 +304,7 @@ const (
 
 	// OverlayEnvFile specifies the file location to write information about the overlay network
 	// in use to be picked up by scripts
-	OverlayEnvFile = "/run/overlay.env"
+	DNSEnvFile = "/run/dns.env"
 
 	// ServiceUser specifies the name of the service user as seen inside the container.
 	// Service user inside the container will be mapped to an existing user (not necessarily

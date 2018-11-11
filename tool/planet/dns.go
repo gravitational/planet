@@ -3,11 +3,12 @@ package main
 import (
 	"context"
 	"fmt"
-	"net"
+	"os"
 	"os/exec"
-	"path/filepath"
 	"strings"
 	"time"
+
+	"k8s.io/apimachinery/pkg/labels"
 
 	"github.com/gravitational/planet/lib/constants"
 	"github.com/gravitational/planet/lib/utils"
@@ -26,9 +27,9 @@ import (
 )
 
 type coreDNSMonitor struct {
-	config     coreDNSConfig
 	controller cache.Controller
 	store      cache.Store
+	client     *kube.Clientset
 }
 
 // runCoreDNSMonitor updates local coreDNS configuration
@@ -45,111 +46,34 @@ func runCoreDNSMonitor(ctx context.Context, config coreDNSConfig) error {
 }
 
 func coreDNSLoop(ctx context.Context, config coreDNSConfig, client *kube.Clientset) {
-	var overlayAddrs []string
-	var err error
-
-	// Try and retrieve the IP address assigned to our network interface in the overlay network
-	// this may not be available when we start, so we loop forever in a background routine
-	// until it becomes available
-	ticker := time.NewTicker(5 * time.Second)
-T:
-	for {
-		select {
-		case <-ticker.C:
-			overlayAddrs, err = getAddressesByInterface(constants.OverlayInterfaceName)
-			if err != nil {
-				if trace.IsNotFound(err) {
-					continue
-				}
-				log.Warnf("Unexpected error attempting to find interface %v addresses: %v",
-					constants.OverlayInterfaceName, trace.DebugReport(err))
-			}
-
-			line := fmt.Sprintf("%v=\"%v\"\n", EnvOverlayAddresses, strings.Join(overlayAddrs, ","))
-			log.Debug("Creating overlay env: ", line)
-			err = utils.SafeWriteFile(OverlayEnvFile, []byte(line), constants.SharedReadMask)
-			if err != nil {
-				log.Warnf("Failed to write overlay environment %v: %v", OverlayEnvFile, err)
-				continue
-			}
-
-			break T
-
-		case <-ctx.Done():
-			return
-		}
-	}
-	ticker.Stop()
-
-	// replace the ListenAddrs with the overlay network address(es)
-	// since this is replacing the cluster dns IP
-	config.ListenAddrs = overlayAddrs
 	monitor := coreDNSMonitor{
 		config: config,
 	}
 
 	// make sure we generate a default configuration during startup
-	monitor.processCoreDNSConfigChange(nil)
+	monitor.processPodChange(nil)
 
-	//monitor.monitorConfigMap(ctx, client)
+	monitor.monitorDNSPod(ctx, client)
 }
 
-// getAddressesByInterface inspects the local network interfaces, and returns a list of
-// IPv4 addresses assigned to the interface
-func getAddressesByInterface(iface string) ([]string, error) {
-	ifaces, err := net.Interfaces()
-	if err != nil {
-		return nil, trace.Wrap(err)
-	}
-	for _, i := range ifaces {
-		if i.Name != iface {
-			continue
-		}
-		a, err := i.Addrs()
-		if err != nil {
-			return nil, trace.Wrap(err)
-		}
-		addrs := make([]string, 0)
-		for _, addr := range a {
-			var ip net.IP
-			switch v := addr.(type) {
-			case *net.IPNet:
-				ip = v.IP
-			case *net.IPAddr:
-				ip = v.IP
-			}
-			if ip == nil || ip.IsLoopback() {
-				continue
-			}
-			if ip.To4() != nil {
-				addrs = append(addrs, ip.String())
-			}
-		}
-		if len(addrs) > 0 {
-			return addrs, nil
-		}
-		return nil, trace.NotFound("no addresses found on %v", iface)
-
-	}
-	return nil, trace.NotFound("interface %v not found", iface)
-}
-
-func (c *coreDNSMonitor) monitorConfigMap(ctx context.Context, client *kube.Clientset) {
+func (c *coreDNSMonitor) monitorDNSPod(ctx context.Context, client *kube.Clientset) {
 	c.store, c.controller = cache.NewInformer(
 		&cache.ListWatch{
 			ListFunc: func(options metav1.ListOptions) (runtime.Object, error) {
-				options.FieldSelector = fields.OneTermEqualSelector(
-					"metadata.name",
-					constants.CoreDNSConfigMapName,
-				).String()
-				return client.CoreV1().ConfigMaps(metav1.NamespaceSystem).List(options)
+				options.FieldSelector = fields.OneTermEqualSelector("spec.nodeName", os.Getenv(EnvNodeName)).string()
+				options.LabelSelector = labels.Set{
+					"k8s-app": "kube-dns",
+				}.AsSelector().String()
+
+				return client.CoreV1().Pods(metav1.NamespaceSystem).List(options)
 			},
 			WatchFunc: func(options metav1.ListOptions) (watch.Interface, error) {
-				options.FieldSelector = fields.OneTermEqualSelector(
-					"metadata.name",
-					constants.CoreDNSConfigMapName,
-				).String()
-				return client.CoreV1().ConfigMaps(metav1.NamespaceSystem).Watch(options)
+				options.FieldSelector = fields.OneTermEqualSelector("spec.nodeName", os.Getenv(EnvNodeName)).string()
+				options.LabelSelector = labels.Set{
+					"k8s-app": "kube-dns",
+				}.AsSelector().String()
+
+				return client.CoreV1().Pods(metav1.NamespaceSystem).Watch(options)
 			},
 		},
 		&api.ConfigMap{},
@@ -164,50 +88,49 @@ func (c *coreDNSMonitor) monitorConfigMap(ctx context.Context, client *kube.Clie
 }
 
 func (c *coreDNSMonitor) add(obj interface{}) {
-	c.processCoreDNSConfigChange(obj)
+	c.processPodChange(obj)
 }
 
 func (c *coreDNSMonitor) delete(obj interface{}) {
-	c.processCoreDNSConfigChange(nil)
+	c.processPodChange(nil)
 }
 
 func (c *coreDNSMonitor) update(oldObj, newObj interface{}) {
-	c.processCoreDNSConfigChange(newObj)
+	c.processPodChange(newObj)
 }
 
-func (c *coreDNSMonitor) processCoreDNSConfigChange(newObj interface{}) {
-	// If we have a configuration we can use from a kubernetes configmap
-	// use it as a template to generate our config, otherwise, generate
-	// using the default template embedded
-	template := coreDNSTemplate
-	if newObj != nil {
-		configMap, ok := newObj.(*api.ConfigMap)
-		if !ok {
-			log.Errorf("Received unexpected object callback: %T", newObj)
-			return
-		}
+func (c *coreDNSMonitor) processPodChange(newObj interface{}) {
+	log.Info("processPodChange: ", spew.Sdump(newObj))
 
-		t, ok := configMap.Data["Corefile"]
-		if !ok {
-			log.Warn("Received configmap doesn't contain Corefile data: ", spew.Sdump(configMap))
-		} else {
-			template = t
-		}
-	}
-
-	config, err := generateCoreDNSConfig(c.config, template)
-	if err != nil {
-		log.Error("Failed to template coredns configuration: ", err)
+	pod, ok := newObj.(*api.Pod)
+	if !ok {
+		log.Errorf("Received unexpected object callback: %T", newObj)
 		return
 	}
 
-	err = utils.SafeWriteFile(filepath.Join(CoreDNSClusterConf), []byte(config), SharedFileMask)
-	if err != nil {
-		log.Errorf("Failed to write coredns configuration to %v: %v", CoreDNSClusterConf, err)
+	var resolverIPs []string
+	if newObj != nil {
+		resolverIPs = append(resolverIPs, pod.Status.PodIP)
 	}
 
-	err = exec.Command("killall", "-SIGUSR1", "coredns").Run()
+	// try and locate the kube-dns svc clusterIP
+	svc, err := c.client.CoreV1().Services(metav1.NamespaceSystem).Get("kube-dns", metav1.GetOptions{})
 	if err != nil {
-		log.Errorf("Error sending SIGUSR1 to coredns: %v", err)
+		log.Error("failed to retrieve kube-dns service: ", err)
+	} else {
+		resolverIPs = append(resolverIPs, svc.Spec.ClusterIP)
+	}
+
+	line := fmt.Sprintf("%v=\"%v\"\n", EnvDNSAddresses, strings.Join(resolverIPs, ","))
+	log.Debug("Creating dns env: ", line)
+	err = utils.SafeWriteFile(DNSEnvFile, []byte(line), constants.SharedReadMask)
+	if err != nil {
+		log.Warnf("Failed to write overlay environment %v: %v", DNSEnvFile, err)
+		continue
+	}
+
+	err = exec.Command("systemctl", "restart", "kube-kubelet").Run()
+	if err != nil {
+		log.Errorf("Error restart kubelet: %v", err)
 	}
 }
