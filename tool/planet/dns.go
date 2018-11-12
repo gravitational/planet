@@ -52,7 +52,7 @@ func runCoreDNSMonitor(ctx context.Context, config coreDNSConfig) error {
 	}
 
 	monitor.processPodChange(nil)
-	go monitor.monitorDNSPod(ctx, client)
+	go monitor.monitorDNSPod(ctx)
 
 	return nil
 }
