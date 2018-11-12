@@ -43,8 +43,10 @@ func runCoreDNSMonitor(ctx context.Context, config coreDNSConfig) error {
 		return trace.Wrap(err)
 	}
 
-	monitor := coreDNSMonitor{}
-	err = monitor.waitForDNSService()
+	monitor := coreDNSMonitor{
+		client: client,
+	}
+	err = monitor.waitForDNSService(ctx)
 	if err != nil {
 		return trace.Wrap(err)
 	}
@@ -55,9 +57,9 @@ func runCoreDNSMonitor(ctx context.Context, config coreDNSConfig) error {
 	return nil
 }
 
-func (c *coreDNSMonitor) waitForDNSService() error {
+func (c *coreDNSMonitor) waitForDNSService(ctx context.Context) error {
 	log.Info("Looking for kube-dns service IP address")
-	err := utils.Retry(context.TODO(), math.MaxInt64, 1*time.Second, func() error {
+	err := utils.Retry(ctx, math.MaxInt64, 1*time.Second, func() error {
 		// try and locate the kube-dns svc clusterIP
 		svc, err := c.client.CoreV1().Services(metav1.NamespaceSystem).Get("kube-dns", metav1.GetOptions{})
 		if err != nil {
@@ -70,7 +72,7 @@ func (c *coreDNSMonitor) waitForDNSService() error {
 	return trace.Wrap(err)
 }
 
-func (c *coreDNSMonitor) monitorDNSPod(ctx context.Context, client *kube.Clientset) {
+func (c *coreDNSMonitor) monitorDNSPod(ctx context.Context) {
 	c.store, c.controller = cache.NewInformer(
 		&cache.ListWatch{
 			ListFunc: func(options metav1.ListOptions) (runtime.Object, error) {
@@ -79,7 +81,7 @@ func (c *coreDNSMonitor) monitorDNSPod(ctx context.Context, client *kube.Clients
 					"k8s-app": "kube-dns",
 				}.AsSelector().String()
 
-				return client.CoreV1().Pods(metav1.NamespaceSystem).List(options)
+				return c.client.CoreV1().Pods(metav1.NamespaceSystem).List(options)
 			},
 			WatchFunc: func(options metav1.ListOptions) (watch.Interface, error) {
 				options.FieldSelector = fields.OneTermEqualSelector("spec.nodeName", os.Getenv(EnvNodeName)).String()
@@ -87,7 +89,7 @@ func (c *coreDNSMonitor) monitorDNSPod(ctx context.Context, client *kube.Clients
 					"k8s-app": "kube-dns",
 				}.AsSelector().String()
 
-				return client.CoreV1().Pods(metav1.NamespaceSystem).Watch(options)
+				return c.client.CoreV1().Pods(metav1.NamespaceSystem).Watch(options)
 			},
 		},
 		&api.Pod{},
