@@ -31,11 +31,8 @@ func (_ *StartSuite) TestCoreDNSConf(c *check.C) {
 					"override2.com": []string{"1.2.3.4"},
 				},
 				UpstreamNameservers: []string{"1.1.1.1", "8.8.8.8"},
-				Import:              true,
 			},
 			`
-import /etc/coredns/configmaps/*
-
 .:53 {
   reload
   bind 127.0.0.2 127.0.0.3 
@@ -49,7 +46,7 @@ import /etc/coredns/configmaps/*
   kubernetes cluster.local in-addr.arpa ip6.arpa {
     endpoint https://leader.telekube.local:6443
     tls /var/state/coredns.cert /var/state/coredns.key /var/state/root.cert
-    pods disabled
+    pods verified
     fallthrough in-addr.arpa ip6.arpa
   }
   proxy example.com 1.1.1.1 2.2.2.2 {
@@ -71,11 +68,8 @@ import /etc/coredns/configmaps/*
 				ListenAddrs:         []string{"127.0.0.2"},
 				UpstreamNameservers: []string{"1.1.1.1"},
 				Rotate:              true,
-				Import:              true,
 			},
 			`
-import /etc/coredns/configmaps/*
-
 .:55 {
   reload
   bind 127.0.0.2 
@@ -86,7 +80,7 @@ import /etc/coredns/configmaps/*
   kubernetes cluster.local in-addr.arpa ip6.arpa {
     endpoint https://leader.telekube.local:6443
     tls /var/state/coredns.cert /var/state/coredns.key /var/state/root.cert
-    pods disabled
+    pods verified
     fallthrough in-addr.arpa ip6.arpa
   }
   forward . 1.1.1.1 {
