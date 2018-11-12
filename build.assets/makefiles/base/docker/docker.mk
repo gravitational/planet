@@ -14,6 +14,7 @@ service:
 # install docker daemon service
 	@echo "\n---> Installing Docker:\n"
 	cp -af ./docker.service $(ROOTFS)/lib/systemd/system/docker.service
+	cp -af ./docker.socket $(ROOTFS)/lib/systemd/system/docker.socket
 	ln -sf /lib/systemd/system/docker.service  $(ROOTFS)/lib/systemd/system/multi-user.target.wants/
 
 .PHONY: scripts
