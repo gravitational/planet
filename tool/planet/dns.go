@@ -4,7 +4,6 @@ import (
 	"context"
 	"fmt"
 	"math"
-	"net"
 	"os"
 	"os/exec"
 	"strings"
@@ -32,7 +31,7 @@ type coreDNSMonitor struct {
 	controller   cache.Controller
 	store        cache.Store
 	client       *kube.Clientset
-	clusterDNSIP net.IP
+	clusterDNSIP string
 }
 
 // runCoreDNSMonitor updates local coreDNS configuration
@@ -58,7 +57,7 @@ func runCoreDNSMonitor(ctx context.Context, config coreDNSConfig) error {
 
 func (c *coreDNSMonitor) waitForDNSService() error {
 	log.Info("Looking for kube-dns service IP address")
-	err := utils.Retry(context.TODO(), math.MaxInt64, 1*time.Second, func() {
+	err := utils.Retry(context.TODO(), math.MaxInt64, 1*time.Second, func() error {
 		// try and locate the kube-dns svc clusterIP
 		svc, err := c.client.CoreV1().Services(metav1.NamespaceSystem).Get("kube-dns", metav1.GetOptions{})
 		if err != nil {
@@ -135,7 +134,7 @@ func (c *coreDNSMonitor) processPodChange(newObj interface{}) {
 
 	line := fmt.Sprintf("%v=\"%v\"\n", EnvDNSAddresses, strings.Join(resolverIPs, ","))
 	log.Debug("Creating dns env: ", line)
-	err = utils.SafeWriteFile(DNSEnvFile, []byte(line), constants.SharedReadMask)
+	err := utils.SafeWriteFile(DNSEnvFile, []byte(line), constants.SharedReadMask)
 	if err != nil {
 		log.Warnf("Failed to write overlay environment %v: %v", DNSEnvFile, err)
 		return
