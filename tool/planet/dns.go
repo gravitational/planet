@@ -3,6 +3,8 @@ package main
 import (
 	"context"
 	"fmt"
+	"math"
+	"net"
 	"os"
 	"os/exec"
 	"strings"
@@ -27,9 +29,10 @@ import (
 )
 
 type coreDNSMonitor struct {
-	controller cache.Controller
-	store      cache.Store
-	client     *kube.Clientset
+	controller   cache.Controller
+	store        cache.Store
+	client       *kube.Clientset
+	clusterDNSIP net.IP
 }
 
 // runCoreDNSMonitor updates local coreDNS configuration
@@ -41,17 +44,31 @@ func runCoreDNSMonitor(ctx context.Context, config coreDNSConfig) error {
 		return trace.Wrap(err)
 	}
 
-	go coreDNSLoop(ctx, config, client)
+	monitor := coreDNSMonitor{}
+	err = monitor.waitForDNSService()
+	if err != nil {
+		return trace.Wrap(err)
+	}
+
+	monitor.processPodChange(nil)
+	go monitor.monitorDNSPod(ctx, client)
+
 	return nil
 }
 
-func coreDNSLoop(ctx context.Context, config coreDNSConfig, client *kube.Clientset) {
-	monitor := coreDNSMonitor{}
-
-	// make sure we generate a default configuration during startup
-	monitor.processPodChange(nil)
-
-	monitor.monitorDNSPod(ctx, client)
+func (c *coreDNSMonitor) waitForDNSService() error {
+	log.Info("Looking for kube-dns service IP address")
+	err := utils.Retry(context.TODO(), math.MaxInt64, 1*time.Second, func() {
+		// try and locate the kube-dns svc clusterIP
+		svc, err := c.client.CoreV1().Services(metav1.NamespaceSystem).Get("kube-dns", metav1.GetOptions{})
+		if err != nil {
+			log.Error("failed to retrieve kube-dns service: ", err)
+			return trace.Wrap(err)
+		}
+		c.clusterDNSIP = svc.Spec.ClusterIP
+		return nil
+	})
+	return trace.Wrap(err)
 }
 
 func (c *coreDNSMonitor) monitorDNSPod(ctx context.Context, client *kube.Clientset) {
@@ -99,25 +116,22 @@ func (c *coreDNSMonitor) update(oldObj, newObj interface{}) {
 
 func (c *coreDNSMonitor) processPodChange(newObj interface{}) {
 	log.Info("processPodChange: ", spew.Sdump(newObj))
-
-	pod, ok := newObj.(*api.Pod)
-	if !ok {
-		log.Errorf("Received unexpected object callback: %T", newObj)
-		return
-	}
-
 	var resolverIPs []string
+
 	if newObj != nil {
-		resolverIPs = append(resolverIPs, pod.Status.PodIP)
+		pod, ok := newObj.(*api.Pod)
+		if !ok {
+			log.Errorf("Received unexpected object callback: %T", newObj)
+			return
+		}
+
+		if newObj != nil {
+			resolverIPs = append(resolverIPs, pod.Status.PodIP)
+		}
 	}
 
-	// try and locate the kube-dns svc clusterIP
-	svc, err := c.client.CoreV1().Services(metav1.NamespaceSystem).Get("kube-dns", metav1.GetOptions{})
-	if err != nil {
-		log.Error("failed to retrieve kube-dns service: ", err)
-	} else {
-		resolverIPs = append(resolverIPs, svc.Spec.ClusterIP)
-	}
+	// make sure, the cluster DNS is always the second in the list
+	resolverIPs = append(resolverIPs, c.clusterDNSIP)
 
 	line := fmt.Sprintf("%v=\"%v\"\n", EnvDNSAddresses, strings.Join(resolverIPs, ","))
 	log.Debug("Creating dns env: ", line)
@@ -127,6 +141,7 @@ func (c *coreDNSMonitor) processPodChange(newObj interface{}) {
 		return
 	}
 
+	// restart kubelet, so it picks up the new DNS settings
 	err = exec.Command("systemctl", "restart", "kube-kubelet").Run()
 	if err != nil {
 		log.Errorf("Error restart kubelet: %v", err)
