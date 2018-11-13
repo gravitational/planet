@@ -260,7 +260,7 @@ func runAgent(conf *agent.Config, monitoringConf *monitoring.Config, leaderConf 
 	}
 	defer client.Close()
 
-	err = setupCoredns(ctx)
+	err = setupResolver(ctx, monitoringConf.Role)
 	if err != nil {
 		return trace.Wrap(err)
 	}
