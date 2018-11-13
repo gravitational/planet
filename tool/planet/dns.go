@@ -7,8 +7,6 @@ import (
 	"os/exec"
 	"time"
 
-	"github.com/gravitational/rigging"
-
 	"github.com/gravitational/planet/lib/constants"
 	"github.com/gravitational/planet/lib/utils"
 	log "github.com/sirupsen/logrus"
@@ -57,12 +55,12 @@ func getEnvDNSAddresses(client *kubernetes.Clientset, role agent.Role) (string, 
 	// try and locate the kube-dns svc clusterIP
 	svcMaster, err := client.CoreV1().Services(metav1.NamespaceSystem).Get("kube-dns", metav1.GetOptions{})
 	if err != nil {
-		return "", rigging.ConvertError(err)
+		return "", trace.Wrap(err)
 	}
 
 	svcWorker, err := client.CoreV1().Services(metav1.NamespaceSystem).Get("kube-dns-worker", metav1.GetOptions{})
 	if err != nil {
-		return "", rigging.ConvertError(err)
+		return "", trace.Wrap(err)
 	}
 
 	if svcMaster.Spec.ClusterIP == "" {
