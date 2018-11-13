@@ -471,7 +471,7 @@ func setCoreDNS(config *Config) error {
 		return trace.Wrap(err)
 	}
 
-	corednsConfig, err := generateCoreDNSConfig(coreDNSConfig{
+	corednsConfig, err := generateCorednsConfig(corednsConfig{
 		Zones:               config.DNS.Zones,
 		Hosts:               config.DNS.Hosts,
 		ListenAddrs:         config.DNS.ListenAddrs,
@@ -479,7 +479,7 @@ func setCoreDNS(config *Config) error {
 		UpstreamNameservers: resolv.Servers,
 		Rotate:              resolv.Rotate,
 		Import:              true,
-	}, coreDNSTemplate)
+	}, corednsTemplate)
 	if err != nil {
 		return trace.Wrap(err)
 	}
@@ -492,7 +492,7 @@ func setCoreDNS(config *Config) error {
 	return nil
 }
 
-func generateCoreDNSConfig(config coreDNSConfig, tpl string) (string, error) {
+func generateCorednsConfig(config corednsConfig, tpl string) (string, error) {
 	parsed, err := template.New("coredns").Parse(tpl)
 	if err != nil {
 		return "", trace.Wrap(err)
@@ -506,7 +506,7 @@ func generateCoreDNSConfig(config coreDNSConfig, tpl string) (string, error) {
 	return coredns.String(), nil
 }
 
-type coreDNSConfig struct {
+type corednsConfig struct {
 	Zones               map[string][]string
 	Hosts               map[string][]string
 	ListenAddrs         []string
@@ -516,7 +516,8 @@ type coreDNSConfig struct {
 	Import              bool
 }
 
-var coreDNSTemplate = `
+var corednsTemplate = `
+{{if .Import}}import /etc/coredns/configmaps/*{{end}}
 .:{{.Port}} {
   reload
   bind {{range $bind := .ListenAddrs}}{{$bind}} {{end}}

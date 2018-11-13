@@ -15,11 +15,11 @@ var _ = check.Suite(&StartSuite{})
 
 func (_ *StartSuite) TestCoreDNSConf(c *check.C) {
 	var configTable = []struct {
-		config   coreDNSConfig
+		config   corednsConfig
 		expected string
 	}{
 		{
-			coreDNSConfig{
+			corednsConfig{
 				ListenAddrs: []string{"127.0.0.2", "127.0.0.3"},
 				Port:        53,
 				Zones: map[string][]string{
@@ -31,8 +31,10 @@ func (_ *StartSuite) TestCoreDNSConf(c *check.C) {
 					"override2.com": []string{"1.2.3.4"},
 				},
 				UpstreamNameservers: []string{"1.1.1.1", "8.8.8.8"},
+				Import:              true,
 			},
 			`
+import /etc/coredns/configmaps/*
 .:53 {
   reload
   bind 127.0.0.2 127.0.0.3 
@@ -63,13 +65,15 @@ func (_ *StartSuite) TestCoreDNSConf(c *check.C) {
 `,
 		},
 		{
-			coreDNSConfig{
+			corednsConfig{
 				Port:                55,
 				ListenAddrs:         []string{"127.0.0.2"},
 				UpstreamNameservers: []string{"1.1.1.1"},
 				Rotate:              true,
+				Import:              true,
 			},
 			`
+import /etc/coredns/configmaps/*
 .:55 {
   reload
   bind 127.0.0.2 
@@ -93,7 +97,7 @@ func (_ *StartSuite) TestCoreDNSConf(c *check.C) {
 	}
 
 	for _, tt := range configTable {
-		config, err := generateCoreDNSConfig(tt.config, coreDNSTemplate)
+		config, err := generateCorednsConfig(tt.config, corednsTemplate)
 
 		c.Assert(err, check.IsNil)
 		c.Assert(config, check.Equals, tt.expected)

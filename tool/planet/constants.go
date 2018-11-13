@@ -302,7 +302,7 @@ const (
 	// DefaultVxlanPort is the default overlay network port
 	DefaultVxlanPort = 8472
 
-	// OverlayEnvFile specifies the file location to write information about the overlay network
+	// DNSEnvFile specifies the file location to write information about the overlay network
 	// in use to be picked up by scripts
 	DNSEnvFile = "/run/dns.env"
 
