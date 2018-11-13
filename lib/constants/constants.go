@@ -9,14 +9,12 @@ const (
 	ProxyConfigPath = "/etc/kubernetes/proxy.kubeconfig"
 	// KubeletConfigPath is the path to kubelet configuration file
 	KubeletConfigPath = "/etc/kubernetes/kubelet.kubeconfig"
-	// CorednsConfigPath is the path to coredns configuration file
-	CorednsConfigPath = "/etc/kubernetes/coredns.kubeconfig"
 
 	// DNSResourceName specifies the name for the DNS resources
 	DNSResourceName = "kube-dns"
 
-	// CorednsConfigMapName is the location of the user supplied configmap for CoreDNS configuration
-	CorednsConfigMapName = "coredns"
+	// CoreDNSConfigMapName is the location of the user supplied configmap for CoreDNS configuration
+	CoreDNSConfigMapName = "coredns"
 
 	// ExitCodeUnknown is equivalent to EX_SOFTWARE as defined by sysexits(3)
 	ExitCodeUnknown = 70

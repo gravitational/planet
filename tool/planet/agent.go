@@ -260,11 +260,7 @@ func runAgent(conf *agent.Config, monitoringConf *monitoring.Config, leaderConf 
 	}
 	defer client.Close()
 
-	err = setupCoredns(ctx, corednsConfig{
-		UpstreamNameservers: monitoringConf.UpstreamNameservers,
-		Zones:               monitoringConf.DNSZones,
-		Port:                DNSPort,
-	})
+	err = setupCoredns(ctx)
 	if err != nil {
 		return trace.Wrap(err)
 	}
