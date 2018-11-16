@@ -4,7 +4,9 @@ import (
 	"context"
 	"fmt"
 	"math"
+	"os"
 	"os/exec"
+	"strings"
 	"time"
 
 	"github.com/gravitational/planet/lib/constants"
@@ -26,17 +28,18 @@ func setupResolver(ctx context.Context, role agent.Role) error {
 	}
 
 	err = utils.Retry(ctx, math.MaxInt64, 1*time.Second, func() error {
-		env, err := getEnvDNSAddresses(client, role)
-		if err != nil {
-			return trace.Wrap(err)
-		}
-
-		return trace.Wrap(writeEnvDNSAddresses(env))
+		return trace.Wrap(updateEnvDNSAddresses(client, role))
 	})
 	return trace.Wrap(err)
 }
 
-func writeEnvDNSAddresses(env string) error {
+func writeEnvDNSAddresses(addr []string, overwrite bool) error {
+	env := fmt.Sprintf("%v=\"%v\"\n", EnvDNSAddresses, strings.Join(addr, ","))
+
+	if _, err := os.Stat(DNSEnvFile); !os.IsNotExist(err) && overwrite {
+		return nil
+	}
+
 	err := utils.SafeWriteFile(DNSEnvFile, []byte(env), constants.SharedReadMask)
 	if err != nil {
 		return trace.Wrap(err)
@@ -51,23 +54,28 @@ func writeEnvDNSAddresses(env string) error {
 	return nil
 }
 
-func getEnvDNSAddresses(client *kubernetes.Clientset, role agent.Role) (string, error) {
+func updateEnvDNSAddresses(client *kubernetes.Clientset, role agent.Role) error {
 	// try and locate the kube-dns svc clusterIP
 	svcMaster, err := client.CoreV1().Services(metav1.NamespaceSystem).Get("kube-dns", metav1.GetOptions{})
 	if err != nil {
-		return "", trace.Wrap(err)
+		return trace.Wrap(err)
+	}
+
+	if svcMaster.Spec.ClusterIP == "" {
+		return trace.BadParameter("service/kube-dns Spec.ClusterIP is empty")
 	}
 
 	svcWorker, err := client.CoreV1().Services(metav1.NamespaceSystem).Get("kube-dns-worker", metav1.GetOptions{})
 	if err != nil {
-		return "", trace.Wrap(err)
+		// try and write just the master IP if we're not able to find the worker ip
+		_ = writeEnvDNSAddresses([]string{svcMaster.Spec.ClusterIP}, false)
+		return trace.Wrap(err)
 	}
 
-	if svcMaster.Spec.ClusterIP == "" {
-		return "", trace.BadParameter("service/kube-dns Spec.ClusterIP is empty")
-	}
 	if svcWorker.Spec.ClusterIP == "" {
-		return "", trace.BadParameter("service/kube-dns-worker Spec.ClusterIP is empty")
+		// try and write just the master IP if we're not able to find the worker ip
+		_ = writeEnvDNSAddresses([]string{svcMaster.Spec.ClusterIP}, false)
+		return trace.BadParameter("service/kube-dns-worker Spec.ClusterIP is empty")
 	}
 
 	// If we're a master server, only use the master servers as a resolver.
@@ -76,8 +84,7 @@ func getEnvDNSAddresses(client *kubernetes.Clientset, role agent.Role) (string, 
 	// If we're a worker, query the workers coredns first, and master second
 	// This guaranteess any retries will not be handled by the same node
 	if role == agent.RoleMaster {
-		return fmt.Sprintf("%v=\"%v\"\n", EnvDNSAddresses, svcMaster.Spec.ClusterIP), nil
+		return trace.Wrap(writeEnvDNSAddresses([]string{svcMaster.Spec.ClusterIP}, true))
 	}
-	return fmt.Sprintf("%v=\"%v,%v\"\n", EnvDNSAddresses, svcWorker.Spec.ClusterIP, svcMaster.Spec.ClusterIP), nil
-
+	return trace.Wrap(writeEnvDNSAddresses([]string{svcWorker.Spec.ClusterIP, svcMaster.Spec.ClusterIP}, true))
 }
