@@ -1,6 +1,0 @@
-[Unit]
-Description=Docker Flanneld
-
-[Path]
-PathExists=/run/flannel/subnet.env
-Unit=docker.service

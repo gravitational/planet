@@ -5,7 +5,7 @@ Wants=docker.service
 
 [Service]
 EnvironmentFile=/etc/container-environment
-EnvironmentFile=/run/overlay.env
+EnvironmentFile=-/run/overlay.env
 ExecStartPre=/bin/systemctl is-active docker.service
 ExecStart=/usr/bin/kubelet \
         --address=0.0.0.0 \
@@ -29,6 +29,7 @@ ExecStart=/usr/bin/kubelet \
         --fail-swap-on=false \
         --authorization-mode=Webhook \
         --register-with-taints=${PLANET_NODE_TAINTS} \
+        --network-plugin=cni \
         --event-qps=0 $KUBE_CLOUD_FLAGS $KUBELET_OPTS
 Restart=always
 RestartSec=5

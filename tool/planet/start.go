@@ -146,7 +146,9 @@ func start(config *Config, monitorc chan<- bool) (*runtimeContext, error) {
 	}
 	addEtcdOptions(config)
 	addKubeletOptions(config)
-	setupFlannel(config)
+	if err = setupFlannel(config); err != nil {
+		return nil, trace.Wrap(err)
+	}
 	if err = setupCloudOptions(config); err != nil {
 		return nil, trace.Wrap(err)
 	}
@@ -653,7 +655,19 @@ func mountSecrets(config *Config) {
 	}...)
 }
 
-func setupFlannel(config *Config) {
+func setupFlannel(config *Config) error {
+	_ = os.Remove(path.Join(config.Rootfs, "/lib/systemd/system/multi-user.target.wants/flanneld.service"))
+
+	config.Env.Upsert("KUBE_ENABLE_IPAM", "false")
+	if config.DisableFlannel {
+		// Historically we use etcd for IPAM when running flannel
+		// In this case, we don't want to run the kubernetes IPAM, as the NodeSpec.PodCIDR may not match the flannel IPAM
+		// Other plugins may want the kubernetes IPAM enabled, but unless we pass configuration we won't know.
+		// For now, if flannel is disabled, assume the kubernetes IPAM should be enabled.
+		config.Env.Upsert("KUBE_ENABLE_IPAM", "true")
+		return nil
+	}
+
 	switch config.CloudProvider {
 	case constants.CloudProviderAWS:
 		config.Env.Upsert("FLANNEL_BACKEND", "aws-vpc")
@@ -662,7 +676,47 @@ func setupFlannel(config *Config) {
 	default:
 		config.Env.Upsert("FLANNEL_BACKEND", "vxlan")
 	}
+
+	err := os.Symlink(
+		"/lib/systemd/system/flanneld.service",
+		path.Join(config.Rootfs, "/lib/systemd/system/multi-user.target.wants/flanneld.service"),
+	)
+	if err != nil && !os.IsExist(err) {
+		return trace.ConvertSystemError(err)
+	}
+
+	err = utils.SafeWriteFile(
+		path.Join(config.Rootfs, "/etc/cni/net.d/10-flannel.conflist"),
+		[]byte(flannelConflist),
+		constants.SharedReadMask,
+	)
+	if err != nil {
+		return trace.Wrap(err)
+	}
+	return nil
+
 }
+
+var flannelConflist = `
+{
+	"name": "cbr0",
+	"cniVersion": "0.3.1",
+	"plugins": [
+	  {
+		"type": "flannel",
+		"delegate": {
+		  "isDefaultGateway": true
+		}
+	  },
+	  {
+		"type": "portmap",
+		"capabilities": {
+		  "portMappings": true
+		}
+	  }
+	]
+}
+`
 
 const (
 	ETCDWorkDir              = "/ext/etcd"
