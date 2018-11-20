@@ -5,7 +5,7 @@ Wants=docker.service
 
 [Service]
 EnvironmentFile=/etc/container-environment
-EnvironmentFile=-/run/dns.env
+EnvironmentFile=/run/dns.env
 ExecStartPre=/bin/systemctl is-active docker.service
 ExecStart=/usr/bin/kubelet \
         --address=0.0.0.0 \
