@@ -703,7 +703,8 @@ var flannelConflist = `
 	  {
 		"type": "flannel",
 		"delegate": {
-		  "isDefaultGateway": true
+		  "isDefaultGateway": true,
+		  "hairpinMode": true
 		}
 	  },
 	  {
