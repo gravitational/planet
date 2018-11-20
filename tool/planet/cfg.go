@@ -97,6 +97,8 @@ type Config struct {
 	DNS DNS
 	// Taints is a list of kubernetes taints to apply to the object
 	Taints []string
+	// DisableFlannel tells planet to disable the embedded flannel plugin
+	DisableFlannel bool
 }
 
 // DNS describes DNS server configuration

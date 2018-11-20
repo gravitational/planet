@@ -158,6 +158,9 @@ const (
 	// EnvPlanetTaints is an environment variable for Kubernetes tains to apply to the node during creation
 	EnvPlanetTaints = "PLANET_NODE_TAINTS"
 
+	// EnvDisableFlannel is an environment variable to indicate whether we should disable flannel within planet
+	EnvDisableFlannel = "PLANET_DISABLE_FLANNEL"
+
 	// DefaultDNSListenAddr is the default IP address CoreDNS will listen on
 	DefaultDNSListenAddr = "127.0.0.2"
 
