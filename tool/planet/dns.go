@@ -114,7 +114,7 @@ func updateEnvDNSAddresses(client *kubernetes.Clientset, role agent.Role) error 
 // createService creates the kubernetes DNS service if it doesn't already exist.
 // The service object is managed by gravity, but we create a placeholder here, so that we can read the IP address
 // of the service, and configure kubelet with the correct DNS addresses before starting
-func createService(client *kubernetes.Clientset, name string) error {
+func createService(name string) error {
 	client, err := cmd.GetKubeClientFromPath(constants.KubectlConfigPath)
 	if err != nil {
 		return trace.Wrap(err)
