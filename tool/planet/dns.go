@@ -150,7 +150,7 @@ func createService(name string) error {
 			SessionAffinity: "None",
 		},
 	}
-	_, err := client.CoreV1().Services(metav1.NamespaceSystem).Create(service)
+	_, err = client.CoreV1().Services(metav1.NamespaceSystem).Create(service)
 	if err != nil && !errors.IsAlreadyExists(err) {
 		return trace.Wrap(err)
 	}
