@@ -31,11 +31,13 @@ func setupResolver(ctx context.Context, role agent.Role) error {
 	}
 
 	err = utils.Retry(ctx, math.MaxInt64, 1*time.Second, func() error {
-		for _, name := range []string{"kube-dns", "kube-dns-worker"} {
-			err := createService(client, name)
-			if err != nil {
-				log.Warnf("Error creating service %v: %v.", name, err)
-				return trace.Wrap(err)
+		if role == agent.RoleMaster {
+			for _, name := range []string{"kube-dns", "kube-dns-worker"} {
+				err := createService(name)
+				if err != nil {
+					log.Warnf("Error creating service %v: %v.", name, err)
+					return trace.Wrap(err)
+				}
 			}
 		}
 
@@ -113,6 +115,11 @@ func updateEnvDNSAddresses(client *kubernetes.Clientset, role agent.Role) error 
 // The service object is managed by gravity, but we create a placeholder here, so that we can read the IP address
 // of the service, and configure kubelet with the correct DNS addresses before starting
 func createService(client *kubernetes.Clientset, name string) error {
+	client, err := cmd.GetKubeClientFromPath(constants.KubectlConfigPath)
+	if err != nil {
+		return trace.Wrap(err)
+	}
+
 	service := &v1.Service{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      name,
