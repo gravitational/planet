@@ -59,9 +59,7 @@ func writeEnvDNSAddresses(addr []string, overwrite bool) error {
 	}
 
 	err := utils.SafeWriteFile(DNSEnvFile, []byte(env), constants.SharedReadMask)
-	if err != nil {
-		return trace.Wrap(err)
-	}
+	return trace.Wrap(err)
 }
 
 func updateEnvDNSAddresses(client *kubernetes.Clientset, role agent.Role) error {
