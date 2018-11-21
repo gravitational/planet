@@ -703,7 +703,6 @@ var flannelConflist = `
 	  {
 		"type": "flannel",
 		"delegate": {
-		  "bridge": "docker0",
 		  "isDefaultGateway": true,
 		  "hairpinMode": true
 		}

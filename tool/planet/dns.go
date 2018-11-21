@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"math"
 	"os"
-	"os/exec"
 	"strings"
 	"time"
 
@@ -63,17 +62,6 @@ func writeEnvDNSAddresses(addr []string, overwrite bool) error {
 	if err != nil {
 		return trace.Wrap(err)
 	}
-
-	// restart kubelet, so it picks up the new DNS settings
-	// kubelet only needs to be restarted once we have the backup DNS address, it'll wait for the first write
-	if len(addr) > 1 {
-		err = exec.Command("systemctl", "restart", "kube-kubelet").Run()
-		if err != nil {
-			//
-			log.Errorf("Error restart kubelet: %v", err)
-		}
-	}
-	return nil
 }
 
 func updateEnvDNSAddresses(client *kubernetes.Clientset, role agent.Role) error {

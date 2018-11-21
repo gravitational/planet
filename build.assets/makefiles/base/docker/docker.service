@@ -10,7 +10,7 @@ Type=notify
 # the default is not to use systemd for cgroups because the delegate issues still
 # exists and systemd currently does not support the cgroup feature set required
 # for containers run by docker
-ExecStartPre=-/sbin/ip link set dev docker0 down
+ExecStartPre=-/sbin/ip link delete dev docker0
 ExecStartPre=-/sbin/brctl delbr docker0
 ExecStartPre=-/bin/rm -f /var/run/docker.pid
 ExecStart=/usr/bin/dockerd  --iptables=false --ip-masq=false --graph=/ext/docker $DOCKER_OPTS
