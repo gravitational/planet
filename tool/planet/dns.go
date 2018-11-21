@@ -11,12 +11,15 @@ import (
 
 	"github.com/gravitational/planet/lib/constants"
 	"github.com/gravitational/planet/lib/utils"
-	log "github.com/sirupsen/logrus"
 
 	"github.com/gravitational/satellite/agent"
 	"github.com/gravitational/satellite/cmd"
 	"github.com/gravitational/trace"
+	log "github.com/sirupsen/logrus"
+	"k8s.io/api/core/v1"
+	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/util/intstr"
 	"k8s.io/client-go/kubernetes"
 )
 
@@ -28,7 +31,21 @@ func setupResolver(ctx context.Context, role agent.Role) error {
 	}
 
 	err = utils.Retry(ctx, math.MaxInt64, 1*time.Second, func() error {
-		return trace.Wrap(updateEnvDNSAddresses(client, role))
+		for _, name := range []string{"kube-dns", "kube-dns-worker"} {
+			err := createService(client, name)
+			if err != nil {
+				log.Warnf("Error creating service %v: %v.", name, err)
+				return trace.Wrap(err)
+			}
+		}
+
+		err = updateEnvDNSAddresses(client, role)
+		if err != nil {
+			log.Warn("Error updating DNS env: ", err)
+			return trace.Wrap(err)
+		}
+		return nil
+
 	})
 	return trace.Wrap(err)
 }
@@ -90,4 +107,45 @@ func updateEnvDNSAddresses(client *kubernetes.Clientset, role agent.Role) error 
 		return trace.Wrap(writeEnvDNSAddresses([]string{svcMaster.Spec.ClusterIP}, true))
 	}
 	return trace.Wrap(writeEnvDNSAddresses([]string{svcWorker.Spec.ClusterIP, svcMaster.Spec.ClusterIP}, true))
+}
+
+// createService creates the kubernetes DNS service if it doesn't already exist.
+// The service object is managed by gravity, but we create a placeholder here, so that we can read the IP address
+// of the service, and configure kubelet with the correct DNS addresses before starting
+func createService(client *kubernetes.Clientset, name string) error {
+	service := &v1.Service{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      name,
+			Namespace: metav1.NamespaceSystem,
+			Labels: map[string]string{
+				"k8s-app":                       name,
+				"kubernetes.io/cluster-service": "true",
+				"kubernetes.io/name":            "KubeDNS",
+			},
+			ResourceVersion: "0",
+		},
+		Spec: v1.ServiceSpec{
+			Selector: map[string]string{
+				"k8s-app": name,
+			},
+			Ports: []v1.ServicePort{
+				{
+					Port:       53,
+					TargetPort: intstr.FromString("dns"),
+					Protocol:   "UDP",
+					Name:       "dns",
+				}, {
+					Port:       53,
+					Protocol:   "TCP",
+					Name:       "dns-tcp",
+					TargetPort: intstr.FromString("dns-tcp"),
+				}},
+			SessionAffinity: "None",
+		},
+	}
+	_, err := client.CoreV1().Services(metav1.NamespaceSystem).Create(service)
+	if err != nil && !errors.IsAlreadyExists(err) {
+		return trace.Wrap(err)
+	}
+	return nil
 }
