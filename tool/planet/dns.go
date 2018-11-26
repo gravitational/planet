@@ -75,14 +75,10 @@ func updateEnvDNSAddresses(client *kubernetes.Clientset, role agent.Role) error 
 
 	svcWorker, err := client.CoreV1().Services(metav1.NamespaceSystem).Get("kube-dns-worker", metav1.GetOptions{})
 	if err != nil {
-		// try and write just the master IP if we're not able to find the worker ip
-		_ = writeEnvDNSAddresses([]string{svcMaster.Spec.ClusterIP}, false)
 		return trace.Wrap(err)
 	}
 
 	if svcWorker.Spec.ClusterIP == "" {
-		// try and write just the master IP if we're not able to find the worker ip
-		_ = writeEnvDNSAddresses([]string{svcMaster.Spec.ClusterIP}, false)
 		return trace.BadParameter("service/kube-dns-worker Spec.ClusterIP is empty")
 	}
 

@@ -116,7 +116,7 @@ const (
 	// kubelet command line options
 	EnvKubeletOptions = "KUBELET_OPTS"
 
-	// EnvOverlayAddresses is an environment variable with a comma separated list of
+	// EnvDNSAddresses is an environment variable with a comma separated list of
 	// IPv4 addresses assigned to the overlay network interface of the host
 	EnvDNSAddresses = "DNS_ADDRESSES"
 
@@ -305,7 +305,7 @@ const (
 	// DefaultVxlanPort is the default overlay network port
 	DefaultVxlanPort = 8472
 
-	// OverlayEnvFile specifies the file location to write information about the overlay network
+	// DNSEnvFile specifies the file location to write information about the overlay network
 	// in use to be picked up by scripts
 	DNSEnvFile = "/run/dns.env"
 
