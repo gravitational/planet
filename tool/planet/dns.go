@@ -52,7 +52,8 @@ func setupResolver(ctx context.Context, role agent.Role) error {
 }
 
 func writeEnvDNSAddresses(addr []string, overwrite bool) error {
-	env := fmt.Sprintf("%v=\"%v\"\n", EnvDNSAddresses, strings.Join(addr, ","))
+	env := fmt.Sprintf(`%v="%v"`, EnvDNSAddresses, strings.Join(addr, ","))
+	env = fmt.Sprintln(env)
 
 	if _, err := os.Stat(DNSEnvFile); !os.IsNotExist(err) && !overwrite {
 		return nil
