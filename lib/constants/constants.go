@@ -9,8 +9,6 @@ const (
 	ProxyConfigPath = "/etc/kubernetes/proxy.kubeconfig"
 	// KubeletConfigPath is the path to kubelet configuration file
 	KubeletConfigPath = "/etc/kubernetes/kubelet.kubeconfig"
-	// CoreDNSConfigPath is the path to coredns configuration file
-	CoreDNSConfigPath = "/etc/kubernetes/coredns.kubeconfig"
 
 	// DNSResourceName specifies the name for the DNS resources
 	DNSResourceName = "kube-dns"

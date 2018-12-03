@@ -408,6 +408,14 @@
                         "name": "taint"
                     }
                 }
+            },
+            {
+                "type": "Bool",
+                "name": "disableflannel",
+                "env": "PLANET_DISABLE_FLANNEL",
+                "cli": {
+                    "name": "disable-flannel"
+                }
             }
         ]
     }

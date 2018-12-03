@@ -5,7 +5,7 @@ Wants=docker.service
 
 [Service]
 EnvironmentFile=/etc/container-environment
-EnvironmentFile=-/run/overlay.env
+EnvironmentFile=/run/dns.env
 ExecStartPre=/bin/systemctl is-active docker.service
 ExecStart=/usr/bin/kubelet \
         --address=0.0.0.0 \
@@ -16,7 +16,7 @@ ExecStart=/usr/bin/kubelet \
         --logtostderr=true \
         --healthz-bind-address=0.0.0.0 \
         --healthz-port=10248 \
-        --cluster-dns=${OVERLAY_ADDRESSES} \
+        --cluster-dns=${DNS_ADDRESSES} \
         --cluster-domain=cluster.local \
         --pod-infra-container-image=${KUBE_APISERVER}:5000/gcr.io/google_containers/pause:3.0 \
         --client-ca-file=/var/state/root.cert \

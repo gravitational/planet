@@ -519,8 +519,6 @@ type coreDNSConfig struct {
 }
 
 var coreDNSTemplate = `
-{{if .Import}}import /etc/coredns/configmaps/*{{end}}
-
 .:{{.Port}} {
   reload
   bind {{range $bind := .ListenAddrs}}{{$bind}} {{end}}
@@ -705,7 +703,8 @@ var flannelConflist = `
 	  {
 		"type": "flannel",
 		"delegate": {
-		  "isDefaultGateway": true
+		  "isDefaultGateway": true,
+		  "hairpinMode": true
 		}
 	  },
 	  {
