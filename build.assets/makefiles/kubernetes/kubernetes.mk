@@ -1,7 +1,7 @@
 .PHONY: all
 
 CURL_OPTS := -s
-DOWNLOAD_URL := https://storage.googleapis.com/kubernetes-release/release/$(KUBE_VER)/bin/linux/amd64
+DOWNLOAD_URL := https://s3-us-west-2.amazonaws.com/dev.gravitational.io/kubernetes-release/release/$(KUBE_VER)/linux/amd64
 REPODIR := $(GOPATH)/src/github.com/kubernetes/kubernetes
 OUTPUTDIR := $(ASSETDIR)/k8s-$(KUBE_VER)
 BINARIES := kube-apiserver \
