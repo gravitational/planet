@@ -1,8 +1,8 @@
 package box
 
 import (
-	"io/ioutil"
-	"os"
+	"bytes"
+	"io"
 
 	"gopkg.in/check.v1"
 )
@@ -12,11 +12,7 @@ type SrvSuite struct{}
 var _ = check.Suite(&SrvSuite{})
 
 func (s *SrvSuite) TestWriteReadEnvironment(c *check.C) {
-	f, err := ioutil.TempFile("", "")
-	c.Assert(err, check.IsNil)
-	defer os.Remove(f.Name())
-
-	err = WriteEnvironment(f.Name(), EnvVars{
+	expected := EnvVars{
 		{
 			Name: "KUBE_MASTER_IP",
 			Val:  "192.168.122.176",
@@ -31,16 +27,18 @@ func (s *SrvSuite) TestWriteReadEnvironment(c *check.C) {
 		},
 		{
 			Name: "WITH_QUOTES",
-			Val:  `blah "blah" blah`,
+			Val:  `first "second" third`,
 		},
-	})
+	}
+	var buf bytes.Buffer
+	_, err := io.Copy(&buf, expected)
 	c.Assert(err, check.IsNil)
 
-	env, err := ReadEnvironment(f.Name())
+	env, err := ReadEnvironmentFromReader(&buf)
 	c.Assert(err, check.IsNil)
-	c.Assert(env.Get("KUBE_MASTER_IP"), check.Equals, "192.168.122.176")
-	c.Assert(env.Get("DOCKER_OPTS"), check.Equals,
-		"--storage-driver=devicemapper --exec-opt native.cgroupdriver=cgroupfs")
-	c.Assert(env.Get("EMPTY_VAR"), check.Equals, "")
-	c.Assert(env.Get("WITH_QUOTES"), check.Equals, `blah "blah" blah`)
+	c.Assert(env, check.DeepEquals, expected)
+}
+
+func (vars EnvVars) Read(p []byte) (n int, err error) {
+	return 0, io.EOF
 }

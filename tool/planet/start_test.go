@@ -38,9 +38,9 @@ import /etc/coredns/configmaps/*
 
 .:53 {
   reload
-  bind 127.0.0.2 127.0.0.3 
+  bind 127.0.0.2 127.0.0.3
   errors
-  hosts /etc/coredns/coredns.hosts { 
+  hosts /etc/coredns/coredns.hosts {
     5.5.5.5 override.com
     7.7.7.7 override.com
     1.2.3.4 override2.com
@@ -49,7 +49,7 @@ import /etc/coredns/configmaps/*
   kubernetes cluster.local in-addr.arpa ip6.arpa {
     endpoint https://leader.telekube.local:6443
     tls /var/state/coredns.cert /var/state/coredns.key /var/state/root.cert
-    pods disabled
+    pods verified
     fallthrough in-addr.arpa ip6.arpa
   }
   proxy example.com 1.1.1.1 2.2.2.2 {
@@ -78,15 +78,15 @@ import /etc/coredns/configmaps/*
 
 .:55 {
   reload
-  bind 127.0.0.2 
+  bind 127.0.0.2
   errors
-  hosts /etc/coredns/coredns.hosts { 
+  hosts /etc/coredns/coredns.hosts {
     fallthrough
   }
   kubernetes cluster.local in-addr.arpa ip6.arpa {
     endpoint https://leader.telekube.local:6443
     tls /var/state/coredns.cert /var/state/coredns.key /var/state/root.cert
-    pods disabled
+    pods verified
     fallthrough in-addr.arpa ip6.arpa
   }
   forward . 1.1.1.1 {

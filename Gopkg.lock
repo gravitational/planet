@@ -350,7 +350,7 @@
   version = "v1.0.0"
 
 [[projects]]
-  digest = "1:56c8dd32846fda28e0a48c47ac52185b3b82961ac4f84aac04a48d8b951bfdea"
+  digest = "1:4d3da405947cfb3f85c8faca6eb4e02caf104d3b90c90b7da0afc67b21c9428d"
   name = "github.com/gravitational/satellite"
   packages = [
     "agent",
@@ -365,8 +365,7 @@
     "utils",
   ]
   pruneopts = "UT"
-  revision = "979194e4b4e5262de68c3836dd8e1cfa4a5f3817"
-  version = "5.3.2"
+  revision = "a073283dbf53e76fe9eaeef5d5322c06f43551f2"
 
 [[projects]]
   digest = "1:89dfd879adc40793de2e59f4f7c42c1b4ad6bdab32fcb5d6b769c1fcc6fc452a"
@@ -715,9 +714,12 @@
   version = "v0.9.0"
 
 [[projects]]
-  digest = "1:adec6c13b942561150e8fbecffd9e4c342ccbac59385bd0ddf69d9a6d0699f22"
+  digest = "1:2dc4fddf37503f952699873c7433efc11b569253ecd90d3ad4d8081431df100f"
   name = "github.com/sirupsen/logrus"
-  packages = ["."]
+  packages = [
+    ".",
+    "hooks/syslog",
+  ]
   pruneopts = "UT"
   revision = "dcdb95d728dbb6fe4b9fbe6b3b9d1fb268e68036"
   source = "github.com/gravitational/logrus"
@@ -1138,10 +1140,12 @@
     "github.com/pborman/uuid",
     "github.com/prometheus/client_golang/prometheus",
     "github.com/sirupsen/logrus",
+    "github.com/sirupsen/logrus/hooks/syslog",
     "golang.org/x/net/websocket",
     "gopkg.in/alecthomas/kingpin.v2",
     "gopkg.in/check.v1",
     "k8s.io/api/core/v1",
+    "k8s.io/apimachinery/pkg/api/errors",
     "k8s.io/apimachinery/pkg/apis/meta/v1",
     "k8s.io/apimachinery/pkg/fields",
     "k8s.io/apimachinery/pkg/runtime",

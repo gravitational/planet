@@ -82,8 +82,7 @@ func startLeaderClient(conf *LeaderConfig, errorC chan error) (leaderClient io.C
 	}
 
 	if conf.Role == RoleMaster {
-		var etcdapi etcd.KeysAPI
-		etcdapi = etcd.NewKeysAPI(etcdClient)
+		etcdapi := etcd.NewKeysAPI(etcdClient)
 		// Set initial value of election participation mode
 		_, err = etcdapi.Set(context.TODO(), conf.ElectionKey,
 			strconv.FormatBool(conf.ElectionEnabled),
@@ -130,6 +129,7 @@ func startLeaderClient(conf *LeaderConfig, errorC chan error) (leaderClient io.C
 			log.Infof("adding voter for IP %v", conf.PublicIP)
 			ctx, cancelVoter = context.WithCancel(context.TODO())
 			if err = client.AddVoter(ctx, conf.LeaderKey, conf.PublicIP, conf.Term); err != nil {
+				cancelVoter()
 				return nil, trace.Wrap(err)
 			}
 		case false:
@@ -155,6 +155,7 @@ func startLeaderClient(conf *LeaderConfig, errorC chan error) (leaderClient io.C
 			ctx, cancelVoter = context.WithCancel(context.TODO())
 			if err = client.AddVoter(ctx, conf.LeaderKey, conf.PublicIP, conf.Term); err != nil {
 				log.Errorf("failed to add voter for %v: %v", conf.PublicIP, trace.DebugReport(err))
+				cancelVoter()
 				errorC <- err
 			}
 		case false:
@@ -182,7 +183,7 @@ func writeLocalLeader(target string, masterIP string) error {
 	err := ioutil.WriteFile(
 		target,
 		[]byte(contents),
-		SharedFileMask,
+		constants.SharedReadMask,
 	)
 	return trace.Wrap(err)
 }
@@ -234,8 +235,14 @@ func runAgent(conf *agent.Config, monitoringConf *monitoring.Config, leaderConf 
 	}
 	defer monitoringAgent.Close()
 
-	monitoring.AddMetrics(monitoringAgent, monitoringConf)
-	monitoring.AddCheckers(monitoringAgent, monitoringConf)
+	err = monitoring.AddMetrics(monitoringAgent, monitoringConf)
+	if err != nil {
+		return trace.Wrap(err)
+	}
+	err = monitoring.AddCheckers(monitoringAgent, monitoringConf)
+	if err != nil {
+		return trace.Wrap(err)
+	}
 	err = monitoringAgent.Start()
 	if err != nil {
 		return trace.Wrap(err)
@@ -292,16 +299,24 @@ func leaderResume(publicIP, electionKey string, etcd *etcdconf.Config) error {
 }
 
 func leaderView(leaderKey string, etcd *etcdconf.Config) error {
+	addr, err := getLeader(context.TODO(), leaderKey, etcd)
+	if err != nil {
+		return trace.Wrap(err)
+	}
+	fmt.Println(addr)
+	return nil
+}
+
+func getLeader(ctx context.Context, key string, etcd *etcdconf.Config) (leaderAddr string, err error) {
 	client, err := getEtcdClient(etcd)
 	if err != nil {
-		return trace.Wrap(err)
+		return "", trace.Wrap(err)
 	}
-	resp, err := client.Get(context.TODO(), leaderKey, nil)
+	resp, err := client.Get(ctx, key, nil)
 	if err != nil {
-		return trace.Wrap(err)
+		return "", trace.Wrap(err)
 	}
-	fmt.Println(resp.Node.Value)
-	return nil
+	return resp.Node.Value, nil
 }
 
 func enableElection(publicIP, electionKey string, enabled bool, etcd *etcdconf.Config) error {

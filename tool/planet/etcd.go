@@ -12,12 +12,14 @@ import (
 	"syscall"
 	"time"
 
+	"github.com/gravitational/planet/lib/box"
+	"github.com/gravitational/planet/lib/constants"
+
 	etcd "github.com/coreos/etcd/client"
 	"github.com/coreos/go-systemd/dbus"
 	"github.com/davecgh/go-spew/spew"
 	etcdconf "github.com/gravitational/coordinate/config"
 	backup "github.com/gravitational/etcd-backup/lib/etcd"
-	"github.com/gravitational/planet/lib/box"
 	"github.com/gravitational/trace"
 	ps "github.com/mitchellh/go-ps"
 	log "github.com/sirupsen/logrus"
@@ -488,7 +490,7 @@ func readEtcdVersion(path string) (currentVersion string, prevVersion string, er
 }
 
 func writeEtcdEnvironment(path string, version string, prevVersion string) error {
-	err := os.MkdirAll(filepath.Dir(path), 644)
+	err := os.MkdirAll(filepath.Dir(path), constants.SharedReadMask)
 	if err != nil {
 		return trace.ConvertSystemError(err)
 	}

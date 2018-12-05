@@ -68,4 +68,4 @@ RUN groupadd --system --non-unique --gid 1000 planet ;\
 #RUN curl -L https://github.com/coredns/coredns/releases/download/v${COREDNS_VER}/release.coredns_${COREDNS_VER}_linux_amd64.tgz -o /tmp/coredns-${COREDNS_VER}.tar.gz && \
 #    mkdir -p /tmp/coredns && tar -xvzf /tmp/coredns-${COREDNS_VER}.tar.gz -C /tmp/coredns && \
 #    cp /tmp/coredns/coredns /usr/bin && \
-#    rm -rf /tmp/coredns*   
+#    rm -rf /tmp/coredns*

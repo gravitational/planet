@@ -36,6 +36,7 @@ ExecStart=/usr/bin/kube-apiserver \
         --etcd-keyfile=/var/state/etcd.key \
         --storage-backend=${KUBE_STORAGE_BACKEND} \
         --event-ttl=24h0m0s \
+        --advertise-address=${PLANET_PUBLIC_IP} \
         --bind-address=${PLANET_PUBLIC_IP} \
         --logtostderr=true $KUBE_CLOUD_FLAGS \
         --client-ca-file=/var/state/root.cert \

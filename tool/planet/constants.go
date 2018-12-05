@@ -65,9 +65,6 @@ const (
 	// in the etcd cluster as a comma-separated list
 	EnvEtcdctlPeers = "ETCDCTL_PEERS"
 
-	// EnvLeaderKey names the environment variable that specifies the name
-	// of the key with the active leader
-	EnvLeaderKey = "KUBE_LEADER_KEY"
 	// EnvRole names the environment variable that specifies the service role of this node
 	// (master or not)
 	EnvRole = "PLANET_ROLE"
@@ -85,12 +82,6 @@ const (
 	// EnvInitialCluster names the environment variable that specifies the initial
 	// agent cluster configuration as comma-separated list of addresses
 	EnvInitialCluster = "PLANET_INITIAL_CLUSTER"
-	// EnvAWSAccessKey names the environment variable that specifies the AWS
-	// access key
-	EnvAWSAccessKey = "AWS_ACCESS_KEY_ID"
-	// EnvAWSSecretKey names the environment variable that specifies the AWS
-	// secret access key
-	EnvAWSSecretKey = "AWS_SECRET_ACCESS_KEY"
 	// EnvKubeConfig names the environment variable that specifies location
 	// of the kubernetes configuration file
 	EnvKubeConfig = "KUBECONFIG"
@@ -100,9 +91,6 @@ const (
 	// EnvDNSZones is the environment variable that specified DNS zone
 	// overrides for the CoreDNS config
 	EnvDNSZones = "PLANET_DNS_ZONES"
-	// EnvHostname names the environment variable that specifies the new
-	// hostname
-	EnvHostname = "PLANET_HOSTNAME"
 	// EnvDNSUpstreamNameservers names the environment variable that specifies
 	// additional nameservers to add to the container's CoreDNS configuration
 	EnvDNSUpstreamNameservers = "PLANET_DNS_UPSTREAM_NAMESERVERS"
@@ -227,23 +215,12 @@ const (
 	ETCDUpgradeServiceName = "etcd-upgrade.service"
 	// APIServerServiceName names the service unit for k8s apiserver
 	APIServerServiceName = "kube-apiserver.service"
-	// PlanetAgentServiceName is the name of the planet agent
-	PlanetAgentServiceName = "planet-agent.service"
 
 	// ETCDDropinPath is the location of the systemd dropin when etcd is in gateway mode
 	ETCDGatewayDropinPath = "/etc/systemd/system/etcd.service.d/10-gateway.conf"
 
 	// PlanetResolv is planet local resolver
 	PlanetResolv = "resolv.gravity.conf"
-
-	// SharedFileMask is file mask for shared file
-	SharedFileMask = 0644
-
-	// SharedDirMask is a permissions mask for a shared directory
-	SharedDirMask = 0755
-
-	// SharedReadWriteMask is a mask for a shared file with read/write access for everyone
-	SharedReadWriteMask = 0666
 
 	// CoreDNSConf is the location of the coredns configuration file within planet
 	CoreDNSConf = "/etc/coredns/coredns.conf"
@@ -283,9 +260,6 @@ const (
 	// ClientRPCKeyPath specifies the path to the CA certificate for agent RPC
 	ClientRPCKeyPath = "/var/state/planet-rpc-client.key"
 
-	// DefaultDockerBridge specifies the default name of the docker bridge
-	DefaultDockerBridge = "docker0"
-
 	// DefaultDockerUnit specifies the name of the docker service unit file
 	DefaultDockerUnit = "docker.service"
 
@@ -313,17 +287,11 @@ const (
 	// ServiceGroup specifies the name of the service group as seen inside the container.
 	ServiceGroup string = "planet"
 
-	// ETCDBackupTimeout specifies the timeout when attempting to backup/restore etcd
-	ETCDBackupTimeout = 5 * time.Minute
-
 	// ETCDRegistryPrefix is the etcd directory for the k8s api server data in etcd
 	ETCDRegistryPrefix = "/registry"
 
 	// WaitInterval is the amount of time to sleep between loops
 	WaitInterval = 100 * time.Millisecond
-
-	// ServiceTimeout is the amount of time when trying to start/stop a systemd service
-	ServiceTimeout = 1 * time.Minute
 
 	// EtcdUpgradeTimeout is the amount of time to wait for operations during the etcd upgrade
 	EtcdUpgradeTimeout = 15 * time.Minute
@@ -331,13 +299,6 @@ const (
 	// HighWatermark is the disk usage percentage that is considered degrading
 	HighWatermark = 80
 )
-
-// K8sSearchDomains are default k8s search domain settings
-var K8sSearchDomains = []string{
-	"svc.cluster.local",
-	"default.svc.cluster.local",
-	"kube-system.svc.cluster.local",
-}
 
 var allCaps = []string{
 	"CAP_AUDIT_CONTROL",

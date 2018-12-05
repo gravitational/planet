@@ -1,12 +1,16 @@
 package box
 
 import (
+	"bufio"
 	"bytes"
 	"fmt"
 	"io"
 	"os"
 	"strconv"
 	"strings"
+
+	"github.com/gravitational/planet/lib/constants"
+	"github.com/gravitational/planet/lib/utils"
 
 	"github.com/gravitational/configure/cstrings"
 	"github.com/gravitational/trace"
@@ -176,6 +180,19 @@ func (vars *EnvVars) Environ() (environ []string) {
 			envvar.Name, envvar.Val))
 	}
 	return environ
+}
+
+// WriteTo writes the environment variables to the specified writer w.
+// WriteTo implements io.WriterTo
+func (vars EnvVars) WriteTo(w io.Writer) (n int64, err error) {
+	cw := &countingWriter{}
+	for _, v := range vars {
+		// quote value as it may contain spaces
+		if _, err := fmt.Fprintf(io.MultiWriter(w, cw), "%v=%q\n", v.Name, v.Val); err != nil {
+			return 0, trace.Wrap(err)
+		}
+	}
+	return cw.n, nil
 }
 
 func (vars *EnvVars) setItem(input string) error {
@@ -383,6 +400,44 @@ func (d *Devices) String() string {
 	return strings.Join(formats, ";")
 }
 
+// WriteEnvironment writes provided environment variables to a file at the
+// specified path.
+func WriteEnvironment(path string, env EnvVars) error {
+	return utils.SafeWriteFile(path, env, constants.SharedReadMask)
+}
+
+// ReadEnvironment returns a list of all environment variables read from the file
+// at the specified path.
+func ReadEnvironment(path string) (vars EnvVars, err error) {
+	f, err := os.Open(path)
+	if err != nil {
+		return nil, trace.ConvertSystemError(err)
+	}
+	defer f.Close()
+	return ReadEnvironmentFromReader(f)
+}
+
+func ReadEnvironmentFromReader(r io.Reader) (vars EnvVars, err error) {
+	scanner := bufio.NewScanner(r)
+	for scanner.Scan() {
+		keyVal := strings.SplitN(scanner.Text(), "=", 2)
+		if len(keyVal) != 2 {
+			continue
+		}
+		// the value may be quoted (if the file was previously written by WriteEnvironment above)
+		val, err := strconv.Unquote(keyVal[1])
+		if err != nil {
+			vars.Upsert(keyVal[0], keyVal[1])
+		} else {
+			vars.Upsert(keyVal[0], val)
+		}
+	}
+	if err := scanner.Err(); err != nil {
+		return nil, trace.Wrap(err)
+	}
+	return vars, nil
+}
+
 // parseDevice parses a single device value in the format:
 // path=/dev/nvidia*;permissions=rwm;fileMode=0666
 func parseDevice(value string) (*Device, error) {
@@ -418,6 +473,18 @@ func parseDevice(value string) (*Device, error) {
 		}
 	}
 	return device, nil
+}
+
+// Write updates the number of bytes written with the length of the specified buffer.
+// Write implements io.Writer
+func (r *countingWriter) Write(p []byte) (n int, err error) {
+	r.n += int64(len(p))
+	return len(p), nil
+}
+
+// countingWriter is an io.Writer that keeps the internal count of bytes written
+type countingWriter struct {
+	n int64
 }
 
 const (

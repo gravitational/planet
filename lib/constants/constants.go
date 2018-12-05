@@ -11,6 +11,8 @@ const (
 	KubeletConfigPath = "/etc/kubernetes/kubelet.kubeconfig"
 	// CoreDNSConfigPath is the path to coredns configuration file
 	CoreDNSConfigPath = "/etc/kubernetes/coredns.kubeconfig"
+	// AgentConfigPath is the path to agent configuration file
+	AgentConfigPath = "/etc/kubernetes/planet-agent.kubeconfig"
 
 	// DNSResourceName specifies the name for the DNS resources
 	DNSResourceName = "kube-dns"
@@ -23,6 +25,9 @@ const (
 
 	// SharedReadMask is a file mask with read access for everyone
 	SharedReadMask = 0644
+
+	// SharedReadWriteMask is a mask for a shared file with read/write access for everyone
+	SharedReadWriteMask = 0666
 
 	// SharedDirMask is a mask for shared directories
 	SharedDirMask = 0755

@@ -67,7 +67,7 @@ T:
 
 			line := fmt.Sprintf("%v=\"%v\"\n", EnvOverlayAddresses, strings.Join(overlayAddrs, ","))
 			log.Debug("Creating overlay env: ", line)
-			err = utils.SafeWriteFile(OverlayEnvFile, []byte(line), constants.SharedReadMask)
+			err = utils.SafeWriteFile(OverlayEnvFile, strings.NewReader(line), constants.SharedReadMask)
 			if err != nil {
 				log.Warnf("Failed to write overlay environment %v: %v", OverlayEnvFile, err)
 				continue
@@ -201,7 +201,7 @@ func (c *coreDNSMonitor) processCoreDNSConfigChange(newObj interface{}) {
 		return
 	}
 
-	err = utils.SafeWriteFile(filepath.Join(CoreDNSClusterConf), []byte(config), SharedFileMask)
+	err = utils.SafeWriteFile(filepath.Join(CoreDNSClusterConf), strings.NewReader(config), constants.SharedReadMask)
 	if err != nil {
 		log.Errorf("Failed to write coredns configuration to %v: %v", CoreDNSClusterConf, err)
 	}

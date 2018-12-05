@@ -126,7 +126,7 @@ func (r *passwdFile) WriteTo(w io.Writer) (n int64, err error) {
 		n += int64(b.WriteLine(user.String()))
 	}
 	if b.err == nil {
-		err = b.Flush()
+		b.err = b.Flush()
 	}
 	return n, trace.Wrap(b.err)
 }
@@ -222,7 +222,7 @@ func (r *groupFile) WriteTo(w io.Writer) (n int64, err error) {
 		n += int64(b.WriteLine(group.String()))
 	}
 	if b.err == nil {
-		err = b.Flush()
+		b.err = b.Flush()
 	}
 	return n, trace.Wrap(b.err)
 }

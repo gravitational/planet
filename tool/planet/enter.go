@@ -1,7 +1,6 @@
 package main
 
 import (
-	"bytes"
 	"os"
 
 	"github.com/docker/docker/pkg/term"
@@ -82,22 +81,4 @@ func stop(rootfs, socketPath string) error {
 	}
 
 	return enter(rootfs, socketPath, cfg)
-}
-
-// enterCommand is a helper function that runs a command as root
-// in the namespace of planet's container. It returns error
-// if command failed, or command standard output otherwise
-func enterCommand(rootfs, socketPath string, args []string) ([]byte, error) {
-	buf := &bytes.Buffer{}
-	cfg := &box.ProcessConfig{
-		User: "root",
-		Args: args,
-		In:   os.Stdin,
-		Out:  buf,
-	}
-	err := enter(rootfs, socketPath, cfg)
-	if err != nil {
-		err = trace.Wrap(err)
-	}
-	return buf.Bytes(), err
 }
