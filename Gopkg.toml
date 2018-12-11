@@ -88,7 +88,8 @@ ignored = ["github.com/Sirupsen/logrus", "github.com/gravitational/planet/build/
 
 [[constraint]]
   name = "github.com/gravitational/satellite"
-  version = "=5.3.2"
+  branch = "roman/5.4.x/k13"
+  # version = "=5.3.2"
 
 [[constraint]]
   name = "github.com/gravitational/trace"
@@ -119,15 +120,15 @@ ignored = ["github.com/Sirupsen/logrus", "github.com/gravitational/planet/build/
 
 [[constraint]]
   name = "k8s.io/client-go"
-  version = "=v9.0.0"
+  version = "=v10.0.0"
 
 [[constraint]]
   name = "k8s.io/apimachinery"
-  version = "kubernetes-1.12.1"
+  version = "kubernetes-1.13.0"
 
 [[constraint]]
   name = "k8s.io/api"
-  version = "kubernetes-1.12.1"
+  version = "kubernetes-1.13.0"
 
 [[override]]
   name = "github.com/json-iterator/go"
