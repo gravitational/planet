@@ -30,13 +30,16 @@ components using `[systemd]`.
 Here is a brief summary of the planet interface:
 ```
 Commands:
+  help [<command>...]
+    Show help.
+
   version
     Print version information
 
   start [<flags>]
     Start Planet container
 
-  agent --leader-key=LEADER-KEY [<flags>]
+  agent --leader-key=LEADER-KEY --election-key=ELECTION-KEY [<flags>]
     Start Planet Agent
 
   stop
@@ -51,8 +54,23 @@ Commands:
   test --kube-addr=KUBE-ADDR [<flags>]
     Run end-to-end tests on a running cluster
 
-  secrets init --domain=DOMAIN [<flags>] <dir>
-    initialize directory with secrets
+  device add --data=DATA
+    Add new device to container
+
+  device remove --node=NODE
+    Remove device from container
+
+  etcd promote --name=NAME --initial-cluster=INITIAL-CLUSTER --initial-cluster-state=INITIAL-CLUSTER-STATE
+    Promote etcd running in proxy mode to a full member
+
+  leader pause
+    Pause leader election participation for this node
+
+  leader resume
+    Resume leader election participation for this node
+
+  leader view --leader-key=LEADER-KEY
+    Display the IP address of the active master
 ```
 
 ## Hacking on Planet
@@ -71,8 +89,7 @@ The output of Planet build is a tarball that goes into `build/$TARGET`:
 
 Following are the most common targets:
 
- - `make production` - builds separate master/node planet images. These are the images used by [gravity].
- - `make dev` - builds a combined (master+node) image.
+ - `make production` - builds a planet images. These are the images used by [gravity].
 
 Building planet for the first time takes considerable amount of time since it has to download/build/configure
 quite a few dependencies:
@@ -83,12 +100,7 @@ quite a few dependencies:
  - [serf]
 
 Subsequent builds are much faster because intermediate results are cached (in `build/assets` directory).
-To clear and rebuild from scratch, run one of the following (depending on the target):
-
- - `make node-clean`
- - `make master-clean`
- - `make dev-clean`
- - or `make clean` to wipe everything out
+To clear and rebuild from scratch, run the `make clean`.
 
 ### Upgrading dependencies
 
@@ -112,41 +124,9 @@ KUBE_VER := v1.1.4
 ...
 ```
 
-### Making changes
-
-Although it is still possible to develop with `make dev`, the recommended way is to use [gravity] coupled with
-[virsh provisioner] for improved development experience.
-
 ### Production Mode
 
 [gravity] is the recommended way to deploy planet containers.
-
-### Working with "dev" image
-
-Run: 
-
-```
-make dev-start
-```
-
-You will need another terminal to interact with it. To enter a running Planet container, 
-execute `make enter`. You can then inspect running components with `ps -e`:
-
-```
-  PID TTY          TIME CMD
-    1 ?        00:00:00 systemd
-   61 ?        00:00:01 systemd-journal
-   76 ?        00:00:00 systemd-logind
-   79 ?        00:00:00 dbus-daemon
-   82 ?        00:00:00 systemd-resolve
- 1766 ?        00:00:00 kube-proxy
- 2879 ?        00:00:00 bash
- 4724 ?        00:00:00 kube-apiserver
- 4725 ?        00:00:00 kube-scheduler
- 4726 ?        00:00:00 kube-controller
-```
-
-To stop, hit `Ctrl+C` or run `make stop` in another terminal.
 
 [//]: # (Footnots and references)
 
