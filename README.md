@@ -1,12 +1,12 @@
 # Planet
 
-Planet is a containerized Kubernetes environment, it is a self-containerizing Debian image with
+Planet is a containerized Kubernetes environment. It is a self-containerizing Debian image with
 Kubernetes services running inside. 
 
-There are [official ways](https://kubernetes.io/docs/tutorials/kubernetes-basics/) to install and manager a Kubernetes cluster, but `planet` differs from those:
+There are [official ways](https://kubernetes.io/docs/setup/) to install and manager a Kubernetes cluster but `planet` is different in that:
 
 * Planet creates a "bubble of consistency" for every cluster we deploy.
-* Planet allows to package our own services running under/alongside Kubernetes.
+* Planet packages services running under/alongside Kubernetes.
 * Planet facilitates easier remote updating of itself and Kubernetes.
 
 It also happens to be a great way to play with Kubernetes!
