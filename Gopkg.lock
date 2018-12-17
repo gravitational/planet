@@ -270,7 +270,6 @@
   version = "v1.0.0"
 
 [[projects]]
-  branch = "roman/k13"
   name = "github.com/gravitational/satellite"
   packages = [
     "agent",
@@ -284,7 +283,8 @@
     "monitoring/collector",
     "utils"
   ]
-  revision = "197c1ebb2bf4120f61735385fa4f24d78aee9cac"
+  revision = "9a1c59792191ca876312f8af1884248986a20222"
+  version = "5.5.0"
 
 [[projects]]
   name = "github.com/gravitational/trace"
@@ -906,6 +906,6 @@
 [solve-meta]
   analyzer-name = "dep"
   analyzer-version = 1
-  inputs-digest = "cf12172c9dcc31c70edbdb921f2a2130cf62c09d3114377515a21504ee59e3b6"
+  inputs-digest = "9a52f622a769e54407ef80ad795bbb7dc8d2838ba99adc768a07b2cee48254a9"
   solver-name = "gps-cdcl"
   solver-version = 1
