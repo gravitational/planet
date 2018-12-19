@@ -408,6 +408,18 @@
                         "name": "taint"
                     }
                 }
+            },
+            {
+                "type": "List",
+                "name": "nodelabels",
+                "spec": {
+                    "name": "nodelabel",
+                    "env": "PLANET_NODE_LABELS",
+                    "type": "String",
+                    "cli": {
+                        "name": "node-label"
+                    }
+                }
             }
         ]
     }

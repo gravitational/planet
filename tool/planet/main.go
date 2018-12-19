@@ -114,6 +114,7 @@ func run() error {
 		cstartDNSPort               = cstart.Flag("dns-port", "DNS port for CoreDNS").OverrideDefaultFromEnvar(EnvPlanetDNSPort).Default(strconv.Itoa(DNSPort)).Int()
 		cstartDockerPromiscuousMode = cstart.Flag("docker-promiscuous-mode", "Whether to put docker bridge into promiscuous mode").OverrideDefaultFromEnvar(EnvDockerPromiscuousMode).Bool()
 		cstartTaints                = List(cstart.Flag("taint", "Kubernetes taints to apply to the node during creation").OverrideDefaultFromEnvar(EnvPlanetTaints))
+		cstartNodeLabels            = List(cstart.Flag("node-label", "Kubernetes node label to apply upon node registration").OverrideDefaultFromEnvar(EnvPlanetNodeLabels))
 
 		// start the planet agent
 		cagent                 = app.Command("agent", "Start Planet Agent")
@@ -405,6 +406,7 @@ func run() error {
 			KubeletOptions:        *cstartKubeletOptions,
 			DockerPromiscuousMode: *cstartDockerPromiscuousMode,
 			Taints:                *cstartTaints,
+			NodeLabels:            *cstartNodeLabels,
 		}
 		if *cstartSelfTest {
 			err = selfTest(config, *cstartTestKubeRepoPath, *cstartTestSpec, extraArgs)

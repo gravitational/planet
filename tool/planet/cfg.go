@@ -113,6 +113,8 @@ type Config struct {
 	DNS DNS
 	// Taints is a list of kubernetes taints to apply to the object
 	Taints []string
+	// Labels is Kubernetes node labels
+	NodeLabels []string
 }
 
 // DNS describes DNS server configuration
