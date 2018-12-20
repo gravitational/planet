@@ -174,6 +174,9 @@ const (
 	// EnvPlanetTaints is an environment variable for Kubernetes tains to apply to the node during creation
 	EnvPlanetTaints = "PLANET_NODE_TAINTS"
 
+	// EnvPlanetNodeLabels is an environment variable for Kubernetes node labels
+	EnvPlanetNodeLabels = "PLANET_NODE_LABELS"
+
 	// EnvDisableFlannel is an environment variable to indicate whether we should disable flannel within planet
 	EnvDisableFlannel = "PLANET_DISABLE_FLANNEL"
 
