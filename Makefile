@@ -49,7 +49,7 @@ ETCD_VER := v2.3.8 v3.3.4 v3.3.9
 # This is the version of etcd we should upgrade to (from the version list)
 ETCD_LATEST_VER := v3.3.9
 
-BUILDBOX_GO_VER ?= 1.10.1
+BUILDBOX_GO_VER ?= 1.10.7
 PLANET_BUILD_TAG ?= $(shell git describe --tags)
 PLANET_IMAGE_NAME ?= planet/base
 PLANET_IMAGE ?= $(PLANET_IMAGE_NAME):$(PLANET_BUILD_TAG)
