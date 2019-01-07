@@ -7,6 +7,8 @@ storage:
         blobdescriptor: inmemory
     filesystem:
         rootdirectory: /ext/registry
+    delete:
+        enabled: true
 http:
     addr: :5000
     headers:
