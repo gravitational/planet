@@ -621,6 +621,8 @@ func copyResolvFile(cfg utils.DNSConfig, destination string, upstreamNameservers
 	cfg.Servers = nameservers
 	cfg.Ndots = DNSNdots
 	cfg.Timeout = DNSTimeout
+	// Don't copy rotate option, we rely on query order for internal resolution
+	cfg.Rotate = false
 
 	resolv, err := os.OpenFile(
 		destination,
