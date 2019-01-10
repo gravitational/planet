@@ -37,6 +37,7 @@ ExecStart=/usr/bin/kube-apiserver \
         --storage-backend=${KUBE_STORAGE_BACKEND} \
         --event-ttl=24h0m0s \
         --bind-address=${PLANET_PUBLIC_IP} \
+        --advertise-address=${PLANET_PUBLIC_IP} \
         --logtostderr=true $KUBE_CLOUD_FLAGS \
         --client-ca-file=/var/state/root.cert \
         --anonymous-auth=false \
