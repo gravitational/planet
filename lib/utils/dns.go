@@ -18,8 +18,6 @@ limitations under the License.
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
 
-// +build darwin dragonfly freebsd linux netbsd openbsd solaris
-
 // Read system DNS config from /etc/resolv.conf
 
 package utils

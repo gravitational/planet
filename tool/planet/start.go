@@ -24,7 +24,6 @@ import (
 	"os"
 	"path"
 	"path/filepath"
-	"sort"
 	"strconv"
 	"strings"
 	"text/template"
@@ -217,7 +216,7 @@ func start(config *Config, monitorc chan<- bool) (*runtimeContext, error) {
 		config.Files = append(config.Files, box.File{
 			Path:     HostnameFile,
 			Contents: strings.NewReader(config.Hostname),
-			Mode:     SharedReadWriteMask,
+			Mode:     constants.SharedReadWriteMask,
 		})
 	}
 
@@ -457,11 +456,11 @@ func addKubeConfig(config *Config) error {
 		return trace.Wrap(err)
 	}
 	path := filepath.Join(config.Rootfs, constants.KubectlConfigPath)
-	err = os.MkdirAll(filepath.Dir(path), SharedDirMask)
+	err = os.MkdirAll(filepath.Dir(path), constants.SharedDirMask)
 	if err != nil {
 		return trace.Wrap(err)
 	}
-	err = ioutil.WriteFile(path, kubeConfig, SharedFileMask)
+	err = ioutil.WriteFile(path, kubeConfig, constants.SharedReadMask)
 	if err != nil {
 		return trace.Wrap(err)
 	}
@@ -500,7 +499,7 @@ func setCoreDNS(config *Config) error {
 		return trace.Wrap(err)
 	}
 
-	err = ioutil.WriteFile(filepath.Join(config.Rootfs, CoreDNSConf), []byte(corednsConfig), SharedFileMask)
+	err = ioutil.WriteFile(filepath.Join(config.Rootfs, CoreDNSConf), []byte(corednsConfig), constants.SharedReadMask)
 	if err != nil {
 		return trace.Wrap(err)
 	}
@@ -537,9 +536,10 @@ var coreDNSTemplate = `
 
 .:{{.Port}} {
   reload
-  bind {{range $bind := .ListenAddrs}}{{$bind}} {{end}}
+  bind{{range $bind := .ListenAddrs}} {{$bind}}{{- end}}
   errors
-  hosts /etc/coredns/coredns.hosts { {{range $hostname, $ips := .Hosts}}{{range $ip := $ips}}
+  hosts /etc/coredns/coredns.hosts {
+    {{- range $hostname, $ips := .Hosts}}{{range $ip := $ips}}
     {{$ip}} {{$hostname}}{{end}}{{end}}
     fallthrough
   }
@@ -618,7 +618,7 @@ func copyResolvFile(cfg utils.DNSConfig, destination string, upstreamNameservers
 
 	resolv, err := os.OpenFile(
 		destination,
-		os.O_RDWR|os.O_CREATE|os.O_TRUNC, SharedFileMask,
+		os.O_RDWR|os.O_CREATE|os.O_TRUNC, constants.SharedReadMask,
 	)
 	if err != nil {
 		return trace.Wrap(err)
@@ -641,18 +641,12 @@ func setHosts(config *Config, entries []utils.HostEntry) error {
 	config.Files = append(config.Files, box.File{
 		Path:     HostsFile,
 		Contents: out,
-		Mode:     SharedReadWriteMask,
+		Mode:     constants.SharedReadWriteMask,
 	})
 	return nil
 }
 
 const (
-	// CertificateAuthorityKeyPair is the name of the TLS cert authority
-	// file (with .cert extension) that is used to sign APIserver
-	// certificates and secret keys
-	CertificateAuthorityKeyPair = "root"
-	// APIServerKeyPair is the name of the apiserver keypair
-	APIServerKeyPair = "apiserver"
 	// RoleMaster sets up node as a K8s master server
 	RoleMaster = "master"
 	// RoleNode sets up planet as K8s node server
@@ -684,7 +678,6 @@ func setupFlannel(config *Config) {
 
 const (
 	ETCDWorkDir              = "/ext/etcd"
-	ETCDProxyDir             = "/ext/etcd/proxy"
 	DockerWorkDir            = "/ext/docker"
 	RegistryWorkDir          = "/ext/registry"
 	ContainerEnvironmentFile = "/etc/container-environment"
@@ -836,15 +829,6 @@ func getInactiveUnits(units map[string]string) (inactive []string) {
 		}
 	}
 	return inactive
-}
-
-func unitNames(units map[string]string) []string {
-	out := []string{}
-	for unit := range units {
-		out = append(out, unit)
-	}
-	sort.StringSlice(out).Sort()
-	return out
 }
 
 func getStatus(c libcontainer.Container, unit string) (string, error) {
