@@ -21,7 +21,6 @@ import (
 	"flag"
 	"fmt"
 	"io/ioutil"
-	stdlog "log"
 	"log/syslog"
 	"net"
 	"net/http"
@@ -34,6 +33,7 @@ import (
 	"syscall"
 	"time"
 
+	"github.com/fatih/color"
 	"github.com/gravitational/configure/cstrings"
 	"github.com/gravitational/planet/lib/box"
 	"github.com/gravitational/planet/lib/monitoring"
@@ -52,8 +52,8 @@ import (
 )
 
 func main() {
+	initLogging(false)
 	var err error
-
 	// Workaround the issue described here:
 	// https://github.com/kubernetes/kubernetes/issues/17162
 	_ = flag.CommandLine.Parse([]string{})
@@ -61,11 +61,10 @@ func main() {
 	if err = run(); err == nil {
 		return
 	}
-	stdlog.Println("Failed to run: ", trace.DebugReport(err))
 	if errExit, ok := trace.Unwrap(err).(*box.ExitError); ok {
 		os.Exit(errExit.Code)
 	}
-	os.Exit(255)
+	die(err)
 }
 
 func run() error {
@@ -235,7 +234,6 @@ func run() error {
 	args, extraArgs := cstrings.SplitAt(os.Args[1:], "--")
 	cmd, err := app.Parse(args)
 	if err != nil {
-		fmt.Fprintf(os.Stderr, "Failed parsing command line arguments: %s.\nTry planet --help\n", err.Error())
 		return err
 	}
 
@@ -688,6 +686,7 @@ func toEtcdGatewayList(list kv.KeyVal) (peers string) {
 // InitLogger configures the global logger for a given purpose / verbosity level
 func initLogging(debug bool) {
 	level := log.WarnLevel
+	trace.SetDebug(debug)
 	if debug {
 		level = log.DebugLevel
 	}
@@ -703,4 +702,11 @@ func initLogging(debug bool) {
 	}
 	log.AddHook(hook)
 	log.SetOutput(ioutil.Discard)
+}
+
+// die prints the error message in red to the console and exits with a non-zero exit code
+func die(err error) {
+	log.Error(trace.DebugReport(err))
+	color.Red("[ERROR]: %v\n", trace.UserMessage(err))
+	os.Exit(255)
 }
