@@ -32,7 +32,4 @@ ExecStart=/usr/bin/flanneld -v 2 \
     --kube-key=/var/state/kubelet.key \
     --kube-ca=/var/state/root.cert \
     --iface=${PLANET_PUBLIC_IP}
-# https://github.com/gravitational/gravity.e/issues/3898
-# Some nodes may be configured in a way that do not include a route for the service subnet (nodes without defualt gateways).
-# This leads to no route to host errors, because the initial route table lookup failure occurs before NAT is triggered in netfilter.
-ExecStartPost=-/bin/bash -c "until [ -e /run/flannel/subnet.env ]; do echo \"waiting for write.\"; sleep 3; done; ip route add ${KUBE_SERVICE_SUBNET} dev flannel.1"
+ExecStartPost=-/usr/bin/scripts/wait-for-flannel.sh
