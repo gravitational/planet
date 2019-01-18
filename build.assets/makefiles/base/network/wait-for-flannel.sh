@@ -10,7 +10,7 @@ done;
 # The node may not have a default gateway or routes that cover the service subnet
 # This prevents "no route to host" errors when trying to reach the service subnet
 # by creating a dummy interface, and routing the service subnet to this interface
-# we can guarentee that the route exists, and can be NAT to the correct destination
+# we can guarantee that the route exists, and can be NAT to the correct destination
 ip link add flannel.null type dummy
 ip link set flannel.null up
 ip route add ${KUBE_SERVICE_SUBNET} dev flannel.null
