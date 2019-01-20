@@ -53,10 +53,10 @@ const (
 	// OverlayInterfaceName is the name of the linux network interface connected to the overlay network
 	OverlayInterfaceName = "docker0"
 
-	// APIServerDNSNameLegacy is the legacy domain name of the current leader server.
-	APIServerDNSNameLegacy = "leader.telekube.local"
 	// APIServerDNSName is the domain name of the current leader server.
-	APIServerDNSName = "leader.gravity.local"
+	APIServerDNSName = "leader.telekube.local"
+	// APIServerDNSNameGravity is the domain name of the current leader server.
+	APIServerDNSNameGravity = "leader.gravity.local"
 	// RegistryDNSName is the domain name of the cluster local registry.
 	RegistryDNSName = "registry.local"
 )

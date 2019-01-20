@@ -196,7 +196,7 @@ func startLeaderClient(conf *LeaderConfig, errorC chan error) (leaderClient io.C
 func writeLocalLeader(target string, masterIP string) error {
 	contents := fmt.Sprint(masterIP, " ",
 		constants.APIServerDNSName, " ",
-		constants.APIServerDNSNameLegacy, " ",
+		constants.APIServerDNSNameGravity, " ",
 		constants.RegistryDNSName, " ",
 		LegacyAPIServerDNSName, "\n")
 	err := ioutil.WriteFile(
