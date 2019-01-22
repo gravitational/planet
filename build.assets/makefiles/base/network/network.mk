@@ -21,6 +21,7 @@ all: $(BINARIES) network.mk
 # script that allows waiting for etcd to come up
 	mkdir -p $(ROOTFS)/usr/bin/scripts
 	install -m 0755 ./wait-for-etcd.sh $(ROOTFS)/usr/bin/scripts
+	install -m 0755 ./wait-for-flannel.sh $(ROOTFS)/usr/bin/scripts
 
 # script that sets up /etc/hosts and symlinks resolv.conf
 	install -m 0755 ./setup-etc.sh $(ROOTFS)/usr/bin/scripts
