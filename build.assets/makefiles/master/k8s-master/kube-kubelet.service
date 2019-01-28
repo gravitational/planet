@@ -28,6 +28,7 @@ ExecStart=/usr/bin/kubelet \
         --streaming-connection-idle-timeout=5m \
         --fail-swap-on=false \
         --authorization-mode=Webhook \
+        --authentication-token-webhook \
         --register-with-taints=${PLANET_NODE_TAINTS} \
         --node-labels=${PLANET_NODE_LABELS} \
         --network-plugin=cni \
