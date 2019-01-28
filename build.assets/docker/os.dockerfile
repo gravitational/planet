@@ -17,23 +17,15 @@ RUN set -ex; \
 	rm -rf /var/lib/apt/lists/*; \
 	fi
 
-RUN apt-get update && apt-get -q -y install apt-transport-https
-
-RUN (echo 'deb http://httpredir.debian.org/debian/ stretch contrib non-free' >> /etc/apt/sources.list && \
-	echo 'deb http://httpredir.debian.org/debian/ stretch-updates contrib non-free' >> /etc/apt/sources.list && \
-	echo 'deb http://cdn-fastly.deb.debian.org/debian/ testing main contrib non-free' >> /etc/apt/sources.list && \
-	echo 'deb https://apt.dockerproject.org/repo debian-stretch main' >> /etc/apt/sources.list)
-
-RUN (apt-get clean \
-	&& apt-get -q -y update --fix-missing \
-	&& apt-get -q -y update \
+RUN sed -i 's/main/main contrib non-free/g' /etc/apt/sources.list && \
+	apt-get update && apt-get -q -y install apt-transport-https \
 	&& apt-get install -q -y apt-utils less locales \
-	&& apt-get install -t stretch-backports -q -y systemd)
+	&& apt-get install -t stretch-backports -q -y systemd
 
 # Set locale to en_US.UTF-8
-RUN (locale-gen \
+RUN locale-gen \
 	&& locale-gen en_US.UTF-8 \
-	&& dpkg-reconfigure locales)
+	&& dpkg-reconfigure locales
 
 # https://github.com/systemd/systemd/blob/v230/src/shared/install.c#L413
 # Exit code 1 is either created successfully or symlink already exists
