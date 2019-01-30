@@ -36,7 +36,7 @@ BUILDDIR := $(shell realpath $(BUILDDIR))
 OUTPUTDIR := $(BUILDDIR)/planet
 
 KUBE_VER ?= v1.11.5
-SECCOMP_VER ?=  2.3.1-2.1
+SECCOMP_VER ?=  2.3.1-2.1+deb9u1
 DOCKER_VER ?= 17.03.2
 # we currently use our own flannel fork: gravitational/flannel
 FLANNEL_VER := v0.10.0-gravitational

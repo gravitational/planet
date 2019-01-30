@@ -264,6 +264,18 @@
                 "name": "dnsport",
                 "env": "PLANET_DNS_PORT",
                 "cli": {"name": "dns-port"}
+            },
+            {
+                "type": "List",
+                "name": "taint",
+                "spec": {
+                    "name": "taint",
+                    "env": "PLANET_NODE_TAINTS",
+                    "type": "String",
+                    "cli": {
+                        "name": "taint"
+                    }
+                }
             }
         ]
     }

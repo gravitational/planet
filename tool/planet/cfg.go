@@ -111,6 +111,8 @@ type Config struct {
 	DockerPromiscuousMode bool
 	// DNS is the dnsmasq configuration
 	DNS DNS
+	// Taints is a list of kubernetes taints to apply to the object
+	Taints []string
 }
 
 // DNS describes DNS server configuration
