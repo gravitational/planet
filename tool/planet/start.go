@@ -325,36 +325,39 @@ func setupCloudOptions(c *Config) error {
 		return nil
 	}
 
-	flags := []string{fmt.Sprintf("--cloud-provider=%v", c.CloudProvider)}
-
-	switch c.CloudProvider {
-	case constants.CloudProviderAWS:
-		if c.ClusterID != "" {
-			flags = append(flags, "--cloud-config=/etc/cloud-config.conf")
-			c.Files = append(c.Files, box.File{
-				Path: "/etc/cloud-config.conf",
-				Contents: strings.NewReader(fmt.Sprintf(
-					awsCloudConfig, c.ClusterID)),
-			})
-		}
-	case constants.CloudProviderGCE:
-		if c.ClusterID != "" {
-			nodeTags := c.ClusterID
-			if c.GCENodeTags != "" {
-				nodeTags = c.GCENodeTags
-			}
-			flags = append(flags, "--cloud-config=/etc/cloud-config.conf")
-			c.Files = append(c.Files, box.File{
-				Path: "/etc/cloud-config.conf",
-				Contents: strings.NewReader(fmt.Sprintf(
-					gceCloudConfig, nodeTags)),
-			})
-		}
+	contents, err := generateCloudConfig(c.CloudProvider, c.ClusterID, c.GCENodeTags)
+	if err != nil {
+		return trace.Wrap(err)
 	}
+	c.Files = append(c.Files, box.File{
+		Path:     "/etc/cloud-config.conf",
+		Contents: strings.NewReader(contents),
+	})
 
-	c.Env.Upsert("KUBE_CLOUD_FLAGS", strings.Join(flags, " "))
+	c.Env.Upsert("KUBE_CLOUD_FLAGS",
+		fmt.Sprintf("--cloud-provider=%v --cloud-config=/etc/cloud-config.conf", c.CloudProvider, CloudConfigFile))
 
 	return nil
+}
+
+func generateCloudConfig(cloudProvider, clusterID, gceNodeTags string) (string, error) {
+	switch cloudProvider {
+	case constants.CloudProviderAWS:
+		if clusterID != "" {
+			return fmt.Sprintf(awsCloudConfig, clusterID), nil
+		}
+		return "", trace.BadParameter("missing clusterID")
+	case constants.CloudProviderGCE:
+		if gceNodeTags != "" {
+			return fmt.Sprintf(gceCloudConfig, gceNodeTags), nil
+		}
+		if clusterID != "" {
+			return fmt.Sprintf(gceCloudConfig, clusterID), nil
+		}
+		return "", trace.BadParameter("missing clusterID")
+	default:
+		return "", trace.BadParameter("Unsupported cloud provider %v=%v", EnvCloudProvider, cloudProvider)
+	}
 }
 
 // pickDockerStorageBackend examines the filesystems this host supports and picks one

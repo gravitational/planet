@@ -352,6 +352,12 @@ const (
 
 	// HighWatermark is the disk usage percentage that is considered degrading
 	HighWatermark = 80
+
+	// CloudConfigFile specifies the file path for cloud-config to pass to the kubernetes cloud controller
+	CloudConfigFile = "/etc/cloud-config.conf"
+
+	// CloudConfigMapName is the config map name for monitoring configmap updates
+	CloudConfigMapName = "cloud-config"
 )
 
 // K8sSearchDomains are default k8s search domain settings

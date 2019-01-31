@@ -285,6 +285,12 @@ func runAgent(conf *agent.Config, monitoringConf *monitoring.Config, leaderConf 
 		return trace.Wrap(err)
 	}
 
+	// on master nodes, set up monitoring for cloud-config settings
+	cloudMonitor := cloudConfigMonitor{}
+	if leaderConf.Role == RoleMaster {
+		cloudMonitor.monitorConfigMap(ctx)
+	}
+
 	signalc := make(chan os.Signal, 2)
 	signal.Notify(signalc, os.Interrupt, syscall.SIGTERM)
 
