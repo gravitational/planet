@@ -123,4 +123,5 @@ func (c *cloudConfigMonitor) processUpdate(newObj interface{}) {
 
 	// save the config
 	c.currentConfig = config
+	logrus.Infof("%v updated: %v", CloudConfigFile, config)
 }
