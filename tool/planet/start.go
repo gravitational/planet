@@ -330,12 +330,12 @@ func setupCloudOptions(c *Config) error {
 		return trace.Wrap(err)
 	}
 	c.Files = append(c.Files, box.File{
-		Path:     "/etc/cloud-config.conf",
+		Path:     CloudConfigFile,
 		Contents: strings.NewReader(contents),
 	})
 
 	c.Env.Upsert("KUBE_CLOUD_FLAGS",
-		fmt.Sprintf("--cloud-provider=%v --cloud-config=/etc/cloud-config.conf", c.CloudProvider, CloudConfigFile))
+		fmt.Sprintf("--cloud-provider=%v --cloud-config=%v", c.CloudProvider, CloudConfigFile))
 
 	return nil
 }
