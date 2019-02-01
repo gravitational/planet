@@ -1,0 +1,27 @@
+[Unit]
+Description=Gravity Service Slice
+Before=slices.target
+#Destination: /etc/systemd/system/gravity.slice
+
+[Slice]
+MemoryAccounting=true
+#Amount of memory cgroup must **always** retain
+#MemoryMin=bytes/percentage or 'infinity'
+#Best-effort memory protection
+#MemoryLow=bytes/percentage or 'infinity'
+MemoryHigh=infinity
+#Going over this limit invokes OOM killer. Replaces MemoryLimit
+#MemoryMax=bytes/percentage
+#MemorySwapMax=
+
+CPUAccounting=true
+CPUWeight=200
+CPUQuota=70%
+
+#Control the number of threads and processes in this slice
+TasksAccounting=true
+#Might be limited further down the cgroup sub-tree
+TasksMax=infinity
+
+#Block I/O accounting
+IOAccounting=true

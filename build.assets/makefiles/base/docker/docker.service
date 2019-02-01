@@ -18,16 +18,13 @@ ExecStartPre=-/bin/rm -f /var/run/docker.pid
 # On upgrade, docker will use the flannel network, conflicting with the bridge created by CNI
 # So remove any cached network setting, so that docker gets reset back to 172.17.0.0/16 for its network
 ExecStartPre=-/bin/rm -r /ext/docker/network
-ExecStart=/usr/bin/dockerd  --iptables=false --ip-masq=false --graph=/ext/docker $DOCKER_OPTS
+ExecStart=/usr/bin/dockerd \
+	--iptables=false \
+	--ip-masq=false \
+	--data-root=/ext/docker \
+	--exec-opt=native.cgroupdriver=systemd \
+	$DOCKER_OPTS
 ExecReload=/bin/kill -s HUP $MAINPID
-# Having non-zero Limit*s causes performance problems due to accounting overhead
-# in the kernel. We recommend using cgroups to do container-local accounting.
-#LimitNOFILE=infinity
-LimitNOFILE=1000000
-LimitNPROC=infinity
-LimitCORE=infinity
-# systemd >= 226
-TasksMax=infinity
 TimeoutStartSec=0
 # configure systemd to not reset the cgroups of docker containers
 Delegate=yes
@@ -36,3 +33,10 @@ Restart=always
 RestartSec=5
 StartLimitInterval=3600
 StartLimitBurst=720
+
+#LimitNOFILE=infinity
+#LimitNOFILE=1000000
+#LimitNPROC=infinity
+#LimitCORE=infinity
+TasksMax=infinity
+Slice=gravity.slice

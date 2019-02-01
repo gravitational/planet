@@ -2,12 +2,13 @@
 Description=Prepackaged Kubernetes container images
 Wants=docker.service
 
+[Install]
+WantedBy=multi-user.target
+
 [Service]
 EnvironmentFile=/etc/container-environment
 Restart=on-failure
 RestartSec=5
 ExecStartPre=/bin/systemctl is-active docker.service
 ExecStart=/usr/bin/docker-import --dir=/etc/docker/offline/ --registry-addr=${KUBE_APISERVER}:5000
-
-[Install]
-WantedBy=multi-user.target
+Slice=gravity.slice

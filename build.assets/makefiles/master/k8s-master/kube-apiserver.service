@@ -60,3 +60,4 @@ StartLimitInterval=3600
 StartLimitBurst=720
 User=planet
 Group=planet
+Slice=gravity.slice

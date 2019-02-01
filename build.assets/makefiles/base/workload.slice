@@ -1,0 +1,26 @@
+[Unit]
+Description=Kubernetes Service Slice
+Before=slices.target
+#Destination: /etc/systemd/system/kubesystem.slice
+
+[Slice]
+MemoryAccounting=true
+#MemoryMin=bytes/percentage or 'infinity'
+#MemoryLow=bytes/percentage or 'infinity'
+#Can go over this limit if unavoidable, but processes will be slowed down and memory will be aggressively reclaimed
+MemoryHigh=70%
+#Going over this limit invokes OOM killer. Replaces MemoryLimit
+#MemoryMax=bytes/percentage
+#MemorySwapMax=
+
+CPUAccounting=true
+# 1 CPU on a 4 core system
+CPUQuota=30%
+
+#Control the number of threads and processes in this slice
+TasksAccounts=true
+#N/percentage (relative to system max) or 'infinity'
+#TasksMax=90%
+
+#Block I/O accounting
+IOAccounting=true

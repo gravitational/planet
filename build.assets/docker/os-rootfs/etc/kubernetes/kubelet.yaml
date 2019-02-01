@@ -1,0 +1,31 @@
+kind: KubeletConfiguration
+apiVersion: kubelet.config.k8s.io/v1beta1
+address: "0.0.0.0"
+port: 10250
+makeIPTablesUtilChains: true
+healthzBindAddress: "0.0.0.0"
+healthzPort: 10248
+clusterDomain: "cluster.local"
+eventRecordQPS: 0
+failSwapOn: false
+#kubeletCgroups:
+#systemCgroups:
+#qosReserved:
+#  memory: 250Mi
+cgroupsPerQOS: true
+cgroupRoot: "/workload"
+cgroupDriver: systemd
+enforceNodeAllocatable: ['pods']
+authentication:
+  anonymous:
+    enabled: false
+  webhook:
+    enabled: true
+authorization:
+  mode: Webhook
+kubeReserved:
+  cpu: 100m
+  memory: 250Mi
+systemReserved:
+  cpu: 200m
+  memory: 500Mi

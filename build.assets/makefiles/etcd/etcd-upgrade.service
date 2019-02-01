@@ -38,3 +38,4 @@ ExecStart=/usr/bin/etcd \
 User=planet
 Group=planet
 PermissionsStartOnly=true
+Slice=gravity.slice

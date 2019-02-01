@@ -3,11 +3,6 @@ Description=Serf agent
 Documentation=https://github.com/hashicorp/serf
 
 [Service]
-Restart=always
-RestartSec=5
-StartLimitInterval=3600
-StartLimitBurst=720
-
 EnvironmentFile=/etc/container-environment
 ExecStart=/usr/bin/serf agent \
         -bind=${PLANET_PUBLIC_IP}:7496 \
@@ -15,5 +10,10 @@ ExecStart=/usr/bin/serf agent \
 	-snapshot=/ext/state/serf-snapshot \
 	-tag role=${PLANET_ROLE} \
 	-tag publicip=${PLANET_PUBLIC_IP}
+Restart=always
+RestartSec=5
+StartLimitInterval=3600
+StartLimitBurst=720
 User=planet
 Group=planet
+Slice=gravity.slice

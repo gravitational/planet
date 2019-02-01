@@ -16,3 +16,4 @@ Restart=always
 RestartSec=5
 StartLimitInterval=3600
 StartLimitBurst=720
+Slice=gravity.slice

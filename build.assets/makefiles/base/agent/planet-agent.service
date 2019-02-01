@@ -4,13 +4,7 @@ Documentation=https://github.com/gravitational/planet
 Wants=etcd.service serf.service
 
 [Service]
-Restart=always
-RestartSec=5
-StartLimitInterval=3600
-StartLimitBurst=720
 EnvironmentFile=/etc/container-environment
-LimitNOFILE=40000
-LimitNPROC=1048576
 ExecStartPre=/bin/systemctl is-active etcd.service
 ExecStartPre=/bin/systemctl is-active serf.service
 ExecStart=/usr/bin/planet agent \
@@ -31,3 +25,11 @@ ExecStart=/usr/bin/planet agent \
         --etcd-keyfile=/var/state/etcd.key \
         --nameservers=${PLANET_DNS_UPSTREAM_NAMESERVERS} \
         --dns-zones=${PLANET_DNS_ZONES}
+Restart=always
+RestartSec=5
+StartLimitInterval=3600
+StartLimitBurst=720
+#FIXME: replace these with resource-control?
+#LimitNOFILE=40000
+#LimitNPROC=1048576
+Slice=gravity.slice

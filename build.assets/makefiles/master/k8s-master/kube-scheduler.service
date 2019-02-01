@@ -17,3 +17,4 @@ StartLimitBurst=720
 User=planet
 Group=planet
 SuccessExitStatus=2
+Slice=gravity.slice

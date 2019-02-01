@@ -388,9 +388,6 @@ func addDockerOptions(config *Config) error {
 	config.Env.Append(EnvDockerOptions,
 		fmt.Sprintf("--storage-driver=%s", config.DockerBackend), " ")
 
-	// use cgroups native driver, because of this:
-	// https://github.com/docker/docker/issues/16256
-	config.Env.Append(EnvDockerOptions, "--exec-opt native.cgroupdriver=cgroupfs", " ")
 	// Add sensible size limits to logging driver
 	config.Env.Append(EnvDockerOptions, "--log-opt max-size=50m", " ")
 	config.Env.Append(EnvDockerOptions, "--log-opt max-file=9", " ")
