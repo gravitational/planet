@@ -9,7 +9,7 @@ import (
 	"os/signal"
 
 	"github.com/Azure/go-ansiterm/winterm"
-	"github.com/sirupsen/logrus"
+	"github.com/Sirupsen/logrus"
 	"github.com/docker/docker/pkg/term/windows"
 )
 
