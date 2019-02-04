@@ -31,6 +31,8 @@ import (
 	"strings"
 	"syscall"
 
+	"github.com/davecgh/go-spew/spew"
+
 	"github.com/gravitational/go-udev"
 	"github.com/gravitational/trace"
 	log "github.com/sirupsen/logrus"
@@ -138,6 +140,7 @@ func Start(cfg Config) (*Box, error) {
 	if err != nil {
 		return nil, trace.Wrap(err)
 	}
+	log.Info("Starting runc container with config: ", spew.Sdump(config))
 
 	// Bootstrap the container.
 	//
