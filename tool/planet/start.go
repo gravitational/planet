@@ -245,7 +245,7 @@ func start(config *Config, monitorc chan<- bool) (*runtimeContext, error) {
 		Devices:      config.Devices,
 		DataDir:      "/var/run/planet",
 		InitUser:     "root",
-		InitArgs:     []string{"/bin/systemd"},
+		InitArgs:     []string{"/bin/systemd", "--system"},
 		InitEnv:      []string{"container=docker", "LC_ALL=en_US.UTF-8"},
 		Capabilities: allCaps,
 	}
