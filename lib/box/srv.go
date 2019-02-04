@@ -139,6 +139,7 @@ func Start(cfg Config) (*Box, error) {
 	if err != nil {
 		return nil, trace.Wrap(err)
 	}
+	log.Info("Libcontainer configuration: ", config)
 
 	// Bootstrap the container.
 	//
