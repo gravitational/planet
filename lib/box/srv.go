@@ -26,11 +26,12 @@ import (
 	"net/http"
 	"os"
 	"os/exec"
-	"path"
 	"path/filepath"
 	"strconv"
 	"strings"
 	"syscall"
+
+	"github.com/davecgh/go-spew/spew"
 
 	"github.com/gravitational/go-udev"
 	"github.com/gravitational/trace"
@@ -139,7 +140,7 @@ func Start(cfg Config) (*Box, error) {
 	if err != nil {
 		return nil, trace.Wrap(err)
 	}
-	log.Info("Libcontainer configuration: ", config)
+	log.Info("Libcontainer configuration: ", spew.Sdump(config))
 
 	// Bootstrap the container.
 	//
@@ -322,9 +323,9 @@ func getLibcontainerConfig(containerID, rootfs string, cfg Config) (*configs.Con
 			},
 		},
 		Cgroups: &configs.Cgroup{
-			//Name:   containerID,
-			//Parent: "system",
-			Path: path.Join("gravity", "planet", containerID),
+			Name:   containerID,
+			Parent: "system",
+			//Path: path.Join("gravity", "planet", containerID),
 			Resources: &configs.Resources{
 				AllowAllDevices:  &allowAllDevices,
 				AllowedDevices:   configs.DefaultAllowedDevices,
