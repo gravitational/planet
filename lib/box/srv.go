@@ -136,6 +136,10 @@ func Start(cfg Config) (*Box, error) {
 	}
 
 	containerID := uuid.New()
+
+	// https://github.com/systemd/systemd/blob/9ed6a1d2c6fd60ea666a30f815ab4c776e5d5c7c/src/core/machine-id-setup.c#L54-L58
+	// Pass the container uuid to systemd init
+	cfg.InitEnv = append(cfg.InitEnv, fmt.Sprintf("container_uuid=%v", containerID))
 	config, err := getLibcontainerConfig(containerID, rootfs, cfg)
 	if err != nil {
 		return nil, trace.Wrap(err)
@@ -330,8 +334,9 @@ func getLibcontainerConfig(containerID, rootfs string, cfg Config) (*configs.Con
 			},
 		},
 		Cgroups: &configs.Cgroup{
-			Name:   containerID,
-			Parent: "system",
+			//Name:   containerID,
+			//Parent: "system",
+			Path: fmt.Sprintf("/machines.slice/%v", containerID),
 			Resources: &configs.Resources{
 				AllowAllDevices:  &allowAllDevices,
 				AllowedDevices:   configs.DefaultAllowedDevices,
