@@ -332,6 +332,12 @@ func getLibcontainerConfig(containerID, rootfs string, cfg Config) (*configs.Con
 				Flags:       syscall.MS_NOSUID | syscall.MS_STRICTATIME,
 				Data:        "mode=755",
 			},
+			{
+				Source:      "mqueue",
+				Destination: "/dev/mqueue",
+				Device:      "mqueue",
+				Flags:       defaultMountFlags,
+			},
 		},
 		Cgroups: &configs.Cgroup{
 			//Name:   containerID,
