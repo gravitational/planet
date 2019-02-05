@@ -321,6 +321,13 @@ func getLibcontainerConfig(containerID, rootfs string, cfg Config) (*configs.Con
 				Destination: "/dev/disk",
 				Flags:       syscall.MS_BIND,
 			},
+			{
+				Source:      "tmpfs",
+				Destination: "/run",
+				Device:      "tmpfs",
+				Flags:       syscall.MS_NOSUID | syscall.MS_STRICTATIME,
+				Data:        "mode=755",
+			},
 		},
 		Cgroups: &configs.Cgroup{
 			Name:   containerID,
