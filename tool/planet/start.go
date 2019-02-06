@@ -65,7 +65,7 @@ func startAndWait(config *Config) error {
 		return trace.Wrap(err)
 	}
 	defer ctx.Close()
-
+	log.Info("Waiting for process to finish")
 	// wait for the process to finish.
 	status, err := ctx.process.Wait()
 	if err != nil {

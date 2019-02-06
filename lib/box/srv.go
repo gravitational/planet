@@ -38,7 +38,9 @@ import (
 	log "github.com/sirupsen/logrus"
 
 	"github.com/opencontainers/runc/libcontainer"
+	"github.com/opencontainers/runc/libcontainer/cgroups/systemd"
 	"github.com/opencontainers/runc/libcontainer/configs"
+	"github.com/opencontainers/runc/libcontainer/intelrdt"
 	"github.com/pborman/uuid"
 )
 
@@ -91,6 +93,10 @@ func (b *Box) Wait() (*os.ProcessState, error) {
 func Start(cfg Config) (*Box, error) {
 	log.Infof("[BOX] starting with config: %#v", cfg)
 
+	if !systemd.UseSystemd() {
+		return nil, trace.BadParameter("unable to use systemd for container creation")
+	}
+
 	rootfs, err := checkPath(cfg.Rootfs, false)
 	if err != nil {
 		return nil, err
@@ -116,6 +122,11 @@ func Start(cfg Config) (*Box, error) {
 		}
 	}
 
+	intelRdtManager := libcontainer.IntelRdtFs
+	if !intelrdt.IsCatEnabled() && !intelrdt.IsMbaEnabled() {
+		intelRdtManager = nil
+	}
+
 	// Resolve the paths for {newuidmap,newgidmap} from the context of runc,
 	// to avoid doing a path lookup in the nsexec context.
 	// TODO: the binary names are not currently configurable.
@@ -128,9 +139,12 @@ func Start(cfg Config) (*Box, error) {
 		newgidmap = ""
 	}
 
-	root, err := libcontainer.New(cfg.DataDir, libcontainer.Cgroupfs,
+	root, err := libcontainer.New(cfg.DataDir,
+		libcontainer.SystemdCgroups,
+		intelRdtManager,
 		libcontainer.NewuidmapPath(newuidmap),
-		libcontainer.NewgidmapPath(newgidmap))
+		libcontainer.NewgidmapPath(newgidmap),
+	)
 	if err != nil {
 		return nil, trace.Wrap(err)
 	}
@@ -165,6 +179,7 @@ func Start(cfg Config) (*Box, error) {
 	}
 	defer func() {
 		if err != nil {
+			log.Info("Destroying container due to error: ", trace.DebugReport(err))
 			container.Destroy()
 		}
 	}()
@@ -193,7 +208,10 @@ func Start(cfg Config) (*Box, error) {
 		Stdin:  os.Stdin,
 		Stdout: os.Stdout,
 		Stderr: os.Stderr,
+		Init:   true,
+		Cwd:    "/",
 	}
+	log.Info("Starting libcontainer process: ", spew.Sdump(process))
 
 	// Run the container by starting the init process.
 	if err := container.Run(process); err != nil {
@@ -205,6 +223,7 @@ func Start(cfg Config) (*Box, error) {
 		return nil, trace.Wrap(err)
 	}
 	log.Infof("Container status: %v (err=%v).", status, err)
+	log.Info(spew.Sdump(container))
 
 	return &Box{
 		Process:   process,
@@ -228,11 +247,7 @@ func getLibcontainerConfig(containerID, rootfs string, cfg Config) (*configs.Con
 		return nil, trace.Wrap(err, "failed to enumerate available devices")
 	}
 
-	// find all existing loop devices on a host and re-create them inside the container
-	hostLoops, err := filepath.Glob("/dev/loop?")
-	if err != nil {
-		return nil, trace.Wrap(err)
-	}
+	mountDevices := configs.DefaultAutoCreatedDevices
 
 	var disks []*configs.Device
 	for _, device := range devices {
@@ -249,6 +264,13 @@ func getLibcontainerConfig(containerID, rootfs string, cfg Config) (*configs.Con
 			})
 		}
 	}
+	mountDevices = append(mountDevices, disks...)
+
+	// find all existing loop devices on a host and re-create them inside the container
+	hostLoops, err := filepath.Glob("/dev/loop?")
+	if err != nil {
+		return nil, trace.Wrap(err)
+	}
 
 	loopDevices := make([]*configs.Device, len(hostLoops))
 	for i := range hostLoops {
@@ -263,6 +285,10 @@ func getLibcontainerConfig(containerID, rootfs string, cfg Config) (*configs.Con
 			FileMode:    0660,
 		}
 	}
+	log.Error("hostLoops: ", spew.Sdump(hostLoops))
+	log.Error("loopDevices:", spew.Sdump(loopDevices))
+	//mountDevices = append(mountDevices, loopDevices...)
+	log.Error("mountDevices:", spew.Sdump(mountDevices))
 
 	capabilities := configs.Capabilities{
 		Bounding:    cfg.Capabilities,
@@ -301,7 +327,7 @@ func getLibcontainerConfig(containerID, rootfs string, cfg Config) (*configs.Con
 				Destination: "/dev",
 				Device:      "tmpfs",
 				Flags:       syscall.MS_NOSUID | syscall.MS_STRICTATIME,
-				Data:        "mode=755",
+				Data:        "mode=755,size=65536k",
 			},
 			{
 				Source:      "sysfs",
@@ -338,20 +364,35 @@ func getLibcontainerConfig(containerID, rootfs string, cfg Config) (*configs.Con
 				Device:      "mqueue",
 				Flags:       defaultMountFlags,
 			},
+			// Mount the cgroup filesystem into the container
+			{
+				Source:      "cgroup",
+				Destination: "/sys/fs/cgroup",
+				Device:      "cgroup",
+				Flags:       defaultMountFlags,
+			},
+			{
+				Device:      "bind",
+				Source:      "/sys/fs/cgroup/systemd",
+				Destination: "/sys/fs/cgroup/systemd",
+				Flags:       syscall.MS_BIND,
+			},
 		},
 		Cgroups: &configs.Cgroup{
-			//Name:   containerID,
+			Name: containerID,
 			//Parent: "system",
-			Path: fmt.Sprintf("/machines.slice/%v", containerID),
+			//Path: fmt.Sprintf("/machines.slice/%v", containerID),
 			Resources: &configs.Resources{
-				AllowAllDevices:  &allowAllDevices,
-				AllowedDevices:   configs.DefaultAllowedDevices,
+				AllowAllDevices: &allowAllDevices,
+				AllowedDevices:  configs.DefaultAllowedDevices,
+				//Devices:          configs.DefaultAllowedDevices,
 				MemorySwappiness: nil, // nil means "machine-default" and that's what we need because we don't care
 			},
 		},
 
-		Devices:  append(configs.DefaultAutoCreatedDevices, append(loopDevices, disks...)...),
+		Devices:  mountDevices,
 		Hostname: hostname,
+		Labels:   []string{fmt.Sprint("bundle=", rootfs)},
 	}
 
 	for _, mountSpec := range cfg.Mounts {
