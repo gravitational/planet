@@ -33,6 +33,7 @@ import (
 
 	"github.com/gravitational/go-udev"
 	"github.com/gravitational/trace"
+	"github.com/runc/libcontainer/cgroups/systemd"
 	log "github.com/sirupsen/logrus"
 
 	"github.com/opencontainers/runc/libcontainer"
@@ -89,6 +90,10 @@ func (b *Box) Wait() (*os.ProcessState, error) {
 func Start(cfg Config) (*Box, error) {
 	log.Infof("[BOX] starting with config: %#v", cfg)
 
+	if !systemd.UseSystemd() {
+		return nil, trace.BadParameter("unable to use systemd for container creation")
+	}
+
 	rootfs, err := checkPath(cfg.Rootfs, false)
 	if err != nil {
 		return nil, err
@@ -126,9 +131,11 @@ func Start(cfg Config) (*Box, error) {
 		newgidmap = ""
 	}
 
-	root, err := libcontainer.New(cfg.DataDir, libcontainer.Cgroupfs,
+	root, err := libcontainer.New(cfg.DataDir,
+		libcontainer.SystemdCgroups,
 		libcontainer.NewuidmapPath(newuidmap),
-		libcontainer.NewgidmapPath(newgidmap))
+		libcontainer.NewgidmapPath(newgidmap),
+	)
 	if err != nil {
 		return nil, trace.Wrap(err)
 	}
