@@ -33,10 +33,11 @@ import (
 
 	"github.com/gravitational/go-udev"
 	"github.com/gravitational/trace"
-	"github.com/runc/libcontainer/cgroups/systemd"
+
 	log "github.com/sirupsen/logrus"
 
 	"github.com/opencontainers/runc/libcontainer"
+	"github.com/opencontainers/runc/libcontainer/cgroups/systemd"
 	"github.com/opencontainers/runc/libcontainer/configs"
 	"github.com/pborman/uuid"
 )
