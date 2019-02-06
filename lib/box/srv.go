@@ -193,6 +193,8 @@ func Start(cfg Config) (*Box, error) {
 		Stdin:  os.Stdin,
 		Stdout: os.Stdout,
 		Stderr: os.Stderr,
+		Init:   true,
+		Cwd:    "/",
 	}
 
 	// Run the container by starting the init process.
