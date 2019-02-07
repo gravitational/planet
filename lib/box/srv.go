@@ -26,7 +26,6 @@ import (
 	"net/http"
 	"os"
 	"os/exec"
-	"path"
 	"path/filepath"
 	"strconv"
 	"strings"
@@ -38,6 +37,7 @@ import (
 	log "github.com/sirupsen/logrus"
 
 	"github.com/opencontainers/runc/libcontainer"
+	"github.com/opencontainers/runc/libcontainer/cgroups/systemd"
 	"github.com/opencontainers/runc/libcontainer/configs"
 	"github.com/pborman/uuid"
 )
@@ -91,6 +91,10 @@ func (b *Box) Wait() (*os.ProcessState, error) {
 func Start(cfg Config) (*Box, error) {
 	log.Infof("[BOX] starting with config: %#v", cfg)
 
+	if !systemd.UseSystemd() {
+		return nil, trace.BadParameter("unable to use systemd for container creation")
+	}
+
 	rootfs, err := checkPath(cfg.Rootfs, false)
 	if err != nil {
 		return nil, err
@@ -129,7 +133,7 @@ func Start(cfg Config) (*Box, error) {
 	}
 
 	root, err := libcontainer.New(cfg.DataDir,
-		libcontainer.Cgroupfs,
+		libcontainer.SystemdCgroups,
 		libcontainer.NewuidmapPath(newuidmap),
 		libcontainer.NewgidmapPath(newgidmap),
 	)
@@ -337,7 +341,7 @@ func getLibcontainerConfig(containerID, rootfs string, cfg Config) (*configs.Con
 			},
 		},
 		Cgroups: &configs.Cgroup{
-			Path: path.Join("/gravity/planet", containerID),
+			Name: fmt.Sprintf("planet-%v", containerID),
 			Resources: &configs.Resources{
 				AllowAllDevices:  &allowAllDevices,
 				AllowedDevices:   configs.DefaultAllowedDevices,
