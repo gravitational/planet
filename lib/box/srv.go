@@ -335,12 +335,6 @@ func getLibcontainerConfig(containerID, rootfs string, cfg Config) (*configs.Con
 				Device:      "cgroup",
 				Flags:       defaultMountFlags,
 			},
-			{
-				Device:      "bind",
-				Source:      "/sys/fs/cgroup/systemd",
-				Destination: "/sys/fs/cgroup/systemd",
-				Flags:       syscall.MS_BIND,
-			},
 		},
 		Cgroups: &configs.Cgroup{
 			Path: path.Join("/gravity/planet", containerID),
