@@ -332,6 +332,19 @@ func getLibcontainerConfig(containerID, rootfs string, cfg Config) (*configs.Con
 				Destination: "/dev/disk",
 				Flags:       syscall.MS_BIND,
 			},
+			// Mount the cgroup filesystem into the container
+			{
+				Source:      "cgroup",
+				Destination: "/sys/fs/cgroup",
+				Device:      "cgroup",
+				Flags:       defaultMountFlags,
+			},
+			{
+				Device:      "bind",
+				Source:      "/sys/fs/cgroup/systemd",
+				Destination: "/sys/fs/cgroup/systemd",
+				Flags:       syscall.MS_BIND,
+			},
 		},
 		Cgroups: &configs.Cgroup{
 			Name: containerID,
