@@ -26,6 +26,7 @@ import (
 	"net/http"
 	"os"
 	"os/exec"
+	"path"
 	"path/filepath"
 	"strconv"
 	"strings"
@@ -330,8 +331,7 @@ func getLibcontainerConfig(containerID, rootfs string, cfg Config) (*configs.Con
 			},
 		},
 		Cgroups: &configs.Cgroup{
-			Name:   containerID,
-			Parent: "system",
+			Path: path.Join("/gravity/planet/", containerID),
 			Resources: &configs.Resources{
 				AllowAllDevices:  &allowAllDevices,
 				AllowedDevices:   configs.DefaultAllowedDevices,
