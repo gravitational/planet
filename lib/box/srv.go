@@ -288,7 +288,7 @@ func getLibcontainerConfig(containerID, rootfs string, cfg Config) (*configs.Con
 			{Type: configs.NEWUTS},
 			{Type: configs.NEWIPC},
 			{Type: configs.NEWPID},
-			{Type: configs.NEWCGROUP}
+			{Type: configs.NEWCGROUP},
 		}),
 		Mounts: []*configs.Mount{
 			{
