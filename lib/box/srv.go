@@ -26,6 +26,7 @@ import (
 	"net/http"
 	"os"
 	"os/exec"
+	"path"
 	"path/filepath"
 	"strconv"
 	"strings"
@@ -333,12 +334,12 @@ func getLibcontainerConfig(containerID, rootfs string, cfg Config) (*configs.Con
 				Flags:       syscall.MS_BIND,
 			},
 			// Mount the cgroup filesystem into the container
-			{
+			/*{
 				Source:      "cgroup",
 				Destination: "/sys/fs/cgroup",
 				Device:      "cgroup",
 				Flags:       defaultMountFlags,
-			},
+			},*/
 		},
 		Cgroups: &configs.Cgroup{
 			Name: fmt.Sprintf("planet-%v", containerID),
@@ -351,6 +352,23 @@ func getLibcontainerConfig(containerID, rootfs string, cfg Config) (*configs.Con
 
 		Devices:  append(configs.DefaultAutoCreatedDevices, append(loopDevices, disks...)...),
 		Hostname: hostname,
+	}
+
+	// iterate over all the loaded cgroup controllers, and mount them inside the container
+	hostCgroups, err := parseHostCgroups()
+	if err != nil {
+		return nil, trace.Wrap(err)
+	}
+
+	for controller, _ := range hostCgroups {
+		mount := &configs.Mount{
+			Source:      "cgroup",
+			Destination: path.Join("/sys/fs/cgroup", controller),
+			Device:      "cgroup",
+			Flags:       syscall.MS_NOSUID | syscall.MS_NOEXEC | syscall.MS_NODEV | syscall.MS_STRICTATIME,
+			Data:        controller,
+		}
+		config.Mounts = append(config.Mounts, mount)
 	}
 
 	for _, mountSpec := range cfg.Mounts {
