@@ -333,13 +333,13 @@ func getLibcontainerConfig(containerID, rootfs string, cfg Config) (*configs.Con
 				Destination: "/dev/disk",
 				Flags:       syscall.MS_BIND,
 			},
-			// Mount the cgroup filesystem into the container
-			/*{
-				Source:      "cgroup",
+			// create a tmpfs filesystem for the cgroup controllers to be mounted onto
+			{
+				Source:      "tmpfs",
 				Destination: "/sys/fs/cgroup",
-				Device:      "cgroup",
+				Device:      "tmpfs",
 				Flags:       defaultMountFlags,
-			},*/
+			},
 		},
 		Cgroups: &configs.Cgroup{
 			Name: fmt.Sprintf("planet-%v", containerID),
