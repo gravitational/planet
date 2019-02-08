@@ -26,7 +26,6 @@ import (
 	"net/http"
 	"os"
 	"os/exec"
-	"path"
 	"path/filepath"
 	"strconv"
 	"strings"
@@ -289,6 +288,7 @@ func getLibcontainerConfig(containerID, rootfs string, cfg Config) (*configs.Con
 			{Type: configs.NEWUTS},
 			{Type: configs.NEWIPC},
 			{Type: configs.NEWPID},
+			{Type: configs.NEWCGROUP}
 		}),
 		Mounts: []*configs.Mount{
 			{
@@ -333,13 +333,6 @@ func getLibcontainerConfig(containerID, rootfs string, cfg Config) (*configs.Con
 				Destination: "/dev/disk",
 				Flags:       syscall.MS_BIND,
 			},
-			// create a tmpfs filesystem for the cgroup controllers to be mounted onto
-			{
-				Source:      "tmpfs",
-				Destination: "/sys/fs/cgroup",
-				Device:      "tmpfs",
-				Flags:       defaultMountFlags,
-			},
 		},
 		Cgroups: &configs.Cgroup{
 			Name: fmt.Sprintf("planet-%v", containerID),
@@ -352,23 +345,6 @@ func getLibcontainerConfig(containerID, rootfs string, cfg Config) (*configs.Con
 
 		Devices:  append(configs.DefaultAutoCreatedDevices, append(loopDevices, disks...)...),
 		Hostname: hostname,
-	}
-
-	// iterate over all the loaded cgroup controllers, and mount them inside the container
-	hostCgroups, err := parseHostCgroups()
-	if err != nil {
-		return nil, trace.Wrap(err)
-	}
-
-	for controller, _ := range hostCgroups {
-		mount := &configs.Mount{
-			Source:      "cgroup",
-			Destination: path.Join("/sys/fs/cgroup", controller),
-			Device:      "cgroup",
-			Flags:       syscall.MS_NOSUID | syscall.MS_NOEXEC | syscall.MS_NODEV | syscall.MS_STRICTATIME,
-			Data:        controller,
-		}
-		config.Mounts = append(config.Mounts, mount)
 	}
 
 	for _, mountSpec := range cfg.Mounts {
