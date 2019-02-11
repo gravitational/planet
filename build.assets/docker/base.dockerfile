@@ -7,46 +7,46 @@ ARG HELM_VER
 # FIXME: allowing downgrades and pinning the version of libip4tc0 for iptables
 # as the package has a dependency on the older version as the one available.
 RUN apt-get update && apt-get install -q -y --allow-downgrades bridge-utils \
-        seccomp=$SECCOMP_VER \
-        bash-completion \
-        kmod \
-        libip4tc0=1.6.0+snapshot20161117-6 \
-        iptables \
-        ebtables \
-        libdevmapper1.02.1 \
-        libsqlite3-0 \
-        e2fsprogs \
-        libncurses5 \
-        net-tools \
-        curl \
-        iproute2 \
-        lsb-base \
-        dash \
-        ca-certificates \
-        aufs-tools \
-        xfsprogs \
-        dbus \
-        dnsutils \
-        ethtool \
-        sysstat \
-        nano \
-        vim \
-        iotop \
-        htop \
-        ifstat \
-        iftop \
-        traceroute \
-        tcpdump \
-        coreutils \
-        lsof \
-        socat \
-        nmap \
-        netcat \
-        nfs-common \
-        jq \
-        conntrack \
-        strace \
-        dnsmasq ; \
+    seccomp=$SECCOMP_VER \
+    bash-completion \
+    kmod \
+    libip4tc0=1.6.0+snapshot20161117-6 \
+    iptables \
+    ebtables \
+    libdevmapper1.02.1 \
+    libsqlite3-0 \
+    e2fsprogs \
+    libncurses5 \
+    net-tools \
+    curl \
+    iproute2 \
+    lsb-base \
+    dash \
+    ca-certificates \
+    aufs-tools \
+    xfsprogs \
+    dbus \
+    dnsutils \
+    ethtool \
+    sysstat \
+    nano \
+    vim \
+    iotop \
+    htop \
+    ifstat \
+    iftop \
+    traceroute \
+    tcpdump \
+    coreutils \
+    lsof \
+    socat \
+    nmap \
+    netcat \
+    nfs-common \
+    jq \
+    conntrack \
+    strace \
+    dnsmasq ; \
     apt-get -t testing install -y lvm2; \
     apt-get -y autoclean; apt-get -y clean
 
@@ -55,6 +55,9 @@ RUN curl https://download.docker.com/linux/static/stable/x86_64/docker-$DOCKER_V
     tar -xvzf /tmp/docker-$DOCKER_VER.tgz -C /tmp && \
     cp /tmp/docker/* /usr/bin && \
     rm -rf /tmp/docker*
+
+# Replace docker-runc (CVE-2019-5736)
+RUN curl -L https://github.com/rancher/runc-cve/releases/download/CVE-2019-5736-build2/runc-v$DOCKER_VER-amd64 -o /usr/bin/docker-runc
 
 RUN curl https://storage.googleapis.com/kubernetes-helm/helm-$HELM_VER-linux-amd64.tar.gz -o /tmp/helm-$HELM_VER.tar.gz && \
     mkdir -p /tmp/helm && tar -xvzf /tmp/helm-$HELM_VER.tar.gz -C /tmp/helm && \
