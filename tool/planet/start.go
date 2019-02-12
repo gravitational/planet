@@ -18,6 +18,8 @@ package main
 
 import (
 	"bytes"
+	"encoding/base64"
+	"encoding/json"
 	"fmt"
 	"io"
 	"io/ioutil"
@@ -32,11 +34,14 @@ import (
 
 	"github.com/gravitational/planet/lib/box"
 	"github.com/gravitational/planet/lib/check"
+	"github.com/gravitational/planet/lib/clusterconfig/component"
 	"github.com/gravitational/planet/lib/constants"
 	"github.com/gravitational/planet/lib/user"
 	"github.com/gravitational/planet/lib/utils"
 
+	"github.com/ghodss/yaml"
 	"github.com/gravitational/trace"
+	"github.com/imdario/mergo"
 	"github.com/opencontainers/runc/libcontainer"
 	log "github.com/sirupsen/logrus"
 )
@@ -161,7 +166,7 @@ func start(config *Config, monitorc chan<- bool) (*runtimeContext, error) {
 		return nil, trace.Wrap(err)
 	}
 	addEtcdOptions(config)
-	addKubeletOptions(config)
+	addComponentOptions(config)
 	setupFlannel(config)
 	if err = setupCloudOptions(config); err != nil {
 		return nil, trace.Wrap(err)
@@ -323,36 +328,42 @@ func setupCloudOptions(c *Config) error {
 		return nil
 	}
 
-	flags := []string{fmt.Sprintf("--cloud-provider=%v", c.CloudProvider)}
-
-	switch c.CloudProvider {
-	case constants.CloudProviderAWS:
-		if c.ClusterID != "" {
-			flags = append(flags, "--cloud-config=/etc/cloud-config.conf")
-			c.Files = append(c.Files, box.File{
-				Path: "/etc/cloud-config.conf",
-				Contents: strings.NewReader(fmt.Sprintf(
-					awsCloudConfig, c.ClusterID)),
-			})
-		}
-	case constants.CloudProviderGCE:
-		if c.ClusterID != "" {
-			nodeTags := c.ClusterID
-			if c.GCENodeTags != "" {
-				nodeTags = c.GCENodeTags
-			}
-			flags = append(flags, "--cloud-config=/etc/cloud-config.conf")
-			c.Files = append(c.Files, box.File{
-				Path: "/etc/cloud-config.conf",
-				Contents: strings.NewReader(fmt.Sprintf(
-					gceCloudConfig, nodeTags)),
-			})
-		}
+	contents, err := generateCloudConfig(c)
+	if err != nil {
+		return trace.Wrap(err)
 	}
+	c.Files = append(c.Files, box.File{
+		Path:     constants.CloudConfigFile,
+		Contents: strings.NewReader(contents),
+	})
 
-	c.Env.Upsert("KUBE_CLOUD_FLAGS", strings.Join(flags, " "))
+	c.Env.Upsert(EnvKubeCloudFlags,
+		fmt.Sprintf("--cloud-provider=%v --cloud-config=%v", c.CloudProvider, constants.CloudConfigFile))
 
 	return nil
+}
+
+func generateCloudConfig(config *Config) (string, error) {
+	if config.CloudConfig != "" {
+		return config.CloudConfig, nil
+	}
+	switch config.CloudProvider {
+	case constants.CloudProviderAWS:
+		if config.ClusterID != "" {
+			return fmt.Sprintf(awsCloudConfig, config.ClusterID), nil
+		}
+		return "", trace.BadParameter("missing clusterID")
+	case constants.CloudProviderGCE:
+		if config.GCENodeTags != "" {
+			return fmt.Sprintf(gceCloudConfig, config.GCENodeTags), nil
+		}
+		if config.ClusterID != "" {
+			return fmt.Sprintf(gceCloudConfig, config.ClusterID), nil
+		}
+		return "", trace.BadParameter("missing clusterID")
+	default:
+		return "", trace.BadParameter("unsupported cloud provider %q", config.CloudProvider)
+	}
 }
 
 // pickDockerStorageBackend examines the filesystems this host supports and picks one
@@ -451,11 +462,50 @@ func setupEtcd(config *Config) error {
 	return nil
 }
 
+func addComponentOptions(config *Config) error {
+	if err := addKubeletOptions(config); err != nil {
+		return trace.Wrap(err)
+	}
+	if config.APIServerOptions != "" {
+		config.Env.Append(EnvAPIServerOptions, config.APIServerOptions, " ")
+	}
+	return nil
+}
+
 // addKubeletOptions sets extra kubelet command line arguments in environment
-func addKubeletOptions(config *Config) {
+func addKubeletOptions(config *Config) error {
 	if config.KubeletOptions != "" {
 		config.Env.Append(EnvKubeletOptions, config.KubeletOptions, " ")
 	}
+	konfig := KubeletConfig
+	if config.KubeletConfig != "" {
+		decoded, err := base64.StdEncoding.DecodeString(config.KubeletConfig)
+		if err != nil {
+			return trace.Wrap(err, "invalid kubelet configuration: expected base64-encoded payload")
+		}
+		konfigBytes, err := utils.ToJSON([]byte(decoded))
+		if err != nil {
+			return trace.Wrap(err, "invalid kubelet configuration: expected either JSON or YAML")
+		}
+		var externalKonfig component.KubeletConfiguration
+		if err := json.Unmarshal(konfigBytes, &externalKonfig); err != nil {
+			return trace.Wrap(err, "failed to unmarshal kubelet configuration from JSON")
+		}
+		err = mergo.Merge(&konfig, externalKonfig, mergo.WithOverride)
+		if err != nil {
+			return trace.Wrap(err)
+		}
+	}
+	konfigBytes, err := yaml.Marshal(konfig)
+	if err != nil {
+		return trace.Wrap(err)
+	}
+	config.Files = append(config.Files, box.File{
+		Path:     constants.KubeletConfigFile,
+		Contents: bytes.NewReader(konfigBytes),
+		Mode:     SharedReadWriteMask,
+	})
+	return nil
 }
 
 // addKubeConfig writes a kubectl config file

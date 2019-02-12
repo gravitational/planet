@@ -129,6 +129,10 @@ ignored = ["github.com/Sirupsen/logrus", "github.com/gravitational/planet/build/
   name = "k8s.io/api"
   version = "kubernetes-1.13.0"
 
+[[constraint]]
+  name = "github.com/ghodss/yaml"
+  revision = "d4115522f0fe93c8641d5a20ac4a47ce1d50154c"
+
 [[override]]
   name = "github.com/json-iterator/go"
   version = "1.1.5"

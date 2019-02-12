@@ -1,0 +1,17 @@
+kind: KubeletConfiguration
+apiVersion: kubelet.config.k8s.io/v1beta1
+address: "0.0.0.0"
+port: 10250
+makeIPTablesUtilChains: true
+healthzBindAddress: "0.0.0.0"
+healthzPort: 10248
+clusterDomain: "cluster.local"
+eventRecordQPS: 0
+failSwapOn: false
+authentication:
+  anonymous:
+    enabled: false
+  webhook:
+    enabled: true
+authorization:
+  mode: Webhook

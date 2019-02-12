@@ -43,8 +43,9 @@ ExecStart=/usr/bin/kube-apiserver \
         --etcd-keyfile=/var/state/etcd.key \
         --storage-backend=${KUBE_STORAGE_BACKEND} \
         --event-ttl=24h0m0s \
+        --advertise-address=${PLANET_PUBLIC_IP} \
         --bind-address=${PLANET_PUBLIC_IP} \
-        --logtostderr=true $KUBE_CLOUD_FLAGS \
+        --logtostderr=true \
         --client-ca-file=/var/state/root.cert \
         --anonymous-auth=false \
         --profiling=false \
@@ -52,7 +53,9 @@ ExecStart=/usr/bin/kube-apiserver \
         --audit-log-path=/var/log/apiserver/audit.log \
         --audit-log-maxage=30 \
         --audit-log-maxbackup=10 \
-        --audit-log-maxsize=100
+        --audit-log-maxsize=100 \
+        $KUBE_APISERVER_OPTIONS \
+        $KUBE_CLOUD_FLAGS
 Restart=always
 RestartSec=5
 StartLimitInterval=3600

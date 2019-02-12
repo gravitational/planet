@@ -8,30 +8,17 @@ EnvironmentFile=/etc/container-environment
 EnvironmentFile=/run/overlay.env
 ExecStartPre=/bin/systemctl is-active docker.service
 ExecStart=/usr/bin/kubelet \
-        --address=0.0.0.0 \
-        --port=10250 \
-        --hostname_override=${KUBE_NODE_NAME} \
+        --hostname-override=${KUBE_NODE_NAME} \
         --allow-privileged=false \
-        --make-iptables-util-chains=true \
         --logtostderr=true \
-        --healthz-bind-address=0.0.0.0 \
-        --healthz-port=10248 \
         --cluster-dns=${OVERLAY_ADDRESSES} \
-        --cluster-domain=cluster.local \
         --pod-infra-container-image=${KUBE_APISERVER}:5000/gcr.io/google_containers/pause:3.0 \
-        --client-ca-file=/var/state/root.cert \
-        --anonymous-auth=false \
-        --read-only-port=0 \
-        --tls-cert-file=/var/state/apiserver.cert \
-        --tls-private-key-file=/var/state/apiserver.key \
         --kubeconfig=/etc/kubernetes/kubelet.kubeconfig \
-        --streaming-connection-idle-timeout=5m \
-        --fail-swap-on=false \
-        --authorization-mode=Webhook \
-        --authentication-token-webhook \
         --register-with-taints=${PLANET_NODE_TAINTS} \
         --node-labels=${PLANET_NODE_LABELS} \
-        --event-qps=0 $KUBE_CLOUD_FLAGS $KUBELET_OPTS
+        --config=/etc/kubernetes/kubelet.yaml \
+        $KUBE_CLOUD_FLAGS \
+        $KUBELET_OPTS
 Restart=always
 RestartSec=5
 StartLimitInterval=3600

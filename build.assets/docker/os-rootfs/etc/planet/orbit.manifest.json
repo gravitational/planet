@@ -420,6 +420,22 @@
                         "name": "node-label"
                     }
                 }
+            },
+            {
+                "type": "String",
+                "name": "kubelet-config",
+                "env": "PLANET_KUBELET_CONFIG",
+                "cli": {
+                    "name": "kubelet-config"
+                }
+            },
+            {
+                "type": "String",
+                "name": "cloud-config",
+                "env": "PLANET_CLOUD_CONFIG",
+                "cli": {
+                    "name": "cloud-config"
+                }
             }
         ]
     }

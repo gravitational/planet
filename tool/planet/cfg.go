@@ -105,6 +105,8 @@ type Config struct {
 	Hostname string
 	// KubeletOptions defines additional kubelet parameters
 	KubeletOptions string
+	// APIServerOptions defines additional parameters for API server
+	APIServerOptions string
 	// ServiceUser defines the user context for container's service user
 	ServiceUser serviceUser
 	// DockerPromiscuousMode specifies whether to put docker bridge into promiscuous mode
@@ -115,6 +117,10 @@ type Config struct {
 	Taints []string
 	// NodeLabels is Kubernetes node labels
 	NodeLabels []string
+	// KubeletConfig specifies the configuration for kubelet as JSON-encoded payload
+	KubeletConfig string
+	// CloudConfig specifies the cloud configuration as JSON-encoded payload
+	CloudConfig string
 }
 
 // DNS describes DNS server configuration

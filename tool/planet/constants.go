@@ -18,6 +18,11 @@ package main
 
 import (
 	"time"
+
+	"github.com/gravitational/planet/lib/clusterconfig/component"
+	"github.com/gravitational/planet/lib/utils"
+
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
 const (
@@ -130,7 +135,14 @@ const (
 	EnvEtcdOptions = "ETCD_OPTS"
 	// EnvKubeletOptions names the environment variable that specifies additional
 	// kubelet command line options
-	EnvKubeletOptions = "KUBELET_OPTS"
+	EnvKubeletOptions = "PLANET_KUBELET_OPTS"
+
+	// EnvAPIServerOptions names the environment variable that specifies additional
+	// command line options for the API server
+	EnvAPIServerOptions = "PLANET_APISERVER_OPTS"
+
+	// EnvKubeCloudFlags specifies cloud configuration command line options
+	EnvKubeCloudFlags = "KUBE_CLOUD_FLAGS"
 
 	// EnvOverlayAddresses is an environment variable with a comma separated list of
 	// IPv4 addresses assigned to the overlay network interface of the host
@@ -165,17 +177,26 @@ const (
 	// EnvPlanetKubeletOptions is the environment variable with additional options for kubelet
 	EnvPlanetKubeletOptions = "PLANET_KUBELET_OPTIONS"
 
+	// EnvPlanetAPIServerOptions is the environment variable with additional options for API server
+	EnvPlanetAPIServerOptions = "PLANET_APISERVER_OPTIONS"
+
 	// EnvPlanetDNSListenAddr is the environment variable with the list of listen addresses for CoreDNS
 	EnvPlanetDNSListenAddr = "PLANET_DNS_LISTEN_ADDR"
 
 	// EnvPlanetDNSPort is the environment variable with the DNS port
 	EnvPlanetDNSPort = "PLANET_DNS_PORT"
 
-	// EnvPlanetTaints is an environment variable for Kubernetes tains to apply to the node during creation
+	// EnvPlanetTaints is an environment variable for Kubernetes taints to apply to the node during creation
 	EnvPlanetTaints = "PLANET_NODE_TAINTS"
 
 	// EnvPlanetNodeLabels is an environment variable for Kubernetes node labels
 	EnvPlanetNodeLabels = "PLANET_NODE_LABELS"
+
+	// EnvPlanetKubeletConfig is an environment variable for Kubernetes kubelet configuration file
+	EnvPlanetKubeletConfig = "PLANET_KUBELET_CONFIG"
+
+	// EnvPlanetCloudConfig is an environment variable for Kubernetes cloud configuration file
+	EnvPlanetCloudConfig = "PLANET_CLOUD_CONFIG"
 
 	// DefaultDNSListenAddr is the default IP address CoreDNS will listen on
 	DefaultDNSListenAddr = "127.0.0.2"
@@ -356,6 +377,60 @@ var K8sSearchDomains = []string{
 	"svc.cluster.local",
 	"default.svc.cluster.local",
 	"kube-system.svc.cluster.local",
+}
+
+// KubeletConfig specifies the default kubelet configuration
+var KubeletConfig = component.KubeletConfiguration{
+	TypeMeta: metav1.TypeMeta{
+		Kind:       "KubeletConfiguration",
+		APIVersion: "kubelet.config.k8s.io/v1beta1",
+	},
+	Address:                "0.0.0.0",
+	Port:                   10250,
+	MakeIPTablesUtilChains: utils.BoolPtr(true),
+	HealthzBindAddress:     "0.0.0.0",
+	HealthzPort:            utils.Int32Ptr(10248),
+	ClusterDomain:          "cluster.local",
+	EventRecordQPS:         utils.Int32Ptr(0),
+	FailSwapOn:             utils.BoolPtr(false),
+	ReadOnlyPort:           0,
+	TLSCertFile:            "/var/state/apiserver.cert",
+	TLSPrivateKeyFile:      "/var/state/apiserver.key",
+	StreamingConnectionIdleTimeout: metav1.Duration{
+		Duration: 5 * time.Minute,
+	},
+	EvictionHard: map[string]string{
+		"nodefs.available":   "5%",
+		"imagefs.available":  "5%",
+		"nodefs.inodesFree":  "5%",
+		"imagefs.inodesFree": "5%",
+	},
+	EvictionSoft: map[string]string{
+		"nodefs.available":   "10%",
+		"imagefs.available":  "10%",
+		"nodefs.inodesFree":  "10%",
+		"imagefs.inodesFree": "10%",
+	},
+	EvictionSoftGracePeriod: map[string]string{
+		"nodefs.available":   "1h",
+		"imagefs.available":  "1h",
+		"nodefs.inodesFree":  "1h",
+		"imagefs.inodesFree": "1h",
+	},
+	Authentication: component.KubeletAuthentication{
+		Webhook: component.KubeletWebhookAuthentication{
+			Enabled: utils.BoolPtr(true),
+		},
+		Anonymous: component.KubeletAnonymousAuthentication{
+			Enabled: utils.BoolPtr(true),
+		},
+		X509: component.KubeletX509Authentication{
+			ClientCAFile: "/var/state/root.cert",
+		},
+	},
+	Authorization: component.KubeletAuthorization{
+		Mode: component.KubeletAuthorizationModeWebhook,
+	},
 }
 
 var allCaps = []string{
