@@ -18,7 +18,10 @@ package main
 
 import (
 	"encoding/json"
+	"flag"
 	"fmt"
+	"io/ioutil"
+	"log/syslog"
 	"net"
 	"net/http"
 	_ "net/http/pprof"
@@ -30,6 +33,7 @@ import (
 	"syscall"
 	"time"
 
+	"github.com/fatih/color"
 	"github.com/gravitational/configure/cstrings"
 	"github.com/gravitational/planet/lib/box"
 	"github.com/gravitational/planet/lib/monitoring"
@@ -43,22 +47,24 @@ import (
 	"github.com/gravitational/version"
 	"github.com/opencontainers/runc/libcontainer/configs"
 	log "github.com/sirupsen/logrus"
+	logsyslog "github.com/sirupsen/logrus/hooks/syslog"
 	"gopkg.in/alecthomas/kingpin.v2"
 )
 
 func main() {
-	var exitCode int
+	initLogging(false)
 	var err error
+	// Workaround the issue described here:
+	// https://github.com/kubernetes/kubernetes/issues/17162
+	_ = flag.CommandLine.Parse([]string{})
 
-	if err = run(); err != nil {
-		if errExit, ok := trace.Unwrap(err).(*box.ExitError); ok {
-			exitCode = errExit.Code
-		} else {
-			log.Errorf("Failed to run: %v.", trace.DebugReport(err))
-			exitCode = 1
-		}
+	if err = run(); err == nil {
+		return
 	}
-	os.Exit(exitCode)
+	if errExit, ok := trace.Unwrap(err).(*box.ExitError); ok {
+		os.Exit(errExit.Code)
+	}
+	die(err)
 }
 
 func run() error {
@@ -232,17 +238,10 @@ func run() error {
 	args, extraArgs := cstrings.SplitAt(os.Args[1:], "--")
 	cmd, err := app.Parse(args)
 	if err != nil {
-		fmt.Fprintf(os.Stderr, "Failed parsing command line arguments: %s.\nTry planet --help\n", err.Error())
 		return err
 	}
 
-	if *debug {
-		log.SetOutput(os.Stderr)
-		log.SetLevel(log.DebugLevel)
-	} else {
-		log.SetOutput(os.Stderr)
-		log.SetLevel(log.WarnLevel)
-	}
+	initLogging(*debug)
 
 	if *profileEndpoint != "" {
 		go func() {
@@ -690,4 +689,32 @@ func toEtcdGatewayList(list kv.KeyVal) (peers string) {
 		addrs = append(addrs, fmt.Sprintf("%v:2379", addr))
 	}
 	return strings.Join(addrs, ",")
+}
+
+// InitLogger configures the global logger for a given purpose / verbosity level
+func initLogging(debug bool) {
+	level := log.WarnLevel
+	trace.SetDebug(debug)
+	if debug {
+		level = log.DebugLevel
+	}
+	log.StandardLogger().SetHooks(make(log.LevelHooks))
+	formatter := &trace.TextFormatter{DisableTimestamp: true}
+	log.SetFormatter(formatter)
+	log.SetLevel(level)
+	hook, err := logsyslog.NewSyslogHook("", "", syslog.LOG_WARNING, "")
+	if err != nil {
+		// syslog not available
+		log.SetOutput(os.Stderr)
+		return
+	}
+	log.AddHook(hook)
+	log.SetOutput(ioutil.Discard)
+}
+
+// die prints the error message in red to the console and exits with a non-zero exit code
+func die(err error) {
+	log.Error(trace.DebugReport(err))
+	color.Red("[ERROR]: %v\n", trace.UserMessage(err))
+	os.Exit(255)
 }

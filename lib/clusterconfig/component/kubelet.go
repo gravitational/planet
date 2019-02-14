@@ -125,7 +125,8 @@ type KubeletConfiguration struct {
 	// it may disrupt components that interact with the Kubelet server.
 	// Default: 0 (disabled)
 	// +optional
-	ReadOnlyPort int32 `json:"readOnlyPort,omitempty"`
+	// Changed this to pointer to be able to detect unset vs empty
+	ReadOnlyPort *int32 `json:"readOnlyPort,omitempty"`
 	// tlsCertFile is the file containing x509 Certificate for HTTPS. (CA cert,
 	// if any, concatenated after server cert). If tlsCertFile and
 	// tlsPrivateKeyFile are not provided, a self-signed certificate

@@ -209,6 +209,14 @@
   version = "v1.0.0"
 
 [[projects]]
+  digest = "1:865079840386857c809b72ce300be7580cb50d3d3129ce11bf9aa6ca2bc1934a"
+  name = "github.com/fatih/color"
+  packages = ["."]
+  pruneopts = "UT"
+  revision = "5b77d2a35fb0ede96d138fc9a99f5c9b6aef11b4"
+  version = "v1.7.0"
+
+[[projects]]
   digest = "1:fd141e58c24cb6494ebfea526dfdd322878e5781c695ce6bf3a4d635f279313d"
   name = "github.com/ghodss/yaml"
   packages = ["."]
@@ -520,6 +528,30 @@
   version = "v0.1.0"
 
 [[projects]]
+  branch = "master"
+  digest = "1:1f38bafb5036a6d7b0a77c8c10a1d6e854e6b7874fed6776a3b1e146448ad0d4"
+  name = "github.com/kylelemons/godebug"
+  packages = ["diff"]
+  pruneopts = "UT"
+  revision = "d65d576e9348f5982d7f6d83682b694e731a45c6"
+
+[[projects]]
+  digest = "1:c658e84ad3916da105a761660dcaeb01e63416c8ec7bc62256a9b411a05fcd67"
+  name = "github.com/mattn/go-colorable"
+  packages = ["."]
+  pruneopts = "UT"
+  revision = "167de6bfdfba052fa6b2d3664c8f5272e23c9072"
+  version = "v0.0.9"
+
+[[projects]]
+  digest = "1:0981502f9816113c9c8c4ac301583841855c8cf4da8c72f696b3ebedf6d0e4e5"
+  name = "github.com/mattn/go-isatty"
+  packages = ["."]
+  pruneopts = "UT"
+  revision = "6ca4dbf54d38eea1a992b3c722a76a5d1c4cb25c"
+  version = "v0.0.4"
+
+[[projects]]
   digest = "1:ff5ebae34cfbf047d505ee150de27e60570e8c394b3b8fdbb720ff6ac71985fc"
   name = "github.com/matttproud/golang_protobuf_extensions"
   packages = ["pbutil"]
@@ -706,9 +738,12 @@
   version = "v0.9.0"
 
 [[projects]]
-  digest = "1:adec6c13b942561150e8fbecffd9e4c342ccbac59385bd0ddf69d9a6d0699f22"
+  digest = "1:2dc4fddf37503f952699873c7433efc11b569253ecd90d3ad4d8081431df100f"
   name = "github.com/sirupsen/logrus"
-  packages = ["."]
+  packages = [
+    ".",
+    "hooks/syslog",
+  ]
   pruneopts = "UT"
   revision = "dcdb95d728dbb6fe4b9fbe6b3b9d1fb268e68036"
   source = "github.com/gravitational/logrus"
@@ -1120,6 +1155,7 @@
     "github.com/coreos/go-systemd/dbus",
     "github.com/davecgh/go-spew/spew",
     "github.com/docker/docker/pkg/term",
+    "github.com/fatih/color",
     "github.com/ghodss/yaml",
     "github.com/gravitational/configure",
     "github.com/gravitational/configure/cstrings",
@@ -1139,6 +1175,7 @@
     "github.com/gravitational/version",
     "github.com/imdario/mergo",
     "github.com/julienschmidt/httprouter",
+    "github.com/kylelemons/godebug/diff",
     "github.com/mitchellh/go-ps",
     "github.com/opencontainers/runc/libcontainer",
     "github.com/opencontainers/runc/libcontainer/configs",
@@ -1149,6 +1186,7 @@
     "github.com/pborman/uuid",
     "github.com/prometheus/client_golang/prometheus",
     "github.com/sirupsen/logrus",
+    "github.com/sirupsen/logrus/hooks/syslog",
     "golang.org/x/net/websocket",
     "gopkg.in/alecthomas/kingpin.v2",
     "gopkg.in/check.v1",

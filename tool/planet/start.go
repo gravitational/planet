@@ -230,7 +230,7 @@ func start(config *Config, monitorc chan<- bool) (*runtimeContext, error) {
 		config.Files = append(config.Files, box.File{
 			Path:     HostnameFile,
 			Contents: strings.NewReader(config.Hostname),
-			Mode:     SharedReadWriteMask,
+			Mode:     constants.SharedReadWriteMask,
 		})
 	}
 
@@ -495,6 +495,11 @@ func addKubeletOptions(config *Config) error {
 		if err != nil {
 			return trace.Wrap(err)
 		}
+		// Reset the attributes we expect to be set to specific values
+		err = mergo.Merge(&konfig, KubeletConfigOverrides, mergo.WithOverride)
+		if err != nil {
+			return trace.Wrap(err)
+		}
 	}
 	konfigBytes, err := yaml.Marshal(konfig)
 	if err != nil {
@@ -515,11 +520,11 @@ func addKubeConfig(config *Config) error {
 		return trace.Wrap(err)
 	}
 	path := filepath.Join(config.Rootfs, constants.KubectlConfigPath)
-	err = os.MkdirAll(filepath.Dir(path), SharedDirMask)
+	err = os.MkdirAll(filepath.Dir(path), constants.SharedDirMask)
 	if err != nil {
 		return trace.Wrap(err)
 	}
-	err = ioutil.WriteFile(path, kubeConfig, SharedFileMask)
+	err = ioutil.WriteFile(path, kubeConfig, constants.SharedReadMask)
 	if err != nil {
 		return trace.Wrap(err)
 	}
@@ -558,7 +563,7 @@ func setCoreDNS(config *Config) error {
 		return trace.Wrap(err)
 	}
 
-	err = ioutil.WriteFile(filepath.Join(config.Rootfs, CoreDNSConf), []byte(corednsConfig), SharedFileMask)
+	err = ioutil.WriteFile(filepath.Join(config.Rootfs, CoreDNSConf), []byte(corednsConfig), constants.SharedReadMask)
 	if err != nil {
 		return trace.Wrap(err)
 	}
@@ -595,9 +600,10 @@ var coreDNSTemplate = `
 
 .:{{.Port}} {
   reload
-  bind {{range $bind := .ListenAddrs}}{{$bind}} {{end}}
+  bind{{range $bind := .ListenAddrs}} {{$bind}}{{- end}}
   errors
-  hosts /etc/coredns/coredns.hosts { {{range $hostname, $ips := .Hosts}}{{range $ip := $ips}}
+  hosts /etc/coredns/coredns.hosts {
+    {{- range $hostname, $ips := .Hosts}}{{range $ip := $ips}}
     {{$ip}} {{$hostname}}{{end}}{{end}}
     fallthrough
   }
@@ -676,7 +682,7 @@ func copyResolvFile(cfg utils.DNSConfig, destination string, upstreamNameservers
 
 	resolv, err := os.OpenFile(
 		destination,
-		os.O_RDWR|os.O_CREATE|os.O_TRUNC, SharedFileMask,
+		os.O_RDWR|os.O_CREATE|os.O_TRUNC, constants.SharedReadMask,
 	)
 	if err != nil {
 		return trace.Wrap(err)
@@ -699,7 +705,7 @@ func setHosts(config *Config, entries []utils.HostEntry) error {
 	config.Files = append(config.Files, box.File{
 		Path:     HostsFile,
 		Contents: out,
-		Mode:     SharedReadWriteMask,
+		Mode:     constants.SharedReadWriteMask,
 	})
 	return nil
 }

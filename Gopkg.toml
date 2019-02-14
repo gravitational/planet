@@ -130,6 +130,10 @@ ignored = ["github.com/Sirupsen/logrus", "github.com/gravitational/planet/build/
   version = "kubernetes-1.13.0"
 
 [[constraint]]
+  name = "github.com/fatih/color"
+  version = "v1.7.0"
+
+[[constraint]]
   name = "github.com/ghodss/yaml"
   revision = "d4115522f0fe93c8641d5a20ac4a47ce1d50154c"
 

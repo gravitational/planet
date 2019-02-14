@@ -393,7 +393,7 @@ var KubeletConfig = component.KubeletConfiguration{
 	ClusterDomain:          "cluster.local",
 	EventRecordQPS:         utils.Int32Ptr(0),
 	FailSwapOn:             utils.BoolPtr(false),
-	ReadOnlyPort:           0,
+	ReadOnlyPort:           utils.Int32Ptr(0),
 	TLSCertFile:            "/var/state/apiserver.cert",
 	TLSPrivateKeyFile:      "/var/state/apiserver.key",
 	StreamingConnectionIdleTimeout: metav1.Duration{
@@ -417,6 +417,38 @@ var KubeletConfig = component.KubeletConfiguration{
 		"nodefs.inodesFree":  "1h",
 		"imagefs.inodesFree": "1h",
 	},
+	Authentication: component.KubeletAuthentication{
+		Webhook: component.KubeletWebhookAuthentication{
+			Enabled: utils.BoolPtr(true),
+		},
+		Anonymous: component.KubeletAnonymousAuthentication{
+			Enabled: utils.BoolPtr(true),
+		},
+		X509: component.KubeletX509Authentication{
+			ClientCAFile: "/var/state/root.cert",
+		},
+	},
+	Authorization: component.KubeletAuthorization{
+		Mode: component.KubeletAuthorizationModeWebhook,
+	},
+}
+
+// KubeletConfigOverrides specifies the subset of kubelet configuration that cannot be overridden
+// externally - i.e. will always have the specified default
+var KubeletConfigOverrides = component.KubeletConfiguration{
+	TypeMeta: metav1.TypeMeta{
+		Kind:       "KubeletConfiguration",
+		APIVersion: "kubelet.config.k8s.io/v1beta1",
+	},
+	Address:                "0.0.0.0",
+	Port:                   10250,
+	MakeIPTablesUtilChains: utils.BoolPtr(true),
+	HealthzBindAddress:     "0.0.0.0",
+	HealthzPort:            utils.Int32Ptr(10248),
+	ClusterDomain:          "cluster.local",
+	ReadOnlyPort:           utils.Int32Ptr(0),
+	TLSCertFile:            "/var/state/apiserver.cert",
+	TLSPrivateKeyFile:      "/var/state/apiserver.key",
 	Authentication: component.KubeletAuthentication{
 		Webhook: component.KubeletWebhookAuthentication{
 			Enabled: utils.BoolPtr(true),
