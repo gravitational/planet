@@ -139,8 +139,10 @@ func start(config *Config, monitorc chan<- bool) (*runtimeContext, error) {
 	config.Env = append(config.Env,
 		box.EnvPair{Name: EnvMasterIP, Val: config.MasterIP},
 		box.EnvPair{Name: EnvCloudProvider, Val: config.CloudProvider},
-		box.EnvPair{Name: EnvServiceSubnet, Val: config.ServiceSubnet.String()},
-		box.EnvPair{Name: EnvPODSubnet, Val: config.PODSubnet.String()},
+		box.EnvPair{Name: EnvServiceSubnet, Val: config.ServiceCIDR.String()},
+		box.EnvPair{Name: EnvPodSubnet, Val: config.PodCIDR.String()},
+		box.EnvPair{Name: EnvServiceNodePortRange, Val: config.ServiceNodePortRange},
+		box.EnvPair{Name: EnvProxyPortRange, Val: config.ProxyPortRange},
 		box.EnvPair{Name: EnvPublicIP, Val: config.PublicIP},
 		box.EnvPair{Name: EnvVxlanPort, Val: strconv.Itoa(config.VxlanPort)},
 		// Default agent name to the name of the etcd member
@@ -168,7 +170,7 @@ func start(config *Config, monitorc chan<- bool) (*runtimeContext, error) {
 	addEtcdOptions(config)
 	addComponentOptions(config)
 	setupFlannel(config)
-	if err = setupCloudOptions(config); err != nil {
+	if err = addCloudOptions(config); err != nil {
 		return nil, trace.Wrap(err)
 	}
 
@@ -321,9 +323,9 @@ func addGroupToContainer(rootfs string, u serviceUser) error {
 	return trace.Wrap(err)
 }
 
-// setupCloudOptions sets up cloud flags and files passed to kubernetes
+// addCloudOptions sets up cloud flags and files passed to kubernetes
 // binaries, sets up container environment files
-func setupCloudOptions(c *Config) error {
+func addCloudOptions(c *Config) error {
 	if c.CloudProvider == "" {
 		return nil
 	}
@@ -468,6 +470,17 @@ func addComponentOptions(config *Config) error {
 	}
 	if config.APIServerOptions != "" {
 		config.Env.Append(EnvAPIServerOptions, config.APIServerOptions, " ")
+	}
+	if config.ServiceNodePortRange != "" {
+		config.Env.Append(EnvAPIServerOptions,
+			fmt.Sprintf("--service-node-port-range=%v", config.ServiceNodePortRange), " ")
+	}
+	if config.ProxyPortRange != "" {
+		config.Env.Append(EnvKubeProxyOptions,
+			fmt.Sprintf("--proxy-port-range=%v", config.ProxyPortRange), " ")
+	}
+	if config.FeatureGates != "" {
+		config.Env.Append(EnvKubeComponentFlags, fmt.Sprintf("--feature-gates=%v", config.FeatureGates), " ")
 	}
 	return nil
 }

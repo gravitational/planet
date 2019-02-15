@@ -17,8 +17,9 @@ ExecStart=/usr/bin/kubelet \
         --register-with-taints=${PLANET_NODE_TAINTS} \
         --node-labels=${PLANET_NODE_LABELS} \
         --config=/etc/kubernetes/kubelet.yaml \
+        $KUBE_KUBELET_FLAGS \
         $KUBE_CLOUD_FLAGS \
-        $KUBELET_OPTS
+        $KUBE_COMPONENT_FLAGS
 Restart=always
 RestartSec=5
 StartLimitInterval=3600

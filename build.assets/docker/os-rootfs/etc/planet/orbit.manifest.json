@@ -436,6 +436,30 @@
                 "cli": {
                     "name": "cloud-config"
                 }
+            },
+            {
+                "type": "String",
+                "name": "service-node-portrange",
+                "env": "PLANET_SERVICE_NODE_PORT_RANGE",
+                "cli": {
+                    "name": "service-node-portrange"
+                }
+            },
+            {
+                "type": "String",
+                "name": "proxy-portrange",
+                "env": "PLANET_PROXY_PORT_RANGE",
+                "cli": {
+                    "name": "proxy-portrange"
+                }
+            },
+            {
+                "type": "String",
+                "name": "feature-gates",
+                "env": "PLANET_FEATURE_GATES",
+                "cli": {
+                    "name": "feature-gates"
+                }
             }
         ]
     }

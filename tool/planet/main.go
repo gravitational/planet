@@ -83,19 +83,28 @@ func run() error {
 		// start the container with planet
 		cstart = app.Command("start", "Start Planet container")
 
-		cstartPublicIP                = cstart.Flag("public-ip", "IP accessible by other nodes for inter-host communication").OverrideDefaultFromEnvar("PLANET_PUBLIC_IP").IP()
-		cstartMasterIP                = cstart.Flag("master-ip", "IP of the master POD (defaults to public-ip)").OverrideDefaultFromEnvar("PLANET_MASTER_IP").IP()
-		cstartCloudProvider           = cstart.Flag("cloud-provider", "cloud provider name, e.g. 'aws' or 'gce'").OverrideDefaultFromEnvar("PLANET_CLOUD_PROVIDER").String()
-		cstartClusterID               = cstart.Flag("cluster-id", "ID of the cluster").OverrideDefaultFromEnvar("PLANET_CLUSTER_ID").String()
-		cstartGCENodeTags             = cstart.Flag("gce-node-tags", "Node tag to set in the cloud configuration file on GCE as comma-separated values").OverrideDefaultFromEnvar(EnvGCENodeTags).String()
-		cstartIgnoreChecks            = cstart.Flag("ignore-checks", "Force start ignoring some failed host checks (e.g. kernel version)").OverrideDefaultFromEnvar("PLANET_FORCE").Bool()
-		cstartEnv                     = EnvVars(cstart.Flag("env", "Set environment variable as comma-separated list of name=value pairs").OverrideDefaultFromEnvar("PLANET_ENV"))
-		cstartMounts                  = Mounts(cstart.Flag("volume", "External volume to mount, as a src:dst[:options] tuple").OverrideDefaultFromEnvar("PLANET_VOLUME"))
-		cstartDevices                 = Devices(cstart.Flag("device", "Device to create inside container").OverrideDefaultFromEnvar("PLANET_DEVICE"))
-		cstartRoles                   = List(cstart.Flag("role", "Roles such as 'master' or 'node'").OverrideDefaultFromEnvar("PLANET_ROLE"))
-		cstartSecretsDir              = cstart.Flag("secrets-dir", "Directory with master secrets - certificate authority and certificates").OverrideDefaultFromEnvar("PLANET_SECRETS_DIR").ExistingDir()
-		cstartServiceSubnet           = kv.CIDRFlag(cstart.Flag("service-subnet", "subnet dedicated to the services in cluster").Default(DefaultServiceSubnet).OverrideDefaultFromEnvar("PLANET_SERVICE_SUBNET"))
-		cstartPODSubnet               = kv.CIDRFlag(cstart.Flag("pod-subnet", "subnet dedicated to the pods in the cluster").Default(DefaultPODSubnet).OverrideDefaultFromEnvar("PLANET_POD_SUBNET"))
+		cstartPublicIP             = cstart.Flag("public-ip", "IP accessible by other nodes for inter-host communication").OverrideDefaultFromEnvar("PLANET_PUBLIC_IP").IP()
+		cstartMasterIP             = cstart.Flag("master-ip", "IP of the master Pod (defaults to public-ip)").OverrideDefaultFromEnvar("PLANET_MASTER_IP").IP()
+		cstartCloudProvider        = cstart.Flag("cloud-provider", "cloud provider name, e.g. 'aws' or 'gce'").OverrideDefaultFromEnvar("PLANET_CLOUD_PROVIDER").String()
+		cstartClusterID            = cstart.Flag("cluster-id", "ID of the cluster").OverrideDefaultFromEnvar("PLANET_CLUSTER_ID").String()
+		cstartGCENodeTags          = cstart.Flag("gce-node-tags", "Node tag to set in the cloud configuration file on GCE as comma-separated values").OverrideDefaultFromEnvar(EnvGCENodeTags).String()
+		cstartIgnoreChecks         = cstart.Flag("ignore-checks", "Force start ignoring some failed host checks (e.g. kernel version)").OverrideDefaultFromEnvar("PLANET_FORCE").Bool()
+		cstartEnv                  = EnvVars(cstart.Flag("env", "Set environment variable as comma-separated list of name=value pairs").OverrideDefaultFromEnvar("PLANET_ENV"))
+		cstartMounts               = Mounts(cstart.Flag("volume", "External volume to mount, as a src:dst[:options] tuple").OverrideDefaultFromEnvar("PLANET_VOLUME"))
+		cstartDevices              = Devices(cstart.Flag("device", "Device to create inside container").OverrideDefaultFromEnvar("PLANET_DEVICE"))
+		cstartRoles                = List(cstart.Flag("role", "Roles such as 'master' or 'node'").OverrideDefaultFromEnvar("PLANET_ROLE"))
+		cstartSecretsDir           = cstart.Flag("secrets-dir", "Directory with master secrets - certificate authority and certificates").OverrideDefaultFromEnvar("PLANET_SECRETS_DIR").ExistingDir()
+		cstartServiceCIDR          = kv.CIDRFlag(cstart.Flag("service-subnet", "IP range from which to assign service cluster IPs. This must not overlap with any IP ranges assigned to nodes for pods.").Default(DefaultServiceSubnet).OverrideDefaultFromEnvar("PLANET_SERVICE_SUBNET"))
+		cstartPodCIDR              = kv.CIDRFlag(cstart.Flag("pod-subnet", "subnet dedicated to the pods in the cluster").Default(DefaultPodSubnet).OverrideDefaultFromEnvar("PLANET_POD_SUBNET"))
+		cstartProxyPortRange       = cstart.Flag("proxy-portrange", "Range of host ports (beginPort-endPort, single port or beginPort+offset, inclusive) that may be consumed in order to proxy service traffic. If (unspecified, 0, or 0-0) then ports will be randomly chosen.").OverrideDefaultFromEnvar(EnvProxyPortRange).String()
+		cstartServiceNodePortRange = cstart.Flag("service-node-portrange", "A port range to reserve for services with NodePort visibility. Example: '30000-32767'. Inclusive at both ends of the range.").
+						Default(DefaultServiceNodePortRange).
+						OverrideDefaultFromEnvar(EnvServiceNodePortRange).
+						String()
+		cstartFeatureGates = cstart.Flag("feature-gates", "A comma-separated list of key=value pairs that describe feature gates for alpha/experimental features.").
+					Default(DefaultFeatureGates).
+					OverrideDefaultFromEnvar(EnvFeatureGates).
+					String()
 		cstartVxlanPort               = cstart.Flag("vxlan-port", "overlay network port").Default(strconv.Itoa(DefaultVxlanPort)).OverrideDefaultFromEnvar(EnvVxlanPort).Int()
 		cstartServiceUID              = cstart.Flag("service-uid", "service user ID. Service user is used for services that do not require elevated permissions").OverrideDefaultFromEnvar(EnvServiceUID).String()
 		cstartSelfTest                = cstart.Flag("self-test", "Run end-to-end tests on the started cluster").Bool()
@@ -368,23 +377,26 @@ func run() error {
 			initialCluster = *cstartInitialCluster
 		}
 		config := &Config{
-			Rootfs:         rootfs,
-			SocketPath:     *socketPath,
-			Env:            *cstartEnv,
-			Mounts:         *cstartMounts,
-			Devices:        *cstartDevices,
-			IgnoreChecks:   *cstartIgnoreChecks,
-			Roles:          *cstartRoles,
-			MasterIP:       cstartMasterIP.String(),
-			PublicIP:       cstartPublicIP.String(),
-			CloudProvider:  *cstartCloudProvider,
-			ClusterID:      *cstartClusterID,
-			GCENodeTags:    *cstartGCENodeTags,
-			SecretsDir:     *cstartSecretsDir,
-			ServiceSubnet:  *cstartServiceSubnet,
-			PODSubnet:      *cstartPODSubnet,
-			VxlanPort:      *cstartVxlanPort,
-			InitialCluster: *cstartInitialCluster,
+			Rootfs:               rootfs,
+			SocketPath:           *socketPath,
+			Env:                  *cstartEnv,
+			Mounts:               *cstartMounts,
+			Devices:              *cstartDevices,
+			IgnoreChecks:         *cstartIgnoreChecks,
+			Roles:                *cstartRoles,
+			MasterIP:             cstartMasterIP.String(),
+			PublicIP:             cstartPublicIP.String(),
+			CloudProvider:        *cstartCloudProvider,
+			ClusterID:            *cstartClusterID,
+			GCENodeTags:          *cstartGCENodeTags,
+			SecretsDir:           *cstartSecretsDir,
+			ServiceCIDR:          *cstartServiceCIDR,
+			PodCIDR:              *cstartPodCIDR,
+			ProxyPortRange:       *cstartProxyPortRange,
+			ServiceNodePortRange: *cstartServiceNodePortRange,
+			FeatureGates:         *cstartFeatureGates,
+			VxlanPort:            *cstartVxlanPort,
+			InitialCluster:       *cstartInitialCluster,
 			ServiceUser: serviceUser{
 				UID: *cstartServiceUID,
 			},

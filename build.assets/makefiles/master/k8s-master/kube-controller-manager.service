@@ -7,17 +7,20 @@ Wants=kube-apiserver.service
 EnvironmentFile=/etc/container-environment
 ExecStartPre=/bin/systemctl is-active kube-apiserver.service
 ExecStart=/usr/bin/kube-controller-manager \
-        --service-account-private-key-file=/var/state/apiserver.key \
-        --root-ca-file=/var/state/root.cert \
-        --master=https://${KUBE_APISERVER}:6443 \
-        --logtostderr=true \
-        --kubeconfig=/etc/kubernetes/scheduler.kubeconfig \
-        --allocate-node-cidrs=false \
-        --profiling=false \
-        --terminated-pod-gc-threshold=500 \
-        --secure-port=0 \
-        --use-service-account-credentials=true \
-        $KUBE_CLOUD_FLAGS
+	--service-account-private-key-file=/var/state/apiserver.key \
+	--root-ca-file=/var/state/root.cert \
+	--master=https://${KUBE_APISERVER}:6443 \
+	--logtostderr=true \
+	--kubeconfig=/etc/kubernetes/scheduler.kubeconfig \
+	--allocate-node-cidrs=false \
+	--profiling=false \
+	--terminated-pod-gc-threshold=500 \
+	--secure-port=0 \
+	--use-service-account-credentials=true \
+	$KUBE_CONTROLLER_MANAGER_FLAGS \
+	$KUBE_CLOUD_FLAGS \
+	$KUBE_COMPONENT_FLAGS
+
 Restart=always
 RestartSec=5
 StartLimitInterval=3600

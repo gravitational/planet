@@ -35,9 +35,19 @@ const (
 	// EnvServiceSubnet names the environment variable that specifies
 	// the subnet CIDR for k8s services
 	EnvServiceSubnet = "KUBE_SERVICE_SUBNET"
-	// EnvPODSubnet names the environment variable that specifies
+	// EnvPodSubnet names the environment variable that specifies
 	// the subnet CIDR for k8s pods
-	EnvPODSubnet = "KUBE_POD_SUBNET"
+	EnvPodSubnet = "KUBE_POD_SUBNET"
+	// EnvServiceNodePortRange defines the range of ports to reserve for services
+	// with NodePort visibility. Inclusive at both ends of the range
+	EnvServiceNodePortRange = "KUBE_SERVICE_NODE_PORT_RANGE"
+	// EnvProxyPortRange specifies the range of host ports (beginPort-endPort, single port
+	// or beginPort+offset, inclusive) that may be consumed in order to proxy service traffic.
+	// If (unspecified, 0, or 0-0) then ports will be randomly chosen
+	EnvProxyPortRange = "KUBE_PROXY_PORT_RANGE"
+	// EnvFeatureGates defines the set of key=value pairs that describe feature gates for
+	// alpha/experimental features
+	EnvFeatureGates = "KUBE_FEATURE_GATES"
 	// EnvVxlanPort is the environment variable with overlay network port
 	EnvVxlanPort = "PLANET_VXLAN_PORT"
 	// EnvStorageBackend names the environment variable that specifies
@@ -133,16 +143,26 @@ const (
 	// EnvEtcdOptions names the environment variable that specifies additional etcd
 	// command line options
 	EnvEtcdOptions = "ETCD_OPTS"
+
 	// EnvKubeletOptions names the environment variable that specifies additional
 	// kubelet command line options
-	EnvKubeletOptions = "PLANET_KUBELET_OPTS"
+	EnvKubeletOptions = "KUBE_KUBELET_FLAGS"
 
 	// EnvAPIServerOptions names the environment variable that specifies additional
 	// command line options for the API server
-	EnvAPIServerOptions = "PLANET_APISERVER_OPTS"
+	EnvAPIServerOptions = "KUBE_APISERVER_FLAGS"
+
+	// EnvKubeProxyOptions specifies additional command line options for kube-proxy
+	EnvKubeProxyOptions = "KUBE_PROXY_FLAGS"
+
+	// EnvControllerManagerOptions specifies additional command line options for controller manager
+	EnvControllerManagerOptions = "KUBE_CONTROLLER_MANAGER_FLAGS"
 
 	// EnvKubeCloudFlags specifies cloud configuration command line options
 	EnvKubeCloudFlags = "KUBE_CLOUD_FLAGS"
+
+	// EnvKubeComponentFlags specifies command line options common to all components
+	EnvKubeComponentFlags = "KUBE_COMPONENT_FLAGS"
 
 	// EnvOverlayAddresses is an environment variable with a comma separated list of
 	// IPv4 addresses assigned to the overlay network interface of the host
@@ -335,12 +355,21 @@ const (
 
 	// MinKernelVersion specifies the minimum kernel version on the host
 	MinKernelVersion = 310
+
 	// DefaultServiceSubnet specifies the subnet CIDR used for k8s Services by default
 	DefaultServiceSubnet = "10.100.0.0/16"
-	// DefaultPODSubnet specifies the subnet CIDR used for k8s Pods by default
-	DefaultPODSubnet = "10.244.0.0/16"
+
+	// DefaultPodSubnet specifies the subnet CIDR used for k8s Pods by default
+	DefaultPodSubnet = "10.244.0.0/16"
+
 	// DefaultVxlanPort is the default overlay network port
 	DefaultVxlanPort = 8472
+
+	// DefaultFeatureGates is the default set of component feature gates
+	DefaultFeatureGates = "AllAlpha=true,APIResponseCompression=false,BoundServiceAccountTokenVolume=false"
+
+	// DefaultServiceNodePortRange defines the default IP range for services with NodePort visibility
+	DefaultServiceNodePortRange = "30000-32767"
 
 	// OverlayEnvFile specifies the file location to write information about the overlay network
 	// in use to be picked up by scripts
