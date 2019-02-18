@@ -43,10 +43,10 @@ const (
 	EnvServiceNodePortRange = "KUBE_SERVICE_NODE_PORT_RANGE"
 	// EnvProxyPortRange specifies the range of host ports (beginPort-endPort, single port
 	// or beginPort+offset, inclusive) that may be consumed in order to proxy service traffic.
-	// If (unspecified, 0, or 0-0) then ports will be randomly chosen
+	// If (unspecified, 0, or 0-0) then ports will be randomly chosen.
 	EnvProxyPortRange = "KUBE_PROXY_PORT_RANGE"
-	// EnvFeatureGates defines the set of key=value pairs that describe feature gates for
-	// alpha/experimental features
+	// EnvFeatureGates specifies the set of key=value pairs that describe feature gates for
+	// alpha/experimental features inside the runtime container
 	EnvFeatureGates = "KUBE_FEATURE_GATES"
 	// EnvVxlanPort is the environment variable with overlay network port
 	EnvVxlanPort = "PLANET_VXLAN_PORT"
@@ -168,6 +168,9 @@ const (
 	// IPv4 addresses assigned to the overlay network interface of the host
 	EnvOverlayAddresses = "OVERLAY_ADDRESSES"
 
+	// EnvPath is the PATH environment variable
+	EnvPath = "PATH"
+
 	// EnvPlanetAgentCAFile names the environment variable that specifies the location
 	// of the agent ca certificate file
 	EnvPlanetAgentCAFile = "PLANET_AGENT_CAFILE"
@@ -191,14 +194,29 @@ const (
 	// EnvGCENodeTags names the environment variable that defines network node tags on GCE
 	EnvGCENodeTags = "PLANET_GCE_NODE_TAGS"
 
-	// EnvPath is the PATH environment variable
-	EnvPath = "PATH"
-
-	// EnvPlanetKubeletOptions is the environment variable with additional options for kubelet
+	// EnvPlanetKubeletOptions is the environment variable with additional options for kubelet.
+	// This is the external configuration for the runtime container
 	EnvPlanetKubeletOptions = "PLANET_KUBELET_OPTIONS"
 
-	// EnvPlanetAPIServerOptions is the environment variable with additional options for API server
+	// EnvPlanetAPIServerOptions is the environment variable with additional options for API server.
+	// This is the external configuration for the runtime container
 	EnvPlanetAPIServerOptions = "PLANET_APISERVER_OPTIONS"
+
+	// EnvPlanetFeatureGates defines the set of key=value pairs that describe feature gates for
+	// alpha/experimental features.
+	// This is the external configuration for the runtime container
+	EnvPlanetFeatureGates = "PLANET_FEATURE_GATES"
+
+	// EnvPlanetProxyPortRange specifies the range of host ports (beginPort-endPort, single port
+	// or beginPort+offset, inclusive) that may be consumed in order to proxy service traffic.
+	// If (unspecified, 0, or 0-0) then ports will be randomly chosen.
+	// This is the external configuration for the runtime container
+	EnvPlanetProxyPortRange = "PLANET_PROXY_PORT_RANGE"
+
+	// EnvPlanetServiceNodePortRange defines the range of ports to reserve for services
+	// with NodePort visibility. Inclusive at both ends of the range.
+	// This is the external configuration for the runtime container
+	EnvPlanetServiceNodePortRange = "KUBE_SERVICE_NODE_PORT_RANGE"
 
 	// EnvPlanetDNSListenAddr is the environment variable with the list of listen addresses for CoreDNS
 	EnvPlanetDNSListenAddr = "PLANET_DNS_LISTEN_ADDR"
@@ -212,7 +230,8 @@ const (
 	// EnvPlanetNodeLabels is an environment variable for Kubernetes node labels
 	EnvPlanetNodeLabels = "PLANET_NODE_LABELS"
 
-	// EnvPlanetKubeletConfig is an environment variable for Kubernetes kubelet configuration file
+	// EnvPlanetKubeletConfig is an environment variable for Kubernetes kubelet configuration file.
+	// This is external configuration for the runtime container and is assumed to be base64-encoded
 	EnvPlanetKubeletConfig = "PLANET_KUBELET_CONFIG"
 
 	// EnvPlanetCloudConfig is an environment variable for Kubernetes cloud configuration file
