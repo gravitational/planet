@@ -444,9 +444,6 @@ var KubeletConfig = component.KubeletConfiguration{
 	ReadOnlyPort:           utils.Int32Ptr(0),
 	TLSCertFile:            "/var/state/apiserver.cert",
 	TLSPrivateKeyFile:      "/var/state/apiserver.key",
-	StreamingConnectionIdleTimeout: metav1.Duration{
-		Duration: 5 * time.Minute,
-	},
 	EvictionHard: map[string]string{
 		"nodefs.available":   "5%",
 		"imagefs.available":  "5%",

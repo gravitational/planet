@@ -91,7 +91,8 @@ type KubeletConfiguration struct {
 	// duration will result in longer refresh times for ConfigMaps and Secrets.
 	// Default: "1m"
 	// +optional
-	SyncFrequency metav1.Duration `json:"syncFrequency,omitempty"`
+	// Changed to pointer to be able to detect unset vs empty
+	SyncFrequency *metav1.Duration `json:"syncFrequency,omitempty"`
 	// fileCheckFrequency is the duration between checking config files for
 	// new data
 	// Dynamic Kubelet Config (beta): If dynamically updating this field, consider that
@@ -99,14 +100,16 @@ type KubeletConfiguration struct {
 	// configurations more frequently, which may have a negative performance impact.
 	// Default: "20s"
 	// +optional
-	FileCheckFrequency metav1.Duration `json:"fileCheckFrequency,omitempty"`
+	// Changed to pointer to be able to detect unset vs empty
+	FileCheckFrequency *metav1.Duration `json:"fileCheckFrequency,omitempty"`
 	// httpCheckFrequency is the duration between checking http for new data
 	// Dynamic Kubelet Config (beta): If dynamically updating this field, consider that
 	// shortening the duration will cause the Kubelet to poll staticPodURL more
 	// frequently, which may have a negative performance impact.
 	// Default: "20s"
 	// +optional
-	HTTPCheckFrequency metav1.Duration `json:"httpCheckFrequency,omitempty"`
+	// Changed to pointer to be able to detect unset vs empty
+	HTTPCheckFrequency *metav1.Duration `json:"httpCheckFrequency,omitempty"`
 	// staticPodURL is the URL for accessing static pods to run
 	// Dynamic Kubelet Config (beta): If dynamically updating this field, consider that
 	// the set of static pods specified at the new URL may be different than the
@@ -139,7 +142,7 @@ type KubeletConfiguration struct {
 	// it may disrupt components that interact with the Kubelet server.
 	// Default: 0 (disabled)
 	// +optional
-	// Changed this to pointer to be able to detect unset vs empty
+	// Changed to pointer to be able to detect unset vs empty
 	ReadOnlyPort *int32 `json:"readOnlyPort,omitempty"`
 	// tlsCertFile is the file containing x509 Certificate for HTTPS. (CA cert,
 	// if any, concatenated after server cert). If tlsCertFile and
@@ -305,7 +308,8 @@ type KubeletConfiguration struct {
 	// connections to the Kubelet server.
 	// Default: "4h"
 	// +optional
-	StreamingConnectionIdleTimeout metav1.Duration `json:"streamingConnectionIdleTimeout,omitempty"`
+	// Changed to pointer to be able to detect unset vs empty
+	StreamingConnectionIdleTimeout *metav1.Duration `json:"streamingConnectionIdleTimeout,omitempty"`
 	// nodeStatusUpdateFrequency is the frequency that kubelet computes node
 	// status. If node lease feature is not enabled, it is also the frequency that
 	// kubelet posts node status to master.
@@ -318,7 +322,8 @@ type KubeletConfiguration struct {
 	// the node unhealthy.
 	// Default: "10s"
 	// +optional
-	NodeStatusUpdateFrequency metav1.Duration `json:"nodeStatusUpdateFrequency,omitempty"`
+	// Changed to pointer to be able to detect unset vs empty
+	NodeStatusUpdateFrequency *metav1.Duration `json:"nodeStatusUpdateFrequency,omitempty"`
 	// nodeStatusReportFrequency is the frequency that kubelet posts node
 	// status to master if node status does not change. Kubelet will ignore this
 	// frequency and post node status immediately if any change is detected. It is
@@ -328,7 +333,8 @@ type KubeletConfiguration struct {
 	// nodeStatusUpdateFrequency for backward compatibility.
 	// Default: "1m"
 	// +optional
-	NodeStatusReportFrequency metav1.Duration `json:"nodeStatusReportFrequency,omitempty"`
+	// Changed to pointer to be able to detect unset vs empty
+	NodeStatusReportFrequency *metav1.Duration `json:"nodeStatusReportFrequency,omitempty"`
 	// nodeLeaseDurationSeconds is the duration the Kubelet will set on its corresponding Lease,
 	// when the NodeLease feature is enabled. This feature provides an indicator of node
 	// health by having the Kublet create and periodically renew a lease, named after the node,
@@ -349,7 +355,8 @@ type KubeletConfiguration struct {
 	// on the node.
 	// Default: "2m"
 	// +optional
-	ImageMinimumGCAge metav1.Duration `json:"imageMinimumGCAge,omitempty"`
+	// Changed to pointer to be able to detect unset vs empty
+	ImageMinimumGCAge *metav1.Duration `json:"imageMinimumGCAge,omitempty"`
 	// imageGCHighThresholdPercent is the percent of disk usage after which
 	// image garbage collection is always run. The percent is calculated as
 	// this field value out of 100.
@@ -373,7 +380,8 @@ type KubeletConfiguration struct {
 	// shortening the period may carry a performance impact.
 	// Default: "1m"
 	// +optional
-	VolumeStatsAggPeriod metav1.Duration `json:"volumeStatsAggPeriod,omitempty"`
+	// Changed to pointer to be able to detect unset vs empty
+	VolumeStatsAggPeriod *metav1.Duration `json:"volumeStatsAggPeriod,omitempty"`
 	// kubeletCgroups is the absolute name of cgroups to isolate the kubelet in
 	// Dynamic Kubelet Config (beta): This field should not be updated without a full node
 	// reboot. It is safest to keep this value the same as the local config.
@@ -422,7 +430,8 @@ type KubeletConfiguration struct {
 	// shortening the period may carry a performance impact.
 	// Default: "10s"
 	// +optional
-	CPUManagerReconcilePeriod metav1.Duration `json:"cpuManagerReconcilePeriod,omitempty"`
+	// Changed to pointer to be able to detect unset vs empty
+	CPUManagerReconcilePeriod *metav1.Duration `json:"cpuManagerReconcilePeriod,omitempty"`
 	// qosReserved is a set of resource name to percentage pairs that specify
 	// the minimum percentage of a resource reserved for exclusive use by the
 	// guaranteed QoS tier.
@@ -439,7 +448,8 @@ type KubeletConfiguration struct {
 	// it may disrupt components that interact with the Kubelet server.
 	// Default: "2m"
 	// +optional
-	RuntimeRequestTimeout metav1.Duration `json:"runtimeRequestTimeout,omitempty"`
+	// Changed to pointer to be able to detect unset vs empty
+	RuntimeRequestTimeout *metav1.Duration `json:"runtimeRequestTimeout,omitempty"`
 	// hairpinMode specifies how the Kubelet should configure the container
 	// bridge for hairpin packets.
 	// Setting this flag allows endpoints in a Service to loadbalance back to
@@ -567,7 +577,8 @@ type KubeletConfiguration struct {
 	// lowering it may decrease the stability of the node when the node is overcommitted.
 	// Default: "5m"
 	// +optional
-	EvictionPressureTransitionPeriod metav1.Duration `json:"evictionPressureTransitionPeriod,omitempty"`
+	// Changed to pointer to be able to detect unset vs empty
+	EvictionPressureTransitionPeriod *metav1.Duration `json:"evictionPressureTransitionPeriod,omitempty"`
 	// Maximum allowed grace period (in seconds) to use when terminating pods in
 	// response to a soft eviction threshold being met. This value effectively caps
 	// the Pod's TerminationGracePeriodSeconds value during soft evictions.
@@ -758,10 +769,12 @@ type KubeletAuthorization struct {
 type KubeletWebhookAuthorization struct {
 	// cacheAuthorizedTTL is the duration to cache 'authorized' responses from the webhook authorizer.
 	// +optional
-	CacheAuthorizedTTL metav1.Duration `json:"cacheAuthorizedTTL,omitempty"`
+	// Changed to pointer to be able to detect unset vs empty
+	CacheAuthorizedTTL *metav1.Duration `json:"cacheAuthorizedTTL,omitempty"`
 	// cacheUnauthorizedTTL is the duration to cache 'unauthorized' responses from the webhook authorizer.
 	// +optional
-	CacheUnauthorizedTTL metav1.Duration `json:"cacheUnauthorizedTTL,omitempty"`
+	// Changed to pointer to be able to detect unset vs empty
+	CacheUnauthorizedTTL *metav1.Duration `json:"cacheUnauthorizedTTL,omitempty"`
 }
 
 type KubeletAuthentication struct {
@@ -790,7 +803,8 @@ type KubeletWebhookAuthentication struct {
 	Enabled *bool `json:"enabled,omitempty"`
 	// cacheTTL enables caching of authentication results
 	// +optional
-	CacheTTL metav1.Duration `json:"cacheTTL,omitempty"`
+	// Changed to pointer to be able to detect unset vs empty
+	CacheTTL *metav1.Duration `json:"cacheTTL,omitempty"`
 }
 
 type KubeletAnonymousAuthentication struct {
