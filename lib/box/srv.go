@@ -340,6 +340,7 @@ func getLibcontainerConfig(containerID, rootfs string, cfg Config) (*configs.Con
 				AllowAllDevices:  &allowAllDevices,
 				AllowedDevices:   configs.DefaultAllowedDevices,
 				MemorySwappiness: nil, // nil means "machine-default" and that's what we need because we don't care
+				CpuShares:        2,   // set planet to minimum cpu shares relative to host services
 			},
 		},
 
