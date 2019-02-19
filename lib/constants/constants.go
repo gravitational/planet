@@ -63,7 +63,7 @@ const (
 	// TelekubeDomain is the domain for local telekube cluster
 	TelekubeDomain = "telekube.local"
 
-	// CloudConfigFile specifies the file path for cloud-config to pass to the kubernetes cloud controller
+	// CloudConfigFile specifies the file path for cloud-config for the kubernetes cloud controller
 	CloudConfigFile = "/etc/cloud-config.conf"
 
 	// KubeletConfigFile specifies the file path for kubelet configuration

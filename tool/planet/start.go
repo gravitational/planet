@@ -347,7 +347,11 @@ func addCloudOptions(c *Config) error {
 
 func generateCloudConfig(config *Config) (string, error) {
 	if config.CloudConfig != "" {
-		return config.CloudConfig, nil
+		decoded, err := base64.StdEncoding.DecodeString(config.CloudConfig)
+		if err != nil {
+			return "", trace.Wrap(err, "invalid cloud configuration: expected base64-encoded payload")
+		}
+		return string(decoded), nil
 	}
 	switch config.CloudProvider {
 	case constants.CloudProviderAWS:

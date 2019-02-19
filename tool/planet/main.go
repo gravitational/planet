@@ -134,8 +134,8 @@ func run() error {
 		cstartDockerPromiscuousMode = cstart.Flag("docker-promiscuous-mode", "Whether to put docker bridge into promiscuous mode").OverrideDefaultFromEnvar(EnvDockerPromiscuousMode).Bool()
 		cstartTaints                = List(cstart.Flag("taint", "Kubernetes taints to apply to the node during creation").OverrideDefaultFromEnvar(EnvPlanetTaints))
 		cstartNodeLabels            = List(cstart.Flag("node-label", "Kubernetes node label to apply upon node registration").OverrideDefaultFromEnvar(EnvPlanetNodeLabels))
-		cstartKubeletConfig         = cstart.Flag("kubelet-config", "Kubelet configuration file").OverrideDefaultFromEnvar(EnvPlanetKubeletConfig).String()
-		cstartCloudConfig           = cstart.Flag("cloud-config", "Cloud configuration file").OverrideDefaultFromEnvar(EnvPlanetCloudConfig).String()
+		cstartKubeletConfig         = cstart.Flag("kubelet-config", "Kubelet configuration as base64-encoded JSON payload").OverrideDefaultFromEnvar(EnvPlanetKubeletConfig).String()
+		cstartCloudConfig           = cstart.Flag("cloud-config", "Cloud configuration as base64-encoded payload").OverrideDefaultFromEnvar(EnvPlanetCloudConfig).String()
 
 		// start the planet agent
 		cagent                 = app.Command("agent", "Start Planet Agent")

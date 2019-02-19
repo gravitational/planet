@@ -148,8 +148,7 @@ const (
 	// kubelet command line options
 	EnvKubeletOptions = "KUBE_KUBELET_FLAGS"
 
-	// EnvAPIServerOptions names the environment variable that specifies additional
-	// command line options for the API server
+	// EnvAPIServerOptions specifies additional command line options for the API server
 	EnvAPIServerOptions = "KUBE_APISERVER_FLAGS"
 
 	// EnvKubeProxyOptions specifies additional command line options for kube-proxy
@@ -195,22 +194,22 @@ const (
 	EnvGCENodeTags = "PLANET_GCE_NODE_TAGS"
 
 	// EnvPlanetKubeletOptions is the environment variable with additional options for kubelet.
-	// This is the external configuration for the runtime container
+	// This is external configuration for the container
 	EnvPlanetKubeletOptions = "PLANET_KUBELET_OPTIONS"
 
 	// EnvPlanetAPIServerOptions is the environment variable with additional options for API server.
-	// This is the external configuration for the runtime container
+	// This is external configuration for the container
 	EnvPlanetAPIServerOptions = "PLANET_APISERVER_OPTIONS"
 
 	// EnvPlanetFeatureGates defines the set of key=value pairs that describe feature gates for
 	// alpha/experimental features.
-	// This is the external configuration for the runtime container
+	// This is external configuration for the container
 	EnvPlanetFeatureGates = "PLANET_FEATURE_GATES"
 
 	// EnvPlanetProxyPortRange specifies the range of host ports (beginPort-endPort, single port
 	// or beginPort+offset, inclusive) that may be consumed in order to proxy service traffic.
 	// If (unspecified, 0, or 0-0) then ports will be randomly chosen.
-	// This is the external configuration for the runtime container
+	// This is external configuration for the container
 	EnvPlanetProxyPortRange = "PLANET_PROXY_PORT_RANGE"
 
 	// EnvPlanetServiceNodePortRange defines the range of ports to reserve for services
@@ -230,11 +229,12 @@ const (
 	// EnvPlanetNodeLabels is an environment variable for Kubernetes node labels
 	EnvPlanetNodeLabels = "PLANET_NODE_LABELS"
 
-	// EnvPlanetKubeletConfig is an environment variable for Kubernetes kubelet configuration file.
-	// This is external configuration for the runtime container and is assumed to be base64-encoded
+	// EnvPlanetKubeletConfig specifies the kubelet configuration as a base64-encoded JSON payload.
+	// This is external configuration for the container
 	EnvPlanetKubeletConfig = "PLANET_KUBELET_CONFIG"
 
-	// EnvPlanetCloudConfig is an environment variable for Kubernetes cloud configuration file
+	// EnvPlanetCloudConfig specifies the cloud configuration as base64-encoded payload.
+	// This is external configuration for the container
 	EnvPlanetCloudConfig = "PLANET_CLOUD_CONFIG"
 
 	// DefaultDNSListenAddr is the default IP address CoreDNS will listen on
@@ -481,13 +481,11 @@ var KubeletConfig = component.KubeletConfiguration{
 	},
 }
 
-// KubeletConfigOverrides specifies the subset of kubelet configuration that cannot be overridden
-// externally - i.e. will always have the specified default
+// KubeletConfigOverrides specifies the subset of kubelet configuration
+// that cannot be changed.
+// It will be enforced when working with user-defined configuration
 var KubeletConfigOverrides = component.KubeletConfiguration{
-	TypeMeta: metav1.TypeMeta{
-		Kind:       "KubeletConfiguration",
-		APIVersion: "kubelet.config.k8s.io/v1beta1",
-	},
+	TypeMeta:               component.KubeletTypeMeta,
 	Address:                "0.0.0.0",
 	Port:                   10250,
 	MakeIPTablesUtilChains: utils.BoolPtr(true),
