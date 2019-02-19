@@ -558,7 +558,7 @@
   revision = "7d4729fb36185a7c1719923406c9d40e54fb93c7"
 
 [[projects]]
-  digest = "1:c8c1cb86074527519ceb2290cff4a78545cfa71844acaea9e670a7dc1354a01c"
+  digest = "1:3a7b076f85f7786b280e7b06017cfa7f9379dfde983ac5280eb471d0f8a14baa"
   name = "github.com/opencontainers/runc"
   packages = [
     "libcontainer",
@@ -581,8 +581,8 @@
     "libcontainer/utils",
   ]
   pruneopts = "UT"
-  revision = "4fc53a81fb7c994640722ac585fa9ca548971871"
-  version = "v1.0.0-rc5"
+  revision = "ccb5efd37fb7c86364786e9137e22948751de7ed"
+  version = "v1.0.0-rc6"
 
 [[projects]]
   digest = "1:57234a321bf1f8f98a8a9a5122a2404cc60d0800516f4ab7a7b2375e4b2d19ea"
@@ -1122,6 +1122,7 @@
     "github.com/julienschmidt/httprouter",
     "github.com/mitchellh/go-ps",
     "github.com/opencontainers/runc/libcontainer",
+    "github.com/opencontainers/runc/libcontainer/cgroups/systemd",
     "github.com/opencontainers/runc/libcontainer/configs",
     "github.com/opencontainers/runc/libcontainer/devices",
     "github.com/opencontainers/runc/libcontainer/nsenter",
