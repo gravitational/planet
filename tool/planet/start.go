@@ -339,7 +339,8 @@ func addCloudOptions(c *Config) error {
 		Contents: strings.NewReader(contents),
 	})
 
-	c.Env.Upsert(EnvKubeCloudFlags,
+	c.Env.Upsert(EnvKubeletOptions, fmt.Sprintf("--cloud-provider=external"))
+	c.Env.Upsert(EnvCloudControllerManagerOptions,
 		fmt.Sprintf("--cloud-provider=%v --cloud-config=%v", c.CloudProvider, constants.CloudConfigFile))
 
 	return nil
@@ -843,6 +844,8 @@ var masterUnits = []string{
 	"docker",
 	"kube-apiserver",
 	"kube-controller-manager",
+	"kube-cloud-controller-manager",
+	"kube-scheduler",
 }
 
 var nodeUnits = []string{

@@ -64,7 +64,7 @@ const (
 	TelekubeDomain = "telekube.local"
 
 	// CloudConfigFile specifies the file path for cloud-config for the kubernetes cloud controller
-	CloudConfigFile = "/etc/cloud-config.conf"
+	CloudConfigFile = "/etc/kubernetes/cloud-config.conf"
 
 	// KubeletConfigFile specifies the file path for kubelet configuration
 	KubeletConfigFile = "/etc/kubernetes/kubelet.yaml"

@@ -212,7 +212,12 @@ func updateDNS(conf *LeaderConfig, hostname string, newMasterIP string) error {
 	return nil
 }
 
-var electedUnits = []string{"kube-controller-manager.service", "kube-scheduler.service", "kube-apiserver.service"}
+var electedUnits = []string{
+	"kube-controller-manager.service",
+	"kube-cloud-controller-manager.service",
+	"kube-scheduler.service",
+	"kube-apiserver.service",
+}
 
 func unitsCommand(command string) error {
 	log.Debugf("executing %v on %v", command, electedUnits)

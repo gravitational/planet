@@ -18,7 +18,6 @@ ExecStart=/usr/bin/kubelet \
         --node-labels=${PLANET_NODE_LABELS} \
         --config=/etc/kubernetes/kubelet.yaml \
         $KUBE_KUBELET_FLAGS \
-        $KUBE_CLOUD_FLAGS \
         $KUBE_COMPONENT_FLAGS
 Restart=always
 RestartSec=5

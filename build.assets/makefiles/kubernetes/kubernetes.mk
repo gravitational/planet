@@ -6,6 +6,7 @@ REPODIR := $(GOPATH)/src/github.com/kubernetes/kubernetes
 OUTPUTDIR := $(ASSETDIR)/k8s-$(KUBE_VER)
 BINARIES := kube-apiserver \
 	kube-controller-manager \
+	cloud-controller-manager \
 	kube-scheduler \
 	kubectl \
 	kube-proxy \

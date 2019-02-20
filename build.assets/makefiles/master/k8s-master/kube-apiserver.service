@@ -54,7 +54,6 @@ ExecStart=/usr/bin/kube-apiserver \
         --audit-log-maxbackup=10 \
         --audit-log-maxsize=100 \
         $KUBE_APISERVER_OPTIONS \
-        $KUBE_CLOUD_FLAGS \
         $KUBE_COMPONENT_FLAGS
 Restart=always
 RestartSec=5
