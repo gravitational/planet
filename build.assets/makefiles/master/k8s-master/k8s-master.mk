@@ -8,6 +8,7 @@ all: k8s-master.mk
 	cp -TRv -p rootfs/etc/kubernetes $(ROOTFS)/etc/kubernetes
 	cp -af ./kube-apiserver.service $(ROOTFS)/lib/systemd/system
 	cp -af ./kube-controller-manager.service $(ROOTFS)/lib/systemd/system
+	cp -af ./kube-cloud-controller-manager.service $(ROOTFS)/lib/systemd/system
 	cp -af ./kube-scheduler.service $(ROOTFS)/lib/systemd/system
 	cp -af ./kube-kubelet.service $(ROOTFS)/lib/systemd/system
 	cp -af ./kube-proxy.service $(ROOTFS)/lib/systemd/system
@@ -15,6 +16,7 @@ all: k8s-master.mk
 	ln -sf /lib/systemd/system/kube-proxy.service  $(ROOTFS)/lib/systemd/system/multi-user.target.wants/
 	install -m 0755 $(BINDIR)/kube-apiserver $(ROOTFS)/usr/bin
 	install -m 0755 $(BINDIR)/kube-controller-manager $(ROOTFS)/usr/bin
+	install -m 0755 $(BINDIR)/cloud-controller-manager $(ROOTFS)/usr/bin
 	install -m 0755 $(BINDIR)/kube-scheduler $(ROOTFS)/usr/bin
 	install -m 0755 $(BINDIR)/kubectl $(ROOTFS)/usr/bin
 	install -m 0755 $(BINDIR)/kube-proxy $(ROOTFS)/usr/bin

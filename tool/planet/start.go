@@ -34,7 +34,6 @@ import (
 
 	"github.com/gravitational/planet/lib/box"
 	"github.com/gravitational/planet/lib/check"
-	"github.com/gravitational/planet/lib/clusterconfig/component"
 	"github.com/gravitational/planet/lib/constants"
 	"github.com/gravitational/planet/lib/user"
 	"github.com/gravitational/planet/lib/utils"
@@ -44,6 +43,7 @@ import (
 	"github.com/imdario/mergo"
 	"github.com/opencontainers/runc/libcontainer"
 	log "github.com/sirupsen/logrus"
+	kubeletconfig "k8s.io/kubelet/config/v1beta1"
 )
 
 // runtimeContext defines the context of a running planet container
@@ -505,7 +505,7 @@ func addKubeletOptions(config *Config) error {
 		if err != nil {
 			return trace.Wrap(err, "invalid kubelet configuration: expected either JSON or YAML")
 		}
-		var externalConfig component.KubeletConfiguration
+		var externalConfig kubeletconfig.KubeletConfiguration
 		if err := json.Unmarshal(configBytes, &externalConfig); err != nil {
 			return trace.Wrap(err, "failed to unmarshal kubelet configuration from JSON")
 		}
@@ -513,8 +513,7 @@ func addKubeletOptions(config *Config) error {
 		if err != nil {
 			return trace.Wrap(err)
 		}
-		// Reset the attributes we expect to be set to specific values
-		err = mergo.Merge(&kubeletConfig, KubeletConfigOverrides, mergo.WithOverride)
+		err = applyConfigOverrides(&kubeletConfig)
 		if err != nil {
 			return trace.Wrap(err)
 		}
@@ -528,6 +527,18 @@ func addKubeletOptions(config *Config) error {
 		Contents: bytes.NewReader(configBytes),
 		Mode:     SharedReadWriteMask,
 	})
+	return nil
+}
+
+func applyConfigOverrides(config *kubeletconfig.KubeletConfiguration) error {
+	// Reset the attributes we expect to be set to specific values
+	err := mergo.Merge(&config, KubeletConfigOverrides, mergo.WithOverride)
+	if err != nil {
+		return trace.Wrap(err)
+	}
+	// Unfortunately, the read-only port is not modelled to distringuish between
+	// specified and zero value, so force it to clear
+	config.ReadOnlyPort = 0
 	return nil
 }
 

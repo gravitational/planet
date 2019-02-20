@@ -19,10 +19,11 @@ package main
 import (
 	"time"
 
-	"github.com/gravitational/planet/lib/clusterconfig/component"
 	"github.com/gravitational/planet/lib/utils"
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/runtime/schema"
+	kubeletconfig "k8s.io/kubelet/config/v1beta1"
 )
 
 const (
@@ -428,11 +429,8 @@ var K8sSearchDomains = []string{
 }
 
 // KubeletConfig specifies the default kubelet configuration
-var KubeletConfig = component.KubeletConfiguration{
-	TypeMeta: metav1.TypeMeta{
-		Kind:       "KubeletConfiguration",
-		APIVersion: "kubelet.config.k8s.io/v1beta1",
-	},
+var KubeletConfig = kubeletconfig.KubeletConfiguration{
+	TypeMeta:               KubeletTypeMeta,
 	Address:                "0.0.0.0",
 	Port:                   10250,
 	MakeIPTablesUtilChains: utils.BoolPtr(true),
@@ -441,7 +439,7 @@ var KubeletConfig = component.KubeletConfiguration{
 	ClusterDomain:          "cluster.local",
 	EventRecordQPS:         utils.Int32Ptr(0),
 	FailSwapOn:             utils.BoolPtr(false),
-	ReadOnlyPort:           utils.Int32Ptr(0),
+	ReadOnlyPort:           0,
 	TLSCertFile:            "/var/state/apiserver.cert",
 	TLSPrivateKeyFile:      "/var/state/apiserver.key",
 	EvictionHard: map[string]string{
@@ -462,50 +460,62 @@ var KubeletConfig = component.KubeletConfiguration{
 		"nodefs.inodesFree":  "1h",
 		"imagefs.inodesFree": "1h",
 	},
-	Authentication: component.KubeletAuthentication{
-		Webhook: component.KubeletWebhookAuthentication{
+	Authentication: kubeletconfig.KubeletAuthentication{
+		Webhook: kubeletconfig.KubeletWebhookAuthentication{
 			Enabled: utils.BoolPtr(true),
 		},
-		Anonymous: component.KubeletAnonymousAuthentication{
+		Anonymous: kubeletconfig.KubeletAnonymousAuthentication{
 			Enabled: utils.BoolPtr(true),
 		},
-		X509: component.KubeletX509Authentication{
+		X509: kubeletconfig.KubeletX509Authentication{
 			ClientCAFile: "/var/state/root.cert",
 		},
 	},
-	Authorization: component.KubeletAuthorization{
-		Mode: component.KubeletAuthorizationModeWebhook,
+	Authorization: kubeletconfig.KubeletAuthorization{
+		Mode: kubeletconfig.KubeletAuthorizationModeWebhook,
 	},
 }
 
 // KubeletConfigOverrides specifies the subset of kubelet configuration
 // that cannot be changed.
 // It will be enforced when working with user-defined configuration
-var KubeletConfigOverrides = component.KubeletConfiguration{
-	TypeMeta:               component.KubeletTypeMeta,
+var KubeletConfigOverrides = kubeletconfig.KubeletConfiguration{
+	TypeMeta:               KubeletTypeMeta,
 	Address:                "0.0.0.0",
 	Port:                   10250,
 	MakeIPTablesUtilChains: utils.BoolPtr(true),
 	HealthzBindAddress:     "0.0.0.0",
 	HealthzPort:            utils.Int32Ptr(10248),
 	ClusterDomain:          "cluster.local",
-	ReadOnlyPort:           utils.Int32Ptr(0),
 	TLSCertFile:            "/var/state/apiserver.cert",
 	TLSPrivateKeyFile:      "/var/state/apiserver.key",
-	Authentication: component.KubeletAuthentication{
-		Webhook: component.KubeletWebhookAuthentication{
+	Authentication: kubeletconfig.KubeletAuthentication{
+		Webhook: kubeletconfig.KubeletWebhookAuthentication{
 			Enabled: utils.BoolPtr(true),
 		},
-		Anonymous: component.KubeletAnonymousAuthentication{
+		Anonymous: kubeletconfig.KubeletAnonymousAuthentication{
 			Enabled: utils.BoolPtr(true),
 		},
-		X509: component.KubeletX509Authentication{
+		X509: kubeletconfig.KubeletX509Authentication{
 			ClientCAFile: "/var/state/root.cert",
 		},
 	},
-	Authorization: component.KubeletAuthorization{
-		Mode: component.KubeletAuthorizationModeWebhook,
+	Authorization: kubeletconfig.KubeletAuthorization{
+		Mode: kubeletconfig.KubeletAuthorizationModeWebhook,
 	},
+}
+
+// KubeletTypeMeta defines the type meta block of the kubelet configuration resource
+var KubeletTypeMeta = metav1.TypeMeta{
+	Kind:       KubeletVersion.Kind,
+	APIVersion: KubeletVersion.GroupVersion().String(),
+}
+
+// KubeletVersion defines the version tuple of the kubelet configuration resource
+var KubeletVersion = schema.GroupVersionKind{
+	Group:   kubeletconfig.SchemeGroupVersion.Group,
+	Version: kubeletconfig.SchemeGroupVersion.Version,
+	Kind:    "KubeletConfiguration",
 }
 
 var allCaps = []string{
