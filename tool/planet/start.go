@@ -494,37 +494,37 @@ func addKubeletOptions(config *Config) error {
 	if config.KubeletOptions != "" {
 		config.Env.Append(EnvKubeletOptions, config.KubeletOptions, " ")
 	}
-	konfig := KubeletConfig
+	kubeletConfig := KubeletConfig
 	if config.KubeletConfig != "" {
 		decoded, err := base64.StdEncoding.DecodeString(config.KubeletConfig)
 		if err != nil {
 			return trace.Wrap(err, "invalid kubelet configuration: expected base64-encoded payload")
 		}
-		konfigBytes, err := utils.ToJSON([]byte(decoded))
+		configBytes, err := utils.ToJSON([]byte(decoded))
 		if err != nil {
 			return trace.Wrap(err, "invalid kubelet configuration: expected either JSON or YAML")
 		}
-		var externalKonfig component.KubeletConfiguration
-		if err := json.Unmarshal(konfigBytes, &externalKonfig); err != nil {
+		var externalConfig component.KubeletConfiguration
+		if err := json.Unmarshal(configBytes, &externalConfig); err != nil {
 			return trace.Wrap(err, "failed to unmarshal kubelet configuration from JSON")
 		}
-		err = mergo.Merge(&konfig, externalKonfig, mergo.WithOverride)
+		err = mergo.Merge(&kubeletConfig, externalConfig, mergo.WithOverride)
 		if err != nil {
 			return trace.Wrap(err)
 		}
 		// Reset the attributes we expect to be set to specific values
-		err = mergo.Merge(&konfig, KubeletConfigOverrides, mergo.WithOverride)
+		err = mergo.Merge(&kubeletConfig, KubeletConfigOverrides, mergo.WithOverride)
 		if err != nil {
 			return trace.Wrap(err)
 		}
 	}
-	konfigBytes, err := yaml.Marshal(konfig)
+	configBytes, err := yaml.Marshal(kubeletConfig)
 	if err != nil {
 		return trace.Wrap(err)
 	}
 	config.Files = append(config.Files, box.File{
 		Path:     constants.KubeletConfigFile,
-		Contents: bytes.NewReader(konfigBytes),
+		Contents: bytes.NewReader(configBytes),
 		Mode:     SharedReadWriteMask,
 	})
 	return nil
