@@ -339,14 +339,20 @@ func addCloudOptions(c *Config) error {
 		Contents: strings.NewReader(contents),
 	})
 
-	c.Env.Upsert(EnvKubeletOptions, fmt.Sprintf("--cloud-provider=external"))
+	// See https://kubernetes.io/docs/tasks/administer-cluster/running-cloud-controller/#running-cloud-controller-manager
+	//
+	// Running with cloud controller manager requires that both kube-apiserver and kube-controller-manager
+	// MUST NOT specify the `--cloud-provider` flag.
+	// kubelet MUST be run with `--cloud-provider=external` to ensure that the kubelet is aware that it must be initialized
+	// by the cloud controller manager before it is scheduled any work.
+	c.Env.Upsert(EnvKubeletOptions, "--cloud-provider=external")
 	c.Env.Upsert(EnvCloudControllerManagerOptions,
 		fmt.Sprintf("--cloud-provider=%v --cloud-config=%v", c.CloudProvider, constants.CloudConfigFile))
 
 	return nil
 }
 
-func generateCloudConfig(config *Config) (string, error) {
+func generateCloudConfig(config *Config) (cloudConfig string, err error) {
 	if config.CloudConfig != "" {
 		decoded, err := base64.StdEncoding.DecodeString(config.CloudConfig)
 		if err != nil {
@@ -354,23 +360,22 @@ func generateCloudConfig(config *Config) (string, error) {
 		}
 		return string(decoded), nil
 	}
+	if config.ClusterID == "" {
+		return "", trace.BadParameter("missing clusterID")
+	}
+	var buf bytes.Buffer
 	switch config.CloudProvider {
 	case constants.CloudProviderAWS:
-		if config.ClusterID != "" {
-			return fmt.Sprintf(awsCloudConfig, config.ClusterID), nil
-		}
-		return "", trace.BadParameter("missing clusterID")
+		err = awsCloudConfigTemplate.Execute(&buf, config)
 	case constants.CloudProviderGCE:
-		if config.GCENodeTags != "" {
-			return fmt.Sprintf(gceCloudConfig, config.GCENodeTags), nil
-		}
-		if config.ClusterID != "" {
-			return fmt.Sprintf(gceCloudConfig, config.ClusterID), nil
-		}
-		return "", trace.BadParameter("missing clusterID")
+		err = gceCloudConfigTemplate.Execute(&buf, config)
 	default:
 		return "", trace.BadParameter("unsupported cloud provider %q", config.CloudProvider)
 	}
+	if err != nil {
+		return "", trace.Wrap(err)
+	}
+	return buf.String(), nil
 }
 
 // pickDockerStorageBackend examines the filesystems this host supports and picks one
@@ -536,7 +541,7 @@ func applyConfigOverrides(config *kubeletconfig.KubeletConfiguration) error {
 	if err != nil {
 		return trace.Wrap(err)
 	}
-	// Unfortunately, the read-only port is not modelled to distringuish between
+	// Unfortunately, the read-only port is not modeled to distinguish between
 	// specified and zero value, so force it to clear
 	config.ReadOnlyPort = 0
 	return nil
@@ -833,20 +838,20 @@ func chownDir(dirPath string, uid, gid int) error {
 	})
 }
 
-const (
+var (
 	// awsCloudConfig is the cloud-config for integration with AWS
-	awsCloudConfig = `[Global]
-KubernetesClusterTag=%v
-`
+	awsCloudConfigTemplate = template.Must(template.New("aws").Parse(`[Global]
+KubernetesClusterTag={{.ClusterID}}
+`))
 	// gceCloudConfig is the cloud-config for integration with GCE
-	gceCloudConfig = `[global]
+	gceCloudConfigTemplate = template.Must(template.New("google").Parse(`[global]
 ; list of network tags on instances which will be used
 ; when creating firewall rules for load balancers
-node-tags=%v
+node-tags={{if .GCENodeTags}}{{.GCENodeTags}}{{else}}{{.ClusterID}}{{end}}
 ; enable multi-zone setting, otherwise kube-controller-manager
 ; will not recognize nodes running in different zones
 multizone=true
-`
+`))
 )
 
 var masterUnits = []string{

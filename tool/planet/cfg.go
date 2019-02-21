@@ -84,7 +84,6 @@ type Config struct {
 	// Inclusive at both ends of the range.
 	ServiceNodePortRange string
 	// FeatureGates defines the set of key=value pairs that describe feature gates for alpha/experimental features.
-	// FeatureGates map[string]bool
 	FeatureGates string
 	// VxlanPort is the overlay network port
 	VxlanPort int

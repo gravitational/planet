@@ -363,6 +363,12 @@ const (
 	// ClientRPCKeyPath specifies the path to the CA certificate for agent RPC
 	ClientRPCKeyPath = "/var/state/planet-rpc-client.key"
 
+	// APIServerCertPath specifies the path to the api server certificate
+	APIServerCertPath = "/var/state/apiserver.cert"
+
+	// APIServerKeyPath specifies the path to the api server key
+	APIServerKeyPath = "/var/state/apiserver.key"
+
 	// DefaultDockerBridge specifies the default name of the docker bridge
 	DefaultDockerBridge = "docker0"
 
@@ -440,8 +446,8 @@ var KubeletConfig = kubeletconfig.KubeletConfiguration{
 	EventRecordQPS:         utils.Int32Ptr(0),
 	FailSwapOn:             utils.BoolPtr(false),
 	ReadOnlyPort:           0,
-	TLSCertFile:            "/var/state/apiserver.cert",
-	TLSPrivateKeyFile:      "/var/state/apiserver.key",
+	TLSCertFile:            APIServerCertPath,
+	TLSPrivateKeyFile:      APIServerKeyPath,
 	EvictionHard: map[string]string{
 		"nodefs.available":   "5%",
 		"imagefs.available":  "5%",
@@ -465,10 +471,10 @@ var KubeletConfig = kubeletconfig.KubeletConfiguration{
 			Enabled: utils.BoolPtr(true),
 		},
 		Anonymous: kubeletconfig.KubeletAnonymousAuthentication{
-			Enabled: utils.BoolPtr(true),
+			Enabled: utils.BoolPtr(false),
 		},
 		X509: kubeletconfig.KubeletX509Authentication{
-			ClientCAFile: "/var/state/root.cert",
+			ClientCAFile: ClientRPCCAPath,
 		},
 	},
 	Authorization: kubeletconfig.KubeletAuthorization{
@@ -487,17 +493,17 @@ var KubeletConfigOverrides = kubeletconfig.KubeletConfiguration{
 	HealthzBindAddress:     "0.0.0.0",
 	HealthzPort:            utils.Int32Ptr(10248),
 	ClusterDomain:          "cluster.local",
-	TLSCertFile:            "/var/state/apiserver.cert",
-	TLSPrivateKeyFile:      "/var/state/apiserver.key",
+	TLSCertFile:            APIServerCertPath,
+	TLSPrivateKeyFile:      APIServerKeyPath,
 	Authentication: kubeletconfig.KubeletAuthentication{
 		Webhook: kubeletconfig.KubeletWebhookAuthentication{
 			Enabled: utils.BoolPtr(true),
 		},
 		Anonymous: kubeletconfig.KubeletAnonymousAuthentication{
-			Enabled: utils.BoolPtr(true),
+			Enabled: utils.BoolPtr(false),
 		},
 		X509: kubeletconfig.KubeletX509Authentication{
-			ClientCAFile: "/var/state/root.cert",
+			ClientCAFile: ClientRPCCAPath,
 		},
 	},
 	Authorization: kubeletconfig.KubeletAuthorization{
