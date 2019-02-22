@@ -2,6 +2,7 @@
 Description=Kubernetes Cloud Controller Manager
 Documentation=https://github.com/GoogleCloudPlatform/kubernetes
 Wants=kube-apiserver.service
+ConditionPathExists=/etc/kubernetes/cloud-config.conf
 
 [Service]
 EnvironmentFile=/etc/container-environment
