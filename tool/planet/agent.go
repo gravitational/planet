@@ -214,7 +214,6 @@ func updateDNS(conf *LeaderConfig, hostname string, newMasterIP string) error {
 
 var electedUnits = []string{
 	"kube-controller-manager.service",
-	"kube-cloud-controller-manager.service",
 	"kube-scheduler.service",
 	"kube-apiserver.service",
 }

@@ -339,14 +339,7 @@ func addCloudOptions(c *Config) error {
 		Contents: strings.NewReader(contents),
 	})
 
-	// See https://kubernetes.io/docs/tasks/administer-cluster/running-cloud-controller/#running-cloud-controller-manager
-	//
-	// Running with cloud controller manager requires that both kube-apiserver and kube-controller-manager
-	// MUST NOT specify the `--cloud-provider` flag.
-	// kubelet MUST be run with `--cloud-provider=external` to ensure that the kubelet is aware that it must be initialized
-	// by the cloud controller manager before it is scheduled any work.
-	c.Env.Upsert(EnvKubeletOptions, "--cloud-provider=external")
-	c.Env.Upsert(EnvCloudControllerManagerOptions,
+	c.Env.Upsert(EnvKubeCloudOptions,
 		fmt.Sprintf("--cloud-provider=%v --cloud-config=%v", c.CloudProvider, constants.CloudConfigFile))
 
 	return nil
@@ -860,7 +853,6 @@ var masterUnits = []string{
 	"docker",
 	"kube-apiserver",
 	"kube-controller-manager",
-	"kube-cloud-controller-manager",
 	"kube-scheduler",
 }
 

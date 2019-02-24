@@ -18,6 +18,7 @@ ExecStart=/usr/bin/kube-controller-manager \
         --secure-port=0 \
         --use-service-account-credentials=true \
         $KUBE_CONTROLLER_MANAGER_FLAGS \
+        $KUBE_CLOUD_FLAGS \
         $KUBE_COMPONENT_FLAGS
 Restart=always
 RestartSec=5

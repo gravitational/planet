@@ -161,6 +161,9 @@ const (
 	// EnvCloudControllerManagerOptions specifies additional command line options for cloud controller manager
 	EnvCloudControllerManagerOptions = "KUBE_CLOUD_CONTROLLER_MANAGER_FLAGS"
 
+	// EnvKubeCloudOptions specifies cloud configuration command line options
+	EnvKubeCloudOptions = "KUBE_CLOUD_FLAGS"
+
 	// EnvKubeComponentFlags specifies command line options common to all components
 	EnvKubeComponentFlags = "KUBE_COMPONENT_FLAGS"
 
