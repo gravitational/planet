@@ -19,13 +19,10 @@ package main
 import (
 	"fmt"
 	"sort"
-	"testing"
 
 	kv "github.com/gravitational/configure"
 	check "gopkg.in/check.v1"
 )
-
-func TestCommandFlags(t *testing.T) { check.TestingT(t) }
 
 type CommandFlagSuite struct{}
 

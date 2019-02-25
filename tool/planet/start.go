@@ -18,6 +18,8 @@ package main
 
 import (
 	"bytes"
+	"encoding/base64"
+	"encoding/json"
 	"fmt"
 	"io"
 	"io/ioutil"
@@ -36,9 +38,12 @@ import (
 	"github.com/gravitational/planet/lib/user"
 	"github.com/gravitational/planet/lib/utils"
 
+	"github.com/ghodss/yaml"
 	"github.com/gravitational/trace"
+	"github.com/imdario/mergo"
 	"github.com/opencontainers/runc/libcontainer"
 	log "github.com/sirupsen/logrus"
+	kubeletconfig "k8s.io/kubelet/config/v1beta1"
 )
 
 // runtimeContext defines the context of a running planet container
@@ -134,8 +139,10 @@ func start(config *Config, monitorc chan<- bool) (*runtimeContext, error) {
 	config.Env = append(config.Env,
 		box.EnvPair{Name: EnvMasterIP, Val: config.MasterIP},
 		box.EnvPair{Name: EnvCloudProvider, Val: config.CloudProvider},
-		box.EnvPair{Name: EnvServiceSubnet, Val: config.ServiceSubnet.String()},
-		box.EnvPair{Name: EnvPODSubnet, Val: config.PODSubnet.String()},
+		box.EnvPair{Name: EnvServiceSubnet, Val: config.ServiceCIDR.String()},
+		box.EnvPair{Name: EnvPodSubnet, Val: config.PodCIDR.String()},
+		box.EnvPair{Name: EnvServiceNodePortRange, Val: config.ServiceNodePortRange},
+		box.EnvPair{Name: EnvProxyPortRange, Val: config.ProxyPortRange},
 		box.EnvPair{Name: EnvPublicIP, Val: config.PublicIP},
 		box.EnvPair{Name: EnvVxlanPort, Val: strconv.Itoa(config.VxlanPort)},
 		// Default agent name to the name of the etcd member
@@ -161,9 +168,11 @@ func start(config *Config, monitorc chan<- bool) (*runtimeContext, error) {
 		return nil, trace.Wrap(err)
 	}
 	addEtcdOptions(config)
-	addKubeletOptions(config)
+	if err := addComponentOptions(config); err != nil {
+		return nil, trace.Wrap(err)
+	}
 	setupFlannel(config)
-	if err = setupCloudOptions(config); err != nil {
+	if err = addCloudOptions(config); err != nil {
 		return nil, trace.Wrap(err)
 	}
 
@@ -225,7 +234,7 @@ func start(config *Config, monitorc chan<- bool) (*runtimeContext, error) {
 		config.Files = append(config.Files, box.File{
 			Path:     HostnameFile,
 			Contents: strings.NewReader(config.Hostname),
-			Mode:     SharedReadWriteMask,
+			Mode:     constants.SharedReadWriteMask,
 		})
 	}
 
@@ -316,43 +325,52 @@ func addGroupToContainer(rootfs string, u serviceUser) error {
 	return trace.Wrap(err)
 }
 
-// setupCloudOptions sets up cloud flags and files passed to kubernetes
+// addCloudOptions sets up cloud flags and files passed to kubernetes
 // binaries, sets up container environment files
-func setupCloudOptions(c *Config) error {
+func addCloudOptions(c *Config) error {
 	if c.CloudProvider == "" {
 		return nil
 	}
 
-	flags := []string{fmt.Sprintf("--cloud-provider=%v", c.CloudProvider)}
-
-	switch c.CloudProvider {
-	case constants.CloudProviderAWS:
-		if c.ClusterID != "" {
-			flags = append(flags, "--cloud-config=/etc/cloud-config.conf")
-			c.Files = append(c.Files, box.File{
-				Path: "/etc/cloud-config.conf",
-				Contents: strings.NewReader(fmt.Sprintf(
-					awsCloudConfig, c.ClusterID)),
-			})
-		}
-	case constants.CloudProviderGCE:
-		if c.ClusterID != "" {
-			nodeTags := c.ClusterID
-			if c.GCENodeTags != "" {
-				nodeTags = c.GCENodeTags
-			}
-			flags = append(flags, "--cloud-config=/etc/cloud-config.conf")
-			c.Files = append(c.Files, box.File{
-				Path: "/etc/cloud-config.conf",
-				Contents: strings.NewReader(fmt.Sprintf(
-					gceCloudConfig, nodeTags)),
-			})
-		}
+	contents, err := generateCloudConfig(c)
+	if err != nil {
+		return trace.Wrap(err)
 	}
+	c.Files = append(c.Files, box.File{
+		Path:     constants.CloudConfigFile,
+		Contents: strings.NewReader(contents),
+	})
 
-	c.Env.Upsert("KUBE_CLOUD_FLAGS", strings.Join(flags, " "))
+	c.Env.Upsert(EnvKubeCloudOptions,
+		fmt.Sprintf("--cloud-provider=%v --cloud-config=%v", c.CloudProvider, constants.CloudConfigFile))
 
 	return nil
+}
+
+func generateCloudConfig(config *Config) (cloudConfig string, err error) {
+	if config.CloudConfig != "" {
+		decoded, err := base64.StdEncoding.DecodeString(config.CloudConfig)
+		if err != nil {
+			return "", trace.Wrap(err, "invalid cloud configuration: expected base64-encoded payload")
+		}
+		return string(decoded), nil
+	}
+	if config.ClusterID == "" {
+		return "", trace.BadParameter("missing clusterID")
+	}
+	var buf bytes.Buffer
+	switch config.CloudProvider {
+	case constants.CloudProviderAWS:
+		err = awsCloudConfigTemplate.Execute(&buf, config)
+	case constants.CloudProviderGCE:
+		err = gceCloudConfigTemplate.Execute(&buf, config)
+	default:
+		return "", trace.BadParameter("unsupported cloud provider %q", config.CloudProvider)
+	}
+	if err != nil {
+		return "", trace.Wrap(err)
+	}
+	return buf.String(), nil
 }
 
 // pickDockerStorageBackend examines the filesystems this host supports and picks one
@@ -451,11 +469,77 @@ func setupEtcd(config *Config) error {
 	return nil
 }
 
+func addComponentOptions(config *Config) error {
+	if err := addKubeletOptions(config); err != nil {
+		return trace.Wrap(err)
+	}
+	if config.APIServerOptions != "" {
+		config.Env.Append(EnvAPIServerOptions, config.APIServerOptions, " ")
+	}
+	if config.ServiceNodePortRange != "" {
+		config.Env.Append(EnvAPIServerOptions,
+			fmt.Sprintf("--service-node-port-range=%v", config.ServiceNodePortRange), " ")
+	}
+	if config.ProxyPortRange != "" {
+		config.Env.Append(EnvKubeProxyOptions,
+			fmt.Sprintf("--proxy-port-range=%v", config.ProxyPortRange), " ")
+	}
+	if config.FeatureGates != "" {
+		config.Env.Append(EnvKubeComponentFlags, fmt.Sprintf("--feature-gates=%v", config.FeatureGates), " ")
+	}
+	return nil
+}
+
 // addKubeletOptions sets extra kubelet command line arguments in environment
-func addKubeletOptions(config *Config) {
+func addKubeletOptions(config *Config) error {
 	if config.KubeletOptions != "" {
 		config.Env.Append(EnvKubeletOptions, config.KubeletOptions, " ")
 	}
+	kubeletConfig := KubeletConfig
+	if config.KubeletConfig != "" {
+		decoded, err := base64.StdEncoding.DecodeString(config.KubeletConfig)
+		if err != nil {
+			return trace.Wrap(err, "invalid kubelet configuration: expected base64-encoded payload")
+		}
+		configBytes, err := utils.ToJSON([]byte(decoded))
+		if err != nil {
+			return trace.Wrap(err, "invalid kubelet configuration: expected either JSON or YAML")
+		}
+		var externalConfig kubeletconfig.KubeletConfiguration
+		if err := json.Unmarshal(configBytes, &externalConfig); err != nil {
+			return trace.Wrap(err, "failed to unmarshal kubelet configuration from JSON")
+		}
+		err = mergo.Merge(&kubeletConfig, externalConfig, mergo.WithOverride)
+		if err != nil {
+			return trace.Wrap(err)
+		}
+		err = applyConfigOverrides(&kubeletConfig)
+		if err != nil {
+			return trace.Wrap(err)
+		}
+	}
+	configBytes, err := yaml.Marshal(kubeletConfig)
+	if err != nil {
+		return trace.Wrap(err)
+	}
+	config.Files = append(config.Files, box.File{
+		Path:     constants.KubeletConfigFile,
+		Contents: bytes.NewReader(configBytes),
+		Mode:     SharedReadWriteMask,
+	})
+	return nil
+}
+
+func applyConfigOverrides(config *kubeletconfig.KubeletConfiguration) error {
+	// Reset the attributes we expect to be set to specific values
+	err := mergo.Merge(config, KubeletConfigOverrides, mergo.WithOverride)
+	if err != nil {
+		return trace.Wrap(err)
+	}
+	// Unfortunately, the read-only port is not modeled to distinguish between
+	// specified and zero value, so force it to clear
+	config.ReadOnlyPort = 0
+	return nil
 }
 
 // addKubeConfig writes a kubectl config file
@@ -465,11 +549,11 @@ func addKubeConfig(config *Config) error {
 		return trace.Wrap(err)
 	}
 	path := filepath.Join(config.Rootfs, constants.KubectlConfigPath)
-	err = os.MkdirAll(filepath.Dir(path), SharedDirMask)
+	err = os.MkdirAll(filepath.Dir(path), constants.SharedDirMask)
 	if err != nil {
 		return trace.Wrap(err)
 	}
-	err = ioutil.WriteFile(path, kubeConfig, SharedFileMask)
+	err = ioutil.WriteFile(path, kubeConfig, constants.SharedReadMask)
 	if err != nil {
 		return trace.Wrap(err)
 	}
@@ -508,7 +592,7 @@ func setCoreDNS(config *Config) error {
 		return trace.Wrap(err)
 	}
 
-	err = ioutil.WriteFile(filepath.Join(config.Rootfs, CoreDNSConf), []byte(corednsConfig), SharedFileMask)
+	err = ioutil.WriteFile(filepath.Join(config.Rootfs, CoreDNSConf), []byte(corednsConfig), constants.SharedReadMask)
 	if err != nil {
 		return trace.Wrap(err)
 	}
@@ -545,9 +629,10 @@ var coreDNSTemplate = `
 
 .:{{.Port}} {
   reload
-  bind {{range $bind := .ListenAddrs}}{{$bind}} {{end}}
+  bind{{range $bind := .ListenAddrs}} {{$bind}}{{- end}}
   errors
-  hosts /etc/coredns/coredns.hosts { {{range $hostname, $ips := .Hosts}}{{range $ip := $ips}}
+  hosts /etc/coredns/coredns.hosts {
+    {{- range $hostname, $ips := .Hosts}}{{range $ip := $ips}}
     {{$ip}} {{$hostname}}{{end}}{{end}}
     fallthrough
   }
@@ -626,7 +711,7 @@ func copyResolvFile(cfg utils.DNSConfig, destination string, upstreamNameservers
 
 	resolv, err := os.OpenFile(
 		destination,
-		os.O_RDWR|os.O_CREATE|os.O_TRUNC, SharedFileMask,
+		os.O_RDWR|os.O_CREATE|os.O_TRUNC, constants.SharedReadMask,
 	)
 	if err != nil {
 		return trace.Wrap(err)
@@ -649,7 +734,7 @@ func setHosts(config *Config, entries []utils.HostEntry) error {
 	config.Files = append(config.Files, box.File{
 		Path:     HostsFile,
 		Contents: out,
-		Mode:     SharedReadWriteMask,
+		Mode:     constants.SharedReadWriteMask,
 	})
 	return nil
 }
@@ -748,20 +833,20 @@ func chownDir(dirPath string, uid, gid int) error {
 	})
 }
 
-const (
+var (
 	// awsCloudConfig is the cloud-config for integration with AWS
-	awsCloudConfig = `[Global]
-KubernetesClusterTag=%v
-`
+	awsCloudConfigTemplate = template.Must(template.New("aws").Parse(`[Global]
+KubernetesClusterTag={{.ClusterID}}
+`))
 	// gceCloudConfig is the cloud-config for integration with GCE
-	gceCloudConfig = `[global]
+	gceCloudConfigTemplate = template.Must(template.New("google").Parse(`[global]
 ; list of network tags on instances which will be used
 ; when creating firewall rules for load balancers
-node-tags=%v
+node-tags={{if .GCENodeTags}}{{.GCENodeTags}}{{else}}{{.ClusterID}}{{end}}
 ; enable multi-zone setting, otherwise kube-controller-manager
 ; will not recognize nodes running in different zones
 multizone=true
-`
+`))
 )
 
 var masterUnits = []string{
@@ -770,6 +855,7 @@ var masterUnits = []string{
 	"docker",
 	"kube-apiserver",
 	"kube-controller-manager",
+	"kube-scheduler",
 }
 
 var nodeUnits = []string{

@@ -18,7 +18,10 @@ package main
 
 import (
 	"encoding/json"
+	"flag"
 	"fmt"
+	"io/ioutil"
+	"log/syslog"
 	"net"
 	"net/http"
 	_ "net/http/pprof"
@@ -30,6 +33,7 @@ import (
 	"syscall"
 	"time"
 
+	"github.com/fatih/color"
 	"github.com/gravitational/configure/cstrings"
 	"github.com/gravitational/planet/lib/box"
 	"github.com/gravitational/planet/lib/monitoring"
@@ -43,22 +47,24 @@ import (
 	"github.com/gravitational/version"
 	"github.com/opencontainers/runc/libcontainer/configs"
 	log "github.com/sirupsen/logrus"
+	logsyslog "github.com/sirupsen/logrus/hooks/syslog"
 	"gopkg.in/alecthomas/kingpin.v2"
 )
 
 func main() {
-	var exitCode int
+	initLogging(false)
 	var err error
+	// Workaround the issue described here:
+	// https://github.com/kubernetes/kubernetes/issues/17162
+	_ = flag.CommandLine.Parse([]string{})
 
-	if err = run(); err != nil {
-		if errExit, ok := trace.Unwrap(err).(*box.ExitError); ok {
-			exitCode = errExit.Code
-		} else {
-			log.Errorf("Failed to run: %v.", trace.DebugReport(err))
-			exitCode = 1
-		}
+	if err = run(); err == nil {
+		return
 	}
-	os.Exit(exitCode)
+	if errExit, ok := trace.Unwrap(err).(*box.ExitError); ok {
+		os.Exit(errExit.Code)
+	}
+	die(err)
 }
 
 func run() error {
@@ -77,19 +83,29 @@ func run() error {
 		// start the container with planet
 		cstart = app.Command("start", "Start Planet container")
 
-		cstartPublicIP                = cstart.Flag("public-ip", "IP accessible by other nodes for inter-host communication").OverrideDefaultFromEnvar("PLANET_PUBLIC_IP").IP()
-		cstartMasterIP                = cstart.Flag("master-ip", "IP of the master POD (defaults to public-ip)").OverrideDefaultFromEnvar("PLANET_MASTER_IP").IP()
-		cstartCloudProvider           = cstart.Flag("cloud-provider", "cloud provider name, e.g. 'aws' or 'gce'").OverrideDefaultFromEnvar("PLANET_CLOUD_PROVIDER").String()
-		cstartClusterID               = cstart.Flag("cluster-id", "ID of the cluster").OverrideDefaultFromEnvar("PLANET_CLUSTER_ID").String()
-		cstartGCENodeTags             = cstart.Flag("gce-node-tags", "Node tag to set in the cloud configuration file on GCE as comma-separated values").OverrideDefaultFromEnvar(EnvGCENodeTags).String()
-		cstartIgnoreChecks            = cstart.Flag("ignore-checks", "Force start ignoring some failed host checks (e.g. kernel version)").OverrideDefaultFromEnvar("PLANET_FORCE").Bool()
-		cstartEnv                     = EnvVars(cstart.Flag("env", "Set environment variable as comma-separated list of name=value pairs").OverrideDefaultFromEnvar("PLANET_ENV"))
-		cstartMounts                  = Mounts(cstart.Flag("volume", "External volume to mount, as a src:dst[:options] tuple").OverrideDefaultFromEnvar("PLANET_VOLUME"))
-		cstartDevices                 = Devices(cstart.Flag("device", "Device to create inside container").OverrideDefaultFromEnvar("PLANET_DEVICE"))
-		cstartRoles                   = List(cstart.Flag("role", "Roles such as 'master' or 'node'").OverrideDefaultFromEnvar("PLANET_ROLE"))
-		cstartSecretsDir              = cstart.Flag("secrets-dir", "Directory with master secrets - certificate authority and certificates").OverrideDefaultFromEnvar("PLANET_SECRETS_DIR").ExistingDir()
-		cstartServiceSubnet           = kv.CIDRFlag(cstart.Flag("service-subnet", "subnet dedicated to the services in cluster").Default(DefaultServiceSubnet).OverrideDefaultFromEnvar("PLANET_SERVICE_SUBNET"))
-		cstartPODSubnet               = kv.CIDRFlag(cstart.Flag("pod-subnet", "subnet dedicated to the pods in the cluster").Default(DefaultPODSubnet).OverrideDefaultFromEnvar("PLANET_POD_SUBNET"))
+		cstartPublicIP       = cstart.Flag("public-ip", "IP accessible by other nodes for inter-host communication").OverrideDefaultFromEnvar("PLANET_PUBLIC_IP").IP()
+		cstartMasterIP       = cstart.Flag("master-ip", "IP of the master Pod (defaults to public-ip)").OverrideDefaultFromEnvar("PLANET_MASTER_IP").IP()
+		cstartCloudProvider  = cstart.Flag("cloud-provider", "cloud provider name, e.g. 'aws' or 'gce'").OverrideDefaultFromEnvar("PLANET_CLOUD_PROVIDER").String()
+		cstartClusterID      = cstart.Flag("cluster-id", "ID of the cluster").OverrideDefaultFromEnvar("PLANET_CLUSTER_ID").String()
+		cstartGCENodeTags    = cstart.Flag("gce-node-tags", "Node tag to set in the cloud configuration file on GCE as comma-separated values").OverrideDefaultFromEnvar(EnvGCENodeTags).String()
+		cstartIgnoreChecks   = cstart.Flag("ignore-checks", "Force start ignoring some failed host checks (e.g. kernel version)").OverrideDefaultFromEnvar("PLANET_FORCE").Bool()
+		cstartEnv            = EnvVars(cstart.Flag("env", "Set environment variable as comma-separated list of name=value pairs").OverrideDefaultFromEnvar("PLANET_ENV"))
+		cstartMounts         = Mounts(cstart.Flag("volume", "External volume to mount, as a src:dst[:options] tuple").OverrideDefaultFromEnvar("PLANET_VOLUME"))
+		cstartDevices        = Devices(cstart.Flag("device", "Device to create inside container").OverrideDefaultFromEnvar("PLANET_DEVICE"))
+		cstartRoles          = List(cstart.Flag("role", "Roles such as 'master' or 'node'").OverrideDefaultFromEnvar("PLANET_ROLE"))
+		cstartSecretsDir     = cstart.Flag("secrets-dir", "Directory with master secrets - certificate authority and certificates").OverrideDefaultFromEnvar("PLANET_SECRETS_DIR").ExistingDir()
+		cstartServiceCIDR    = kv.CIDRFlag(cstart.Flag("service-subnet", "IP range from which to assign service cluster IPs. This must not overlap with any IP ranges assigned to nodes for pods.").Default(DefaultServiceSubnet).OverrideDefaultFromEnvar("PLANET_SERVICE_SUBNET"))
+		cstartPodCIDR        = kv.CIDRFlag(cstart.Flag("pod-subnet", "subnet dedicated to the pods in the cluster").Default(DefaultPodSubnet).OverrideDefaultFromEnvar("PLANET_POD_SUBNET"))
+		cstartProxyPortRange = cstart.Flag("proxy-portrange", "Range of host ports (beginPort-endPort, single port or beginPort+offset, inclusive) that may be consumed in order to proxy service traffic. If (unspecified, 0, or 0-0) then ports will be randomly chosen.").
+					OverrideDefaultFromEnvar(EnvPlanetProxyPortRange).String()
+		cstartServiceNodePortRange = cstart.Flag("service-node-portrange", "A port range to reserve for services with NodePort visibility. Example: '30000-32767'. Inclusive at both ends of the range.").
+						Default(DefaultServiceNodePortRange).
+						OverrideDefaultFromEnvar(EnvPlanetServiceNodePortRange).
+						String()
+		cstartFeatureGates = cstart.Flag("feature-gates", "A comma-separated list of key=value pairs that describe feature gates for alpha/experimental features.").
+					Default(DefaultFeatureGates).
+					OverrideDefaultFromEnvar(EnvPlanetFeatureGates).
+					String()
 		cstartVxlanPort               = cstart.Flag("vxlan-port", "overlay network port").Default(strconv.Itoa(DefaultVxlanPort)).OverrideDefaultFromEnvar(EnvVxlanPort).Int()
 		cstartServiceUID              = cstart.Flag("service-uid", "service user ID. Service user is used for services that do not require elevated permissions").OverrideDefaultFromEnvar(EnvServiceUID).String()
 		cstartSelfTest                = cstart.Flag("self-test", "Run end-to-end tests on the started cluster").Bool()
@@ -104,17 +120,22 @@ func run() error {
 		cstartNodeName                = cstart.Flag("node-name", "Identify the node with this string instead of hostname in kubernetes services").OverrideDefaultFromEnvar("PLANET_NODE_NAME").String()
 		cstartHostname                = cstart.Flag("hostname", "Hostname to set inside container").OverrideDefaultFromEnvar("PLANET_HOSTNAME").String()
 		// Docker options
-		cstartDockerOptions         = cstart.Flag("docker-options", "Additional options to pass to docker daemon").OverrideDefaultFromEnvar("PLANET_DOCKER_OPTIONS").String()
-		cstartDockerBackend         = cstart.Flag("docker-backend", "Docker backend to use. If no backend has been specified, one is selected automatically.").OverrideDefaultFromEnvar("PLANET_DOCKER_BACKEND").String()
-		cstartElectionEnabled       = Bool(cstart.Flag("election-enabled", "Boolean flag to control if the agent initially starts with election participation on").OverrideDefaultFromEnvar(EnvElectionEnabled))
-		cstartDNSHosts              = DNSOverrides(cstart.Flag("dns-hosts", "Comma-separated list of domain name to IP address mappings as 'domain/ip' pairs").OverrideDefaultFromEnvar(EnvDNSHosts))
-		cstartDNSZones              = DNSOverrides(cstart.Flag("dns-zones", "Comma-separated list of DNS zone to nameserver IP mappings as 'zone/nameserver' pairs").OverrideDefaultFromEnvar(EnvDNSZones))
-		cstartKubeletOptions        = cstart.Flag("kubelet-options", "Additional command line options to pass to kubelet").OverrideDefaultFromEnvar(EnvPlanetKubeletOptions).String()
+		cstartDockerOptions   = cstart.Flag("docker-options", "Additional options to pass to docker daemon").OverrideDefaultFromEnvar("PLANET_DOCKER_OPTIONS").String()
+		cstartDockerBackend   = cstart.Flag("docker-backend", "Docker backend to use. If no backend has been specified, one is selected automatically.").OverrideDefaultFromEnvar("PLANET_DOCKER_BACKEND").String()
+		cstartElectionEnabled = Bool(cstart.Flag("election-enabled", "Boolean flag to control if the agent initially starts with election participation on").OverrideDefaultFromEnvar(EnvElectionEnabled))
+		cstartDNSHosts        = DNSOverrides(cstart.Flag("dns-hosts", "Comma-separated list of domain name to IP address mappings as 'domain/ip' pairs").OverrideDefaultFromEnvar(EnvDNSHosts))
+		cstartDNSZones        = DNSOverrides(cstart.Flag("dns-zones", "Comma-separated list of DNS zone to nameserver IP mappings as 'zone/nameserver' pairs").OverrideDefaultFromEnvar(EnvDNSZones))
+		cstartKubeletOptions  = cstart.Flag("kubelet-options", "Additional command line options to pass to kubelet").
+					OverrideDefaultFromEnvar(EnvPlanetKubeletOptions).String()
+		cstartAPIServerOptions = cstart.Flag("apiserver-options", "Additional command line options to pass to API server").
+					OverrideDefaultFromEnvar(EnvPlanetAPIServerOptions).String()
 		cstartDNSListenAddrs        = List(cstart.Flag("dns-listen-addr", "Comma-separated list of addresses for CoreDNS to listen on").OverrideDefaultFromEnvar(EnvPlanetDNSListenAddr).Default(DefaultDNSListenAddr))
 		cstartDNSPort               = cstart.Flag("dns-port", "DNS port for CoreDNS").OverrideDefaultFromEnvar(EnvPlanetDNSPort).Default(strconv.Itoa(DNSPort)).Int()
 		cstartDockerPromiscuousMode = cstart.Flag("docker-promiscuous-mode", "Whether to put docker bridge into promiscuous mode").OverrideDefaultFromEnvar(EnvDockerPromiscuousMode).Bool()
 		cstartTaints                = List(cstart.Flag("taint", "Kubernetes taints to apply to the node during creation").OverrideDefaultFromEnvar(EnvPlanetTaints))
 		cstartNodeLabels            = List(cstart.Flag("node-label", "Kubernetes node label to apply upon node registration").OverrideDefaultFromEnvar(EnvPlanetNodeLabels))
+		cstartKubeletConfig         = cstart.Flag("kubelet-config", "Kubelet configuration as base64-encoded JSON payload").OverrideDefaultFromEnvar(EnvPlanetKubeletConfig).String()
+		cstartCloudConfig           = cstart.Flag("cloud-config", "Cloud configuration as base64-encoded payload").OverrideDefaultFromEnvar(EnvPlanetCloudConfig).String()
 
 		// start the planet agent
 		cagent                 = app.Command("agent", "Start Planet Agent")
@@ -229,17 +250,10 @@ func run() error {
 	args, extraArgs := cstrings.SplitAt(os.Args[1:], "--")
 	cmd, err := app.Parse(args)
 	if err != nil {
-		fmt.Fprintf(os.Stderr, "Failed parsing command line arguments: %s.\nTry planet --help\n", err.Error())
 		return err
 	}
 
-	if *debug {
-		log.SetOutput(os.Stderr)
-		log.SetLevel(log.DebugLevel)
-	} else {
-		log.SetOutput(os.Stderr)
-		log.SetLevel(log.WarnLevel)
-	}
+	initLogging(*debug)
 
 	if *profileEndpoint != "" {
 		go func() {
@@ -366,23 +380,26 @@ func run() error {
 			initialCluster = *cstartInitialCluster
 		}
 		config := &Config{
-			Rootfs:         rootfs,
-			SocketPath:     *socketPath,
-			Env:            *cstartEnv,
-			Mounts:         *cstartMounts,
-			Devices:        *cstartDevices,
-			IgnoreChecks:   *cstartIgnoreChecks,
-			Roles:          *cstartRoles,
-			MasterIP:       cstartMasterIP.String(),
-			PublicIP:       cstartPublicIP.String(),
-			CloudProvider:  *cstartCloudProvider,
-			ClusterID:      *cstartClusterID,
-			GCENodeTags:    *cstartGCENodeTags,
-			SecretsDir:     *cstartSecretsDir,
-			ServiceSubnet:  *cstartServiceSubnet,
-			PODSubnet:      *cstartPODSubnet,
-			VxlanPort:      *cstartVxlanPort,
-			InitialCluster: *cstartInitialCluster,
+			Rootfs:               rootfs,
+			SocketPath:           *socketPath,
+			Env:                  *cstartEnv,
+			Mounts:               *cstartMounts,
+			Devices:              *cstartDevices,
+			IgnoreChecks:         *cstartIgnoreChecks,
+			Roles:                *cstartRoles,
+			MasterIP:             cstartMasterIP.String(),
+			PublicIP:             cstartPublicIP.String(),
+			CloudProvider:        *cstartCloudProvider,
+			ClusterID:            *cstartClusterID,
+			GCENodeTags:          *cstartGCENodeTags,
+			SecretsDir:           *cstartSecretsDir,
+			ServiceCIDR:          *cstartServiceCIDR,
+			PodCIDR:              *cstartPodCIDR,
+			ProxyPortRange:       *cstartProxyPortRange,
+			ServiceNodePortRange: *cstartServiceNodePortRange,
+			FeatureGates:         *cstartFeatureGates,
+			VxlanPort:            *cstartVxlanPort,
+			InitialCluster:       *cstartInitialCluster,
 			ServiceUser: serviceUser{
 				UID: *cstartServiceUID,
 			},
@@ -404,9 +421,12 @@ func run() error {
 				Port:        *cstartDNSPort,
 			},
 			KubeletOptions:        *cstartKubeletOptions,
+			APIServerOptions:      *cstartAPIServerOptions,
 			DockerPromiscuousMode: *cstartDockerPromiscuousMode,
 			Taints:                *cstartTaints,
 			NodeLabels:            *cstartNodeLabels,
+			KubeletConfig:         *cstartKubeletConfig,
+			CloudConfig:           *cstartCloudConfig,
 		}
 		if *cstartSelfTest {
 			err = selfTest(config, *cstartTestKubeRepoPath, *cstartTestSpec, extraArgs)
@@ -684,4 +704,32 @@ func toEtcdGatewayList(list kv.KeyVal) (peers string) {
 		addrs = append(addrs, fmt.Sprintf("%v:2379", addr))
 	}
 	return strings.Join(addrs, ",")
+}
+
+// InitLogger configures the global logger for a given purpose / verbosity level
+func initLogging(debug bool) {
+	level := log.WarnLevel
+	trace.SetDebug(debug)
+	if debug {
+		level = log.DebugLevel
+	}
+	log.StandardLogger().SetHooks(make(log.LevelHooks))
+	formatter := &trace.TextFormatter{DisableTimestamp: true}
+	log.SetFormatter(formatter)
+	log.SetLevel(level)
+	hook, err := logsyslog.NewSyslogHook("", "", syslog.LOG_WARNING, "")
+	if err != nil {
+		// syslog not available
+		log.SetOutput(os.Stderr)
+		return
+	}
+	log.AddHook(hook)
+	log.SetOutput(ioutil.Discard)
+}
+
+// die prints the error message in red to the console and exits with a non-zero exit code
+func die(err error) {
+	log.Error(trace.DebugReport(err))
+	color.Red("[ERROR]: %v\n", trace.UserMessage(err))
+	os.Exit(255)
 }
