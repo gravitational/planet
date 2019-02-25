@@ -254,8 +254,14 @@ func runAgent(conf *agent.Config, monitoringConf *monitoring.Config, leaderConf 
 	}
 	defer monitoringAgent.Close()
 
-	monitoring.AddMetrics(monitoringAgent, monitoringConf)
-	monitoring.AddCheckers(monitoringAgent, monitoringConf)
+	err = monitoring.AddMetrics(monitoringAgent, monitoringConf)
+	if err != nil {
+		return trace.Wrap(err)
+	}
+	err = monitoring.AddCheckers(monitoringAgent, monitoringConf)
+	if err != nil {
+		return trace.Wrap(err)
+	}
 	err = monitoringAgent.Start()
 	if err != nil {
 		return trace.Wrap(err)

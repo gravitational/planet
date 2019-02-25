@@ -168,7 +168,9 @@ func start(config *Config, monitorc chan<- bool) (*runtimeContext, error) {
 		return nil, trace.Wrap(err)
 	}
 	addEtcdOptions(config)
-	addComponentOptions(config)
+	if err := addComponentOptions(config); err != nil {
+		return nil, trace.Wrap(err)
+	}
 	setupFlannel(config)
 	if err = addCloudOptions(config); err != nil {
 		return nil, trace.Wrap(err)
@@ -530,7 +532,7 @@ func addKubeletOptions(config *Config) error {
 
 func applyConfigOverrides(config *kubeletconfig.KubeletConfiguration) error {
 	// Reset the attributes we expect to be set to specific values
-	err := mergo.Merge(&config, KubeletConfigOverrides, mergo.WithOverride)
+	err := mergo.Merge(config, KubeletConfigOverrides, mergo.WithOverride)
 	if err != nil {
 		return trace.Wrap(err)
 	}
