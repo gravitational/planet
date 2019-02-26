@@ -35,11 +35,14 @@ Notes:
 package main
 
 import (
+	"bytes"
+	"fmt"
 	"io/ioutil"
 	"path"
 	"path/filepath"
 	"runtime"
 	"strings"
+	"text/template"
 
 	systemdDbus "github.com/coreos/go-systemd/dbus"
 	"github.com/davecgh/go-spew/spew"
@@ -124,6 +127,8 @@ func upsertCgroups(isMaster bool) error {
 			errors = append(errors, trace.Wrap(upsertCgroupV1(entry)))
 		}
 	}
+
+	errors = append(errors, trace.Wrap(writeKubeReservedEnvironment(config)))
 
 	return trace.NewAggregate(errors...)
 }
@@ -268,3 +273,26 @@ func writeCgroupConfig(path string, config *CgroupConfig) error {
 
 	return trace.Wrap(utils.SafeWriteFile(path, buf, constants.SharedReadMask))
 }
+
+func writeKubeReservedEnvironment(config *CgroupConfig) error {
+	env := make(map[string]string)
+	if config.KubeReservedCPU > 0 {
+		env["KUBE_RESERVED"] = fmt.Sprintf("cpu=%vm", config.KubeReservedCPU)
+	}
+	if config.KubeSystemCPU > 0 {
+		env["KUBE_SYSTEM_RESERVED"] = fmt.Sprintf("cpu=%vm", config.KubeSystemCPU)
+	}
+
+	var b bytes.Buffer
+	err := kubeReservedEnv.Execute(&b, &env)
+	if err != nil {
+		return trace.Wrap(err)
+	}
+
+	return trace.Wrap(utils.SafeWriteFile("/run/kubernetes-reserved.env", b.Bytes(), constants.SharedReadMask))
+}
+
+var kubeReservedEnv = template.Must(
+	template.New("kube-reserved-env").Parse(`{{ range $key, $value := . }}{{ $key }}="{{ $value }}"
+{{ end }}
+`))

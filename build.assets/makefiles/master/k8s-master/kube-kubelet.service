@@ -6,6 +6,7 @@ Wants=docker.service
 [Service]
 EnvironmentFile=/etc/container-environment
 EnvironmentFile=/run/dns.env
+EnvironmentFile=/run/kubernetes-reserved.env
 ExecStartPre=/bin/systemctl is-active docker.service
 ExecStart=/usr/bin/kubelet \
         --address=0.0.0.0 \
@@ -32,6 +33,8 @@ ExecStart=/usr/bin/kubelet \
         --register-with-taints=${PLANET_NODE_TAINTS} \
         --node-labels=${PLANET_NODE_LABELS} \
         --network-plugin=cni \
+        --kube-reserved=${KUBE_RESERVED} \
+        --system-reserved=${KUBE_SYSTEM_RESERVED} \
         --event-qps=0 $KUBE_CLOUD_FLAGS $KUBELET_OPTS
 Restart=always
 RestartSec=5
