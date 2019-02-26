@@ -41,7 +41,9 @@ import (
 	"runtime"
 	"strings"
 
+	systemdDbus "github.com/coreos/go-systemd/dbus"
 	"github.com/davecgh/go-spew/spew"
+	"github.com/godbus/dbus"
 
 	"github.com/containerd/cgroups"
 	"github.com/gravitational/planet/lib/constants"
@@ -127,8 +129,31 @@ func upsertCgroups(isMaster bool) error {
 }
 
 func upsertSystemd(entry CgroupEntry) error {
-	_, err := cgroups.New(cgroups.Systemd, systemdPath(entry.Path...), &entry.LinuxResources)
-	return trace.Wrap(err)
+	// use dbus to set systemd unit properties
+	conn, err := systemdDbus.New()
+	if err != nil {
+		return trace.Wrap(err)
+	}
+	defer conn.Close()
+
+	properties := []systemdDbus.Property{
+		newProperty("MemoryAccounting", true),
+		newProperty("CPUAccounting", true),
+		newProperty("BlockIOAccounting", true),
+	}
+
+	if entry.CPU.Shares != nil {
+		properties = append(properties, newProperty("CPUShares", entry.CPU.Shares))
+	}
+
+	return trace.Wrap(conn.SetUnitProperties(entry.Path[0], true, properties...))
+}
+
+func newProperty(name string, units interface{}) systemdDbus.Property {
+	return systemdDbus.Property{
+		Name:  name,
+		Value: dbus.MakeVariant(units),
+	}
 }
 
 func systemdPath(s ...string) cgroups.Path {

@@ -459,6 +459,7 @@ func getServiceStatus(service string) (string, error) {
 	if err != nil {
 		return "", trace.Wrap(err)
 	}
+	defer conn.Close()
 
 	status, err := conn.ListUnitsByNames([]string{service})
 	if err != nil {
