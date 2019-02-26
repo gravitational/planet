@@ -88,6 +88,12 @@ func startLeaderClient(conf *LeaderConfig, errorC chan error) (leaderClient io.C
 		return nil, trace.Wrap(err)
 	}
 
+	if conf.Role == RoleMaster {
+		upsertCgroups(true)
+	} else {
+		upsertCgroups(false)
+	}
+
 	if err = conf.ETCD.CheckAndSetDefaults(); err != nil {
 		return nil, trace.Wrap(err)
 	}

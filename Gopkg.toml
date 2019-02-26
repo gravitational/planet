@@ -132,3 +132,19 @@ ignored = ["github.com/Sirupsen/logrus", "github.com/gravitational/planet/build/
 [[override]]
   name = "github.com/json-iterator/go"
   version = "1.1.5"
+
+[[constraint]]
+  name = "github.com/containerd/cgroups"
+  revision = "39b18af02c4120960f517a3a4c2588fabb61d02c"
+
+[[constraint]]
+  name = "github.com/stretchr/testify"
+  version = "v1.3.0"
+
+[[constraint]]
+  name = "gopkg.in/yaml.v2"
+  version = "v2.2.2"
+
+[[override]]
+  name = "github.com/opencontainers/runtime-spec"
+  revision = "29686dbc5559d93fb1ef402eeda3e35c38d75af4"
