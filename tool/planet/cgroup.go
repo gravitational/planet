@@ -28,8 +28,8 @@ Notes:
   - User tasks run with high scheduling priority
 	- Ensures an administrator can always debug the system
 	- However, because CPU usage is capped, an administrator shouldn't interfere with system services
-- Planet services take scheduling precedence over kubernetes pods
-  - kubernetes is responsible for inter-pod cgroup settings
+- Planet services and user tasks take scheduling priority over kubernetes pods
+  - kubernetes is responsible for pod relative cgroup settings
 
 */
 package main
@@ -183,12 +183,6 @@ func defaultCgroupConfig(numCPU int, isMaster bool) *CgroupConfig {
 	if userQuota < DefaultCgroupCPUPeriod/2 {
 		userQuota = DefaultCgroupCPUPeriod / 2
 	}
-	userQuotaI := int64(userQuota)
-	periodI := uint64(DefaultCgroupCPUPeriod)
-
-	swappiness := uint64(20)
-	shares100 := uint64(100)
-	shares2 := uint64(2)
 
 	config := CgroupConfig{
 		Enabled: true,
@@ -198,9 +192,9 @@ func defaultCgroupConfig(numCPU int, isMaster bool) *CgroupConfig {
 				Path: []string{"user"},
 				LinuxResources: specs.LinuxResources{
 					CPU: &specs.LinuxCPU{
-						Shares: &shares100,
-						Quota:  &userQuotaI,
-						Period: &periodI,
+						Shares: u64(1024),
+						Quota:  i64(int64(userQuota)),
+						Period: u64(DefaultCgroupCPUPeriod),
 					},
 				},
 			},
@@ -208,7 +202,10 @@ func defaultCgroupConfig(numCPU int, isMaster bool) *CgroupConfig {
 				Path: []string{"system.slice"},
 				LinuxResources: specs.LinuxResources{
 					CPU: &specs.LinuxCPU{
-						Shares: &shares100,
+						Shares: u64(1024),
+					},
+					Memory: &specs.LinuxMemory{
+						Swappiness: u64(0),
 					},
 				},
 			},
@@ -216,10 +213,10 @@ func defaultCgroupConfig(numCPU int, isMaster bool) *CgroupConfig {
 				Path: []string{"kube-pods"},
 				LinuxResources: specs.LinuxResources{
 					CPU: &specs.LinuxCPU{
-						Shares: &shares2,
+						Shares: u64(2),
 					},
 					Memory: &specs.LinuxMemory{
-						Swappiness: &swappiness,
+						Swappiness: u64(20),
 					},
 				},
 			},
@@ -296,3 +293,11 @@ var kubeReservedEnv = template.Must(
 	template.New("kube-reserved-env").Parse(`{{ range $key, $value := . }}{{ $key }}="{{ $value }}"
 {{ end }}
 `))
+
+func u64(n uint64) *uint64 {
+	return &n
+}
+
+func i64(n int64) *int64 {
+	return &n
+}

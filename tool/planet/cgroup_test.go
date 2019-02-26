@@ -7,14 +7,6 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-func u64(n uint64) *uint64 {
-	return &n
-}
-
-func i64(n int64) *int64 {
-	return &n
-}
-
 func TestDefaultCgroupConfig(t *testing.T) {
 	//swappiness := uint64(20)
 
@@ -34,7 +26,7 @@ func TestDefaultCgroupConfig(t *testing.T) {
 						Path: []string{"user"},
 						LinuxResources: specs.LinuxResources{
 							CPU: &specs.LinuxCPU{
-								Shares: u64(100),
+								Shares: u64(1024),
 								Quota:  i64(50000),
 								Period: u64(DefaultCgroupCPUPeriod),
 							},
@@ -44,7 +36,10 @@ func TestDefaultCgroupConfig(t *testing.T) {
 						Path: []string{"system.slice"},
 						LinuxResources: specs.LinuxResources{
 							CPU: &specs.LinuxCPU{
-								Shares: u64(100),
+								Shares: u64(1024),
+							},
+							Memory: &specs.LinuxMemory{
+								Swappiness: u64(0),
 							},
 						},
 					},
@@ -73,7 +68,7 @@ func TestDefaultCgroupConfig(t *testing.T) {
 						Path: []string{"user"},
 						LinuxResources: specs.LinuxResources{
 							CPU: &specs.LinuxCPU{
-								Shares: u64(100),
+								Shares: u64(1024),
 								Quota:  i64(50000),
 								Period: u64(DefaultCgroupCPUPeriod),
 							},
@@ -83,7 +78,10 @@ func TestDefaultCgroupConfig(t *testing.T) {
 						Path: []string{"system.slice"},
 						LinuxResources: specs.LinuxResources{
 							CPU: &specs.LinuxCPU{
-								Shares: u64(100),
+								Shares: u64(1024),
+							},
+							Memory: &specs.LinuxMemory{
+								Swappiness: u64(0),
 							},
 						},
 					},
@@ -114,7 +112,7 @@ func TestDefaultCgroupConfig(t *testing.T) {
 						Path: []string{"user"},
 						LinuxResources: specs.LinuxResources{
 							CPU: &specs.LinuxCPU{
-								Shares: u64(100),
+								Shares: u64(1024),
 								Quota:  i64(60000),
 								Period: u64(DefaultCgroupCPUPeriod),
 							},
@@ -124,7 +122,10 @@ func TestDefaultCgroupConfig(t *testing.T) {
 						Path: []string{"system.slice"},
 						LinuxResources: specs.LinuxResources{
 							CPU: &specs.LinuxCPU{
-								Shares: u64(100),
+								Shares: u64(1024),
+							},
+							Memory: &specs.LinuxMemory{
+								Swappiness: u64(0),
 							},
 						},
 					},
@@ -155,7 +156,7 @@ func TestDefaultCgroupConfig(t *testing.T) {
 						Path: []string{"user"},
 						LinuxResources: specs.LinuxResources{
 							CPU: &specs.LinuxCPU{
-								Shares: u64(100),
+								Shares: u64(1024),
 								Quota:  i64(60000),
 								Period: u64(DefaultCgroupCPUPeriod),
 							},
@@ -165,7 +166,10 @@ func TestDefaultCgroupConfig(t *testing.T) {
 						Path: []string{"system.slice"},
 						LinuxResources: specs.LinuxResources{
 							CPU: &specs.LinuxCPU{
-								Shares: u64(100),
+								Shares: u64(1024),
+							},
+							Memory: &specs.LinuxMemory{
+								Swappiness: u64(0),
 							},
 						},
 					},
@@ -196,7 +200,7 @@ func TestDefaultCgroupConfig(t *testing.T) {
 						Path: []string{"user"},
 						LinuxResources: specs.LinuxResources{
 							CPU: &specs.LinuxCPU{
-								Shares: u64(100),
+								Shares: u64(1024),
 								Quota:  i64(100000),
 								Period: u64(DefaultCgroupCPUPeriod),
 							},
@@ -206,7 +210,10 @@ func TestDefaultCgroupConfig(t *testing.T) {
 						Path: []string{"system.slice"},
 						LinuxResources: specs.LinuxResources{
 							CPU: &specs.LinuxCPU{
-								Shares: u64(100),
+								Shares: u64(1024),
+							},
+							Memory: &specs.LinuxMemory{
+								Swappiness: u64(0),
 							},
 						},
 					},
@@ -237,7 +244,7 @@ func TestDefaultCgroupConfig(t *testing.T) {
 						Path: []string{"user"},
 						LinuxResources: specs.LinuxResources{
 							CPU: &specs.LinuxCPU{
-								Shares: u64(100),
+								Shares: u64(1024),
 								Quota:  i64(100000),
 								Period: u64(DefaultCgroupCPUPeriod),
 							},
@@ -247,7 +254,10 @@ func TestDefaultCgroupConfig(t *testing.T) {
 						Path: []string{"system.slice"},
 						LinuxResources: specs.LinuxResources{
 							CPU: &specs.LinuxCPU{
-								Shares: u64(100),
+								Shares: u64(1024),
+							},
+							Memory: &specs.LinuxMemory{
+								Swappiness: u64(0),
 							},
 						},
 					},
@@ -278,7 +288,7 @@ func TestDefaultCgroupConfig(t *testing.T) {
 						Path: []string{"user"},
 						LinuxResources: specs.LinuxResources{
 							CPU: &specs.LinuxCPU{
-								Shares: u64(100),
+								Shares: u64(1024),
 								Quota:  i64(200000),
 								Period: u64(DefaultCgroupCPUPeriod),
 							},
@@ -288,7 +298,10 @@ func TestDefaultCgroupConfig(t *testing.T) {
 						Path: []string{"system.slice"},
 						LinuxResources: specs.LinuxResources{
 							CPU: &specs.LinuxCPU{
-								Shares: u64(100),
+								Shares: u64(1024),
+							},
+							Memory: &specs.LinuxMemory{
+								Swappiness: u64(0),
 							},
 						},
 					},
@@ -319,7 +332,7 @@ func TestDefaultCgroupConfig(t *testing.T) {
 						Path: []string{"user"},
 						LinuxResources: specs.LinuxResources{
 							CPU: &specs.LinuxCPU{
-								Shares: u64(100),
+								Shares: u64(1024),
 								Quota:  i64(200000),
 								Period: u64(DefaultCgroupCPUPeriod),
 							},
@@ -329,7 +342,10 @@ func TestDefaultCgroupConfig(t *testing.T) {
 						Path: []string{"system.slice"},
 						LinuxResources: specs.LinuxResources{
 							CPU: &specs.LinuxCPU{
-								Shares: u64(100),
+								Shares: u64(1024),
+							},
+							Memory: &specs.LinuxMemory{
+								Swappiness: u64(0),
 							},
 						},
 					},

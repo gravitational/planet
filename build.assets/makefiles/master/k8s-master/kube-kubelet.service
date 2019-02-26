@@ -35,6 +35,7 @@ ExecStart=/usr/bin/kubelet \
         --network-plugin=cni \
         --kube-reserved=${KUBE_RESERVED} \
         --system-reserved=${KUBE_SYSTEM_RESERVED} \
+        --cgroup-root=/kube-pods \
         --event-qps=0 $KUBE_CLOUD_FLAGS $KUBELET_OPTS
 Restart=always
 RestartSec=5
