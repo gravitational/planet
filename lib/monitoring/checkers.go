@@ -195,6 +195,13 @@ func addToMaster(node agent.Agent, config *Config, etcdConfig *monitoring.ETCDCo
 	case constants.CloudProviderAWS:
 		node.AddChecker(monitoring.NewAWSHasProfileChecker())
 	}
+
+	// test reachability of upstream nameservers
+	node.AddChecker(&monitoring.DNSChecker{
+		QuestionNS:  []string{"."},
+		Nameservers: config.UpstreamNameservers,
+	})
+
 	return nil
 }
 
@@ -239,6 +246,13 @@ func addToNode(node agent.Agent, config *Config, etcdConfig *monitoring.ETCDConf
 	case constants.CloudProviderAWS:
 		node.AddChecker(monitoring.NewAWSHasProfileChecker())
 	}
+
+	// test reachability of upstream nameservers
+	node.AddChecker(&monitoring.DNSChecker{
+		QuestionNS:  []string{"."},
+		Nameservers: config.UpstreamNameservers,
+	})
+
 	return nil
 }
 
