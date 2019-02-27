@@ -14,13 +14,16 @@ ExecStart=/usr/bin/kube-controller-manager \
         --master=https://${KUBE_APISERVER}:6443 \
         --logtostderr=true \
         --kubeconfig=/etc/kubernetes/scheduler.kubeconfig \
-        --allocate-node-cidrs=false $KUBE_CLOUD_FLAGS \
+        --allocate-node-cidrs=false \
         --profiling=false \
         --terminated-pod-gc-threshold=500 \
         --secure-port=0 \
         --cluster-cidr=${KUBE_POD_SUBNET} \
         --allocate-node-cidrs=${KUBE_ENABLE_IPAM} \
-        --use-service-account-credentials=true
+        --use-service-account-credentials=true \
+        $KUBE_CONTROLLER_MANAGER_FLAGS \
+        $KUBE_CLOUD_FLAGS \
+        $KUBE_COMPONENT_FLAGS
 Restart=always
 RestartSec=5
 StartLimitInterval=3600

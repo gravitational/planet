@@ -72,10 +72,19 @@ type Config struct {
 	DockerBackend string
 	// DockerOptions is a list of additional docker options
 	DockerOptions string
-	// ServiceSubnet defines the kubernetes service subnet CIDR
-	ServiceSubnet kv.CIDR
-	// PODSubnet defines the kubernetes Pod subnet CIDR
-	PODSubnet kv.CIDR
+	// ServiceCIDR defines the kubernetes service subnet CIDR
+	ServiceCIDR kv.CIDR
+	// PodCIDR defines the kubernetes Pod subnet CIDR
+	PodCIDR kv.CIDR
+	// ProxyPortRange specifies the range of host ports (beginPort-endPort, single port or beginPort+offset, inclusive)
+	// that may be consumed in order to proxy service traffic.
+	// If (unspecified, 0, or 0-0) then ports will be randomly chosen.
+	ProxyPortRange string
+	// ServiceNodePortRange defines the range of ports to reserve for services with NodePort visibility.
+	// Inclusive at both ends of the range.
+	ServiceNodePortRange string
+	// FeatureGates defines the set of key=value pairs that describe feature gates for alpha/experimental features.
+	FeatureGates string
 	// VxlanPort is the overlay network port
 	VxlanPort int
 	// InitialCluster is the initial cluster configuration for etcd
@@ -105,6 +114,8 @@ type Config struct {
 	Hostname string
 	// KubeletOptions defines additional kubelet parameters
 	KubeletOptions string
+	// APIServerOptions defines additional parameters for API server
+	APIServerOptions string
 	// ServiceUser defines the user context for container's service user
 	ServiceUser serviceUser
 	// DockerPromiscuousMode specifies whether to put docker bridge into promiscuous mode
@@ -117,6 +128,10 @@ type Config struct {
 	NodeLabels []string
 	// DisableFlannel tells planet to disable the embedded flannel plugin
 	DisableFlannel bool
+	// KubeletConfig specifies the configuration for kubelet as JSON-encoded payload
+	KubeletConfig string
+	// CloudConfig specifies the cloud configuration as JSON-encoded payload
+	CloudConfig string
 }
 
 // DNS describes DNS server configuration
@@ -148,13 +163,13 @@ type serviceUser struct {
 }
 
 func (cfg *Config) KubeDNSResolverIP() string {
-	return cfg.ServiceSubnet.RelativeIP(3).String()
+	return cfg.ServiceCIDR.RelativeIP(3).String()
 }
 
 // APIServerIP returns the IP of the "kubernetes" service which is the first IP
 // of the configured service subnet
 func (cfg *Config) APIServerIP() net.IP {
-	return cfg.ServiceSubnet.FirstIP()
+	return cfg.ServiceCIDR.FirstIP()
 }
 
 func (cfg *Config) hasRole(r string) bool {
