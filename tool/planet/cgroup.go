@@ -20,17 +20,18 @@ Cgroup Configuration
 Planet uses a customized cgroup structure, that's designed to prevent CPU resource starvation of critical services.
 
 Notes:
-- The cgroup customization is within planet only, the host system will not be configured
+- The cgroup customization is within planet cgroup namespace only
 - Systems with less than 5 cores, will not reserve resources in kubernetes
+  - Relative prioritization will still be applied
 - User tasks will be capped at a maximum CPU usage
   - 500 millicores on systems with less than 5 cores
-  - 10% of system resources (1/10, 2/20,4/40 cores etc)
+  - 10% of system resources (0.6/6, 1/10, 2/20, 4/40 cores etc) on 6 cores or more
   - User tasks run with high scheduling priority
-	- Ensures an administrator can always debug the system
-	- However, because CPU usage is capped, an administrator shouldn't interfere with system services
+	- THe idea is, an administrator should always be able to troubleshoot a system
+	- However, because CPU usage is capped at 10%, an administrator shouldn't interfere with system services
 - Planet services and user tasks take scheduling priority over kubernetes pods
-  - kubernetes is responsible for pod relative cgroup settings
-
+  - System and User tasks always have priority over pods
+  - kubernetes remains responsible for setting pod cgroup settings, and relative priority between pods
 */
 package main
 
@@ -60,13 +61,12 @@ import (
 type CgroupConfig struct {
 	// Enabled indicates whether the planet container should apply the cgroup configuration.
 	Enabled bool
-	// Auto indicates whether planet is allowed to regenerate the Cgroup configuration. New versions of planet may embed
-	// new rules.
-	// If configuration is changed by a user, and they don't wish their settings to be overriden, auto should be set
-	// to false.
+	// Auto indicates whether planet is allowed to regenerate the Cgroup configuration.
+	// If a new version of planet embeds new rules, this allows planet to update the configuration file. If the
+	// config is externally managed or updated by a user, set this to false so planet doesn't overwrite the settings.
 	Auto bool
 
-	// KubeReservedCpu is the amount of CPU to reserve within kubernetes for kubelet + docker (in millicores)
+	// KubeReservedCPU is the amount of CPU to reserve within kubernetes for kubelet + docker (in millicores)
 	KubeReservedCPU int
 	// KubeSystemCPU is the amount of CPU to reserve within kubernetes for system services (in millicores)
 	KubeSystemCPU int
@@ -82,7 +82,7 @@ type CgroupEntry struct {
 	Path []string `json:"path"`
 }
 
-// updateCgroups updates the cgroups as per configuration
+// upsertCgroups reads/updates the cgroup configuration and applies it to the system
 func upsertCgroups(isMaster bool) error {
 	log := logrus.WithField(trace.Component, "cgroup")
 	log.WithField("master", isMaster).Info("Upsert cgroup configuration")
@@ -101,13 +101,13 @@ func upsertCgroups(isMaster bool) error {
 		config = defaultCgroupConfig(runtime.NumCPU(), isMaster)
 	}
 
-	log.Info(spew.Sdump(config))
+	log.Info("cgroup configuration: ", spew.Sdump(config))
 
 	if !config.Enabled {
 		return nil
 	}
 
-	// rewrite configuration (it may have been updated with new defaults)
+	// rewrite configuration on disk (it may have been updated with new defaults)
 	err = writeCgroupConfig(configPath, config)
 	if err != nil {
 		return trace.Wrap(err)
@@ -188,6 +188,8 @@ func defaultCgroupConfig(numCPU int, isMaster bool) *CgroupConfig {
 		Enabled: true,
 		Auto:    true,
 		Cgroups: []CgroupEntry{
+			// /user
+			// - cgroup for user processes, capped cpu usage
 			CgroupEntry{
 				Path: []string{"user"},
 				LinuxResources: specs.LinuxResources{
@@ -198,6 +200,9 @@ func defaultCgroupConfig(numCPU int, isMaster bool) *CgroupConfig {
 					},
 				},
 			},
+			// /system.slice
+			// - cgroup for planet services
+			// - set swapinness to 0
 			CgroupEntry{
 				Path: []string{"system.slice"},
 				LinuxResources: specs.LinuxResources{
@@ -209,6 +214,10 @@ func defaultCgroupConfig(numCPU int, isMaster bool) *CgroupConfig {
 					},
 				},
 			},
+			// /kube-pods
+			// - cgroup for kubernetes pods
+			// - minimum cpu scheduling priority
+			// - Set swappiness to 20, so processes are less willing to swap. (Kubernetes recommends no swap)
 			CgroupEntry{
 				Path: []string{"kube-pods"},
 				LinuxResources: specs.LinuxResources{
@@ -224,7 +233,7 @@ func defaultCgroupConfig(numCPU int, isMaster bool) *CgroupConfig {
 	}
 
 	// if the system has limited CPU power, we only set the cgroup hierarchy
-	// and don't set kube-reserved
+	// and don't set kube-reserved / system reserved
 	if numCPU <= 4 {
 		return &config
 	}
@@ -234,14 +243,17 @@ func defaultCgroupConfig(numCPU int, isMaster bool) *CgroupConfig {
 	nodeReservedMilli := 800
 	if isMaster {
 		// reserve 1 additional core when master.
-		//
+		// this is just an educated guess at this point
 		nodeReservedMilli = 1800
 	}
 	config.KubeReservedCPU = nodeReservedMilli
 
 	// 1 CPU = 1000 millicores
 	totalMillis := numCPU * 1000
-	// System reserved - 10% of cpu + 200 millicores
+
+	// System reserved
+	// - 10% of cpu for admin tasks (pods will be able to burst into this CPU time most often)
+	// - 200 millicores (serf/coredns/satellite/systemd etc services)
 	config.KubeSystemCPU = (totalMillis / 10) + 200
 
 	return &config

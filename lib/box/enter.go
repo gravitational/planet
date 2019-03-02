@@ -160,8 +160,8 @@ func StartProcessStdout(c libcontainer.Container, cfg ProcessConfig) error {
 	return nil
 }
 
-// setProcessUserCgroup sets the provided lib-containter process into the /user cgroup inside the container
-// this is done opportunistically, so don't cause command execution to fail if setting the cgroup fails
+// setProcessUserCgroup sets the provided libcontainer process into the /user cgroup inside the container
+// this is done on a best effort basis, so we only log if this fails
 func setProcessUserCgroup(c libcontainer.Container, p *libcontainer.Process) {
 	err := setProcessUserCgroupImpl(c, p)
 	if err != nil {
@@ -169,10 +169,11 @@ func setProcessUserCgroup(c libcontainer.Container, p *libcontainer.Process) {
 	}
 }
 
-// setCgroup tries and moves the spawned pid into the cgroup hierarchy for user controlled processes
+// setProcessUserCgroupImpl tries and moves the spawned pid into the cgroup hierarchy for user controlled processes
 // the current implementation has a bit of a race condition, if the launched process spawns children before the process
 // is moved into the cgroup, the children won't get moved to the correct group. It's not clear to me if there is a better
-// runc way to support exec'd processes launching in a separate cgroup than the container itself
+// runc way to support exec'd processes launching in a separate cgroup than the container itself, but for now this
+// covers the common case of creating a shell session / starting a program
 func setProcessUserCgroupImpl(c libcontainer.Container, p *libcontainer.Process) error {
 	pid, err := p.Pid()
 	if err != nil {
@@ -186,7 +187,7 @@ func setProcessUserCgroupImpl(c libcontainer.Container, p *libcontainer.Process)
 
 	// This is a bit of a risk, try and use the cpu controller to identify the cgroup path. CgroupsV1 doesn't use a
 	// unified hierarchy, so different controllers can have different cgroup paths. For us, cpu is the most important
-	// controller
+	// controller, so we'll use it as the reference
 	cgroupPath, ok := state.CgroupPaths["cpu"]
 	if !ok {
 		return trace.NotFound("cpu cgroup controller not found: %v", state.CgroupPaths)
@@ -197,9 +198,9 @@ func setProcessUserCgroupImpl(c libcontainer.Container, p *libcontainer.Process)
 	}
 
 	// Example cgroup path: /sys/fs/cgroup/cpu,cpuacct/system.slice/-planet-cee2b8a0-c470-44a6-b7cc-1eefbc1cc88c.scope
-	// we want to split off the /sys/fs/cgroup/cpu,cpuacct/ part, and just have the relative cgroup path
+	// we want to split off the /sys/fs/cgroup/cpu,cpuacct/ part, so we have just the cgroup structure
+	// (system.slice/-planet-cee2b8a0-c470-44a6-b7cc-1eefbc1cc88c.scope)
 	dirs := strings.Split(cgroupPath, "/")
-
 	userPath := path.Join("/", path.Join(dirs[5:]...), "user")
 
 	control, err := cgroups.Load(cgroups.V1, cgroups.StaticPath(userPath))
