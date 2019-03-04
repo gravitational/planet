@@ -209,6 +209,21 @@
   version = "v1.0.0"
 
 [[projects]]
+  digest = "1:865079840386857c809b72ce300be7580cb50d3d3129ce11bf9aa6ca2bc1934a"
+  name = "github.com/fatih/color"
+  packages = ["."]
+  pruneopts = "UT"
+  revision = "5b77d2a35fb0ede96d138fc9a99f5c9b6aef11b4"
+  version = "v1.7.0"
+
+[[projects]]
+  digest = "1:c45cef8e0074ea2f8176a051df38553ba997a3616f1ec2d35222b1cf9864881e"
+  name = "github.com/ghodss/yaml"
+  packages = ["."]
+  pruneopts = "UT"
+  revision = "73d445a93680fa1a78ae23a5839bad48f32ba1ee"
+
+[[projects]]
   digest = "1:15e27372d379b45b18ac917b9dafc45c45485239490ece18cca97a12f9591146"
   name = "github.com/go-ini/ini"
   packages = ["."]
@@ -510,6 +525,30 @@
   version = "v0.1.0"
 
 [[projects]]
+  branch = "master"
+  digest = "1:1f38bafb5036a6d7b0a77c8c10a1d6e854e6b7874fed6776a3b1e146448ad0d4"
+  name = "github.com/kylelemons/godebug"
+  packages = ["diff"]
+  pruneopts = "UT"
+  revision = "d65d576e9348f5982d7f6d83682b694e731a45c6"
+
+[[projects]]
+  digest = "1:c658e84ad3916da105a761660dcaeb01e63416c8ec7bc62256a9b411a05fcd67"
+  name = "github.com/mattn/go-colorable"
+  packages = ["."]
+  pruneopts = "UT"
+  revision = "167de6bfdfba052fa6b2d3664c8f5272e23c9072"
+  version = "v0.0.9"
+
+[[projects]]
+  digest = "1:3bb9c8451d199650bfd303e0068d86f135952fead374ad87c09a9b8a2cc4bd7c"
+  name = "github.com/mattn/go-isatty"
+  packages = ["."]
+  pruneopts = "UT"
+  revision = "369ecd8cea9851e459abb67eb171853e3986591e"
+  version = "v0.0.6"
+
+[[projects]]
   digest = "1:ff5ebae34cfbf047d505ee150de27e60570e8c394b3b8fdbb720ff6ac71985fc"
   name = "github.com/matttproud/golang_protobuf_extensions"
   packages = ["pbutil"]
@@ -696,9 +735,12 @@
   version = "v0.9.0"
 
 [[projects]]
-  digest = "1:adec6c13b942561150e8fbecffd9e4c342ccbac59385bd0ddf69d9a6d0699f22"
+  digest = "1:2dc4fddf37503f952699873c7433efc11b569253ecd90d3ad4d8081431df100f"
   name = "github.com/sirupsen/logrus"
-  packages = ["."]
+  packages = [
+    ".",
+    "hooks/syslog",
+  ]
   pruneopts = "UT"
   revision = "dcdb95d728dbb6fe4b9fbe6b3b9d1fb268e68036"
   source = "github.com/gravitational/logrus"
@@ -1086,6 +1128,14 @@
   version = "v0.1.0"
 
 [[projects]]
+  digest = "1:c315e859e0da8b226202d60b2df6c48b17568468503ba080b4e3a30ad99887b4"
+  name = "k8s.io/kubelet"
+  packages = ["config/v1beta1"]
+  pruneopts = "UT"
+  revision = "ca2c7d4e7448581b357861c5f6034775f3813965"
+  version = "kubernetes-1.13.3"
+
+[[projects]]
   digest = "1:7719608fe0b52a4ece56c2dde37bedd95b938677d1ab0f84b8a7852e4c59f849"
   name = "sigs.k8s.io/yaml"
   packages = ["."]
@@ -1103,6 +1153,8 @@
     "github.com/coreos/go-systemd/dbus",
     "github.com/davecgh/go-spew/spew",
     "github.com/docker/docker/pkg/term",
+    "github.com/fatih/color",
+    "github.com/ghodss/yaml",
     "github.com/gravitational/configure",
     "github.com/gravitational/configure/cstrings",
     "github.com/gravitational/coordinate/config",
@@ -1119,7 +1171,9 @@
     "github.com/gravitational/satellite/monitoring/collector",
     "github.com/gravitational/trace",
     "github.com/gravitational/version",
+    "github.com/imdario/mergo",
     "github.com/julienschmidt/httprouter",
+    "github.com/kylelemons/godebug/diff",
     "github.com/mitchellh/go-ps",
     "github.com/opencontainers/runc/libcontainer",
     "github.com/opencontainers/runc/libcontainer/configs",
@@ -1130,15 +1184,18 @@
     "github.com/pborman/uuid",
     "github.com/prometheus/client_golang/prometheus",
     "github.com/sirupsen/logrus",
+    "github.com/sirupsen/logrus/hooks/syslog",
     "golang.org/x/net/websocket",
     "gopkg.in/alecthomas/kingpin.v2",
     "gopkg.in/check.v1",
     "k8s.io/api/core/v1",
     "k8s.io/apimachinery/pkg/api/errors",
     "k8s.io/apimachinery/pkg/apis/meta/v1",
+    "k8s.io/apimachinery/pkg/runtime/schema",
     "k8s.io/apimachinery/pkg/util/intstr",
     "k8s.io/client-go/kubernetes",
     "k8s.io/client-go/tools/clientcmd",
+    "k8s.io/kubelet/config/v1beta1",
   ]
   solver-name = "gps-cdcl"
   solver-version = 1
