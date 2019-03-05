@@ -19,6 +19,9 @@ package constants
 const (
 	// KubectlConfigPath is the path to kubectl configuration file
 	KubectlConfigPath = "/etc/kubernetes/kubectl.kubeconfig"
+	// KubectlHostConfigPath is the path to configuration file that kubectl
+	// uses when invoked from host
+	KubectlHostConfigPath = "/etc/kubernetes/kubectl-host.kubeconfig"
 	// SchedulerConfigPath is the path to kube-scheduler configuration file
 	SchedulerConfigPath = "/etc/kubernetes/scheduler.kubeconfig"
 	// ProxyConfigPath is the path to kube-proxy configuration file

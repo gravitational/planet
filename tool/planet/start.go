@@ -546,18 +546,27 @@ func applyConfigOverrides(config *kubeletconfig.KubeletConfiguration) error {
 
 // addKubeConfig writes a kubectl config file
 func addKubeConfig(config *Config) error {
-	kubeConfig, err := NewKubeConfig(config.APIServerIP())
-	if err != nil {
-		return trace.Wrap(err)
+	// Generate two kubectl configuration files: one will be used by
+	// kubectl when invoked from host, another one - from planet,
+	// because state directory may be different.
+	kubeConfigs := map[string]string{
+		constants.KubectlConfigPath:     constants.GravityDataDir,
+		constants.KubectlHostConfigPath: config.HostStateDir(),
 	}
-	path := filepath.Join(config.Rootfs, constants.KubectlConfigPath)
-	err = os.MkdirAll(filepath.Dir(path), constants.SharedDirMask)
-	if err != nil {
-		return trace.Wrap(err)
-	}
-	err = ioutil.WriteFile(path, kubeConfig, constants.SharedReadMask)
-	if err != nil {
-		return trace.Wrap(err)
+	for configPath, stateDir := range kubeConfigs {
+		kubeConfig, err := NewKubeConfig(config.APIServerIP(), stateDir)
+		if err != nil {
+			return trace.Wrap(err)
+		}
+		path := filepath.Join(config.Rootfs, configPath)
+		err = os.MkdirAll(filepath.Dir(path), constants.SharedDirMask)
+		if err != nil {
+			return trace.Wrap(err)
+		}
+		err = ioutil.WriteFile(path, kubeConfig, constants.SharedReadMask)
+		if err != nil {
+			return trace.Wrap(err)
+		}
 	}
 	return nil
 }

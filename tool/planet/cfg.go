@@ -26,6 +26,7 @@ import (
 	"text/template"
 
 	"github.com/gravitational/planet/lib/box"
+	"github.com/gravitational/planet/lib/constants"
 	"github.com/gravitational/planet/lib/user"
 	"github.com/gravitational/trace"
 
@@ -172,6 +173,21 @@ func (cfg *Config) APIServerIP() net.IP {
 	return cfg.ServiceCIDR.FirstIP()
 }
 
+// HostStateDir returns the gravity state directory on host.
+func (cfg *Config) HostStateDir() string {
+	// Host's state directory can be customized but it's always mounted
+	// as /var/lib/gravity inside planet container so to find the state
+	// directory on host, find the source for /var/lib/gravity.
+	for _, mount := range cfg.Mounts {
+		if mount.Dst == constants.GravityDataDir {
+			return mount.Src
+		}
+	}
+	// Should not reach this b/c /var/lib/gravity is always mounted,
+	// but fallback to default just in case.
+	return constants.GravityDataDir
+}
+
 func (cfg *Config) hasRole(r string) bool {
 	for _, rs := range cfg.Roles {
 		if rs == r {
@@ -262,9 +278,11 @@ func (r boolFlag) String() string {
 }
 
 // NewKubeConfig returns a kubectl config for the specified kubernetes API server IP
-func NewKubeConfig(ip net.IP) ([]byte, error) {
+func NewKubeConfig(ip net.IP, stateDir string) ([]byte, error) {
 	var b bytes.Buffer
-	err := kubeConfig.Execute(&b, map[string]string{"ip": ip.String()})
+	err := kubeConfig.Execute(&b, map[string]string{
+		"ip": ip.String(), "stateDir": stateDir,
+	})
 	if err != nil {
 		return nil, trace.Wrap(err)
 	}
@@ -278,13 +296,13 @@ current-context: default
 clusters:
 - name: default
   cluster:
-    certificate-authority: /var/lib/gravity/secrets/root.cert
+    certificate-authority: {{.stateDir}}/secrets/root.cert
     server: https://{{.ip}}
 users:
 - name: default
   user:
-    client-certificate: /var/lib/gravity/secrets/kubectl.cert
-    client-key: /var/lib/gravity/secrets/kubectl.key
+    client-certificate: {{.stateDir}}/secrets/kubectl.cert
+    client-key: {{.stateDir}}/secrets/kubectl.key
 contexts:
 - name: default
   context:
