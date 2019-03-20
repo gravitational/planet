@@ -4,7 +4,7 @@ FROM $PLANET_BASE_IMAGE
 ENV GOPATH /gopath
 ENV GOROOT /opt/go
 ENV PATH $PATH:$GOPATH/bin:$GOROOT/bin
-ARG GOVERSION=go1.10.7
+ARG GOVERSION=go1.10.8
 
 # Have our own /etc/passwd with users populated from 990 to 1000
 COPY passwd /etc/passwd
