@@ -22,6 +22,7 @@ import (
 	"io"
 	"os"
 	"path"
+	"path/filepath"
 	"strings"
 
 	"github.com/containerd/cgroups"
@@ -200,7 +201,7 @@ func setProcessUserCgroupImpl(c libcontainer.Container, p *libcontainer.Process)
 	// we want to split off the /sys/fs/cgroup/cpu,cpuacct/ part, so we have just the cgroup structure
 	// (system.slice/-planet-cee2b8a0-c470-44a6-b7cc-1eefbc1cc88c.scope)
 	dirs := strings.Split(cgroupPath, "/")
-	userPath := path.Join("/", path.Join(dirs[5:]...), "user")
+	userPath := filepath.Join("/", path.Join(dirs[5:]...), "user")
 
 	control, err := cgroups.Load(cgroups.V1, cgroups.StaticPath(userPath))
 	if err != nil {
