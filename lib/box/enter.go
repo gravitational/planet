@@ -21,6 +21,11 @@ import (
 	"context"
 	"io"
 	"os"
+	"path"
+	"path/filepath"
+	"strings"
+
+	"github.com/containerd/cgroups"
 
 	"github.com/gravitational/trace"
 	"github.com/opencontainers/runc/libcontainer"
@@ -71,6 +76,8 @@ func StartProcessTTY(c libcontainer.Container, cfg ProcessConfig) error {
 		return trace.Wrap(err)
 	}
 	log.Debugf("Process %#v started.", p)
+
+	setProcessUserCgroup(c, p)
 
 	containerConsole, err := getContainerConsole(context.TODO(), parentConsole)
 	if err != nil {
@@ -142,6 +149,8 @@ func StartProcessStdout(c libcontainer.Container, cfg ProcessConfig) error {
 		return trace.Wrap(err)
 	}
 
+	setProcessUserCgroup(c, p)
+
 	// wait for the process to finish
 	log.Infof("Waiting for StartProcessStdout(%v)...", cfg.Args)
 	defer log.Infof("StartProcessStdout(%v) completed", cfg.Args)
@@ -150,4 +159,54 @@ func StartProcessStdout(c libcontainer.Container, cfg ProcessConfig) error {
 		return trace.Wrap(err)
 	}
 	return nil
+}
+
+// setProcessUserCgroup sets the provided libcontainer process into the /user cgroup inside the container
+// this is done on a best effort basis, so we only log if this fails
+func setProcessUserCgroup(c libcontainer.Container, p *libcontainer.Process) {
+	err := setProcessUserCgroupImpl(c, p)
+	if err != nil {
+		log.Warn("Error setting process into user cgroup: ", trace.DebugReport(err))
+	}
+}
+
+// setProcessUserCgroupImpl tries and moves the spawned pid into the cgroup hierarchy for user controlled processes
+// the current implementation has a bit of a race condition, if the launched process spawns children before the process
+// is moved into the cgroup, the children won't get moved to the correct group.
+// TODO(knisbet) does runc support a better way of running a process in a separate cgroup from the container itself
+func setProcessUserCgroupImpl(c libcontainer.Container, p *libcontainer.Process) error {
+	pid, err := p.Pid()
+	if err != nil {
+		return trace.Wrap(err)
+	}
+
+	state, err := c.State()
+	if err != nil {
+		return trace.Wrap(err)
+	}
+
+	// This is a bit of a risk, try and use the cpu controller to identify the cgroup path. CgroupsV1 doesn't use a
+	// unified hierarchy, so different controllers can have different cgroup paths. For us, cpu is the most important
+	// controller, so we'll use it as the reference
+	cgroupPath, ok := state.CgroupPaths["cpu"]
+	if !ok {
+		return trace.NotFound("cpu cgroup controller not found: %v", state.CgroupPaths)
+	}
+
+	if !strings.HasPrefix(cgroupPath, "/sys/fs/cgroup/") {
+		return trace.BadParameter("Cgroup path not mounted to /sys/fs/cgroup: %v", cgroupPath)
+	}
+
+	// Example cgroup path: /sys/fs/cgroup/cpu,cpuacct/system.slice/-planet-cee2b8a0-c470-44a6-b7cc-1eefbc1cc88c.scope
+	// we want to split off the /sys/fs/cgroup/cpu,cpuacct/ part, so we have just the cgroup structure
+	// (system.slice/-planet-cee2b8a0-c470-44a6-b7cc-1eefbc1cc88c.scope)
+	dirs := strings.Split(cgroupPath, "/")
+	userPath := filepath.Join("/", path.Join(dirs[5:]...), "user")
+
+	control, err := cgroups.Load(cgroups.V1, cgroups.StaticPath(userPath))
+	if err != nil {
+		return trace.Wrap(err)
+	}
+
+	return trace.Wrap(control.Add(cgroups.Process{Pid: pid}))
 }

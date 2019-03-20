@@ -33,9 +33,11 @@ import (
 
 	"github.com/gravitational/go-udev"
 	"github.com/gravitational/trace"
+
 	log "github.com/sirupsen/logrus"
 
 	"github.com/opencontainers/runc/libcontainer"
+	"github.com/opencontainers/runc/libcontainer/cgroups/systemd"
 	"github.com/opencontainers/runc/libcontainer/configs"
 	"github.com/pborman/uuid"
 )
@@ -89,6 +91,10 @@ func (b *Box) Wait() (*os.ProcessState, error) {
 func Start(cfg Config) (*Box, error) {
 	log.Infof("[BOX] starting with config: %#v", cfg)
 
+	if !systemd.UseSystemd() {
+		return nil, trace.BadParameter("unable to use systemd for container creation")
+	}
+
 	rootfs, err := checkPath(cfg.Rootfs, false)
 	if err != nil {
 		return nil, err
@@ -126,14 +132,20 @@ func Start(cfg Config) (*Box, error) {
 		newgidmap = ""
 	}
 
-	root, err := libcontainer.New(cfg.DataDir, libcontainer.Cgroupfs,
+	root, err := libcontainer.New(cfg.DataDir,
+		libcontainer.SystemdCgroups,
 		libcontainer.NewuidmapPath(newuidmap),
-		libcontainer.NewgidmapPath(newgidmap))
+		libcontainer.NewgidmapPath(newgidmap),
+	)
 	if err != nil {
 		return nil, trace.Wrap(err)
 	}
 
 	containerID := uuid.New()
+	// https://github.com/systemd/systemd/blob/9ed6a1d2c6fd60ea666a30f815ab4c776e5d5c7c/src/core/machine-id-setup.c#L54-L58
+	// Pass the container uuid to systemd init
+	cfg.InitEnv = append(cfg.InitEnv, fmt.Sprintf("container_uuid=%v", containerID))
+
 	config, err := getLibcontainerConfig(containerID, rootfs, cfg)
 	if err != nil {
 		return nil, trace.Wrap(err)
@@ -186,6 +198,8 @@ func Start(cfg Config) (*Box, error) {
 		Stdin:  os.Stdin,
 		Stdout: os.Stdout,
 		Stderr: os.Stderr,
+		Init:   true,
+		Cwd:    "/",
 	}
 
 	// Run the container by starting the init process.
@@ -274,6 +288,7 @@ func getLibcontainerConfig(containerID, rootfs string, cfg Config) (*configs.Con
 			{Type: configs.NEWUTS},
 			{Type: configs.NEWIPC},
 			{Type: configs.NEWPID},
+			{Type: configs.NEWCGROUP},
 		}),
 		Mounts: []*configs.Mount{
 			{
@@ -320,12 +335,12 @@ func getLibcontainerConfig(containerID, rootfs string, cfg Config) (*configs.Con
 			},
 		},
 		Cgroups: &configs.Cgroup{
-			Name:   containerID,
-			Parent: "system",
+			Name: fmt.Sprintf("planet-%v", containerID),
 			Resources: &configs.Resources{
 				AllowAllDevices:  &allowAllDevices,
 				AllowedDevices:   configs.DefaultAllowedDevices,
 				MemorySwappiness: nil, // nil means "machine-default" and that's what we need because we don't care
+				CpuShares:        2,   // set planet to minimum cpu shares relative to host services
 			},
 		},
 
