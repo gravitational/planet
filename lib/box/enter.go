@@ -171,9 +171,8 @@ func setProcessUserCgroup(c libcontainer.Container, p *libcontainer.Process) {
 
 // setProcessUserCgroupImpl tries and moves the spawned pid into the cgroup hierarchy for user controlled processes
 // the current implementation has a bit of a race condition, if the launched process spawns children before the process
-// is moved into the cgroup, the children won't get moved to the correct group. It's not clear to me if there is a better
-// runc way to support exec'd processes launching in a separate cgroup than the container itself, but for now this
-// covers the common case of creating a shell session / starting a program
+// is moved into the cgroup, the children won't get moved to the correct group.
+// TODO(knisbet) does runc support a better way of running a process in a separate cgroup from the container itself
 func setProcessUserCgroupImpl(c libcontainer.Container, p *libcontainer.Process) error {
 	pid, err := p.Pid()
 	if err != nil {
@@ -193,8 +192,8 @@ func setProcessUserCgroupImpl(c libcontainer.Container, p *libcontainer.Process)
 		return trace.NotFound("cpu cgroup controller not found: %v", state.CgroupPaths)
 	}
 
-	if !strings.HasPrefix(cgroupPath, "/sys/fs/cgroup") {
-		return trace.BadParameter("Cgroup path not mounted to /sys/fs/cgroup: ", cgroupPath)
+	if !strings.HasPrefix(cgroupPath, "/sys/fs/cgroup/") {
+		return trace.BadParameter("Cgroup path not mounted to /sys/fs/cgroup: %v", cgroupPath)
 	}
 
 	// Example cgroup path: /sys/fs/cgroup/cpu,cpuacct/system.slice/-planet-cee2b8a0-c470-44a6-b7cc-1eefbc1cc88c.scope

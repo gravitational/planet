@@ -8,8 +8,6 @@ import (
 )
 
 func TestDefaultCgroupConfig(t *testing.T) {
-	//swappiness := uint64(20)
-
 	tests := []struct {
 		numCPU   int
 		isMaster bool
@@ -23,7 +21,7 @@ func TestDefaultCgroupConfig(t *testing.T) {
 				Auto:    true,
 				Cgroups: []CgroupEntry{
 					CgroupEntry{
-						Path: []string{"user"},
+						Path: "user",
 						LinuxResources: specs.LinuxResources{
 							CPU: &specs.LinuxCPU{
 								Shares: u64(1024),
@@ -33,7 +31,7 @@ func TestDefaultCgroupConfig(t *testing.T) {
 						},
 					},
 					CgroupEntry{
-						Path: []string{"system.slice"},
+						Path: "system.slice",
 						LinuxResources: specs.LinuxResources{
 							CPU: &specs.LinuxCPU{
 								Shares: u64(1024),
@@ -44,7 +42,7 @@ func TestDefaultCgroupConfig(t *testing.T) {
 						},
 					},
 					CgroupEntry{
-						Path: []string{"kube-pods"},
+						Path: "kube-pods",
 						LinuxResources: specs.LinuxResources{
 							CPU: &specs.LinuxCPU{
 								Shares: u64(2),
@@ -65,7 +63,7 @@ func TestDefaultCgroupConfig(t *testing.T) {
 				Auto:    true,
 				Cgroups: []CgroupEntry{
 					CgroupEntry{
-						Path: []string{"user"},
+						Path: "user",
 						LinuxResources: specs.LinuxResources{
 							CPU: &specs.LinuxCPU{
 								Shares: u64(1024),
@@ -75,7 +73,7 @@ func TestDefaultCgroupConfig(t *testing.T) {
 						},
 					},
 					CgroupEntry{
-						Path: []string{"system.slice"},
+						Path: "system.slice",
 						LinuxResources: specs.LinuxResources{
 							CPU: &specs.LinuxCPU{
 								Shares: u64(1024),
@@ -86,7 +84,7 @@ func TestDefaultCgroupConfig(t *testing.T) {
 						},
 					},
 					CgroupEntry{
-						Path: []string{"kube-pods"},
+						Path: "kube-pods",
 						LinuxResources: specs.LinuxResources{
 							CPU: &specs.LinuxCPU{
 								Shares: u64(2),
@@ -103,13 +101,13 @@ func TestDefaultCgroupConfig(t *testing.T) {
 			numCPU:   6,
 			isMaster: false,
 			expected: &CgroupConfig{
-				Enabled:         true,
-				Auto:            true,
-				KubeReservedCPU: 800,
-				KubeSystemCPU:   800,
+				Enabled:                   true,
+				Auto:                      true,
+				KubeReservedCPUMillicores: 800,
+				KubeSystemCPUMillicores:   800,
 				Cgroups: []CgroupEntry{
 					CgroupEntry{
-						Path: []string{"user"},
+						Path: "user",
 						LinuxResources: specs.LinuxResources{
 							CPU: &specs.LinuxCPU{
 								Shares: u64(1024),
@@ -119,7 +117,7 @@ func TestDefaultCgroupConfig(t *testing.T) {
 						},
 					},
 					CgroupEntry{
-						Path: []string{"system.slice"},
+						Path: "system.slice",
 						LinuxResources: specs.LinuxResources{
 							CPU: &specs.LinuxCPU{
 								Shares: u64(1024),
@@ -130,7 +128,7 @@ func TestDefaultCgroupConfig(t *testing.T) {
 						},
 					},
 					CgroupEntry{
-						Path: []string{"kube-pods"},
+						Path: "kube-pods",
 						LinuxResources: specs.LinuxResources{
 							CPU: &specs.LinuxCPU{
 								Shares: u64(2),
@@ -147,13 +145,13 @@ func TestDefaultCgroupConfig(t *testing.T) {
 			numCPU:   6,
 			isMaster: true,
 			expected: &CgroupConfig{
-				Enabled:         true,
-				Auto:            true,
-				KubeReservedCPU: 1800,
-				KubeSystemCPU:   800,
+				Enabled:                   true,
+				Auto:                      true,
+				KubeReservedCPUMillicores: 1800,
+				KubeSystemCPUMillicores:   800,
 				Cgroups: []CgroupEntry{
 					CgroupEntry{
-						Path: []string{"user"},
+						Path: "user",
 						LinuxResources: specs.LinuxResources{
 							CPU: &specs.LinuxCPU{
 								Shares: u64(1024),
@@ -163,7 +161,7 @@ func TestDefaultCgroupConfig(t *testing.T) {
 						},
 					},
 					CgroupEntry{
-						Path: []string{"system.slice"},
+						Path: "system.slice",
 						LinuxResources: specs.LinuxResources{
 							CPU: &specs.LinuxCPU{
 								Shares: u64(1024),
@@ -174,7 +172,7 @@ func TestDefaultCgroupConfig(t *testing.T) {
 						},
 					},
 					CgroupEntry{
-						Path: []string{"kube-pods"},
+						Path: "kube-pods",
 						LinuxResources: specs.LinuxResources{
 							CPU: &specs.LinuxCPU{
 								Shares: u64(2),
@@ -191,13 +189,13 @@ func TestDefaultCgroupConfig(t *testing.T) {
 			numCPU:   10,
 			isMaster: false,
 			expected: &CgroupConfig{
-				Enabled:         true,
-				Auto:            true,
-				KubeReservedCPU: 800,
-				KubeSystemCPU:   1200,
+				Enabled:                   true,
+				Auto:                      true,
+				KubeReservedCPUMillicores: 800,
+				KubeSystemCPUMillicores:   1200,
 				Cgroups: []CgroupEntry{
 					CgroupEntry{
-						Path: []string{"user"},
+						Path: "user",
 						LinuxResources: specs.LinuxResources{
 							CPU: &specs.LinuxCPU{
 								Shares: u64(1024),
@@ -207,7 +205,7 @@ func TestDefaultCgroupConfig(t *testing.T) {
 						},
 					},
 					CgroupEntry{
-						Path: []string{"system.slice"},
+						Path: "system.slice",
 						LinuxResources: specs.LinuxResources{
 							CPU: &specs.LinuxCPU{
 								Shares: u64(1024),
@@ -218,7 +216,7 @@ func TestDefaultCgroupConfig(t *testing.T) {
 						},
 					},
 					CgroupEntry{
-						Path: []string{"kube-pods"},
+						Path: "kube-pods",
 						LinuxResources: specs.LinuxResources{
 							CPU: &specs.LinuxCPU{
 								Shares: u64(2),
@@ -235,13 +233,13 @@ func TestDefaultCgroupConfig(t *testing.T) {
 			numCPU:   10,
 			isMaster: true,
 			expected: &CgroupConfig{
-				Enabled:         true,
-				Auto:            true,
-				KubeReservedCPU: 1800,
-				KubeSystemCPU:   1200,
+				Enabled:                   true,
+				Auto:                      true,
+				KubeReservedCPUMillicores: 1800,
+				KubeSystemCPUMillicores:   1200,
 				Cgroups: []CgroupEntry{
 					CgroupEntry{
-						Path: []string{"user"},
+						Path: "user",
 						LinuxResources: specs.LinuxResources{
 							CPU: &specs.LinuxCPU{
 								Shares: u64(1024),
@@ -251,7 +249,7 @@ func TestDefaultCgroupConfig(t *testing.T) {
 						},
 					},
 					CgroupEntry{
-						Path: []string{"system.slice"},
+						Path: "system.slice",
 						LinuxResources: specs.LinuxResources{
 							CPU: &specs.LinuxCPU{
 								Shares: u64(1024),
@@ -262,7 +260,7 @@ func TestDefaultCgroupConfig(t *testing.T) {
 						},
 					},
 					CgroupEntry{
-						Path: []string{"kube-pods"},
+						Path: "kube-pods",
 						LinuxResources: specs.LinuxResources{
 							CPU: &specs.LinuxCPU{
 								Shares: u64(2),
@@ -279,13 +277,13 @@ func TestDefaultCgroupConfig(t *testing.T) {
 			numCPU:   20,
 			isMaster: false,
 			expected: &CgroupConfig{
-				Enabled:         true,
-				Auto:            true,
-				KubeReservedCPU: 800,
-				KubeSystemCPU:   2200,
+				Enabled:                   true,
+				Auto:                      true,
+				KubeReservedCPUMillicores: 800,
+				KubeSystemCPUMillicores:   2200,
 				Cgroups: []CgroupEntry{
 					CgroupEntry{
-						Path: []string{"user"},
+						Path: "user",
 						LinuxResources: specs.LinuxResources{
 							CPU: &specs.LinuxCPU{
 								Shares: u64(1024),
@@ -295,7 +293,7 @@ func TestDefaultCgroupConfig(t *testing.T) {
 						},
 					},
 					CgroupEntry{
-						Path: []string{"system.slice"},
+						Path: "system.slice",
 						LinuxResources: specs.LinuxResources{
 							CPU: &specs.LinuxCPU{
 								Shares: u64(1024),
@@ -306,7 +304,7 @@ func TestDefaultCgroupConfig(t *testing.T) {
 						},
 					},
 					CgroupEntry{
-						Path: []string{"kube-pods"},
+						Path: "kube-pods",
 						LinuxResources: specs.LinuxResources{
 							CPU: &specs.LinuxCPU{
 								Shares: u64(2),
@@ -323,13 +321,13 @@ func TestDefaultCgroupConfig(t *testing.T) {
 			numCPU:   20,
 			isMaster: true,
 			expected: &CgroupConfig{
-				Enabled:         true,
-				Auto:            true,
-				KubeReservedCPU: 1800,
-				KubeSystemCPU:   2200,
+				Enabled:                   true,
+				Auto:                      true,
+				KubeReservedCPUMillicores: 1800,
+				KubeSystemCPUMillicores:   2200,
 				Cgroups: []CgroupEntry{
 					CgroupEntry{
-						Path: []string{"user"},
+						Path: "user",
 						LinuxResources: specs.LinuxResources{
 							CPU: &specs.LinuxCPU{
 								Shares: u64(1024),
@@ -339,7 +337,7 @@ func TestDefaultCgroupConfig(t *testing.T) {
 						},
 					},
 					CgroupEntry{
-						Path: []string{"system.slice"},
+						Path: "system.slice",
 						LinuxResources: specs.LinuxResources{
 							CPU: &specs.LinuxCPU{
 								Shares: u64(1024),
@@ -350,7 +348,7 @@ func TestDefaultCgroupConfig(t *testing.T) {
 						},
 					},
 					CgroupEntry{
-						Path: []string{"kube-pods"},
+						Path: "kube-pods",
 						LinuxResources: specs.LinuxResources{
 							CPU: &specs.LinuxCPU{
 								Shares: u64(2),

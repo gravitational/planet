@@ -27,7 +27,7 @@ Notes:
   - 500 millicores on systems with less than 5 cores
   - 10% of system resources (0.6/6, 1/10, 2/20, 4/40 cores etc) on 6 cores or more
   - User tasks run with high scheduling priority
-	- THe idea is, an administrator should always be able to troubleshoot a system
+	- The idea is, an administrator should always be able to troubleshoot a system
 	- However, because CPU usage is capped at 10%, an administrator shouldn't interfere with system services
 - Planet services and user tasks take scheduling priority over kubernetes pods
   - System and User tasks always have priority over pods
@@ -40,7 +40,6 @@ import (
 	"fmt"
 	"io/ioutil"
 	"path"
-	"path/filepath"
 	"runtime"
 	"strings"
 	"text/template"
@@ -66,10 +65,10 @@ type CgroupConfig struct {
 	// config is externally managed or updated by a user, set this to false so planet doesn't overwrite the settings.
 	Auto bool
 
-	// KubeReservedCPU is the amount of CPU to reserve within kubernetes for kubelet + docker (in millicores)
-	KubeReservedCPU int
-	// KubeSystemCPU is the amount of CPU to reserve within kubernetes for system services (in millicores)
-	KubeSystemCPU int
+	// KubeReservedCPUMillicores is the amount of CPU to reserve within kubernetes for kubelet + docker (in millicores)
+	KubeReservedCPUMillicores int
+	// KubeSystemCPUMillicores is the amount of CPU to reserve within kubernetes for system services (in millicores)
+	KubeSystemCPUMillicores int
 
 	// Cgroups is a list of cgroup configurations to apply within the planet container
 	Cgroups []CgroupEntry
@@ -79,7 +78,7 @@ type CgroupEntry struct {
 	specs.LinuxResources
 
 	// Path is the cgroup hierarchy path this setting applies to
-	Path []string `json:"path"`
+	Path string
 }
 
 // upsertCgroups reads/updates the cgroup configuration and applies it to the system
@@ -121,7 +120,7 @@ func upsertCgroups(isMaster bool) error {
 		}
 
 		switch {
-		case strings.HasSuffix(entry.Path[0], ".slice"):
+		case strings.HasSuffix(entry.Path, ".slice"):
 			errors = append(errors, trace.Wrap(upsertSystemd(entry)))
 		default:
 			errors = append(errors, trace.Wrap(upsertCgroupV1(entry)))
@@ -151,7 +150,7 @@ func upsertSystemd(entry CgroupEntry) error {
 		properties = append(properties, newProperty("CPUShares", entry.CPU.Shares))
 	}
 
-	return trace.Wrap(conn.SetUnitProperties(entry.Path[0], true, properties...))
+	return trace.Wrap(conn.SetUnitProperties(entry.Path, true, properties...))
 }
 
 func newProperty(name string, units interface{}) systemdDbus.Property {
@@ -161,14 +160,8 @@ func newProperty(name string, units interface{}) systemdDbus.Property {
 	}
 }
 
-func systemdPath(s ...string) cgroups.Path {
-	return func(subsystem cgroups.Name) (string, error) {
-		return filepath.Join(s...), nil
-	}
-}
-
 func upsertCgroupV1(entry CgroupEntry) error {
-	_, err := cgroups.New(cgroups.V1, cgroups.StaticPath(path.Join(entry.Path...)), &entry.LinuxResources)
+	_, err := cgroups.New(cgroups.V1, cgroups.StaticPath(entry.Path), &entry.LinuxResources)
 	return trace.Wrap(err)
 }
 
@@ -191,7 +184,7 @@ func defaultCgroupConfig(numCPU int, isMaster bool) *CgroupConfig {
 			// /user
 			// - cgroup for user processes, capped cpu usage
 			CgroupEntry{
-				Path: []string{"user"},
+				Path: "user",
 				LinuxResources: specs.LinuxResources{
 					CPU: &specs.LinuxCPU{
 						Shares: u64(1024),
@@ -204,7 +197,7 @@ func defaultCgroupConfig(numCPU int, isMaster bool) *CgroupConfig {
 			// - cgroup for planet services
 			// - set swapinness to 0
 			CgroupEntry{
-				Path: []string{"system.slice"},
+				Path: "system.slice",
 				LinuxResources: specs.LinuxResources{
 					CPU: &specs.LinuxCPU{
 						Shares: u64(1024),
@@ -217,9 +210,9 @@ func defaultCgroupConfig(numCPU int, isMaster bool) *CgroupConfig {
 			// /kube-pods
 			// - cgroup for kubernetes pods
 			// - minimum cpu scheduling priority
-			// - Set swappiness to 20, so processes are less willing to swap. (Kubernetes recommends no swap)
+			// - Set swappiness to 20, so processes are less likely to swap. (Kubernetes recommends no swap)
 			CgroupEntry{
-				Path: []string{"kube-pods"},
+				Path: "kube-pods",
 				LinuxResources: specs.LinuxResources{
 					CPU: &specs.LinuxCPU{
 						Shares: u64(2),
@@ -246,7 +239,7 @@ func defaultCgroupConfig(numCPU int, isMaster bool) *CgroupConfig {
 		// this is just an educated guess at this point
 		nodeReservedMilli = 1800
 	}
-	config.KubeReservedCPU = nodeReservedMilli
+	config.KubeReservedCPUMillicores = nodeReservedMilli
 
 	// 1 CPU = 1000 millicores
 	totalMillis := numCPU * 1000
@@ -254,7 +247,7 @@ func defaultCgroupConfig(numCPU int, isMaster bool) *CgroupConfig {
 	// System reserved
 	// - 10% of cpu for admin tasks (pods will be able to burst into this CPU time most often)
 	// - 200 millicores (serf/coredns/satellite/systemd etc services)
-	config.KubeSystemCPU = (totalMillis / 10) + 200
+	config.KubeSystemCPUMillicores = (totalMillis / 10) + 200
 
 	return &config
 }
@@ -285,11 +278,11 @@ func writeCgroupConfig(path string, config *CgroupConfig) error {
 
 func writeKubeReservedEnvironment(config *CgroupConfig) error {
 	env := make(map[string]string)
-	if config.KubeReservedCPU > 0 {
-		env["KUBE_RESERVED"] = fmt.Sprintf("cpu=%vm", config.KubeReservedCPU)
+	if config.KubeReservedCPUMillicores > 0 {
+		env["KUBE_RESERVED"] = fmt.Sprintf("cpu=%vm", config.KubeReservedCPUMillicores)
 	}
-	if config.KubeSystemCPU > 0 {
-		env["KUBE_SYSTEM_RESERVED"] = fmt.Sprintf("cpu=%vm", config.KubeSystemCPU)
+	if config.KubeSystemCPUMillicores > 0 {
+		env["KUBE_SYSTEM_RESERVED"] = fmt.Sprintf("cpu=%vm", config.KubeSystemCPUMillicores)
 	}
 
 	var b bytes.Buffer
