@@ -12,6 +12,7 @@ http:
     headers:
         X-Content-Type-Options: [nosniff]
     tls:
+        minimumtls: tls1.2
         certificate: /var/state/apiserver.cert
         key: /var/state/apiserver.key
         clientcas:
