@@ -17,13 +17,10 @@ limitations under the License.
 package main
 
 import (
-	"testing"
+	"github.com/gravitational/planet/lib/test"
 
 	"gopkg.in/check.v1"
 )
-
-// Hook up gocheck into the "go test" runner.
-func Test(t *testing.T) { check.TestingT(t) }
 
 type StartSuite struct{}
 
@@ -51,9 +48,9 @@ func (_ *StartSuite) TestCoreDNSConf(c *check.C) {
 			`
 .:53 {
   reload
-  bind 127.0.0.2 127.0.0.3 
+  bind 127.0.0.2 127.0.0.3
   errors
-  hosts /etc/coredns/coredns.hosts { 
+  hosts /etc/coredns/coredns.hosts {
     5.5.5.5 override.com
     7.7.7.7 override.com
     1.2.3.4 override2.com
@@ -88,9 +85,9 @@ func (_ *StartSuite) TestCoreDNSConf(c *check.C) {
 			`
 .:55 {
   reload
-  bind 127.0.0.2 
+  bind 127.0.0.2
   errors
-  hosts /etc/coredns/coredns.hosts { 
+  hosts /etc/coredns/coredns.hosts {
     fallthrough
   }
   kubernetes cluster.local in-addr.arpa ip6.arpa {
@@ -112,7 +109,6 @@ func (_ *StartSuite) TestCoreDNSConf(c *check.C) {
 		config, err := generateCoreDNSConfig(tt.config, coreDNSTemplate)
 
 		c.Assert(err, check.IsNil)
-		c.Assert(config, check.Equals, tt.expected)
+		c.Assert(config, test.DeepEquals, tt.expected)
 	}
-
 }

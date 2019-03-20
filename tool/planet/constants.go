@@ -18,6 +18,12 @@ package main
 
 import (
 	"time"
+
+	"github.com/gravitational/planet/lib/utils"
+
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/runtime/schema"
+	kubeletconfig "k8s.io/kubelet/config/v1beta1"
 )
 
 const (
@@ -30,9 +36,19 @@ const (
 	// EnvServiceSubnet names the environment variable that specifies
 	// the subnet CIDR for k8s services
 	EnvServiceSubnet = "KUBE_SERVICE_SUBNET"
-	// EnvPODSubnet names the environment variable that specifies
+	// EnvPodSubnet names the environment variable that specifies
 	// the subnet CIDR for k8s pods
-	EnvPODSubnet = "KUBE_POD_SUBNET"
+	EnvPodSubnet = "KUBE_POD_SUBNET"
+	// EnvServiceNodePortRange defines the range of ports to reserve for services
+	// with NodePort visibility. Inclusive at both ends of the range
+	EnvServiceNodePortRange = "KUBE_SERVICE_NODE_PORT_RANGE"
+	// EnvProxyPortRange specifies the range of host ports (beginPort-endPort, single port
+	// or beginPort+offset, inclusive) that may be consumed in order to proxy service traffic.
+	// If (unspecified, 0, or 0-0) then ports will be randomly chosen.
+	EnvProxyPortRange = "KUBE_PROXY_PORT_RANGE"
+	// EnvFeatureGates specifies the set of key=value pairs that describe feature gates for
+	// alpha/experimental features inside the runtime container
+	EnvFeatureGates = "KUBE_FEATURE_GATES"
 	// EnvVxlanPort is the environment variable with overlay network port
 	EnvVxlanPort = "PLANET_VXLAN_PORT"
 	// EnvStorageBackend names the environment variable that specifies
@@ -128,14 +144,34 @@ const (
 	// EnvEtcdOptions names the environment variable that specifies additional etcd
 	// command line options
 	EnvEtcdOptions = "ETCD_OPTS"
+
 	// EnvKubeletOptions names the environment variable that specifies additional
 	// kubelet command line options
-	EnvKubeletOptions = "KUBELET_OPTS"
+	EnvKubeletOptions = "KUBE_KUBELET_FLAGS"
 
+	// EnvAPIServerOptions specifies additional command line options for the API server
+	EnvAPIServerOptions = "KUBE_APISERVER_FLAGS"
+
+	// EnvKubeProxyOptions specifies additional command line options for kube-proxy
+	EnvKubeProxyOptions = "KUBE_PROXY_FLAGS"
+
+	// EnvControllerManagerOptions specifies additional command line options for controller manager
+	EnvControllerManagerOptions = "KUBE_CONTROLLER_MANAGER_FLAGS"
+
+	// EnvCloudControllerManagerOptions specifies additional command line options for cloud controller manager
+	EnvCloudControllerManagerOptions = "KUBE_CLOUD_CONTROLLER_MANAGER_FLAGS"
+
+	// EnvKubeCloudOptions specifies cloud configuration command line options
+	EnvKubeCloudOptions = "KUBE_CLOUD_FLAGS"
+
+	// EnvKubeComponentFlags specifies command line options common to all components
+	EnvKubeComponentFlags = "KUBE_COMPONENT_FLAGS"
 	// EnvDNSAddresses is an environment variable with a comma separated list of
 	// IPv4 addresses assigned to the overlay network interface of the host
 	EnvDNSAddresses = "DNS_ADDRESSES"
 
+	// EnvPath is the PATH environment variable
+	EnvPath = "PATH"
 	// EnvPlanetAgentCAFile names the environment variable that specifies the location
 	// of the agent ca certificate file
 	EnvPlanetAgentCAFile = "PLANET_AGENT_CAFILE"
@@ -159,11 +195,29 @@ const (
 	// EnvGCENodeTags names the environment variable that defines network node tags on GCE
 	EnvGCENodeTags = "PLANET_GCE_NODE_TAGS"
 
-	// EnvPath is the PATH environment variable
-	EnvPath = "PATH"
-
-	// EnvPlanetKubeletOptions is the environment variable with additional options for kubelet
+	// EnvPlanetKubeletOptions is the environment variable with additional options for kubelet.
+	// This is external configuration for the container
 	EnvPlanetKubeletOptions = "PLANET_KUBELET_OPTIONS"
+
+	// EnvPlanetAPIServerOptions is the environment variable with additional options for API server.
+	// This is external configuration for the container
+	EnvPlanetAPIServerOptions = "PLANET_APISERVER_OPTIONS"
+
+	// EnvPlanetFeatureGates defines the set of key=value pairs that describe feature gates for
+	// alpha/experimental features.
+	// This is external configuration for the container
+	EnvPlanetFeatureGates = "PLANET_FEATURE_GATES"
+
+	// EnvPlanetProxyPortRange specifies the range of host ports (beginPort-endPort, single port
+	// or beginPort+offset, inclusive) that may be consumed in order to proxy service traffic.
+	// If (unspecified, 0, or 0-0) then ports will be randomly chosen.
+	// This is external configuration for the container
+	EnvPlanetProxyPortRange = "PLANET_PROXY_PORT_RANGE"
+
+	// EnvPlanetServiceNodePortRange defines the range of ports to reserve for services
+	// with NodePort visibility. Inclusive at both ends of the range.
+	// This is the external configuration for the runtime container
+	EnvPlanetServiceNodePortRange = "KUBE_SERVICE_NODE_PORT_RANGE"
 
 	// EnvPlanetDNSListenAddr is the environment variable with the list of listen addresses for CoreDNS
 	EnvPlanetDNSListenAddr = "PLANET_DNS_LISTEN_ADDR"
@@ -171,7 +225,7 @@ const (
 	// EnvPlanetDNSPort is the environment variable with the DNS port
 	EnvPlanetDNSPort = "PLANET_DNS_PORT"
 
-	// EnvPlanetTaints is an environment variable for Kubernetes tains to apply to the node during creation
+	// EnvPlanetTaints is an environment variable for Kubernetes taints to apply to the node during creation
 	EnvPlanetTaints = "PLANET_NODE_TAINTS"
 
 	// EnvPlanetNodeLabels is an environment variable for Kubernetes node labels
@@ -179,6 +233,14 @@ const (
 
 	// EnvDisableFlannel is an environment variable to indicate whether we should disable flannel within planet
 	EnvDisableFlannel = "PLANET_DISABLE_FLANNEL"
+
+	// EnvPlanetKubeletConfig specifies the kubelet configuration as a base64-encoded JSON payload.
+	// This is external configuration for the container
+	EnvPlanetKubeletConfig = "PLANET_KUBELET_CONFIG"
+
+	// EnvPlanetCloudConfig specifies the cloud configuration as base64-encoded payload.
+	// This is external configuration for the container
+	EnvPlanetCloudConfig = "PLANET_CLOUD_CONFIG"
 
 	// DefaultDNSListenAddr is the default IP address CoreDNS will listen on
 	DefaultDNSListenAddr = "127.0.0.2"
@@ -305,6 +367,12 @@ const (
 	// ClientRPCKeyPath specifies the path to the CA certificate for agent RPC
 	ClientRPCKeyPath = "/var/state/planet-rpc-client.key"
 
+	// APIServerCertPath specifies the path to the api server certificate
+	APIServerCertPath = "/var/state/apiserver.cert"
+
+	// APIServerKeyPath specifies the path to the api server key
+	APIServerKeyPath = "/var/state/apiserver.key"
+
 	// DefaultDockerBridge specifies the default name of the docker bridge
 	DefaultDockerBridge = "docker0"
 
@@ -317,13 +385,21 @@ const (
 
 	// MinKernelVersion specifies the minimum kernel version on the host
 	MinKernelVersion = 310
+
 	// DefaultServiceSubnet specifies the subnet CIDR used for k8s Services by default
 	DefaultServiceSubnet = "10.100.0.0/16"
-	// DefaultPODSubnet specifies the subnet CIDR used for k8s Pods by default
-	DefaultPODSubnet = "10.244.0.0/16"
+
+	// DefaultPodSubnet specifies the subnet CIDR used for k8s Pods by default
+	DefaultPodSubnet = "10.244.0.0/16"
+
 	// DefaultVxlanPort is the default overlay network port
 	DefaultVxlanPort = 8472
 
+	// DefaultFeatureGates is the default set of component feature gates
+	DefaultFeatureGates = "AllAlpha=true,APIResponseCompression=false,BoundServiceAccountTokenVolume=false,CSIDriverRegistry=false,KubeletPodResources=false"
+
+	// DefaultServiceNodePortRange defines the default IP range for services with NodePort visibility
+	DefaultServiceNodePortRange = "30000-32767"
 	// DNSEnvFile specifies the file location to write information about the overlay network
 	// in use to be picked up by scripts
 	DNSEnvFile = "/run/dns.env"
@@ -362,6 +438,96 @@ var K8sSearchDomains = []string{
 	"svc.cluster.local",
 	"default.svc.cluster.local",
 	"kube-system.svc.cluster.local",
+}
+
+// KubeletConfig specifies the default kubelet configuration
+var KubeletConfig = kubeletconfig.KubeletConfiguration{
+	TypeMeta:               KubeletTypeMeta,
+	Address:                "0.0.0.0",
+	Port:                   10250,
+	MakeIPTablesUtilChains: utils.BoolPtr(true),
+	HealthzBindAddress:     "0.0.0.0",
+	HealthzPort:            utils.Int32Ptr(10248),
+	ClusterDomain:          "cluster.local",
+	EventRecordQPS:         utils.Int32Ptr(0),
+	FailSwapOn:             utils.BoolPtr(false),
+	ReadOnlyPort:           0,
+	TLSCertFile:            APIServerCertPath,
+	TLSPrivateKeyFile:      APIServerKeyPath,
+	EvictionHard: map[string]string{
+		"nodefs.available":   "5%",
+		"imagefs.available":  "5%",
+		"nodefs.inodesFree":  "5%",
+		"imagefs.inodesFree": "5%",
+	},
+	EvictionSoft: map[string]string{
+		"nodefs.available":   "10%",
+		"imagefs.available":  "10%",
+		"nodefs.inodesFree":  "10%",
+		"imagefs.inodesFree": "10%",
+	},
+	EvictionSoftGracePeriod: map[string]string{
+		"nodefs.available":   "1h",
+		"imagefs.available":  "1h",
+		"nodefs.inodesFree":  "1h",
+		"imagefs.inodesFree": "1h",
+	},
+	Authentication: kubeletconfig.KubeletAuthentication{
+		Webhook: kubeletconfig.KubeletWebhookAuthentication{
+			Enabled: utils.BoolPtr(true),
+		},
+		Anonymous: kubeletconfig.KubeletAnonymousAuthentication{
+			Enabled: utils.BoolPtr(false),
+		},
+		X509: kubeletconfig.KubeletX509Authentication{
+			ClientCAFile: ClientRPCCAPath,
+		},
+	},
+	Authorization: kubeletconfig.KubeletAuthorization{
+		Mode: kubeletconfig.KubeletAuthorizationModeWebhook,
+	},
+}
+
+// KubeletConfigOverrides specifies the subset of kubelet configuration
+// that cannot be changed.
+// It will be enforced when working with user-defined configuration
+var KubeletConfigOverrides = kubeletconfig.KubeletConfiguration{
+	TypeMeta:               KubeletTypeMeta,
+	Address:                "0.0.0.0",
+	Port:                   10250,
+	MakeIPTablesUtilChains: utils.BoolPtr(true),
+	HealthzBindAddress:     "0.0.0.0",
+	HealthzPort:            utils.Int32Ptr(10248),
+	ClusterDomain:          "cluster.local",
+	TLSCertFile:            APIServerCertPath,
+	TLSPrivateKeyFile:      APIServerKeyPath,
+	Authentication: kubeletconfig.KubeletAuthentication{
+		Webhook: kubeletconfig.KubeletWebhookAuthentication{
+			Enabled: utils.BoolPtr(true),
+		},
+		Anonymous: kubeletconfig.KubeletAnonymousAuthentication{
+			Enabled: utils.BoolPtr(false),
+		},
+		X509: kubeletconfig.KubeletX509Authentication{
+			ClientCAFile: ClientRPCCAPath,
+		},
+	},
+	Authorization: kubeletconfig.KubeletAuthorization{
+		Mode: kubeletconfig.KubeletAuthorizationModeWebhook,
+	},
+}
+
+// KubeletTypeMeta defines the type meta block of the kubelet configuration resource
+var KubeletTypeMeta = metav1.TypeMeta{
+	Kind:       KubeletVersion.Kind,
+	APIVersion: KubeletVersion.GroupVersion().String(),
+}
+
+// KubeletVersion defines the version tuple of the kubelet configuration resource
+var KubeletVersion = schema.GroupVersionKind{
+	Group:   kubeletconfig.SchemeGroupVersion.Group,
+	Version: kubeletconfig.SchemeGroupVersion.Version,
+	Kind:    "KubeletConfiguration",
 }
 
 var allCaps = []string{

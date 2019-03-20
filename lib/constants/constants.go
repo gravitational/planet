@@ -19,6 +19,9 @@ package constants
 const (
 	// KubectlConfigPath is the path to kubectl configuration file
 	KubectlConfigPath = "/etc/kubernetes/kubectl.kubeconfig"
+	// KubectlHostConfigPath is the path to configuration file that kubectl
+	// uses when invoked from host
+	KubectlHostConfigPath = "/etc/kubernetes/kubectl-host.kubeconfig"
 	// SchedulerConfigPath is the path to kube-scheduler configuration file
 	SchedulerConfigPath = "/etc/kubernetes/scheduler.kubeconfig"
 	// ProxyConfigPath is the path to kube-proxy configuration file
@@ -37,6 +40,9 @@ const (
 
 	// SharedReadMask is a file mask with read access for everyone
 	SharedReadMask = 0644
+
+	// SharedReadWriteMask is a mask for a shared file with read/write access for everyone
+	SharedReadWriteMask = 0666
 
 	// SharedDirMask is a mask for shared directories
 	SharedDirMask = 0755
@@ -59,6 +65,12 @@ const (
 	APIServerDNSNameGravity = "leader.gravity.local"
 	// RegistryDNSName is the domain name of the cluster local registry.
 	RegistryDNSName = "registry.local"
+
+	// CloudConfigFile specifies the file path for cloud-config for the kubernetes cloud controller
+	CloudConfigFile = "/etc/kubernetes/cloud-config.conf"
+
+	// KubeletConfigFile specifies the file path for kubelet configuration
+	KubeletConfigFile = "/etc/kubernetes/kubelet.yaml"
 )
 
 var (

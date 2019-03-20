@@ -225,7 +225,11 @@ func updateDNS(conf *LeaderConfig, hostname string, newMasterIP string) error {
 	return nil
 }
 
-var electedUnits = []string{"kube-controller-manager.service", "kube-scheduler.service", "kube-apiserver.service"}
+var electedUnits = []string{
+	"kube-controller-manager.service",
+	"kube-scheduler.service",
+	"kube-apiserver.service",
+}
 
 func unitsCommand(command string) error {
 	log.Debugf("executing %v on %v", command, electedUnits)
@@ -263,8 +267,14 @@ func runAgent(conf *agent.Config, monitoringConf *monitoring.Config, leaderConf 
 	}
 	defer monitoringAgent.Close()
 
-	monitoring.AddMetrics(monitoringAgent, monitoringConf)
-	monitoring.AddCheckers(monitoringAgent, monitoringConf)
+	err = monitoring.AddMetrics(monitoringAgent, monitoringConf)
+	if err != nil {
+		return trace.Wrap(err)
+	}
+	err = monitoring.AddCheckers(monitoringAgent, monitoringConf)
+	if err != nil {
+		return trace.Wrap(err)
+	}
 	err = monitoringAgent.Start()
 	if err != nil {
 		return trace.Wrap(err)
