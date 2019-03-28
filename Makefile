@@ -45,11 +45,11 @@ COREDNS_VER := 1.3.1
 
 # ETCD Versions to include in the release
 # This list needs to include every version of etcd that we can upgrade from + latest
-ETCD_VER := v2.3.8 v3.3.4 v3.3.9 v3.3.11
+ETCD_VER := v2.3.8 v3.3.4 v3.3.9 v3.3.11 v3.3.12
 # This is the version of etcd we should upgrade to (from the version list)
-ETCD_LATEST_VER := v3.3.11
+ETCD_LATEST_VER := v3.3.12
 
-BUILDBOX_GO_VER ?= 1.10.7
+BUILDBOX_GO_VER ?= 1.10.8
 PLANET_BUILD_TAG ?= $(shell git describe --tags)
 PLANET_IMAGE_NAME ?= planet/base
 PLANET_IMAGE ?= $(PLANET_IMAGE_NAME):$(PLANET_BUILD_TAG)
