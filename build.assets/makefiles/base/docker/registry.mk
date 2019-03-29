@@ -31,6 +31,7 @@ $(BINARIES):
 	@echo "\n---> Building docker registry:\n"
 	mkdir -p $(REPODIR)
 #	cd $(REPODIR) && git clone https://github.com/docker/distribution -b $(VER) --depth 1
+# TODO(knisbet) build off fork until upstream allows limiting cipher selection to modern standards
 	cd $(REPODIR) && git clone https://github.com/gravitational/distribution -b $(VER) --depth 1
 	cd $(REPODIR)/distribution && \
 	echo "$$VERSION_PACKAGE" > version/version.go && \
