@@ -40,7 +40,7 @@ SECCOMP_VER ?= 2.3.1-2.1+deb9u1
 DOCKER_VER ?= 18.06.2
 # we currently use our own flannel fork: gravitational/flannel
 FLANNEL_VER := v0.10.0-gravitational
-HELM_VER := v2.8.1
+HELM_VER := v2.12.3
 COREDNS_VER := 1.3.1
 
 # ETCD Versions to include in the release
