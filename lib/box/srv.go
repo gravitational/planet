@@ -31,7 +31,7 @@ import (
 	"strings"
 	"syscall"
 
-	"github.com/gravitational/go-udev"
+	udev "github.com/gravitational/go-udev"
 	"github.com/gravitational/trace"
 
 	log "github.com/sirupsen/logrus"
@@ -288,7 +288,6 @@ func getLibcontainerConfig(containerID, rootfs string, cfg Config) (*configs.Con
 			{Type: configs.NEWUTS},
 			{Type: configs.NEWIPC},
 			{Type: configs.NEWPID},
-			{Type: configs.NEWCGROUP},
 		}),
 		Mounts: []*configs.Mount{
 			{
@@ -346,6 +345,18 @@ func getLibcontainerConfig(containerID, rootfs string, cfg Config) (*configs.Con
 
 		Devices:  append(configs.DefaultAutoCreatedDevices, append(loopDevices, disks...)...),
 		Hostname: hostname,
+	}
+
+	// Cgroup namespaces aren't currently available in redhat/centos based kernels
+	// only use cgroup namespaces on kernels that have cgroup namespaces enabled
+	cgroupsEnabled, err := CgroupNSEnabled()
+	if err != nil {
+		return nil, trace.Wrap(err)
+	}
+	if cgroupsEnabled {
+		config.Namespaces = append(config.Namespaces, configs.Namespace{
+			Type: configs.NEWCGROUP,
+		})
 	}
 
 	for _, mountSpec := range cfg.Mounts {

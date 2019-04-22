@@ -49,12 +49,13 @@ import (
 	"github.com/godbus/dbus"
 
 	"github.com/containerd/cgroups"
+	"github.com/gravitational/planet/lib/box"
 	"github.com/gravitational/planet/lib/constants"
 	"github.com/gravitational/planet/lib/utils"
 	"github.com/gravitational/trace"
 	specs "github.com/opencontainers/runtime-spec/specs-go"
 	"github.com/sirupsen/logrus"
-	"gopkg.in/yaml.v2"
+	yaml "gopkg.in/yaml.v2"
 )
 
 type CgroupConfig struct {
@@ -85,6 +86,18 @@ type CgroupEntry struct {
 func upsertCgroups(isMaster bool) error {
 	log := logrus.WithField(trace.Component, "cgroup")
 	log.WithField("master", isMaster).Info("Upsert cgroup configuration")
+
+	// Cgroup namespaces aren't currently available in redhat/centos based kernels
+	// only enable resource starvation prevention on kernels that have cgroup namespaces that is needed to enact our
+	// cgroup hierarchy
+	cgroupsEnabled, err := box.CgroupNSEnabled()
+	if err != nil {
+		return trace.Wrap(err)
+	}
+	if !cgroupsEnabled {
+		log.Warn("Cgroup namespaces aren't enabled in the kernel, disabling resource starvation prevention.")
+		return nil
+	}
 
 	configPath := path.Join(StateDir, "planet-cgroups.conf")
 	config, err := readCgroupConfig(configPath)
