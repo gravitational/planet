@@ -291,6 +291,7 @@ func writeCgroupConfig(path string, config *CgroupConfig) error {
 
 func writeKubeReservedEnvironment(config *CgroupConfig) error {
 	env := make(map[string]string)
+	env["KUBE_CGROUP_ROOT"] = "/kube-pods"
 	if config.KubeReservedCPUMillicores > 0 {
 		env["KUBE_RESERVED"] = fmt.Sprintf("cpu=%vm", config.KubeReservedCPUMillicores)
 	}
