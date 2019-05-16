@@ -10,8 +10,6 @@ Environment=KUBE_STORAGE_BACKEND=etcd2
 # Override KUBE_STORAGE_BACKEND if we're using a version 3 compatible etcd
 EnvironmentFile=-/ext/etcd/etcd-version.txt
 EnvironmentFile=/etc/container-environment
-# Don't use HTTP proxy environment variables for internal services
-Environment=HTTP_PROXY= http_proxy= HTTPS_PROXY= https_proxy=
 ExecStartPre=/usr/bin/scripts/wait-for-etcd.sh
 ExecStartPre=/bin/systemctl is-active etcd.service
 ExecStart=/usr/bin/kube-apiserver \

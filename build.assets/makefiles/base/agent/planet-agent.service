@@ -9,8 +9,6 @@ RestartSec=5
 StartLimitInterval=3600
 StartLimitBurst=720
 EnvironmentFile=/etc/container-environment
-# Don't use HTTP proxy environment variables for internal services
-Environment=HTTP_PROXY= http_proxy= HTTPS_PROXY= https_proxy=
 LimitNOFILE=40000
 LimitNPROC=1048576
 ExecStartPre=/bin/systemctl is-active etcd.service

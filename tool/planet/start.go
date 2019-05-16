@@ -364,14 +364,18 @@ func addNoProxy(c *Config) {
 	found := false
 	for k, v := range proxy {
 		if len(v) != 0 {
-			c.Env.Upsert(k, strings.Join([]string{v, ".local"}, ","))
+			// TODO(knisbet) we should see if there is a way to not NO_PROXY every IP address
+			// but it's difficult because we need to know each of the nodes IP addresses, which can be added
+			// after the cluster starts. Alternatively we would need to make internal connections to <ip>.ip.local and
+			// have coredns convert the IP addresses for us as a DNS query.
+			c.Env.Upsert(k, strings.Join([]string{v, "0.0.0.0/0", ".local"}, ","))
 			found = true
 		}
 	}
 
 	// If we're unable to locate a NO_PROXY config, create default settings
 	if !found {
-		c.Env.Upsert("NO_PROXY", strings.Join([]string{".local"}, ","))
+		c.Env.Upsert("NO_PROXY", strings.Join([]string{"0.0.0.0/0", ".local"}, ","))
 	}
 }
 

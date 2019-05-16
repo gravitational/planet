@@ -9,8 +9,6 @@ StartLimitInterval=3600
 StartLimitBurst=720
 
 EnvironmentFile=/etc/container-environment
-# Don't use HTTP proxy environment variables for internal services
-Environment=HTTP_PROXY= http_proxy= HTTPS_PROXY= https_proxy=
 ExecStart=/usr/bin/serf agent \
         -bind=${PLANET_PUBLIC_IP}:7496 \
 	-node=${PLANET_AGENT_NAME} \

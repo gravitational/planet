@@ -4,8 +4,6 @@ Wants=docker.service
 
 [Service]
 EnvironmentFile=/etc/container-environment
-# Don't use HTTP proxy environment variables for internal services
-Environment=HTTP_PROXY= http_proxy= HTTPS_PROXY= https_proxy=
 Restart=on-failure
 RestartSec=5
 ExecStartPre=/bin/systemctl is-active docker.service
