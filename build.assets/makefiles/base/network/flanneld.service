@@ -8,6 +8,8 @@ Restart=always
 RestartSec=5
 Environment="TMPDIR=/var/tmp/"
 EnvironmentFile=/etc/container-environment
+# Don't use HTTP proxy environment variables for internal services
+Environment=HTTP_PROXY= http_proxy= HTTPS_PROXY= https_proxy=
 LimitNOFILE=40000
 LimitNPROC=1048576
 ExecStartPre=/sbin/modprobe ip_tables

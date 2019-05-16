@@ -5,6 +5,8 @@ Wants=kube-apiserver.service
 
 [Service]
 EnvironmentFile=/etc/container-environment
+# Don't use HTTP proxy environment variables for internal services
+Environment=HTTP_PROXY= http_proxy= HTTPS_PROXY= https_proxy=
 ExecStartPre=/bin/systemctl is-active kube-apiserver.service
 ExecStart=/usr/bin/kube-controller-manager \
         --service-account-private-key-file=/var/state/apiserver.key \

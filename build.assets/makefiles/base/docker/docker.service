@@ -6,6 +6,8 @@ Requires=docker.socket
 
 [Service]
 EnvironmentFile=/etc/container-environment
+# Don't use HTTP proxy environment variables for internal services
+Environment=HTTP_PROXY= http_proxy= HTTPS_PROXY= https_proxy=
 Type=notify
 # the default is not to use systemd for cgroups because the delegate issues still
 # exists and systemd currently does not support the cgroup feature set required
