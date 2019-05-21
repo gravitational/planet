@@ -165,7 +165,7 @@ func start(config *Config, monitorc chan<- bool) (*runtimeContext, error) {
 	)
 
 	// Append NO_PROXY environment variables so that internall communications don't get routes through a set http_proxy
-	addNoProxy(config)
+	configureProxy(config)
 
 	if err = addDockerOptions(config); err != nil {
 		return nil, trace.Wrap(err)
@@ -250,6 +250,10 @@ func start(config *Config, monitorc chan<- bool) (*runtimeContext, error) {
 			box.EnvFile{
 				Path: ContainerEnvironmentFile,
 				Env:  config.Env,
+			},
+			box.EnvFile{
+				Path: ProxyEnvironmentFile,
+				Env:  config.ProxyEnv,
 			},
 		},
 		Files:        config.Files,
@@ -352,30 +356,44 @@ func addCloudOptions(c *Config) error {
 	return nil
 }
 
-// addNoProxy ensures we set within the environment relevant NO_PROXY http variables that may not be included in the
+// configureProxy ensures we set within the environment relevant NO_PROXY http variables that may not be included in the
 // customer provided configuration.
-func addNoProxy(c *Config) {
-	// Attempt to find any current NO_PROXY settings in the variable names golang supports
-	proxy := map[string]string{
-		"NO_PROXY": c.Env.Get("NO_PROXY"),
-		"no_proxy": c.Env.Get("no_proxy"),
+func configureProxy(c *Config) {
+	// Attempt to find any current proxy settings in the variable names golang supports
+	// https://github.com/golang/net/blob/c21de06aaf072cea07f3a65d6970e5c7d8b6cd6d/http/httpproxy/proxy.go#L91-L98
+	proxy := []string{
+		"HTTP_PROXY",
+		"http_proxy",
+		"HTTPS_PROXY",
+		"https_proxy",
+	}
+
+	noProxy := map[string]string{
+		"NO_PROXY": c.Env.Delete("NO_PROXY"),
+		"no_proxy": c.Env.Delete("no_proxy"),
 	}
 
 	found := false
-	for k, v := range proxy {
+	for k, v := range noProxy {
 		if len(v) != 0 {
 			// TODO(knisbet) we should see if there is a way to not NO_PROXY every IP address
 			// but it's difficult because we need to know each of the nodes IP addresses, which can be added
 			// after the cluster starts. Alternatively we would need to make internal connections to <ip>.ip.local and
 			// have coredns convert the IP addresses for us as a DNS query.
-			c.Env.Upsert(k, strings.Join([]string{v, "0.0.0.0/0", ".local"}, ","))
+			c.ProxyEnv.Upsert(k, strings.Join([]string{v, "0.0.0.0/0", ".local"}, ","))
 			found = true
 		}
 	}
 
+	// Move proxy settings from regular Environment to Proxy environment settings so not all planet processes
+	// try and use the http_proxy.
+	for _, k := range proxy {
+		c.ProxyEnv.Upsert(k, c.Env.Delete(k))
+	}
+
 	// If we're unable to locate a NO_PROXY config, create default settings
 	if !found {
-		c.Env.Upsert("NO_PROXY", strings.Join([]string{"0.0.0.0/0", ".local"}, ","))
+		c.ProxyEnv.Upsert("NO_PROXY", strings.Join([]string{"0.0.0.0/0", ".local"}, ","))
 	}
 }
 
@@ -873,6 +891,10 @@ const (
 	DockerWorkDir            = "/ext/docker"
 	RegistryWorkDir          = "/ext/registry"
 	ContainerEnvironmentFile = "/etc/container-environment"
+	// ProxyEnvironmentFile is an environment file with outbound proxy options
+	// Note: these settings are separates from container-environent because not all processes should load the proxy 
+	// settings
+	ProxyEnvironmentFile = "/etc/proxy-environment"
 )
 
 func checkRequiredMounts(cfg *Config) error {

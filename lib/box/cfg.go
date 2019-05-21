@@ -135,6 +135,17 @@ func (vars *EnvVars) Get(v string) string {
 	return ""
 }
 
+// Delete removes the environment variable named v from the list and returns the value
+func (vars *EnvVars) Delete(v string) string {
+	for i, p := range *vars {
+		if p.Name == v {
+			*vars = append((*vars)[:i], (*vars)[i+1:]...)
+			return p.Val
+		}
+	}
+	return ""
+}
+
 // Append adds a new environment variable given with k, v and delimiter delim
 func (vars *EnvVars) Append(k, v, delim string) {
 	if existing := vars.Get(k); existing != "" {
