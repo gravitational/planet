@@ -164,7 +164,7 @@ func start(config *Config, monitorc chan<- bool) (*runtimeContext, error) {
 		box.EnvPair{Name: EnvDNSZones, Val: config.DNS.Zones.String()},
 	)
 
-	// Append NO_PROXY environment variables so that internall communications don't get routes through a set http_proxy
+	// Setup http_proxy / no_proxy environment configuration
 	configureProxy(config)
 
 	if err = addDockerOptions(config); err != nil {
@@ -356,8 +356,8 @@ func addCloudOptions(c *Config) error {
 	return nil
 }
 
-// configureProxy ensures we set within the environment relevant NO_PROXY http variables that may not be included in the
-// customer provided configuration.
+// configureProxy separates http_proxy environment variables into their own config file, and appends no_proxy
+// directives that may be missing in customer provided configuration
 func configureProxy(c *Config) {
 	// Attempt to find any current proxy settings in the variable names golang supports
 	// https://github.com/golang/net/blob/c21de06aaf072cea07f3a65d6970e5c7d8b6cd6d/http/httpproxy/proxy.go#L91-L98
