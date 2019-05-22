@@ -34,6 +34,7 @@ ExecStart=/usr/bin/etcd \
         --peer-key-file=/var/state/etcd.key \
         --peer-trusted-ca-file=/var/state/root.cert \
         --peer-client-cert-auth $ETCD_OPTS \
+        --max-request-bytes=10485760 \
         --initial-cluster-state new
 User=planet
 Group=planet
