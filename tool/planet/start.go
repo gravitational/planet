@@ -247,11 +247,11 @@ func start(config *Config, monitorc chan<- bool) (*runtimeContext, error) {
 		Rootfs:     config.Rootfs,
 		SocketPath: config.SocketPath,
 		EnvFiles: []box.EnvFile{
-			box.EnvFile{
+			{
 				Path: ContainerEnvironmentFile,
 				Env:  config.Env,
 			},
-			box.EnvFile{
+			{
 				Path: ProxyEnvironmentFile,
 				Env:  config.ProxyEnv,
 			},
@@ -373,6 +373,8 @@ func configureProxy(c *Config) {
 		"no_proxy": c.Env.Delete("no_proxy"),
 	}
 
+	staticNoProxyRules := []string{"0.0.0.0/0", ".local"}
+
 	found := false
 	for k, v := range noProxy {
 		if len(v) != 0 {
@@ -380,7 +382,7 @@ func configureProxy(c *Config) {
 			// but it's difficult because we need to know each of the nodes IP addresses, which can be added
 			// after the cluster starts. Alternatively we would need to make internal connections to <ip>.ip.local and
 			// have coredns convert the IP addresses for us as a DNS query.
-			c.ProxyEnv.Upsert(k, strings.Join([]string{v, "0.0.0.0/0", ".local"}, ","))
+			c.ProxyEnv.Upsert(k, strings.Join(append(staticNoProxyRules, v), ","))
 			found = true
 		}
 	}
@@ -393,7 +395,7 @@ func configureProxy(c *Config) {
 
 	// If we're unable to locate a NO_PROXY config, create default settings
 	if !found {
-		c.ProxyEnv.Upsert("NO_PROXY", strings.Join([]string{"0.0.0.0/0", ".local"}, ","))
+		c.ProxyEnv.Upsert("NO_PROXY", strings.Join(staticNoProxyRules, ","))
 	}
 }
 
@@ -892,7 +894,7 @@ const (
 	RegistryWorkDir          = "/ext/registry"
 	ContainerEnvironmentFile = "/etc/container-environment"
 	// ProxyEnvironmentFile is an environment file with outbound proxy options
-	// Note: these settings are separates from container-environent because not all processes should load the proxy 
+	// Note: these settings are separate from container-environent because not all processes should load the proxy
 	// settings
 	ProxyEnvironmentFile = "/etc/proxy-environment"
 )

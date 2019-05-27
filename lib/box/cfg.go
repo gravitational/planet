@@ -135,7 +135,7 @@ func (vars *EnvVars) Get(v string) string {
 	return ""
 }
 
-// Delete removes the environment variable named v from the list and returns the value
+// Delete removes the environment variable named v from the list and returns its value
 func (vars *EnvVars) Delete(v string) string {
 	for i, p := range *vars {
 		if p.Name == v {
