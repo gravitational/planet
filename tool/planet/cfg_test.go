@@ -83,3 +83,4 @@ func (r *oneOfChecker) Check(params []interface{}, names []string) (result bool,
 	}
 	return true, ""
 }
+

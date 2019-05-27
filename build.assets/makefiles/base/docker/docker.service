@@ -6,6 +6,7 @@ Requires=docker.socket
 
 [Service]
 EnvironmentFile=/etc/container-environment
+EnvironmentFile=/etc/proxy-environment
 Type=notify
 # the default is not to use systemd for cgroups because the delegate issues still
 # exists and systemd currently does not support the cgroup feature set required
