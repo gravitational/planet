@@ -190,6 +190,29 @@ func addToMaster(node agent.Agent, config *Config, etcdConfig *monitoring.ETCDCo
 			HighWatermark: config.HighWatermark,
 		}))
 
+	pingChecker, err := monitoring.NewPingChecker(
+		monitoring.PingCheckerConfig{
+			SerfRPCAddr:    node.GetConfig().SerfRPCAddr,
+			SerfMemberName: node.GetConfig().Name,
+		})
+	if err != nil {
+		return trace.Wrap(err)
+	}
+	node.AddChecker(pingChecker)
+
+	timeDriftChecker, err := monitoring.NewTimeDriftChecker(
+		monitoring.TimeDriftCheckerConfig{
+			CAFile:      node.GetConfig().CAFile,
+			CertFile:    node.GetConfig().CertFile,
+			KeyFile:     node.GetConfig().KeyFile,
+			SerfRPCAddr: node.GetConfig().SerfRPCAddr,
+			Name:        node.GetConfig().Name,
+		})
+	if err != nil {
+		return trace.Wrap(err)
+	}
+	node.AddChecker(timeDriftChecker)
+
 	// Add checkers specific to cloud provider backend
 	switch strings.ToLower(config.CloudProvider) {
 	case constants.CloudProviderAWS:
