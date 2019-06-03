@@ -23,6 +23,8 @@ import (
 	"os"
 	"strconv"
 	"strings"
+	"text/scanner"
+	"unicode"
 
 	"github.com/gravitational/configure/cstrings"
 	"github.com/gravitational/trace"
@@ -167,12 +169,16 @@ func (vars *EnvVars) Upsert(k, v string) {
 	*vars = append(*vars, EnvPair{Name: k, Val: v})
 }
 
-// Set parses v as a comma-separated list of name=value pairs
+// Set parses v as a comma-separated list of name=value pairs.
+// If a value contains a comma, it must be quoted.
 func (vars *EnvVars) Set(v string) error {
-	for _, i := range cstrings.SplitComma(v) {
-		if err := vars.setItem(i); err != nil {
-			return err
-		}
+	p := newEnvParser(v)
+	result, err := p.parse()
+	if err != nil {
+		return trace.Wrap(err)
+	}
+	for _, v := range result {
+		*vars = append(*vars, v)
 	}
 	return nil
 }
@@ -454,3 +460,79 @@ const (
 	deviceUID         = "uid"
 	deviceGID         = "gid"
 )
+
+// newEnvParser returns a new parser for environment.
+// input is expected to be a comma-separated list of name=value pairs,
+// where values can be quoted (in which case, they can themselves contain commas)
+func newEnvParser(input string) *envParser {
+	var s scanner.Scanner
+	s.Init(strings.NewReader(input))
+	s.Mode = scanner.ScanIdents | scanner.ScanStrings
+	s.IsIdentRune = isIdentRune
+	return &envParser{s: s}
+}
+
+func (r *envParser) parse() (result EnvVars, err error) {
+	mode := envKey
+	var name string
+	for tok := r.s.Scan(); tok != scanner.EOF; tok = r.s.Scan() {
+		tokenText := r.s.TokenText()
+		switch mode {
+		case envKey:
+			if tok != scanner.Ident {
+				return nil, trace.BadParameter("expected environment variable but got %v", tokenText)
+			}
+			name = tokenText
+			mode = envEquals
+		case envEquals:
+			if tok != '=' {
+				return nil, trace.BadParameter("expected '=' but got %q", tokenText)
+			}
+			mode = envValue
+		case envValue:
+			v := tokenText
+			if tok == scanner.String {
+				v = tokenText[1 : len(tokenText)-1]
+			}
+			result = append(result, EnvPair{Name: name, Val: v})
+			name = ""
+			mode = envKey
+			r.moveNextVariable()
+		}
+	}
+	if mode != envKey {
+		return nil, trace.BadParameter("unexpected token %v", r.s.TokenText())
+	}
+	return result, nil
+}
+
+func (r *envParser) moveNextVariable() {
+	if r.s.Peek() == ',' {
+		r.s.Next()
+	}
+}
+
+// isIdentRune determines whether ch can be part of the environment variable name.
+// It loosens the below definition by allowing lower-case letters.
+// See: http://pubs.opengroup.org/onlinepubs/000095399/basedefs/xbd_chap08.html for reference
+func isIdentRune(ch rune, i int) bool {
+	if ch == '=' {
+		return false
+	}
+	return ch == '_' || unicode.IsLetter(ch) || unicode.IsDigit(ch) && i > 0
+}
+
+type envParserMode byte
+
+const (
+	envKey envParserMode = iota
+	envEquals
+	envValue
+)
+
+// envParser implements parsing of environment variables
+// specified a comma-separated list of name=value pairs.
+// values can contain commas but must be quoted in this case.
+type envParser struct {
+	s scanner.Scanner
+}
