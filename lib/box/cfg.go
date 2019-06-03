@@ -462,8 +462,8 @@ const (
 )
 
 // newEnvParser returns a new parser for environment.
-// input is expected to be a comma-separated list of name=value pairs,
-// where values can be quoted (in which case, they can themselves contain commas)
+// input is expected to be a comma-separated list of name=value pairs.
+// If a value contains a comma, it must be quoted.
 func newEnvParser(input string) *envParser {
 	var s scanner.Scanner
 	s.Init(strings.NewReader(input))
