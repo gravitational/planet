@@ -38,6 +38,7 @@ RUN apt-get update && apt-get install -q -y --allow-downgrades bridge-utils \
         iftop \
         traceroute \
         tcpdump \
+        procps \
         coreutils \
         lsof \
         socat \
