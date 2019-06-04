@@ -79,3 +79,120 @@ func (r *CommandFlagSuite) TestEnvDelete(c *check.C) {
 		c.Assert(vars.String(), check.Equals, tt.expected)
 	}
 }
+
+func (*CommandFlagSuite) TestEnvParse(c *check.C) {
+	var cases = []struct {
+		value    string
+		expected EnvVars
+		comment  string
+	}{
+		{
+			value: "var=value",
+			expected: EnvVars{
+				{
+					Name: "var",
+					Val:  "value",
+				},
+			},
+			comment: "simple value",
+		},
+		{
+			value: `var="value1,value2"`,
+			expected: EnvVars{
+				{
+					Name: "var",
+					Val:  "value1,value2",
+				},
+			},
+			comment: "comma-separated value",
+		},
+		{
+			value: `var1="value1,value2",var2="value1=value2"`,
+			expected: EnvVars{
+				{
+					Name: "var1",
+					Val:  "value1,value2",
+				},
+				{
+					Name: "var2",
+					Val:  "value1=value2",
+				},
+			},
+			comment: "multiple comma-separated values",
+		},
+		{
+			value: `var="value1,value2;value3:"`,
+			expected: EnvVars{
+				{
+					Name: "var",
+					Val:  "value1,value2;value3:",
+				},
+			},
+			comment: "value in quotes is not interpreted",
+		},
+		{
+			value: `var1=value1,var2=value2`,
+			expected: EnvVars{
+				{
+					Name: "var1",
+					Val:  "value1",
+				},
+				{
+					Name: "var2",
+					Val:  "value2",
+				},
+			},
+			comment: "multiple variables",
+		},
+		{
+			value: `var1=value1,var2=value2,`,
+			expected: EnvVars{
+				{
+					Name: "var1",
+					Val:  "value1",
+				},
+				{
+					Name: "var2",
+					Val:  "value2",
+				},
+			},
+			comment: "empty input ignored",
+		},
+		{
+			value: `VAR1=VALUE1,var2=value2`,
+			expected: EnvVars{
+				{
+					Name: "VAR1",
+					Val:  "VALUE1",
+				},
+				{
+					Name: "var2",
+					Val:  "value2",
+				},
+			},
+			comment: "allows upper and lower-case names",
+		},
+		{
+			value: ` var1=value1, var2 = value2 `,
+			expected: EnvVars{
+				{
+					Name: "var1",
+					Val:  "value1",
+				},
+				{
+					Name: "var2",
+					Val:  "value2",
+				},
+			},
+			comment: "allows whitespace around names/values",
+		},
+	}
+
+	for _, tt := range cases {
+		comment := check.Commentf(tt.comment)
+		p := newEnvParser(tt.value)
+		vars, err := p.parse()
+		c.Assert(err, check.IsNil, comment)
+		c.Assert(vars, check.DeepEquals, tt.expected, comment)
+	}
+}

@@ -731,7 +731,7 @@ func initLogging(debug bool) {
 
 // die prints the error message in red to the console and exits with a non-zero exit code
 func die(err error) {
-	log.Error(trace.DebugReport(err))
+	log.WithError(err).Warn("Failed to run.")
 	color.Red("[ERROR]: %v\n", trace.UserMessage(err))
 	os.Exit(255)
 }
