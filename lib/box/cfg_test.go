@@ -117,6 +117,20 @@ func (*CommandFlagSuite) TestEnvParse(c *check.C) {
 			},
 			comment: "allows upper and lower-case names",
 		},
+		{
+			value: ` var1=value1, var2 = value2 `,
+			expected: EnvVars{
+				{
+					Name: "var1",
+					Val:  "value1",
+				},
+				{
+					Name: "var2",
+					Val:  "value2",
+				},
+			},
+			comment: "allows whitespace around names/values",
+		},
 	}
 
 	for _, tt := range cases {
