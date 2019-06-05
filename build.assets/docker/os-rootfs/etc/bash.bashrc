@@ -3,6 +3,10 @@ if [[ -f /etc/bash_completion ]]; then
     source /etc/bash_completion
 fi
 
+if [[ -f /etc/proxy-environment ]]; then
+    source /etc/proxy-environment
+fi
+
 _kubectl_completion() {
     source <(kubectl completion bash)
 }

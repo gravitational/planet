@@ -19,6 +19,7 @@ package main
 import (
 	"bytes"
 	"os"
+	"path/filepath"
 
 	"github.com/docker/docker/pkg/term"
 	"github.com/gravitational/planet/lib/box"
@@ -68,6 +69,15 @@ func enter(rootfs, socketPath string, cfg *box.ProcessConfig) error {
 		}
 		defer term.RestoreTerminal(os.Stdin.Fd(), oldState)
 	}
+
+	env, err := box.ReadEnvironment(filepath.Join(rootfs, ProxyEnvironmentFile))
+	if err != nil {
+		return trace.Wrap(err)
+	}
+	for _, e := range env {
+		cfg.Env.Upsert(e.Name, e.Val)
+	}
+
 	// tell bash to use environment we've created
 	cfg.Env.Upsert("ENV", ContainerEnvironmentFile)
 	cfg.Env.Upsert("BASH_ENV", ContainerEnvironmentFile)
