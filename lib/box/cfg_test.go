@@ -18,49 +18,49 @@ package box
 
 import (
 	"strings"
+
 	check "gopkg.in/check.v1"
 )
 
 type CommandFlagSuite struct{}
 
-
 var _ = check.Suite(&CommandFlagSuite{})
 
 func (r *CommandFlagSuite) TestEnvDelete(c *check.C) {
 	var cases = []struct {
-		add string
-		delete string
-		expected string
+		add         string
+		delete      string
+		expected    string
 		description string
-	} {
+	}{
 		{
-			add: "alpha=1",
-			expected: "alpha=1",
+			add:         "alpha=1",
+			expected:    "alpha=1",
 			description: "add alpha",
 		},
 		{
-			add: "bravo=2",
-			expected: "alpha=1,bravo=2",
+			add:         "bravo=2",
+			expected:    "alpha=1,bravo=2",
 			description: "add bravo",
 		},
 		{
-			add: "charlie=3",
-			expected: "alpha=1,bravo=2,charlie=3",
+			add:         "charlie=3",
+			expected:    "alpha=1,bravo=2,charlie=3",
 			description: "add charlie",
 		},
 		{
-			delete: "bravo",
-			expected: "alpha=1,charlie=3",
+			delete:      "bravo",
+			expected:    "alpha=1,charlie=3",
 			description: "delete bravo",
 		},
 		{
-			delete: "charlie",
-			expected: "alpha=1",
+			delete:      "charlie",
+			expected:    "alpha=1",
 			description: "delete charlie",
 		},
 		{
-			delete: "alpha",
-			expected: "",
+			delete:      "alpha",
+			expected:    "",
 			description: "delete alpha",
 		},
 	}
