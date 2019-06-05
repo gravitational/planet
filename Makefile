@@ -78,6 +78,11 @@ planet-bin:
 	go build -o $(BUILDDIR)/planet github.com/gravitational/planet/tool/planet
 
 # Deploys the build artifacts to Amazon S3
+.PHONY: dev-deploy
+dev-deploy:
+	$(MAKE) -C $(ASSETS)/makefiles/deploy deploy-s3
+
+# Deploys the build artifacts to Amazon S3 and quay.io
 .PHONY: deploy
 deploy:
 	$(MAKE) -C $(ASSETS)/makefiles/deploy deploy
