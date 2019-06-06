@@ -136,7 +136,7 @@ func dial(socketPath string) (net.Conn, error) {
 	conn, err := net.Dial("unix", socketPath)
 	if err != nil {
 		return nil, checkError(
-			trace.Wrap(err, "failed to connect to planet socket"))
+			trace.Wrap(err, "failed to connect to planet. Check that planet is running. Try `sudo gravity shell`?"))
 	}
 	return conn, nil
 }
