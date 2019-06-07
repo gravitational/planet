@@ -50,6 +50,7 @@ type Agent interface {
 	IsMember() bool
 	// GetConfig returns the agent configuration.
 	GetConfig() Config
+	// CheckerRepository allows to add checks to the agent.
 	health.CheckerRepository
 }
 
@@ -293,7 +294,7 @@ func (r *agent) Close() (err error) {
 	}
 
 	r.rpc.Stop()
-	//close(r.done)
+	close(r.done)
 
 	err = r.SerfClient.Close()
 	if err != nil {

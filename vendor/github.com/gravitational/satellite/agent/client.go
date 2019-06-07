@@ -35,7 +35,7 @@ type Client interface {
 	Status(context.Context) (*pb.SystemStatus, error)
 	// LocalStatus reports the health status of the local serf cluster node.
 	LocalStatus(context.Context) (*pb.NodeStatus, error)
-	// Time fetches the current time in the target node
+	// Time returns the current time on the target node.
 	Time(context.Context, *pb.TimeRequest) (*pb.TimeResponse, error)
 }
 
@@ -44,7 +44,7 @@ type client struct {
 	conn *grpc.ClientConn
 }
 
-// TODO
+// NewClientFunc defines a function that returns RPC agent client.
 type NewClientFunc func(addr, caFile, certFile, keyFile string) (*client, error)
 
 // NewClient creates a agent RPC client to the given address
@@ -131,7 +131,7 @@ func (r *client) LocalStatus(ctx context.Context) (*pb.NodeStatus, error) {
 	return resp.Status, nil
 }
 
-// Time fetches and return the current time for the target node
+// Time returns the current time on the target node.
 func (r *client) Time(ctx context.Context, req *pb.TimeRequest) (time *pb.TimeResponse, err error) {
 	opts := []grpc.CallOption{
 		grpc.FailFast(false),

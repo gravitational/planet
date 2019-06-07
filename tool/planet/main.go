@@ -162,6 +162,7 @@ func run() error {
 		cagentEtcdKeyFile            = cagent.Flag("etcd-keyfile", "TLS key file used to secure etcd communication").String()
 		cagentElectionEnabled        = Bool(cagent.Flag("election-enabled", "Boolean flag to control if the agent initially starts with election participation on").OverrideDefaultFromEnvar(EnvElectionEnabled))
 		cagentDNSUpstreamNameservers = List(cagent.Flag("nameservers", "List of additional upstream nameservers to add to DNS configuration as a comma-separated list of IPs").OverrideDefaultFromEnvar(EnvDNSUpstreamNameservers))
+		cagentDNSLocalNameservers    = List(cagent.Flag("local-nameservers", "List of addresses the local nameserver is listening on").OverrideDefaultFromEnvar(EnvDNSLocalNameservers).Default(DefaultDNSAddress))
 		cagentDNSZones               = DNSOverrides(cagent.Flag("dns-zones", "Comma-separated list of DNS zone to nameserver IP mappings as 'zone/nameserver' pairs").OverrideDefaultFromEnvar(EnvDNSZones))
 		cagentCloudProvider          = cagent.Flag("cloud-provider", "Which cloud provider backend the cluster is using").OverrideDefaultFromEnvar(EnvCloudProvider).String()
 		cagentHighWatermark          = cagent.Flag("high-watermark", "Usage percentage of monitored directories and devicemapper which is considered degrading").Default(strconv.Itoa(HighWatermark)).Uint64()
@@ -322,6 +323,7 @@ func run() error {
 			KubeAddr:              *cagentKubeAddr,
 			ClusterDNS:            cagentClusterDNS.String(),
 			UpstreamNameservers:   *cagentDNSUpstreamNameservers,
+			LocalNameservers:      *cagentDNSLocalNameservers,
 			DNSZones:              (map[string][]string)(*cagentDNSZones),
 			RegistryAddr:          fmt.Sprintf("https://%v", *cagentRegistryAddr),
 			NettestContainerImage: fmt.Sprintf("%v/gcr.io/google_containers/nettest:1.8", *cagentRegistryAddr),

@@ -357,7 +357,7 @@
 
 [[projects]]
   branch = "roman/checks"
-  digest = "1:646e0cc7ca7a26513b50700eab52c5eafda0288e135aacdb62af0cea1b4c18f9"
+  digest = "1:11fa05a89707866b721645cb7ba6775a94804fa0d25eb90b91f6629a6e42dc8d"
   name = "github.com/gravitational/satellite"
   packages = [
     "agent",
@@ -372,7 +372,7 @@
     "utils",
   ]
   pruneopts = "UT"
-  revision = "670ebef3523602fce4b75c336dcaacb0c0624ab7"
+  revision = "3732d533e49d1b6809f4327007affd6eea195dd1"
 
 [[projects]]
   digest = "1:afb36747f009e72637bdf1b3f5d27f3c1d5e1fc5478fc4aba2a33e40e8829dee"
@@ -1200,6 +1200,7 @@
     "github.com/gravitational/satellite/monitoring/collector",
     "github.com/gravitational/trace",
     "github.com/gravitational/version",
+    "github.com/hashicorp/serf/client",
     "github.com/imdario/mergo",
     "github.com/julienschmidt/httprouter",
     "github.com/kylelemons/godebug/diff",
