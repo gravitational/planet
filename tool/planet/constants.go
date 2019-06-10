@@ -140,7 +140,7 @@ const (
 	// additional nameservers to add to the container's CoreDNS configuration
 	EnvDNSUpstreamNameservers = "PLANET_DNS_UPSTREAM_NAMESERVERS"
 	// EnvDNSLocalNameservers is the container environment variable that
-	// contains address of the node-local DNS servers.
+	// lists node-local DNS servers.
 	EnvDNSLocalNameservers = "PLANET_DNS_LOCAL_NAMESERVERS"
 	// EnvDockerOptions names the environment variable that specifies additional
 	// command line options for docker

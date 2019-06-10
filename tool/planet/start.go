@@ -197,7 +197,9 @@ func start(config *Config, monitorc chan<- bool) (*runtimeContext, error) {
 			Val:  strings.Join(upstreamNameservers, ","),
 		})
 
-	// Add address of local nameserver to environment.
+	// Add address of local nameserver to environment so that processes
+	// launched within planet such as planet-agent can locate the local
+	// nameserver for testing.
 	localNameservers := make([]string, 0, len(config.DNS.ListenAddrs))
 	for _, address := range config.DNS.ListenAddrs {
 		localNameservers = append(localNameservers, fmt.Sprintf("%v:%v",
