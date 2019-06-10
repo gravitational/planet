@@ -17,6 +17,7 @@ limitations under the License.
 package main
 
 import (
+	"fmt"
 	"time"
 
 	"github.com/gravitational/planet/lib/utils"
@@ -138,6 +139,9 @@ const (
 	// EnvDNSUpstreamNameservers names the environment variable that specifies
 	// additional nameservers to add to the container's CoreDNS configuration
 	EnvDNSUpstreamNameservers = "PLANET_DNS_UPSTREAM_NAMESERVERS"
+	// EnvDNSLocalNameservers is the container environment variable that
+	// lists node-local DNS servers.
+	EnvDNSLocalNameservers = "PLANET_DNS_LOCAL_NAMESERVERS"
 	// EnvDockerOptions names the environment variable that specifies additional
 	// command line options for docker
 	EnvDockerOptions = "DOCKER_OPTS"
@@ -432,6 +436,9 @@ const (
 	// StateDir is a location within the planet container that can hold persistent state
 	StateDir = "/ext/state"
 )
+
+// DefaultDNSAddress is the default listen address for local DNS server.
+var DefaultDNSAddress = fmt.Sprintf("%v:%v", DefaultDNSListenAddr, DNSPort)
 
 // K8sSearchDomains are default k8s search domain settings
 var K8sSearchDomains = []string{
