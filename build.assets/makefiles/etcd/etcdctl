@@ -8,4 +8,4 @@
 #
 
 HTTP_PROXY="" HTTPS_PROXY="" http_proxy="" https_proxy="" \
-/usr/bin/etcdctl-cmd --key /var/state/etcd.key --cert /var/state/etcd.cert --cacert /var/state/root.cert "$@"
+/usr/bin/etcdctl-cmd --key-file /var/state/etcd.key --cert-file /var/state/etcd.cert --ca-file /var/state/root.cert "$@"
