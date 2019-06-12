@@ -72,7 +72,9 @@ func etcdInit() error {
 	log.Info("Current etcd version: ", currentVersion)
 
 	// symlink /usr/bin/etcd to the version we expect to be running
-	for _, path := range []string{"/usr/bin/etcd", "/usr/bin/etcdctl"} {
+	// Note: we wrap etcdctl in a shell script to wipe any proxy env variables when running. So the path to the etcdctl
+	// binary is actually etcdctl-cmd
+	for _, path := range []string{"/usr/bin/etcd", "/usr/bin/etcdctl-cmd"} {
 		// ignore the error from os.Remove, since we don't care if it fails
 		_ = os.Remove(path)
 		err = os.Symlink(
