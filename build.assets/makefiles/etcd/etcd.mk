@@ -18,7 +18,8 @@ all: $(targets)
 	cp -afv ./etcd-upgrade.service $(ROOTFS)/lib/systemd/system/
 	cp -afv ./etcd-gateway.dropin $(ROOTFS)/lib/systemd/system/
 	cp -afv ./etcdctl3 $(ROOTFS)/usr/bin/etcdctl3
-	chmod +x $(ROOTFS)/usr/bin/etcdctl3
+	cp -afv ./etcdctl $(ROOTFS)/usr/bin/etcdctl
+	chmod +x $(ROOTFS)/usr/bin/etcdctl3 $(ROOTFS)/usr/bin/etcdctl
 	ln -sf /lib/systemd/system/etcd.service $(ROOTFS)/lib/systemd/system/multi-user.target.wants/
 
 	# mask the etcd-upgrade service so that it can only be run if intentionally unmasked
@@ -39,7 +40,7 @@ $(ETCD_VER):
 	tar -xzf $(ASSETDIR)/$(output) -C $(ASSETDIR)
 
 	cp -afv $(targetdir)/etcd $(ROOTFS)/usr/bin/etcd-$@
-	cp -afv $(targetdir)/etcdctl $(ROOTFS)/usr/bin/etcdctl-$@
+	cp -afv $(targetdir)/etcdctl $(ROOTFS)/usr/bin/etcdctl-cmd-$@
 
 
 $(targets): version=$(lastword $(subst -, ,$(notdir $@)))
