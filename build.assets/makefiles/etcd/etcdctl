@@ -1,0 +1,11 @@
+#!/bin/bash
+#
+# This is a helper script, to wipe proxy related env variables when running etcdctl, which will cause etcdctl to
+# try and use a customer provided http proxy.
+# TODO(knisbet) The current build of etcd doesn't support NO_PROXY in CIDR format, once it does, this wrapper is
+# no longer needed. Requires etcd release built with golang 1.12 or later: 
+# https://github.com/etcd-io/etcd/blob/master/Makefile#L54
+#
+
+HTTP_PROXY="" HTTPS_PROXY="" http_proxy="" https_proxy="" \
+/usr/bin/etcdctl-cmd --key-file /var/state/etcd.key --cert-file /var/state/etcd.cert --ca-file /var/state/root.cert "$@"
