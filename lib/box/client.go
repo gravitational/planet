@@ -26,6 +26,7 @@ package box
 import (
 	"encoding/hex"
 	"encoding/json"
+	"fmt"
 	"io"
 	"net"
 	"net/url"
@@ -46,6 +47,7 @@ type client struct {
 	conn net.Conn
 }
 
+// Connect connects to a planet container
 func Connect(config *ClientConfig) (ContainerServer, error) {
 	notExecutable := false
 	socketPath, err := checkPath(config.SocketPath, notExecutable)
@@ -135,8 +137,15 @@ func (err ExitError) Error() string {
 func dial(socketPath string) (net.Conn, error) {
 	conn, err := net.Dial("unix", socketPath)
 	if err != nil {
+		fmt.Println(err)
+		if _, statErr := os.Stat(socketPath); statErr == nil {
+			fmt.Println(statErr)
+			// socketPath exists, we probably just can't access it
+			return nil, checkError(
+				trace.Wrap(err, "Failed to connect to planet. Try `sudo gravity shell`?"))
+		}
 		return nil, checkError(
-			trace.Wrap(err, "failed to connect to planet. Check that planet is running. Try `sudo gravity shell`?"))
+			trace.Wrap(err, "Failed to connect to planet. Check that planet is running."))
 	}
 	return conn, nil
 }
