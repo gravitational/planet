@@ -26,7 +26,6 @@ package box
 import (
 	"encoding/hex"
 	"encoding/json"
-	"fmt"
 	"io"
 	"net"
 	"net/url"
@@ -137,12 +136,10 @@ func (err ExitError) Error() string {
 func dial(socketPath string) (net.Conn, error) {
 	conn, err := net.Dial("unix", socketPath)
 	if err != nil {
-		fmt.Println(err)
-		if _, statErr := os.Stat(socketPath); statErr == nil {
-			fmt.Println(statErr)
-			// socketPath exists, we probably just can't access it
+		if os.IsPermission(err) {
+			// socketPath exists but we don't have permission to access it
 			return nil, checkError(
-				trace.Wrap(err, "Failed to connect to planet. Try `sudo gravity shell`?"))
+				trace.Wrap(err, "Permission denied connecting to planet socket. Try `sudo gravity shell`"))
 		}
 		return nil, checkError(
 			trace.Wrap(err, "Failed to connect to planet. Check that planet is running."))
