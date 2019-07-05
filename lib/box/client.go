@@ -137,7 +137,7 @@ func dial(socketPath string) (net.Conn, error) {
 	conn, err := net.Dial("unix", socketPath)
 	if err != nil {
 		if isPermissionDenied(err) {
-			return nil, trace.Wrap(err, "Permission denied accessing planet socket. Try `sudo gravity shell`")
+			return nil, trace.Wrap(err, "Permission denied accessing planet socket. Try using `sudo`?")
 		}
 		return nil, checkError(trace.Wrap(err, "Failed to connect to planet socket. Check that planet is running."))
 	}
