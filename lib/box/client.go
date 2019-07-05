@@ -136,10 +136,16 @@ func (err ExitError) Error() string {
 func dial(socketPath string) (net.Conn, error) {
 	conn, err := net.Dial("unix", socketPath)
 	if err != nil {
-		if os.IsPermission(err) {
-			// socketPath exists but we don't have permission to access it
+		// try to open socketPath to see whether it's a permissions problem
+		_, openErr := os.Open(socketPath)
+		if openErr != nil {
+			if os.IsPermission(openErr) {
+				// socketPath exists but we don't have permission to access it
+				return nil, checkError(
+					trace.Wrap(err, "Permission denied connecting to planet socket. Try `sudo gravity shell`"))
+			}
 			return nil, checkError(
-				trace.Wrap(err, "Permission denied connecting to planet socket. Try `sudo gravity shell`"))
+				trace.Wrap(err, "Unknown error connecting to planet socket"))
 		}
 		return nil, checkError(
 			trace.Wrap(err, "Failed to connect to planet. Check that planet is running."))
