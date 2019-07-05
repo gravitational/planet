@@ -136,19 +136,10 @@ func (err ExitError) Error() string {
 func dial(socketPath string) (net.Conn, error) {
 	conn, err := net.Dial("unix", socketPath)
 	if err != nil {
-		// try to open socketPath to see whether it's a permissions problem
-		_, openErr := os.Open(socketPath)
-		if openErr != nil {
-			if os.IsPermission(openErr) {
-				// socketPath exists but we don't have permission to access it
-				return nil, checkError(
-					trace.Wrap(err, "Permission denied connecting to planet socket. Try `sudo gravity shell`"))
-			}
-			return nil, checkError(
-				trace.Wrap(err, "Unknown error connecting to planet socket"))
+		if isPermissionDenied(err) {
+			return nil, trace.Wrap(err, "Permission denied accessing planet socket. Try `sudo gravity shell`")
 		}
-		return nil, checkError(
-			trace.Wrap(err, "Failed to connect to planet. Check that planet is running."))
+		return nil, checkError(trace.Wrap(err, "Failed to connect to planet socket. Check that planet is running."))
 	}
 	return conn, nil
 }
@@ -168,4 +159,12 @@ func checkError(err error) error {
 func IsConnectError(err error) bool {
 	_, ok := err.(*ErrConnect)
 	return ok
+}
+
+// isPermissionDenied returns true if err is a 'permission denied' error.
+func isPermissionDenied(err error) bool {
+	if opErr, ok := trace.Unwrap(err).(*net.OpError); ok {
+		return opErr.Err != nil && os.IsPermission(opErr.Err)
+	}
+	return os.IsPermission(trace.Unwrap(err))
 }
