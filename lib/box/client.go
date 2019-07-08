@@ -46,6 +46,7 @@ type client struct {
 	conn net.Conn
 }
 
+// Connect connects to a planet container
 func Connect(config *ClientConfig) (ContainerServer, error) {
 	notExecutable := false
 	socketPath, err := checkPath(config.SocketPath, notExecutable)
@@ -135,8 +136,10 @@ func (err ExitError) Error() string {
 func dial(socketPath string) (net.Conn, error) {
 	conn, err := net.Dial("unix", socketPath)
 	if err != nil {
-		return nil, checkError(
-			trace.Wrap(err, "failed to connect to planet socket"))
+		if isPermissionDenied(err) {
+			return nil, trace.Wrap(err, "Permission denied accessing planet socket. Try using `sudo`?")
+		}
+		return nil, checkError(trace.Wrap(err, "Failed to connect to planet socket. Check that planet is running."))
 	}
 	return conn, nil
 }
@@ -156,4 +159,12 @@ func checkError(err error) error {
 func IsConnectError(err error) bool {
 	_, ok := err.(*ErrConnect)
 	return ok
+}
+
+// isPermissionDenied returns true if err is a 'permission denied' error.
+func isPermissionDenied(err error) bool {
+	if opErr, ok := trace.Unwrap(err).(*net.OpError); ok {
+		return opErr.Err != nil && os.IsPermission(opErr.Err)
+	}
+	return os.IsPermission(trace.Unwrap(err))
 }
