@@ -224,7 +224,7 @@ func start(config *Config, monitorc chan<- bool) (*runtimeContext, error) {
 		Rootfs:     config.Rootfs,
 		SocketPath: config.SocketPath,
 		EnvFiles: []box.EnvFile{
-			box.EnvFile{
+			{
 				Path: ContainerEnvironmentFile,
 				Env:  config.Env,
 			},
@@ -270,6 +270,10 @@ func start(config *Config, monitorc chan<- bool) (*runtimeContext, error) {
 // addUserToContainer adds a record for planet user from host's passwd file
 // into container's /etc/passwd.
 func addUserToContainer(rootfs string, id int) error {
+	logger := log.WithFields(log.Fields{
+		"rootfs":  rootfs,
+		"user-id": id,
+	})
 	newSysFile := func(r io.Reader) (user.SysFile, error) {
 		return user.NewPasswd(r)
 	}
@@ -281,7 +285,7 @@ func addUserToContainer(rootfs string, id int) error {
 		if !exists {
 			return trace.NotFound("user with UID %q not found on host", id)
 		}
-		log.Debugf("Adding user %+v to container.", user)
+		logger.Infof("Adding user %+v to container.", user)
 		user.Name = ServiceUser
 		containerFile.Upsert(user)
 
@@ -290,6 +294,7 @@ func addUserToContainer(rootfs string, id int) error {
 	containerPath := filepath.Join(rootfs, UsersDatabase)
 	err := upsertFromHost(UsersDatabase, containerPath, newSysFile, rewrite)
 	if err != nil {
+		logger.WithError(err).Warn("Failed to add user from host.")
 		err = upsertFromHost(UsersExtraDatabase, containerPath, newSysFile, rewrite)
 	}
 	return trace.Wrap(err)
@@ -298,6 +303,10 @@ func addUserToContainer(rootfs string, id int) error {
 // addGroupToContainer adds a record for planet group from host's group file
 // into container's /etc/group.
 func addGroupToContainer(rootfs string, id int) error {
+	logger := log.WithFields(log.Fields{
+		"rootfs":   rootfs,
+		"group-id": id,
+	})
 	newSysFile := func(r io.Reader) (user.SysFile, error) {
 		return user.NewGroup(r)
 	}
@@ -309,7 +318,7 @@ func addGroupToContainer(rootfs string, id int) error {
 		if !exists {
 			return trace.NotFound("group with GID %q not found on host", id)
 		}
-		log.Debugf("Adding group %+v to container.", group)
+		logger.Info("Adding group %+v to container.", group)
 		group.Name = ServiceGroup
 		containerFile.Upsert(group)
 
@@ -318,6 +327,7 @@ func addGroupToContainer(rootfs string, id int) error {
 	containerPath := filepath.Join(rootfs, GroupsDatabase)
 	err := upsertFromHost(GroupsDatabase, containerPath, newSysFile, rewrite)
 	if err != nil {
+		logger.WithError(err).Warn("Failed to add group from host.")
 		err = upsertFromHost(GroupsExtraDatabase, containerPath, newSysFile, rewrite)
 	}
 	return trace.Wrap(err)
