@@ -129,29 +129,19 @@ type DNS struct {
 	Port int
 }
 
-func (cfg *Config) checkAndSetDefaults() error {
-	uid, err := strconv.Atoi(cfg.ServiceUser.UID)
-	if err != nil {
-		return trace.BadParameter("expected a numeric UID for user, but got %v (%v)",
-			cfg.ServiceUser.UID, err)
-	}
-
-	u, err := user.LookupUID(uid)
+func (cfg *Config) checkAndSetDefaults() (err error) {
+	cfg.ServiceUser.User, err = user.LookupID(cfg.ServiceUser.UID)
 	if err != nil {
 		return trace.Wrap(err)
 	}
-
-	cfg.ServiceUser.User = *u
-
 	if cfg.VxlanPort <= 0 {
 		cfg.VxlanPort = DefaultVxlanPort
 	}
-
 	return nil
 }
 
 type serviceUser struct {
-	user.User
+	*user.User
 	UID string
 }
 

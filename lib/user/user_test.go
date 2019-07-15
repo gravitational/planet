@@ -48,7 +48,7 @@ func TestAddsUser(t *testing.T) {
 		t.Error("expected to add a user")
 	}
 	rw.Reset()
-	err = passwd.Save(rw)
+	_, err = passwd.WriteTo(rw)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -57,7 +57,12 @@ func TestAddsUser(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	_, exists := passwd.GetByID(1005)
+	var exists bool
+	for _, u := range passwd.users {
+		if u.Uid == 1005 {
+			exists = true
+		}
+	}
 	if !exists {
 		t.Fatal("expected to find a user")
 	}
@@ -77,7 +82,7 @@ func TestReplacesUser(t *testing.T) {
 		t.Error("expected to replace a user")
 	}
 	rw.Reset()
-	err = r.Save(rw)
+	_, err = r.WriteTo(rw)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -86,12 +91,14 @@ func TestReplacesUser(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	u3, exists := r.GetByID(1006)
+	var exists bool
+	for _, u := range r.users {
+		if u.Uid == 1006 {
+			exists = true
+		}
+	}
 	if !exists {
 		t.Fatal("expected to find a user")
-	}
-	if u3.Uid != 1006 || u3.Gid != 1006 {
-		t.Error("unexpected uid/gid for replaced user")
 	}
 }
 
