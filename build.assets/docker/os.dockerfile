@@ -12,10 +12,9 @@ RUN set -ex; \
 		apt-get update; \
 		apt-get install -y --no-install-recommends \
 			gnupg2 \
-			dirmngr \
-		; \
-		rm -rf /var/lib/apt/lists/*; \
-	fi
+			dirmngr; \
+	fi; \
+	rm -rf /var/lib/apt/lists/*;
 
 RUN (apt-get update && apt-get -q -y install apt-transport-https)
 
