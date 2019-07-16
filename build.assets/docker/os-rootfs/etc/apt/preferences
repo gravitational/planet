@@ -1,11 +1,11 @@
 Package: *
-Pin: release a=stable
+Pin: release n=stretch
 Pin-Priority: 700
 
 Package: *
-Pin: release a=jessie-backports
+Pin: release n=stretch-backports
 Pin-Priority: 650
 
 Package: *
-Pin: release a=testing
+Pin: release n=buster
 Pin-Priority: 600

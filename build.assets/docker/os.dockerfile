@@ -20,15 +20,15 @@ RUN set -ex; \
 RUN (apt-get update && apt-get -q -y install apt-transport-https)
 
 RUN (echo 'deb http://httpredir.debian.org/debian/ stretch contrib non-free' >> /etc/apt/sources.list && \
-	echo 'deb http://httpredir.debian.org/debian/ stretch-updates contrib non-free' >> /etc/apt/sources.list && \
-	echo 'deb http://cdn-fastly.deb.debian.org/debian/ testing main contrib non-free' >> /etc/apt/sources.list && \
-	echo 'deb https://apt.dockerproject.org/repo debian-stretch main' >> /etc/apt/sources.list)
+	echo 'deb http://security.debian.org/debian-security stretch/updates contrib non-free' >> /etc/apt/sources.list && \
+	echo 'deb http://httpredir.debian.org/debian/ buster main contrib non-free' >> /etc/apt/sources.list)
 
 RUN (apt-get clean \
 	&& apt-get -q -y update --fix-missing \
 	&& apt-get -q -y update \
-	&& apt-get install -q -y apt-utils less locales \
-	&& apt-get install -t stretch-backports -q -y systemd)
+    && apt-get install -q -y apt-utils less locales \
+    ### To avoid version conflicts for iptables/systemd dependencies install both from backports
+    && apt-get install -t stretch-backports -q -y systemd iptables)
 
 # Set locale to en_US.UTF-8
 RUN (locale-gen \

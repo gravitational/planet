@@ -36,7 +36,6 @@ BUILDDIR := $(shell realpath $(BUILDDIR))
 OUTPUTDIR := $(BUILDDIR)/planet
 
 KUBE_VER ?= v1.11.9
-SECCOMP_VER ?=  2.3.1-2.1+deb9u1
 DOCKER_VER ?= 17.03.2
 # we currently use our own flannel fork: gravitational/flannel
 FLANNEL_VER := v0.10.0-gravitational
@@ -153,7 +152,7 @@ os:
 base: os
 	@echo -e "\n---> Making Planet/Base Docker image based on Planet/OS...\n"
 	$(MAKE) -e BUILDIMAGE=$(PLANET_IMAGE) DOCKERFILE=base.dockerfile \
-		EXTRA_ARGS="--build-arg SECCOMP_VER=$(SECCOMP_VER) --build-arg DOCKER_VER=$(DOCKER_VER) --build-arg HELM_VER=$(HELM_VER)" \
+		EXTRA_ARGS="--build-arg DOCKER_VER=$(DOCKER_VER) --build-arg HELM_VER=$(HELM_VER)" \
 		make-docker-image
 
 # Build a container used for building the planet image
