@@ -225,7 +225,7 @@ func start(config *Config, monitorc chan<- bool) (*runtimeContext, error) {
 		Rootfs:     config.Rootfs,
 		SocketPath: config.SocketPath,
 		EnvFiles: []box.EnvFile{
-			box.EnvFile{
+			{
 				Path: ContainerEnvironmentFile,
 				Env:  config.Env,
 			},
@@ -393,7 +393,7 @@ func addDockerOptions(config *Config) error {
 		err := utils.WriteDropIn(dropInDir, DockerPromiscuousModeDropIn, []byte(`
 [Service]
 ExecStartPost=
-ExecStartPost=/usr/bin/gravity system enable-promisc-mode docker0
+ExecStartPost=-/usr/bin/gravity system enable-promisc-mode docker0
 ExecStopPost=
 ExecStopPost=-/usr/bin/gravity system disable-promisc-mode docker0
 `))
