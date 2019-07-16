@@ -16,4 +16,4 @@ fi
 PLANET_ROOT=$(realpath ${DIR}/../../../)
 
 # invoke the real helm binary with a proper config and propagate all arguments as-is
-${PLANET_ROOT}/usr/bin/helm --kubeconfig=${PLANET_ROOT}${KUBE_CONFIG} "$@"
+KUBECONFIG=${PLANET_ROOT}${KUBE_CONFIG} ${PLANET_ROOT}/usr/bin/helm "$@"
