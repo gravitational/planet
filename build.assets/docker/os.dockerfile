@@ -1,7 +1,7 @@
 # This dockerfile bakes a base image Planet will use.
 # It is basically Debian with latest packages and properly configured locales
 #
-FROM debian:stretch-backports
+FROM debian:stretch
 
 ENV DEBIAN_FRONTEND noninteractive
 
@@ -19,14 +19,12 @@ RUN set -ex; \
 RUN (apt-get update && apt-get -q -y install apt-transport-https)
 
 RUN (echo 'deb http://httpredir.debian.org/debian/ stretch contrib non-free' >> /etc/apt/sources.list && \
-	echo 'deb http://httpredir.debian.org/debian/ stretch-updates contrib non-free' >> /etc/apt/sources.list && \
-	echo 'deb http://cdn-fastly.deb.debian.org/debian/ testing main contrib non-free' >> /etc/apt/sources.list)
+	echo 'deb http://httpredir.debian.org/debian/ stretch-updates contrib non-free' >> /etc/apt/sources.list)
 
 RUN (apt-get clean \
 	&& apt-get -q -y update --fix-missing \
 	&& apt-get -q -y update \
-	&& apt-get install -q -y apt-utils less locales \
-	&& apt-get install -t stretch-backports -q -y systemd)
+	&& apt-get install -q -y apt-utils less locales)
 
 # Set locale to en_US.UTF-8
 RUN (locale-gen \
