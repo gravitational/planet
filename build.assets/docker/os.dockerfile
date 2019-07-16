@@ -20,8 +20,7 @@ RUN set -ex; \
 RUN (apt-get update && apt-get -q -y install apt-transport-https)
 
 RUN (echo 'deb http://httpredir.debian.org/debian/ stretch contrib non-free' >> /etc/apt/sources.list && \
-	echo 'deb http://security.debian.org/debian-security stretch/updates contrib non-free' >> /etc/apt/sources.list && \
-	echo 'deb http://httpredir.debian.org/debian/ buster main contrib non-free' >> /etc/apt/sources.list)
+	echo 'deb http://security.debian.org/debian-security stretch/updates contrib non-free' >> /etc/apt/sources.list)
 
 RUN (apt-get clean \
 	&& apt-get -q -y update --fix-missing \

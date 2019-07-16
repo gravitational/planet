@@ -5,7 +5,3 @@ Pin-Priority: 700
 Package: *
 Pin: release n=stretch-backports
 Pin-Priority: 650
-
-Package: *
-Pin: release n=buster
-Pin-Priority: 600
