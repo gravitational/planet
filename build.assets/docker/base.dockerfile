@@ -1,18 +1,12 @@
 FROM planet/os
 
-ARG SECCOMP_VER
 ARG DOCKER_VER
 ARG HELM_VER
 
-# FIXME: allowing downgrades and pinning the version of libip4tc0 for iptables
-# as the package has a dependency on the older version as the one available.
-RUN apt-get update && apt-get install -q -y --allow-downgrades \
-    libip4tc0=1.6.0+snapshot20161117-6 && \
-    apt-get install -q -y bridge-utils \
-    seccomp=$SECCOMP_VER \
+RUN apt-get update && apt-get install -q -y bridge-utils \
+    seccomp \
     bash-completion \
     kmod \
-    iptables \
     ebtables \
     libdevmapper1.02.1 \
     libsqlite3-0 \
