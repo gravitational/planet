@@ -113,11 +113,12 @@ func start(config *Config, monitorc chan<- bool) (*runtimeContext, error) {
 	}
 
 	// add service user/group to container
-	if err = addUserToContainer(config.Rootfs, config.ServiceUser.Uid); err != nil {
+	err = addUserToContainer(config.Rootfs, config.ServiceUser)
+	if err != nil {
 		return nil, trace.Wrap(err)
 	}
-
-	if err = addGroupToContainer(config.Rootfs, config.ServiceUser.Gid); err != nil {
+	err = addGroupToContainer(config.Rootfs, config.ServiceUser)
+	if err != nil {
 		return nil, trace.Wrap(err)
 	}
 
@@ -224,7 +225,7 @@ func start(config *Config, monitorc chan<- bool) (*runtimeContext, error) {
 		Rootfs:     config.Rootfs,
 		SocketPath: config.SocketPath,
 		EnvFiles: []box.EnvFile{
-			box.EnvFile{
+			{
 				Path: ContainerEnvironmentFile,
 				Env:  config.Env,
 			},
@@ -267,99 +268,44 @@ func start(config *Config, monitorc chan<- bool) (*runtimeContext, error) {
 	}, nil
 }
 
-// addUserToContainer adds a record for planet user from host's passwd file
-// into container's /etc/passwd.
-func addUserToContainer(rootfs string, id int) error {
-	newSysFile := func(r io.Reader) (user.SysFile, error) {
-		return user.NewPasswd(r)
-	}
-	rewrite := func(host, container user.SysFile) error {
-		hostFile, _ := host.(user.PasswdFile)
-		containerFile, _ := container.(user.PasswdFile)
-
-		user, exists := hostFile.GetByID(id)
-		if !exists {
-			return trace.NotFound("user with UID %q not found on host", id)
-		}
-		log.Debugf("Adding user %+v to container.", user)
-		user.Name = ServiceUser
-		containerFile.Upsert(user)
-
-		return nil
-	}
-	containerPath := filepath.Join(rootfs, UsersDatabase)
-	err := upsertFromHost(UsersDatabase, containerPath, newSysFile, rewrite)
+// addUserToContainer adds a record for the specified service user to the
+// container's /etc/passwd
+func addUserToContainer(rootfs string, u serviceUser) error {
+	passwdFile, err := user.NewPasswdFromFile(filepath.Join(rootfs, UsersDatabase))
 	if err != nil {
-		err = upsertFromHost(UsersExtraDatabase, containerPath, newSysFile, rewrite)
+		return trace.Wrap(err)
 	}
+	u.Name = ServiceUser
+	passwdFile.Upsert(*u.User)
+	writer, err := os.OpenFile(filepath.Join(rootfs, UsersDatabase), os.O_WRONLY|os.O_TRUNC, 0644)
+	if err != nil {
+		return trace.Wrap(err)
+	}
+	defer writer.Close()
+	_, err = passwdFile.WriteTo(writer)
 	return trace.Wrap(err)
 }
 
-// addGroupToContainer adds a record for planet group from host's group file
-// into container's /etc/group.
-func addGroupToContainer(rootfs string, id int) error {
-	newSysFile := func(r io.Reader) (user.SysFile, error) {
-		return user.NewGroup(r)
-	}
-	rewrite := func(host, container user.SysFile) error {
-		hostFile, _ := host.(user.GroupFile)
-		containerFile, _ := container.(user.GroupFile)
-
-		group, exists := hostFile.GetByID(id)
-		if !exists {
-			return trace.NotFound("group with GID %q not found on host", id)
-		}
-		log.Debugf("Adding group %+v to container.", group)
-		group.Name = ServiceGroup
-		containerFile.Upsert(group)
-
-		return nil
-	}
-	containerPath := filepath.Join(rootfs, GroupsDatabase)
-	err := upsertFromHost(GroupsDatabase, containerPath, newSysFile, rewrite)
+// addGroupToContainer adds a record for the specified service user to the
+// container's /etc/group
+func addGroupToContainer(rootfs string, u serviceUser) error {
+	groupFile, err := user.NewGroupFromFile(filepath.Join(rootfs, GroupsDatabase))
 	if err != nil {
-		err = upsertFromHost(GroupsExtraDatabase, containerPath, newSysFile, rewrite)
+		return trace.Wrap(err)
 	}
+	group, err := u.Group()
+	if err != nil {
+		return trace.Wrap(err)
+	}
+	group.Name = ServiceGroup
+	groupFile.Upsert(*group)
+	writer, err := os.OpenFile(filepath.Join(rootfs, GroupsDatabase), os.O_WRONLY|os.O_TRUNC, 0644)
+	if err != nil {
+		return trace.Wrap(err)
+	}
+	defer writer.Close()
+	_, err = groupFile.WriteTo(writer)
 	return trace.Wrap(err)
-}
-
-func upsertFromHost(hostPath, containerPath string, sysFile func(io.Reader) (user.SysFile, error),
-	rewrite func(host, container user.SysFile) error) error {
-	hostFile, err := os.Open(hostPath)
-	if err != nil {
-		return trace.Wrap(err)
-	}
-	hostSysFile, err := sysFile(hostFile)
-	hostFile.Close()
-	if err != nil {
-		return trace.Wrap(err)
-	}
-
-	containerFile, err := os.Open(containerPath)
-	if err != nil {
-		return trace.Wrap(err)
-	}
-
-	containerSysFile, err := sysFile(containerFile)
-	containerFile.Close()
-	if err != nil {
-		return trace.Wrap(err)
-	}
-
-	err = rewrite(hostSysFile, containerSysFile)
-	if err != nil {
-		return trace.Wrap(err)
-	}
-
-	containerFile, err = os.OpenFile(containerPath, os.O_WRONLY|os.O_TRUNC, 0644)
-	if err != nil {
-		return trace.Wrap(err)
-	}
-	err = containerSysFile.Save(containerFile)
-	if err != nil {
-		return trace.Wrap(err)
-	}
-	return nil
 }
 
 // setupCloudOptions sets up cloud flags and files passed to kubernetes
@@ -447,7 +393,7 @@ func addDockerOptions(config *Config) error {
 		err := utils.WriteDropIn(dropInDir, DockerPromiscuousModeDropIn, []byte(`
 [Service]
 ExecStartPost=
-ExecStartPost=/usr/bin/gravity system enable-promisc-mode docker0
+ExecStartPost=-/usr/bin/gravity system enable-promisc-mode docker0
 ExecStopPost=
 ExecStopPost=-/usr/bin/gravity system disable-promisc-mode docker0
 `))
