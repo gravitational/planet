@@ -18,6 +18,7 @@ package box
 
 import (
 	"os"
+	"os/exec"
 	"runtime"
 
 	"github.com/gravitational/trace"
@@ -41,7 +42,10 @@ func Init() error {
 		return trace.Wrap(err, "failed to create container factory")
 	}
 	if err := factory.StartInitialization(); err != nil {
-		log.Warnf("Failed to initialize container factory: %v.", err)
+		log.WithError(err).Warn("Failed to initialize container factory.")
+		if execErr, ok := err.(*exec.Error); ok {
+			return trace.Wrap(execErr)
+		}
 		return trace.Wrap(err, "failed to initialize container factory")
 	}
 	panic("libcontainer: container init failed to exec")

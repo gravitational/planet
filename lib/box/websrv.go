@@ -107,7 +107,10 @@ func (s *webServer) enter(w http.ResponseWriter, r *http.Request, p httprouter.P
 			return
 		}
 
-		log.Errorf("StartProcess(%v) failed with %v", cfg, trace.DebugReport(err))
+		log.WithFields(log.Fields{
+			log.ErrorKey: err,
+			"config":     cfg,
+		}).Warn("StartProcess failed.")
 
 		if errExit, ok := trace.Unwrap(err).(*exec.ExitError); ok {
 			if waitStatus, ok := errExit.ProcessState.Sys().(syscall.WaitStatus); ok {

@@ -61,9 +61,6 @@ func main() {
 	if err = run(); err == nil {
 		return
 	}
-	if errExit, ok := trace.Unwrap(err).(*box.ExitError); ok {
-		os.Exit(errExit.Code)
-	}
 	die(err)
 }
 
@@ -440,6 +437,9 @@ func run() error {
 
 	// "init" command
 	case cinit.FullCommand():
+		// TODO(dmitri): do away with displaying the error message on the console
+		// here - libcontainer will handle the error and return (even if in somewhat
+		// inconvenient form) the appropriate error in enter handler below
 		err = box.Init()
 
 	// "enter" command
@@ -734,6 +734,9 @@ func initLogging(debug bool) {
 // die prints the error message in red to the console and exits with a non-zero exit code
 func die(err error) {
 	log.WithError(err).Warn("Failed to run.")
+	if errExit, ok := trace.Unwrap(err).(*box.ExitError); ok {
+		os.Exit(errExit.Code)
+	}
 	color.Red("[ERROR]: %v\n", trace.UserMessage(err))
 	os.Exit(255)
 }
