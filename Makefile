@@ -42,6 +42,7 @@ DOCKER_VER ?= 18.09.5
 FLANNEL_VER := v0.10.0-gravitational
 HELM_VER := v2.13.1
 COREDNS_VER := 1.3.1
+NODE_PROBLEM_DETECTOR_VER := v0.6.4
 
 # ETCD Versions to include in the release
 # This list needs to include every version of etcd that we can upgrade from + latest

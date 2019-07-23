@@ -356,8 +356,8 @@
   version = "v1.0.0"
 
 [[projects]]
-  branch = "roman/checks"
-  digest = "1:3135b39398d1c4d02b1548608e3855403a04429e9d4e048f5a07625118894f81"
+  branch = "roman/npd"
+  digest = "1:520659d848edc858a8d63e7648bb342d5a781ca9c35f43d5e71d92f14588866b"
   name = "github.com/gravitational/satellite"
   packages = [
     "agent",
@@ -372,7 +372,7 @@
     "utils",
   ]
   pruneopts = "UT"
-  revision = "a3c119c690e22febae0a95c1547c1e6660fffba5"
+  revision = "b48f6c9dce348eb16fae4ef7571b2d8dd7ca2911"
 
 [[projects]]
   digest = "1:afb36747f009e72637bdf1b3f5d27f3c1d5e1fc5478fc4aba2a33e40e8829dee"
@@ -383,12 +383,12 @@
   version = "1.1.7"
 
 [[projects]]
-  branch = "master"
   digest = "1:841d5835e94129658adabece66a4cc54d2cec9a40fa8b51743ea35d0519dd6c2"
   name = "github.com/gravitational/ttlmap"
   packages = ["."]
   pruneopts = "UT"
   revision = "91fd36b9004c1ee5a778739752ea1aba5638c03a"
+  version = "0.0.1"
 
 [[projects]]
   digest = "1:01cb46669ee737a700ca9a0968ffe2aa820f262e5f49e1e54f8bfc441650ea8e"

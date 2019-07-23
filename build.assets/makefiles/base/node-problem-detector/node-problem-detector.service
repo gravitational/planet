@@ -1,0 +1,19 @@
+[Unit]
+Description=Kubernetes Node Problem Detector
+Documentation=https://github.com/kubernetes/node-problem-detector
+Requires=network-online.target
+After=network-online.target
+
+[Service]
+Restart=always
+RestartSec=10
+EnvironmentFile=/etc/container-environment
+ExecStart=/usr/bin/node-problem-detector \
+    --logtostderr \
+    --system-log-monitors=/etc/node-problem-detector/kernel-monitor.json,/etc/node-problem-detector/docker-monitor.json \
+    --custom-plugin-monitors=/etc/node-problem-detector/kernel-monitor-counter.json,/etc/node-problem-detector/docker-monitor-counter.json,/etc/node-problem-detector/systemd-monitor-counter.json \
+    --apiserver-override="https://${KUBE_APISERVER}:6443?inClusterConfig=false&auth=/etc/kubernetes/kubelet.kubeconfig" \
+    --hostname-override=${KUBE_NODE_NAME}
+
+[Install]
+WantedBy=multi-user.target

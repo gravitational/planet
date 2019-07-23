@@ -175,7 +175,11 @@ func addToMaster(node agent.Agent, config *Config, etcdConfig *monitoring.ETCDCo
 	node.AddChecker(monitoring.NewBridgeNetfilterChecker())
 	node.AddChecker(monitoring.NewMayDetachMountsChecker())
 	node.AddChecker(monitoring.NewInotifyChecker())
-	node.AddChecker(monitoring.NewNodeStatusChecker(kubeConfig, config.NodeName))
+	node.AddChecker(monitoring.NewNodeStatusChecker(monitoring.NodeStatusCheckerConfig{
+		KubeConfig: kubeConfig,
+		NodeName:   config.NodeName,
+		Conditions: monitoring.NodeConditions,
+	}))
 	if !config.DisableInterPodCheck {
 		node.AddChecker(monitoring.InterPodCommunication(kubeConfig, config.NettestContainerImage))
 	}
@@ -265,7 +269,11 @@ func addToNode(node agent.Agent, config *Config, etcdConfig *monitoring.ETCDConf
 			"leader.telekube.local.",
 		}, config.LocalNameservers...))
 	}
-	node.AddChecker(monitoring.NewNodeStatusChecker(nodeConfig, config.NodeName))
+	node.AddChecker(monitoring.NewNodeStatusChecker(monitoring.NodeStatusCheckerConfig{
+		KubeConfig: nodeConfig,
+		NodeName:   config.NodeName,
+		Conditions: monitoring.NodeConditions,
+	}))
 	node.AddChecker(monitoring.NewStorageChecker(monitoring.StorageConfig{
 		Path:          constants.GravityDataDir,
 		HighWatermark: config.HighWatermark,

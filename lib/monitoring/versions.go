@@ -69,4 +69,5 @@ var infoCheckers = []infoChecker{
 	{command: []string{"/usr/bin/serf", "--version"}, component: "serf-version"},
 	{command: []string{"/usr/bin/flanneld", "--version"}, component: "flanneld-version"},
 	{command: []string{"/usr/bin/registry", "--version"}, component: "registry-version"},
+	{command: []string{"/usr/bin/node-problem-detector", "--version"}, component: "node-problem-detector-version"},
 }

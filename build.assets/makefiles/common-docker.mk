@@ -11,6 +11,7 @@ PLANET_PKG_PATH := /gopath/src/github.com/gravitational/planet
 all: common-docker.mk $(ASSETDIR)/planet $(ASSETDIR)/docker-import
 	make -C $(ASSETS)/makefiles/base/systemd
 	make -C $(ASSETS)/makefiles/base/network -f network.mk
+	make -C $(ASSETS)/makefiles/base/node-problem-detector -f node-problem-detector.mk
 	make -C $(ASSETS)/makefiles/base/dns -f dns.mk
 	make -C $(ASSETS)/makefiles/base/docker -f docker.mk
 	make -C $(ASSETS)/makefiles/base/agent -f agent.mk

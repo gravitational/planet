@@ -188,7 +188,7 @@ func run() error {
 		cstatus            = app.Command("status", "Query the planet cluster status")
 		cstatusLocal       = cstatus.Flag("local", "Query the status of the local node").Bool()
 		cstatusRPCPort     = cstatus.Flag("rpc-port", "Local agent RPC port.").Default("7575").Int()
-		cstatusPrettyPrint = cstatus.Flag("pretty", "Pretty-print the output").Default("false").Bool()
+		cstatusPrettyPrint = cstatus.Flag("pretty", "Pretty-print the output").Default("true").Bool()
 		cstatusTimeout     = cstatus.Flag("timeout", "Status timeout").Default(AgentStatusTimeout.String()).Duration()
 		cstatusCAFile      = cstatus.Flag("ca-file", "CA to authenticate server").
 					Default(ClientRPCCAPath).OverrideDefaultFromEnvar(EnvPlanetAgentCAFile).String()
