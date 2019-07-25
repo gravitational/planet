@@ -113,7 +113,7 @@ func etcdInit() error {
 	return nil
 }
 
-func etcdBackup(backupFile string) error {
+func etcdBackup(backupFile string, backupPrefix []string) error {
 	ctx, cancel := context.WithTimeout(context.Background(), EtcdUpgradeTimeout)
 	defer cancel()
 
@@ -132,7 +132,7 @@ func etcdBackup(backupFile string) error {
 			CertFile:  DefaultEtcdctlCertFile,
 			CAFile:    DefaultEtcdctlCAFile,
 		},
-		Prefix: []string{"/"}, // Backup all etcd data
+		Prefix: backupPrefix,
 		File:   backupFile,
 	}
 	log.Info("BackupConfig: ", spew.Sdump(backupConf))

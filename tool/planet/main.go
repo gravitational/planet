@@ -217,8 +217,9 @@ func run() error {
 
 		cetcdInit = cetcd.Command("init", "Setup etcd to run the correct version").Hidden()
 
-		cetcdBackup     = cetcd.Command("backup", "Backup the etcd datastore to a file")
-		cetcdBackupFile = cetcdBackup.Arg("file", "The file to store the backup").Required().String()
+		cetcdBackup       = cetcd.Command("backup", "Backup the etcd datastore to a file")
+		cetcdBackupFile   = cetcdBackup.Arg("file", "The file to store the backup").Required().String()
+		cetcdBackupPrefix = cetcdBackup.Flag("prefix", "Optional etcd prefix to backup (e.g. /gravity). Can be supplied multiple times").Default(ETCDBackupPrefix).Strings()
 
 		cetcdDisable        = cetcd.Command("disable", "Disable etcd on this node")
 		cetcdDisableUpgrade = cetcdDisable.Flag("upgrade", "disable the upgrade service").Bool()
@@ -507,7 +508,7 @@ func run() error {
 		err = etcdInit()
 
 	case cetcdBackup.FullCommand():
-		err = etcdBackup(*cetcdBackupFile)
+		err = etcdBackup(*cetcdBackupFile, *cetcdBackupPrefix)
 
 	case cetcdEnable.FullCommand():
 		err = etcdEnable(*cetcdEnableUpgrade)
