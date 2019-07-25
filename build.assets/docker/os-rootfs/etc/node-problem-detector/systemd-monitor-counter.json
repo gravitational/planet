@@ -17,11 +17,6 @@
       "type": "FrequentDockerRestart",
       "reason": "NoFrequentDockerRestart",
       "message": "docker is functioning properly"
-    },
-    {
-      "type": "FrequentContainerdRestart",
-      "reason": "NoFrequentContainerdRestart",
-      "message": "containerd is functioning properly"
     }
   ],
   "rules": [
@@ -51,20 +46,6 @@
         "--lookback=20m",
         "--count=5",
         "--pattern=Starting Docker Application Container Engine"
-      ],
-      "timeout": "1m"
-    },
-    {
-      "type": "permanent",
-      "condition": "FrequentContainerdRestart",
-      "reason": "FrequentContainerdRestart",
-      "path": "/usr/bin/log-counter",
-      "args": [
-        "--journald-source=systemd",
-        "--log-path=/var/log/journal",
-        "--lookback=20m",
-        "--count=5",
-        "--pattern=Starting containerd container runtime"
       ],
       "timeout": "1m"
     }
