@@ -332,6 +332,14 @@ func getLibcontainerConfig(containerID, rootfs string, cfg Config) (*configs.Con
 				Destination: "/dev/disk",
 				Flags:       syscall.MS_BIND,
 			},
+			// kernel printk buffer is needed to give access to the
+			// kernel log to tools like node-problem-detector
+			{
+				Device:      "bind",
+				Source:      "/dev/kmsg",
+				Destination: "/dev/kmsg",
+				Flags:       syscall.MS_BIND,
+			},
 		},
 		Cgroups: &configs.Cgroup{
 			Name: fmt.Sprintf("planet-%v", containerID),

@@ -28,6 +28,10 @@
         {
             "name": "version-coredns",
             "value": "REPLACE_COREDNS_LATEST_VERSION"
+        },
+        {
+            "name": "version-node-problem-detector",
+            "value": "REPLACE_NODE_PROBLEM_DETECTOR_LATEST_VERSION"
         }
     ],
     "commands": [
