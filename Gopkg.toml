@@ -79,6 +79,10 @@ ignored = ["github.com/Sirupsen/logrus", "github.com/gravitational/planet/build/
   name = "github.com/gravitational/coordinate"
 
 [[constraint]]
+  version = "=0.0.2"
+  name = "github.com/gravitational/etcd-backup"
+
+[[constraint]]
   branch = "master"
   name = "github.com/gravitational/go-udev"
 
