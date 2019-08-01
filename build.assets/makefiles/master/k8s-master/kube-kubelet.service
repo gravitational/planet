@@ -10,7 +10,6 @@ EnvironmentFile=-/run/kubernetes-reserved.env
 ExecStartPre=/bin/systemctl is-active docker.service
 ExecStart=/usr/bin/kubelet \
         --hostname-override=${KUBE_NODE_NAME} \
-        --allow-privileged=false \
         --logtostderr=true \
         --cluster-dns=${DNS_ADDRESSES} \
         --pod-infra-container-image=${KUBE_APISERVER}:5000/gcr.io/google_containers/pause:3.0 \

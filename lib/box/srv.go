@@ -332,6 +332,12 @@ func getLibcontainerConfig(containerID, rootfs string, cfg Config) (*configs.Con
 				Destination: "/dev/disk",
 				Flags:       syscall.MS_BIND,
 			},
+			{
+				Device:      "bind",
+				Source:      "/dev/kmsg",
+				Destination: "/dev/kmsg",
+				Flags:       syscall.MS_BIND,
+			},
 		},
 		Cgroups: &configs.Cgroup{
 			Name: fmt.Sprintf("planet-%v", containerID),
