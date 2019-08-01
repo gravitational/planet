@@ -199,6 +199,14 @@ func startLeaderClient(conf *LeaderConfig, errorC chan error) (leaderClient io.C
 		}
 	})
 
+	// Only non-masters run etcd gateway service
+	if conf.Role != RoleMaster {
+		err = startWatchingEtcdMasters()
+		if err != nil {
+			return nil, trace.Wrap(err)
+		}
+	}
+
 	return client, nil
 }
 

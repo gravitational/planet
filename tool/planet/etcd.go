@@ -20,18 +20,23 @@ import (
 	"bufio"
 	"context"
 	"fmt"
+	"net/url"
 	"os"
 	"os/exec"
 	"path"
 	"path/filepath"
+	"reflect"
+	"sort"
 	"strings"
 	"syscall"
 	"time"
 
 	"github.com/gravitational/planet/lib/box"
 	"github.com/gravitational/planet/lib/constants"
+	"github.com/gravitational/planet/lib/utils"
 
 	etcd "github.com/coreos/etcd/client"
+	etcdv3 "github.com/coreos/etcd/clientv3"
 	"github.com/coreos/go-systemd/dbus"
 	"github.com/davecgh/go-spew/spew"
 	etcdconf "github.com/gravitational/coordinate/config"
@@ -280,6 +285,76 @@ func etcdUpgrade(rollback bool) error {
 	log.Info("Upgrade complete")
 
 	return nil
+}
+
+func startWatchingEtcdMasters() error {
+	config := etcdconf.Config{
+		Endpoints: []string{DefaultEtcdEndpoints},
+		KeyFile:   DefaultEtcdctlKeyFile,
+		CertFile:  DefaultEtcdctlCertFile,
+		CAFile:    DefaultEtcdctlCAFile,
+	}
+	cli, err := config.NewClientV3()
+	if err != nil {
+		return trace.Wrap(err)
+	}
+
+	go watchEtcdMasters(cli)
+	return nil
+}
+
+func watchEtcdMasters(client *etcdv3.Client) {
+	ticker := time.NewTicker(5 * time.Second)
+
+	cachedClientList := []string{}
+
+	for {
+		<-ticker.C
+
+		memberList, err := client.MemberList(context.TODO())
+		if err != nil {
+			log.WithError(err).Warnf("Error retrieving etcd member list")
+			continue
+		}
+
+		clientList := []string{}
+		for _, member := range memberList.Members {
+			clientUrls := member.GetClientURLs()
+			if len(clientUrls) == 0 {
+				log.WithField("member", member.GetName()).Debug("Member doesn't have any client urls.")
+				continue
+			}
+
+			u, err := url.Parse(clientUrls[0])
+			if err != nil {
+				log.WithError(err).WithField("url", clientUrls[0]).Warnf("Error parsing etcd member url")
+				continue
+			}
+
+			clientList = append(clientList, u.Host)
+		}
+
+		sort.Strings(clientList)
+		if reflect.DeepEqual(clientList, cachedClientList) {
+			continue
+		}
+
+		env := fmt.Sprintf("PLANET_ETCD_GW_ENDPOINTS=%v", strings.Join(clientList, ","))
+		log.Info("Updating etcd gateway environment: ", env)
+		err = utils.SafeWriteFile("/ext/etcd/etcd-gw.env", []byte(env), constants.SharedReadMask)
+		if err != nil {
+			log.WithError(err).Warn("Failed to write updated etcd-gw.env")
+			continue
+		}
+
+		err = systemctl(context.TODO(), "restart", ETCDServiceName)
+		if err != nil {
+			log.WithError(err).Warn("Failed to restart etcd on gateway change")
+			continue
+		}
+
+		cachedClientList = clientList
+	}
 }
 
 func getBaseEtcdDir(version string) string {
