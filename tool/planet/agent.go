@@ -199,14 +199,6 @@ func startLeaderClient(conf *LeaderConfig, errorC chan error) (leaderClient io.C
 		}
 	})
 
-	// Only non-masters run etcd gateway service
-	if conf.Role != RoleMaster {
-		err = startWatchingEtcdMasters()
-		if err != nil {
-			return nil, trace.Wrap(err)
-		}
-	}
-
 	return client, nil
 }
 
@@ -310,6 +302,14 @@ func runAgent(conf *agent.Config, monitoringConf *monitoring.Config, leaderConf 
 	err = setupResolver(ctx, monitoringConf.Role)
 	if err != nil {
 		return trace.Wrap(err)
+	}
+
+	// Only non-masters run etcd gateway service
+	if leaderConf.Role != RoleMaster {
+		err = startWatchingEtcdMasters(ctx)
+		if err != nil {
+			return trace.Wrap(err)
+		}
 	}
 
 	signalc := make(chan os.Signal, 2)
