@@ -287,6 +287,8 @@ func etcdUpgrade(rollback bool) error {
 	return nil
 }
 
+// startWatchingEtcdMasters creates a control loop which polls etcd for the etcd cluster member list, and updates the
+// etcd gateway configuration with any changes. This keeps the etcd gateway load balancing in sync with the cluster.
 func startWatchingEtcdMasters(ctx context.Context) error {
 	config := etcdconf.Config{
 		Endpoints: []string{DefaultEtcdEndpoints},
@@ -307,12 +309,12 @@ func watchEtcdMasters(ctx context.Context, client *etcdv3.Client) {
 	ticker := time.NewTicker(15 * time.Second)
 	defer ticker.Stop()
 
-	masters := etcdMasters{}
+	gateway := etcdGateway{}
 
 	for {
 		select {
 		case <-ticker.C:
-			err := masters.resyncEtcdMasters(ctx, client)
+			err := gateway.resyncEtcdMasters(ctx, client)
 			if err != nil {
 				log.WithError(err).Warn("Error resyncing etcd master list.")
 			}
@@ -322,12 +324,12 @@ func watchEtcdMasters(ctx context.Context, client *etcdv3.Client) {
 	}
 }
 
-type etcdMasters struct {
+type etcdGateway struct {
 	clientURLs []string
 }
 
-func (e *etcdMasters) resyncEtcdMasters(ctx context.Context, client *etcdv3.Client) error {
-	memberList, err := client.MemberList(context.TODO())
+func (e *etcdGateway) resyncEtcdMasters(ctx context.Context, client *etcdv3.Client) error {
+	memberList, err := client.MemberList(ctx)
 	if err != nil {
 		return trace.Wrap(err, "error retrieving member list")
 	}
@@ -339,7 +341,7 @@ func (e *etcdMasters) resyncEtcdMasters(ctx context.Context, client *etcdv3.Clie
 			return trace.Wrap(err, "etcd member doesn't have any client urls")
 		}
 
-		// Only use the first memberUrl, don't add the same node multiple times
+		// Only use the first memberUrl to prevent the same member appearing multiple times
 		u, err := url.Parse(memberURLs[0])
 		if err != nil {
 			return trace.Wrap(err, "error parsing etcd member url").AddField("url", memberURLs[0])
@@ -354,14 +356,14 @@ func (e *etcdMasters) resyncEtcdMasters(ctx context.Context, client *etcdv3.Clie
 		return nil
 	}
 
-	env := fmt.Sprintf("%v=%v", EnvEtcdGatewayEndpoints, strings.Join(newClientURLs, ","))
+	env := fmt.Sprintf("%v=%q", EnvEtcdGatewayEndpoints, strings.Join(newClientURLs, ","))
 	log.WithField("file", DefaultEtcdSyncedEnvFile).Info("Updating etcd gateway environment: ", env)
 	err = utils.SafeWriteFile(DefaultEtcdSyncedEnvFile, []byte(env), constants.SharedReadMask)
 	if err != nil {
 		return trace.Wrap(err, "failed to update etcd synced environment").AddField("file", DefaultEtcdSyncedEnvFile)
 	}
 
-	err = systemctl(context.TODO(), "restart", ETCDServiceName)
+	err = systemctl(ctx, "restart", ETCDServiceName)
 	if err != nil {
 		return trace.Wrap(err, "failed to restart etcd service").AddField("service", ETCDServiceName)
 	}
