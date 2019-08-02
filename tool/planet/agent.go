@@ -306,7 +306,7 @@ func runAgent(conf *agent.Config, monitoringConf *monitoring.Config, leaderConf 
 
 	// Only non-masters run etcd gateway service
 	if leaderConf.Role != RoleMaster {
-		err = startWatchingEtcdMasters(ctx)
+		err = startWatchingEtcdMasters(ctx, monitoringConf)
 		if err != nil {
 			return trace.Wrap(err)
 		}

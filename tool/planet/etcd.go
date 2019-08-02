@@ -33,6 +33,7 @@ import (
 
 	"github.com/gravitational/planet/lib/box"
 	"github.com/gravitational/planet/lib/constants"
+	"github.com/gravitational/planet/lib/monitoring"
 	"github.com/gravitational/planet/lib/utils"
 
 	etcd "github.com/coreos/etcd/client"
@@ -289,14 +290,8 @@ func etcdUpgrade(rollback bool) error {
 
 // startWatchingEtcdMasters creates a control loop which polls etcd for the etcd cluster member list, and updates the
 // etcd gateway configuration with any changes. This keeps the etcd gateway load balancing in sync with the cluster.
-func startWatchingEtcdMasters(ctx context.Context) error {
-	config := etcdconf.Config{
-		Endpoints: []string{DefaultEtcdEndpoints},
-		KeyFile:   DefaultEtcdctlKeyFile,
-		CertFile:  DefaultEtcdctlCertFile,
-		CAFile:    DefaultEtcdctlCAFile,
-	}
-	cli, err := config.NewClientV3()
+func startWatchingEtcdMasters(ctx context.Context, config *monitoring.Config) error {
+	cli, err := config.ETCDConfig.NewClientV3()
 	if err != nil {
 		return trace.Wrap(err)
 	}
@@ -309,7 +304,11 @@ func watchEtcdMasters(ctx context.Context, client *etcdv3.Client) {
 	ticker := time.NewTicker(15 * time.Second)
 	defer ticker.Stop()
 
-	gateway := etcdGateway{}
+	endpoints := strings.Split(os.Getenv(EnvEtcdGatewayEndpoints), ",")
+	sort.Strings(endpoints)
+	gateway := etcdGateway{
+		clientURLs: endpoints,
+	}
 
 	for {
 		select {
@@ -334,20 +333,9 @@ func (e *etcdGateway) resyncEtcdMasters(ctx context.Context, client *etcdv3.Clie
 		return trace.Wrap(err, "error retrieving member list")
 	}
 
-	newClientURLs := []string{}
-	for _, member := range memberList.Members {
-		memberURLs := member.GetClientURLs()
-		if len(memberURLs) == 0 {
-			return trace.Wrap(err, "etcd member doesn't have any client urls")
-		}
-
-		// Only use the first memberUrl to prevent the same member appearing multiple times
-		u, err := url.Parse(memberURLs[0])
-		if err != nil {
-			return trace.Wrap(err, "error parsing etcd member url").AddField("url", memberURLs[0])
-		}
-
-		newClientURLs = append(newClientURLs, u.Host)
+	newClientURLs, err := collectClientURLs(memberList)
+	if err != nil {
+		return trace.Wrap(err)
 	}
 
 	// Only rewrite the configuration if there are changes
@@ -370,6 +358,25 @@ func (e *etcdGateway) resyncEtcdMasters(ctx context.Context, client *etcdv3.Clie
 
 	e.clientURLs = newClientURLs
 	return nil
+}
+
+func collectClientURLs(memberList *etcdv3.MemberListResponse) ([]string, error) {
+	newClientURLs := []string{}
+	for _, member := range memberList.Members {
+		memberURLs := member.GetClientURLs()
+		if len(memberURLs) == 0 {
+			return nil, trace.BadParameter("etcd member doesn't have any client urls")
+		}
+
+		// Only use the first memberUrl to prevent the same member appearing multiple times
+		u, err := url.Parse(memberURLs[0])
+		if err != nil {
+			return nil, trace.Wrap(err, "error parsing etcd member url").AddField("url", memberURLs[0])
+		}
+
+		newClientURLs = append(newClientURLs, u.Host)
+	}
+	return newClientURLs, nil
 }
 
 func getBaseEtcdDir(version string) string {
