@@ -332,6 +332,9 @@ func getLibcontainerConfig(containerID, rootfs string, cfg Config) (*configs.Con
 				Destination: "/dev/disk",
 				Flags:       syscall.MS_BIND,
 			},
+			// kernel ring buffer is required by kubelet and other
+			// programs that need access to the kernel logs such
+			// as node problem detector
 			{
 				Device:      "bind",
 				Source:      "/dev/kmsg",
