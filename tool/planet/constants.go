@@ -289,6 +289,9 @@ const (
 	DefaultEtcdStoreBase = "/ext/etcd"
 	// DefaultEtcdCurrentVersionFile is the file location that contains version information about the etcd datastore
 	DefaultEtcdCurrentVersionFile = "/ext/etcd/etcd-version.txt"
+	// DefaultEtcdSyncedEnvFile is an environment file for etcd that is updated as the cluster changes
+	DefaultEtcdSyncedEnvFile = "/ext/etcd/etcd-synced.txt"
+
 	// DefaultPlanetReleaseFile is the planet file that indicates the latest available etcd version
 	DefaultPlanetReleaseFile = "/etc/planet-release"
 
