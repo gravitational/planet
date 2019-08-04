@@ -20,18 +20,24 @@ import (
 	"bufio"
 	"context"
 	"fmt"
+	"net/url"
 	"os"
 	"os/exec"
 	"path"
 	"path/filepath"
+	"reflect"
+	"sort"
 	"strings"
 	"syscall"
 	"time"
 
 	"github.com/gravitational/planet/lib/box"
 	"github.com/gravitational/planet/lib/constants"
+	"github.com/gravitational/planet/lib/monitoring"
+	"github.com/gravitational/planet/lib/utils"
 
 	etcd "github.com/coreos/etcd/client"
+	etcdv3 "github.com/coreos/etcd/clientv3"
 	"github.com/coreos/go-systemd/dbus"
 	"github.com/davecgh/go-spew/spew"
 	etcdconf "github.com/gravitational/coordinate/config"
@@ -280,6 +286,97 @@ func etcdUpgrade(rollback bool) error {
 	log.Info("Upgrade complete")
 
 	return nil
+}
+
+// startWatchingEtcdMasters creates a control loop which polls etcd for the etcd cluster member list, and updates the
+// etcd gateway configuration with any changes. This keeps the etcd gateway load balancing in sync with the cluster.
+func startWatchingEtcdMasters(ctx context.Context, config *monitoring.Config) error {
+	cli, err := config.ETCDConfig.NewClientV3()
+	if err != nil {
+		return trace.Wrap(err)
+	}
+
+	go watchEtcdMasters(ctx, cli)
+	return nil
+}
+
+func watchEtcdMasters(ctx context.Context, client *etcdv3.Client) {
+	ticker := time.NewTicker(15 * time.Second)
+	defer ticker.Stop()
+
+	endpoints := strings.Split(os.Getenv(EnvEtcdGatewayEndpoints), ",")
+	sort.Strings(endpoints)
+	gateway := etcdGateway{
+		clientURLs: endpoints,
+	}
+
+	for {
+		select {
+		case <-ticker.C:
+			err := gateway.resyncEtcdMasters(ctx, client)
+			if err != nil {
+				log.WithError(err).Warn("Error resyncing etcd master list.")
+			}
+		case <-ctx.Done():
+			return
+		}
+	}
+}
+
+type etcdGateway struct {
+	clientURLs []string
+}
+
+func (e *etcdGateway) resyncEtcdMasters(ctx context.Context, client *etcdv3.Client) error {
+	memberList, err := client.MemberList(ctx)
+	if err != nil {
+		return trace.Wrap(err, "error retrieving member list")
+	}
+
+	newClientURLs, err := collectClientURLs(memberList)
+	if err != nil {
+		return trace.Wrap(err)
+	}
+
+	// Only rewrite the configuration if there are changes
+	sort.Strings(newClientURLs)
+	if reflect.DeepEqual(newClientURLs, e.clientURLs) {
+		return nil
+	}
+
+	env := fmt.Sprintf("%v=%q", EnvEtcdGatewayEndpoints, strings.Join(newClientURLs, ","))
+	log.WithField("file", DefaultEtcdSyncedEnvFile).Info("Updating etcd gateway environment: ", env)
+	err = utils.SafeWriteFile(DefaultEtcdSyncedEnvFile, []byte(env), constants.SharedReadMask)
+	if err != nil {
+		return trace.Wrap(err, "failed to update etcd environment file").AddField("file", DefaultEtcdSyncedEnvFile)
+	}
+
+	err = systemctl(ctx, "restart", ETCDServiceName)
+	if err != nil {
+		return trace.Wrap(err, "failed to restart etcd service").AddField("service", ETCDServiceName)
+	}
+
+	e.clientURLs = newClientURLs
+	return nil
+}
+
+func collectClientURLs(memberList *etcdv3.MemberListResponse) ([]string, error) {
+	newClientURLs := []string{}
+	for _, member := range memberList.Members {
+		memberURLs := member.GetClientURLs()
+		if len(memberURLs) == 0 {
+			return nil, trace.BadParameter("etcd member doesn't have any client urls")
+		}
+
+		// Only use the first memberUrl to prevent the same member appearing multiple times
+		u, err := url.Parse(memberURLs[0])
+		if err != nil {
+			return nil, trace.Wrap(err, "error parsing etcd member url").AddField("url", memberURLs[0])
+		}
+
+		newClientURLs = append(newClientURLs, u.Host)
+	}
+	return newClientURLs, nil
 }
 
 func getBaseEtcdDir(version string) string {
