@@ -348,7 +348,7 @@ func (e *etcdGateway) resyncEtcdMasters(ctx context.Context, client *etcdv3.Clie
 	log.WithField("file", DefaultEtcdSyncedEnvFile).Info("Updating etcd gateway environment: ", env)
 	err = utils.SafeWriteFile(DefaultEtcdSyncedEnvFile, []byte(env), constants.SharedReadMask)
 	if err != nil {
-		return trace.Wrap(err, "failed to update etcd synced environment").AddField("file", DefaultEtcdSyncedEnvFile)
+		return trace.Wrap(err, "failed to update etcd environment file").AddField("file", DefaultEtcdSyncedEnvFile)
 	}
 
 	err = systemctl(ctx, "restart", ETCDServiceName)
