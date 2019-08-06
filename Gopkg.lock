@@ -360,12 +360,12 @@
   version = "5.6.0"
 
 [[projects]]
-  digest = "1:89dfd879adc40793de2e59f4f7c42c1b4ad6bdab32fcb5d6b769c1fcc6fc452a"
+  digest = "1:418247f700939c99867b42639d985686ba229fd9f8ee9e119c7cc3ffde6e0fe3"
   name = "github.com/gravitational/trace"
   packages = ["."]
   pruneopts = "UT"
-  revision = "3318e711adee0b3f48d3399ebf5aaddf329a2b4f"
-  version = "1.1.5"
+  revision = "a535a178675fb4a11ba74818491754a8c5575dd6"
+  version = "1.1.8"
 
 [[projects]]
   digest = "1:01cb46669ee737a700ca9a0968ffe2aa820f262e5f49e1e54f8bfc441650ea8e"
@@ -1131,6 +1131,7 @@
     "github.com/cenkalti/backoff",
     "github.com/containerd/console",
     "github.com/coreos/etcd/client",
+    "github.com/coreos/etcd/clientv3",
     "github.com/coreos/go-systemd/dbus",
     "github.com/davecgh/go-spew/spew",
     "github.com/docker/docker/pkg/term",
