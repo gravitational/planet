@@ -6,7 +6,7 @@ ARG GOVERSION=go1.10.8
 ENV GOPATH /gopath
 ENV GOROOT /opt/go
 ENV PATH $PATH:$GOPATH/bin:$GOROOT/bin
-ENV GOCACHE /${GOPATH}/.gocache-${GOVERSION}
+ENV GOCACHE ${GOPATH}/.gocache-${GOVERSION}
 
 # Have our own /etc/passwd with users populated from 990 to 1000
 COPY passwd /etc/passwd
