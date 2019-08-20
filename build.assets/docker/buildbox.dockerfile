@@ -1,10 +1,12 @@
 ARG PLANET_BASE_IMAGE=planet/base:latest
 FROM $PLANET_BASE_IMAGE
 
+ARG GOVERSION=go1.10.8
+
 ENV GOPATH /gopath
 ENV GOROOT /opt/go
 ENV PATH $PATH:$GOPATH/bin:$GOROOT/bin
-ARG GOVERSION=go1.10.8
+ENV GOCACHE /.gocache-${GOVERSION}
 
 # Have our own /etc/passwd with users populated from 990 to 1000
 COPY passwd /etc/passwd
