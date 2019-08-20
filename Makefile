@@ -35,7 +35,7 @@ BUILDDIR ?= $(PWD)/build
 BUILDDIR := $(shell realpath $(BUILDDIR))
 OUTPUTDIR := $(BUILDDIR)/planet
 
-KUBE_VER ?= v1.15.2
+KUBE_VER ?= v1.15.3
 SECCOMP_VER ?= 2.3.1-2.1+deb9u1
 DOCKER_VER ?= 18.09.5
 # we currently use our own flannel fork: gravitational/flannel
@@ -49,7 +49,7 @@ ETCD_VER := v2.3.8 v3.3.4 v3.3.9 v3.3.11 v3.3.12
 # This is the version of etcd we should upgrade to (from the version list)
 ETCD_LATEST_VER := v3.3.12
 
-BUILDBOX_GO_VER ?= 1.10.8
+BUILDBOX_GO_VER ?= 1.12.9
 PLANET_BUILD_TAG ?= $(shell git describe --tags)
 PLANET_IMAGE_NAME ?= planet/base
 PLANET_IMAGE ?= $(PLANET_IMAGE_NAME):$(PLANET_BUILD_TAG)
