@@ -43,7 +43,7 @@ BUILD_ASSETS := $(PWD)/build/assets
 BUILDDIR ?= $(PWD)/build
 BUILDDIR := $(shell realpath $(BUILDDIR))
 
-KUBE_VER := v1.9.12-gravitational.0
+KUBE_VER := v1.9.13-gravitational.0
 SECCOMP_VER :=  2.3.1-2.1+deb9u1
 DOCKER_VER := 17.03.2
 # we currently use our own flannel fork: gravitational/flannel
