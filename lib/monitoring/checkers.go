@@ -33,6 +33,7 @@ import (
 	"github.com/gravitational/satellite/agent/health"
 	"github.com/gravitational/satellite/monitoring"
 	"github.com/gravitational/trace"
+	serf "github.com/hashicorp/serf/client"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/tools/clientcmd"
 )
@@ -47,6 +48,8 @@ type Config struct {
 	ClusterDNS string
 	// UpstreamNameservers lists additional upstream nameserver added to the DNS configuration
 	UpstreamNameservers []string
+	// LocalNameservers is a list of addresses local nameserver listens on
+	LocalNameservers []string
 	// DNSZones maps DNS zone to a list of nameservers
 	DNSZones map[string][]string
 	// RegistryAddr is the address of the private docker registry
@@ -177,9 +180,11 @@ func addToMaster(node agent.Agent, config *Config, etcdConfig *monitoring.ETCDCo
 		node.AddChecker(monitoring.InterPodCommunication(kubeConfig, config.NettestContainerImage))
 	}
 	node.AddChecker(NewVersionCollector())
-	node.AddChecker(monitoring.NewDNSChecker([]string{
-		"leader.telekube.local",
-	}))
+	if len(config.LocalNameservers) > 0 {
+		node.AddChecker(monitoring.NewDNSChecker([]string{
+			"leader.telekube.local.",
+		}, config.LocalNameservers...))
+	}
 	node.AddChecker(monitoring.NewStorageChecker(monitoring.StorageConfig{
 		Path:          constants.GravityDataDir,
 		HighWatermark: config.HighWatermark,
@@ -189,6 +194,41 @@ func addToMaster(node agent.Agent, config *Config, etcdConfig *monitoring.ETCDCo
 		monitoring.DockerDevicemapperConfig{
 			HighWatermark: config.HighWatermark,
 		}))
+
+	pingChecker, err := monitoring.NewPingChecker(
+		monitoring.PingCheckerConfig{
+			SerfRPCAddr:    node.GetConfig().SerfRPCAddr,
+			SerfMemberName: node.GetConfig().Name,
+		})
+	if err != nil {
+		return trace.Wrap(err)
+	}
+	node.AddChecker(pingChecker)
+
+	serfClient, err := agent.NewSerfClient(serf.Config{
+		Addr: node.GetConfig().SerfRPCAddr,
+	})
+	if err != nil {
+		return trace.Wrap(err)
+	}
+
+	serfMember, err := serfClient.FindMember(node.GetConfig().Name)
+	if err != nil {
+		return trace.Wrap(err)
+	}
+
+	timeDriftChecker, err := monitoring.NewTimeDriftChecker(
+		monitoring.TimeDriftCheckerConfig{
+			CAFile:     node.GetConfig().CAFile,
+			CertFile:   node.GetConfig().CertFile,
+			KeyFile:    node.GetConfig().KeyFile,
+			SerfClient: serfClient,
+			SerfMember: serfMember,
+		})
+	if err != nil {
+		return trace.Wrap(err)
+	}
+	node.AddChecker(timeDriftChecker)
 
 	// Add checkers specific to cloud provider backend
 	switch strings.ToLower(config.CloudProvider) {
@@ -220,9 +260,11 @@ func addToNode(node agent.Agent, config *Config, etcdConfig *monitoring.ETCDConf
 	node.AddChecker(monitoring.NewBridgeNetfilterChecker())
 	node.AddChecker(monitoring.NewMayDetachMountsChecker())
 	node.AddChecker(monitoring.NewInotifyChecker())
-	node.AddChecker(monitoring.NewDNSChecker([]string{
-		"leader.telekube.local",
-	}))
+	if len(config.LocalNameservers) > 0 {
+		node.AddChecker(monitoring.NewDNSChecker([]string{
+			"leader.telekube.local.",
+		}, config.LocalNameservers...))
+	}
 	node.AddChecker(monitoring.NewNodeStatusChecker(nodeConfig, config.NodeName))
 	node.AddChecker(monitoring.NewStorageChecker(monitoring.StorageConfig{
 		Path:          constants.GravityDataDir,
