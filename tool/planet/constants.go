@@ -18,10 +18,12 @@ package main
 
 import (
 	"fmt"
+	"strings"
 	"time"
 
 	"github.com/gravitational/planet/lib/utils"
 
+	"github.com/syndtr/gocapability/capability"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	kubeletconfig "k8s.io/kubelet/config/v1beta1"
@@ -540,42 +542,21 @@ var KubeletVersion = schema.GroupVersionKind{
 	Kind:    "KubeletConfiguration",
 }
 
-var allCaps = []string{
-	"CAP_AUDIT_CONTROL",
-	"CAP_AUDIT_WRITE",
-	"CAP_BLOCK_SUSPEND",
-	"CAP_CHOWN",
-	"CAP_DAC_OVERRIDE",
-	"CAP_DAC_READ_SEARCH",
-	"CAP_FOWNER",
-	"CAP_FSETID",
-	"CAP_IPC_LOCK",
-	"CAP_IPC_OWNER",
-	"CAP_KILL",
-	"CAP_LEASE",
-	"CAP_LINUX_IMMUTABLE",
-	"CAP_MAC_ADMIN",
-	"CAP_MAC_OVERRIDE",
-	"CAP_MKNOD",
-	"CAP_NET_ADMIN",
-	"CAP_NET_BIND_SERVICE",
-	"CAP_NET_BROADCAST",
-	"CAP_NET_RAW",
-	"CAP_SETGID",
-	"CAP_SETFCAP",
-	"CAP_SETPCAP",
-	"CAP_SETUID",
-	"CAP_SYS_ADMIN",
-	"CAP_SYS_BOOT",
-	"CAP_SYS_CHROOT",
-	"CAP_SYS_MODULE",
-	"CAP_SYS_NICE",
-	"CAP_SYS_PACCT",
-	"CAP_SYS_PTRACE",
-	"CAP_SYS_RAWIO",
-	"CAP_SYS_RESOURCE",
-	"CAP_SYS_TIME",
-	"CAP_SYS_TTY_CONFIG",
-	"CAP_SYSLOG",
-	"CAP_WAKE_ALARM",
+var allCaps = []string{}
+
+// Based on runc capabilities detection
+// https://github.com/opencontainers/runc/blob/2e94378464ae22b92e1335c200edb37ebc94a1b7/libcontainer/capabilities_linux.go#L17-L31
+func init() {
+	last := capability.CAP_LAST_CAP
+	// workaround for RHEL6 which has no /proc/sys/kernel/cap_last_cap
+	if last == capability.Cap(63) {
+		last = capability.CAP_BLOCK_SUSPEND
+	}
+	for _, cap := range capability.List() {
+		if cap > last {
+			continue
+		}
+		capKey := fmt.Sprintf("CAP_%s", strings.ToUpper(cap.String()))
+		allCaps = append(allCaps, capKey)
+	}
 }
