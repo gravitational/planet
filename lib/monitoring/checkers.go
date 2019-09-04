@@ -180,11 +180,9 @@ func addToMaster(node agent.Agent, config *Config, etcdConfig *monitoring.ETCDCo
 		node.AddChecker(monitoring.InterPodCommunication(kubeConfig, config.NettestContainerImage))
 	}
 	node.AddChecker(NewVersionCollector())
-	if len(config.LocalNameservers) > 0 {
-		node.AddChecker(monitoring.NewDNSChecker([]string{
-			"leader.telekube.local.",
-		}, config.LocalNameservers...))
-	}
+	node.AddChecker(monitoring.NewDNSChecker([]string{
+		"leader.telekube.local.",
+	}))
 	node.AddChecker(monitoring.NewStorageChecker(monitoring.StorageConfig{
 		Path:          constants.GravityDataDir,
 		HighWatermark: config.HighWatermark,
@@ -260,11 +258,9 @@ func addToNode(node agent.Agent, config *Config, etcdConfig *monitoring.ETCDConf
 	node.AddChecker(monitoring.NewBridgeNetfilterChecker())
 	node.AddChecker(monitoring.NewMayDetachMountsChecker())
 	node.AddChecker(monitoring.NewInotifyChecker())
-	if len(config.LocalNameservers) > 0 {
-		node.AddChecker(monitoring.NewDNSChecker([]string{
-			"leader.telekube.local.",
-		}, config.LocalNameservers...))
-	}
+	node.AddChecker(monitoring.NewDNSChecker([]string{
+		"leader.telekube.local.",
+	}))
 	node.AddChecker(monitoring.NewNodeStatusChecker(nodeConfig, config.NodeName))
 	node.AddChecker(monitoring.NewStorageChecker(monitoring.StorageConfig{
 		Path:          constants.GravityDataDir,
