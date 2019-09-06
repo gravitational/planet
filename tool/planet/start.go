@@ -162,6 +162,7 @@ func start(config *Config, monitorc chan<- bool) (*runtimeContext, error) {
 		box.EnvPair{Name: EnvDockerPromiscuousMode, Val: strconv.FormatBool(config.DockerPromiscuousMode)},
 		box.EnvPair{Name: EnvDNSHosts, Val: config.DNS.Hosts.String()},
 		box.EnvPair{Name: EnvDNSZones, Val: config.DNS.Zones.String()},
+		box.EnvPair{Name: EnvPlanetAllowPrivileged, Val: strconv.FormatBool(config.AllowPrivileged)},
 	)
 
 	// Setup http_proxy / no_proxy environment configuration
