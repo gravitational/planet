@@ -248,6 +248,10 @@ const (
 	// This is external configuration for the container
 	EnvPlanetCloudConfig = "PLANET_CLOUD_CONFIG"
 
+	// EnvPlanetAllowPrivileged is an environment variable that indicates whether
+	// privileged containers are allowed.
+	EnvPlanetAllowPrivileged = "PLANET_ALLOW_PRIVILEGED"
+
 	// DefaultDNSListenAddr is the default IP address CoreDNS will listen on
 	DefaultDNSListenAddr = "127.0.0.2"
 

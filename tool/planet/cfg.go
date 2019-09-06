@@ -135,6 +135,8 @@ type Config struct {
 	KubeletConfig string
 	// CloudConfig specifies the cloud configuration as JSON-encoded payload
 	CloudConfig string
+	// AllowPrivileged controls whether privileged containers are allowed.
+	AllowPrivileged bool
 }
 
 // DNS describes DNS server configuration
