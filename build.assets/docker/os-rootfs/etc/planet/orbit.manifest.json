@@ -450,6 +450,14 @@
                 }
             },
             {
+                "type": "Bool",
+                "name": "allow-privileged",
+                "env": "PLANET_ALLOW_PRIVILEGED",
+                "cli": {
+                    "name": "allow-privileged"
+                }
+            },
+            {
                 "type": "String",
                 "name": "service-node-portrange",
                 "env": "PLANET_SERVICE_NODE_PORT_RANGE",
