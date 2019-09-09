@@ -138,12 +138,9 @@ options ndots:1 timeout:5 attempts:2
 		{
 			input: `# /etc/resolv.conf
 `,
-			output: `nameserver 127.0.0.1
-nameserver ::1
-options ndots:1 timeout:5 attempts:2
+			output: `options ndots:1 timeout:5 attempts:2
 `,
 			want: &DNSConfig{
-				Servers:  defaultNS,
 				Ndots:    1,
 				Timeout:  5,
 				Attempts: 2,

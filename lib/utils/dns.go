@@ -33,8 +33,6 @@ import (
 	"strings"
 )
 
-var defaultNS = []string{"127.0.0.1", "::1"}
-
 type DNSConfig struct {
 	Servers    []string // servers to use
 	Domain     string   // Domain parameter
@@ -173,10 +171,6 @@ func DNSReadConfig(rdr io.Reader) (*DNSConfig, error) {
 	}
 	if err := scanner.Err(); err != nil {
 		return nil, err
-	}
-
-	if len(conf.Servers) == 0 {
-		conf.Servers = append(conf.Servers, defaultNS...)
 	}
 
 	return conf, nil
