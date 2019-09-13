@@ -12,8 +12,8 @@ ENV GOCACHE ${GOPATH}/.gocache-${GOVERSION}
 COPY passwd /etc/passwd
 
 # Install build tools, dev tools and Go:
-RUN apt-get update && apt-get -t stretch-backports install -y libc6-dev libudev-dev && \
-	apt-get install -y curl make git gcc tar gzip vim screen dumb-init
+RUN apt-get update && apt-get install -yqq libc6-dev libudev-dev \
+    curl make git gcc tar gzip dumb-init
 RUN mkdir -p /opt && cd /opt && curl https://storage.googleapis.com/golang/go$GOVERSION.linux-amd64.tar.gz | tar xz
 RUN mkdir -p $GOPATH/src $GOPATH/bin ${GOCACHE};go get github.com/tools/godep
 RUN go get github.com/gravitational/version/cmd/linkflags

@@ -1,20 +1,20 @@
 FROM planet/os
 
-ARG SECCOMP_VER
 ARG DOCKER_VER
 ARG HELM_VER
 ARG COREDNS_VER
 
 # FIXME: allowing downgrades and pinning the version of libip4tc0 for iptables
 # as the package has a dependency on the older version as the one available.
-RUN apt-get update && apt-get install -q -y --allow-downgrades bridge-utils \
-        seccomp=$SECCOMP_VER \
+RUN apt-get update && apt-get install -q -y bridge-utils \
+        seccomp \
         bash-completion \
         kmod \
-        libip4tc0=1.6.0+snapshot20161117-6 \
+        libip4tc0 \
         iptables \
         ebtables \
         libdevmapper1.02.1 \
+        lvm2 \
         libsqlite3-0 \
         e2fsprogs \
         libncurses5 \
@@ -24,7 +24,6 @@ RUN apt-get update && apt-get install -q -y --allow-downgrades bridge-utils \
         lsb-base \
         dash \
         ca-certificates \
-        aufs-tools \
         xfsprogs \
         dbus \
         dnsutils \
@@ -47,9 +46,9 @@ RUN apt-get update && apt-get install -q -y --allow-downgrades bridge-utils \
         nfs-common \
         jq \
         conntrack \
-        strace ; \
-    apt-get -t testing install -y lvm2; \
-    apt-get -y autoclean; apt-get -y clean
+        strace && \
+    apt-get -y autoclean && \
+    apt-get -y clean
 
 # do not install docker from Debian repositories but rather download static binaries for seccomp support
 RUN curl https://download.docker.com/linux/static/stable/x86_64/docker-$DOCKER_VER.tgz -o /tmp/docker-$DOCKER_VER.tgz && \
