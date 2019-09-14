@@ -168,3 +168,7 @@ ignored = ["github.com/Sirupsen/logrus", "github.com/gravitational/planet/build/
 [[override]]
   name = "github.com/opencontainers/runtime-spec"
   revision = "29686dbc5559d93fb1ef402eeda3e35c38d75af4"
+
+[[override]]
+  name = "github.com/opencontainers/selinux"
+  version = "~v1.2.2"

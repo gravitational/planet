@@ -649,15 +649,15 @@
   revision = "29686dbc5559d93fb1ef402eeda3e35c38d75af4"
 
 [[projects]]
-  digest = "1:5c65c485fa22fdfd6937db07aaf879904a4745770ee416d8d1f2a1434dc2d8ce"
+  digest = "1:3e824b6fb758a8b021d30b613d84e7404d06d33c8f43f92baed633427836736c"
   name = "github.com/opencontainers/selinux"
   packages = [
     "go-selinux",
     "go-selinux/label",
   ]
   pruneopts = "UT"
-  revision = "ba1aefe8057f1d0cfb8e88d0ec1dc85925ef987d"
-  version = "v1.0.0-rc1"
+  revision = "3a1f366feb7aecbf7a0e71ac4cea88b31597de9e"
+  version = "v1.2.2"
 
 [[projects]]
   digest = "1:e5d0bd87abc2781d14e274807a470acd180f0499f8bf5bb18606e9ec22ad9de9"
