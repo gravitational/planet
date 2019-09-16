@@ -28,12 +28,14 @@ import (
 	"syscall"
 	"time"
 
+	"github.com/gravitational/planet/lib/box"
+	"github.com/gravitational/planet/lib/constants"
+
 	etcd "github.com/coreos/etcd/client"
 	"github.com/coreos/go-systemd/dbus"
 	"github.com/davecgh/go-spew/spew"
 	etcdconf "github.com/gravitational/coordinate/config"
 	backup "github.com/gravitational/etcd-backup/lib/etcd"
-	"github.com/gravitational/planet/lib/box"
 	"github.com/gravitational/trace"
 	ps "github.com/mitchellh/go-ps"
 	log "github.com/sirupsen/logrus"
@@ -159,6 +161,7 @@ func etcdEnable(upgradeService bool) error {
 	defer cancel()
 
 	if !upgradeService {
+		restartEtcdClients(ctx)
 		return trace.Wrap(enableService(ctx, ETCDServiceName))
 	}
 	// don't actually enable the service if this is a proxy
@@ -177,8 +180,6 @@ func etcdEnable(upgradeService bool) error {
 // etcdUpgrade upgrades / rollbacks the etcd upgrade
 // the procedure is basically the same for an upgrade or rollback, just with some paths reversed
 func etcdUpgrade(rollback bool) error {
-	ctx, cancel := context.WithTimeout(context.Background(), EtcdUpgradeTimeout)
-	defer cancel()
 	log.Info("Updating etcd")
 
 	env, err := box.ReadEnvironment(ContainerEnvironmentFile)
@@ -261,20 +262,30 @@ func etcdUpgrade(rollback bool) error {
 		}
 	}
 
-	// reset the kubernetes api server to take advantage of any new etcd settings that may have changed
-	// this only happens if the service is already running
-	status, err := getServiceStatus(APIServerServiceName)
-	if err != nil {
-		log.Warnf("Failed to query status of service %v. Continuing upgrade. Error: %v", APIServerServiceName, err)
-	} else {
-		if status != "inactive" {
-			tryResetService(ctx, APIServerServiceName)
-		}
-	}
-
 	log.Info("Upgrade complete")
 
 	return nil
+}
+
+// restartEtcdClients - because the etcd cluster has been recreated, all clients need to be refreshed so their
+// watches are not pointing at incorrect revisions.
+func restartEtcdClients(ctx context.Context) {
+	services := []string{APIServerServiceName, PlanetAgentServiceName, FlannelServiceName}
+	for _, service := range services {
+		// reset all etcd clients to take advantage of any new etcd settings that may have changed
+		// this only happens if the service is already running
+		status, err := getServiceStatus(service)
+		if err != nil {
+			log.WithFields(log.Fields{
+				log.ErrorKey: err,
+				"service":    service,
+			}).Warn("Failed to query status of service.")
+			return
+		}
+		if status != "inactive" {
+			tryResetService(ctx, service)
+		}
+	}
 }
 
 func getBaseEtcdDir(version string) string {
@@ -459,6 +470,7 @@ func getServiceStatus(service string) (string, error) {
 	if err != nil {
 		return "", trace.Wrap(err)
 	}
+	defer conn.Close()
 
 	status, err := conn.ListUnitsByNames([]string{service})
 	if err != nil {
@@ -504,7 +516,7 @@ func readEtcdVersion(path string) (currentVersion string, prevVersion string, er
 }
 
 func writeEtcdEnvironment(path string, version string, prevVersion string) error {
-	err := os.MkdirAll(filepath.Dir(path), 644)
+	err := os.MkdirAll(filepath.Dir(path), constants.SharedReadMask)
 	if err != nil {
 		return trace.ConvertSystemError(err)
 	}
