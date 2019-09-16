@@ -170,6 +170,8 @@ func etcdEnable(upgradeService bool) error {
 	defer cancel()
 
 	if !upgradeService {
+		// restart the clients of the etcd service when the etcd service is brought online, which usually will be post
+		// upgrade. This will ensure clients running inside planet are restarted, which will refresh any local state
 		restartEtcdClients(ctx)
 		return trace.Wrap(enableService(ctx, ETCDServiceName))
 	}
@@ -197,7 +199,7 @@ func etcdUpgrade(rollback bool) error {
 	}
 
 	if env.Get(EnvEtcdProxy) == EtcdProxyOn {
-		log.Info("etcd is in proxy mode, restarting etcd clients")
+		log.Info("etcd is in proxy mode, nothing to do")
 		return nil
 	}
 
@@ -284,9 +286,12 @@ func restartEtcdClients(ctx context.Context) {
 	for _, service := range services {
 		// reset the kubernetes api server to take advantage of any new etcd settings that may have changed
 		// this only happens if the service is already running
-		status, err := getServiceStatus(APIServerServiceName)
+		status, err := getServiceStatus(service)
 		if err != nil {
-			log.Warnf("Failed to query status of service %v. Continuing upgrade. Error: %v", APIServerServiceName, err)
+			log.WithFields(log.Fields{
+				log.ErrorKey: err,
+				"service":    service,
+			}).Warn("Failed to query service status.")
 			return
 		}
 		if status != "inactive" {
