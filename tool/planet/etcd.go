@@ -167,6 +167,9 @@ func etcdEnable(upgradeService bool) error {
 	defer cancel()
 
 	if !upgradeService {
+		// restart the clients of the etcd service when the etcd service is brought online, which usually will be post
+		// upgrade. This will ensure clients running inside planet are restarted, which will refresh any local state
+		restartEtcdClients(ctx)
 		return trace.Wrap(enableService(ctx, ETCDServiceName))
 	}
 	// don't actually enable the service if this is a proxy
@@ -185,8 +188,6 @@ func etcdEnable(upgradeService bool) error {
 // etcdUpgrade upgrades / rollbacks the etcd upgrade
 // the procedure is basically the same for an upgrade or rollback, just with some paths reversed
 func etcdUpgrade(rollback bool) error {
-	ctx, cancel := context.WithTimeout(context.Background(), EtcdUpgradeTimeout)
-	defer cancel()
 	log.Info("Updating etcd")
 
 	env, err := box.ReadEnvironment(ContainerEnvironmentFile)
@@ -269,20 +270,31 @@ func etcdUpgrade(rollback bool) error {
 		}
 	}
 
-	// reset the kubernetes api server to take advantage of any new etcd settings that may have changed
-	// this only happens if the service is already running
-	status, err := getServiceStatus(APIServerServiceName)
-	if err != nil {
-		log.Warnf("Failed to query status of service %v. Continuing upgrade. Error: %v", APIServerServiceName, err)
-	} else {
-		if status != "inactive" {
-			tryResetService(ctx, APIServerServiceName)
-		}
-	}
-
 	log.Info("Upgrade complete")
 
 	return nil
+}
+
+// restartEtcdClients - because the etcd cluster has been recreated, all clients need to be refreshed so their
+// watches are not pointing at incorrect revisions.
+func restartEtcdClients(ctx context.Context) {
+	services := []string{APIServerServiceName, PlanetAgentServiceName, FlannelServiceName}
+
+	for _, service := range services {
+		// reset the kubernetes api server to take advantage of any new etcd settings that may have changed
+		// this only happens if the service is already running
+		status, err := getServiceStatus(service)
+		if err != nil {
+			log.WithFields(log.Fields{
+				log.ErrorKey: err,
+				"service":    service,
+			}).Warn("Failed to query service status.")
+			return
+		}
+		if status != "inactive" {
+			tryResetService(ctx, service)
+		}
+	}
 }
 
 // startWatchingEtcdMasters creates a control loop which polls etcd for the etcd cluster member list, and updates the
