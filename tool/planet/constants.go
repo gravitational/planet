@@ -325,6 +325,8 @@ const (
 	APIServerServiceName = "kube-apiserver.service"
 	// PlanetAgentServiceName is the name of the planet agent
 	PlanetAgentServiceName = "planet-agent.service"
+	// FlannelServiceName is the name of the flannel service
+	FlannelServiceName = "flanneld.service"
 
 	// ETCDGatewayDropinPath is the location of the systemd dropin when etcd is in gateway mode
 	ETCDGatewayDropinPath = "/etc/systemd/system/etcd.service.d/10-gateway.conf"
