@@ -23,7 +23,6 @@ import (
 	"io/ioutil"
 	"net/http"
 	"strings"
-	"time"
 
 	pb "github.com/gravitational/satellite/agent/proto/agentpb"
 
@@ -42,7 +41,6 @@ const RPCPort = 7575 // FIXME: use serf to discover agents
 type RPCServer interface {
 	Status(context.Context, *pb.StatusRequest) (*pb.StatusResponse, error)
 	LocalStatus(context.Context, *pb.LocalStatusRequest) (*pb.LocalStatusResponse, error)
-	Time(context.Context, *pb.TimeRequest) (*pb.TimeResponse, error)
 	Stop()
 }
 
@@ -72,13 +70,6 @@ func (r *server) LocalStatus(ctx context.Context, req *pb.LocalStatusRequest) (r
 	resp.Status = r.agent.recentLocalStatus()
 
 	return resp, nil
-}
-
-// Time sends back the target node server time
-func (r *server) Time(ctx context.Context, req *pb.TimeRequest) (*pb.TimeResponse, error) {
-	return &pb.TimeResponse{
-		Timestamp: pb.NewTimeToProto(time.Now().UTC()),
-	}, nil
 }
 
 // newRPCServer creates an agent RPC endpoint for each provided listener.
@@ -200,9 +191,9 @@ func grpcHandlerFunc(rpcServer *server, other http.Handler) http.Handler {
 	})
 }
 
-// DefaultDialRPC is a default RPC client factory function.
+// defaultDialRPC is a default RPC client factory function.
 // It creates a new client based on address details from the specific serf member.
-func DefaultDialRPC(caFile, certFile, keyFile string) DialRPC {
+func defaultDialRPC(caFile, certFile, keyFile string) dialRPC {
 	return func(member *serf.Member) (*client, error) {
 		return NewClient(fmt.Sprintf("%s:%d", member.Addr.String(), RPCPort), caFile, certFile, keyFile)
 	}

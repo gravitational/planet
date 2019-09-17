@@ -25,7 +25,7 @@ func (ts Timestamp) ToTime() time.Time {
 	return time.Unix(ts.Seconds, int64(ts.Nanoseconds)).UTC()
 }
 
-// TimeToProto creates a new instance of Timestamp from the given time.Time value.
+// TimeToTime creates a new instance of Timestamp from the given time.Time value.
 func TimeToProto(t time.Time) Timestamp {
 	seconds := t.Unix()
 	nanoseconds := int64(t.Sub(time.Unix(seconds, 0)))
