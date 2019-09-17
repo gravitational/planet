@@ -55,7 +55,6 @@ func PreInstallPortChecker() health.Checker {
 func DefaultProcessChecker() health.Checker {
 	return &ProcessChecker{[]string{
 		"dockerd",
-		"docker-current", // Docker daemon name when installed from RHEL repos.
 		"lxd",
 		"coredns",
 		"kube-apiserver",
