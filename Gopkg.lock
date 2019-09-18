@@ -111,6 +111,14 @@
   revision = "50ddd08d81d770b1e0ce2c969a46e46c73580e2a"
 
 [[projects]]
+  branch = "master"
+  digest = "1:4c4c33075b704791d6a7f09dfb55c66769e8a1dc6adf87026292d274fe8ad113"
+  name = "github.com/codahale/hdrhistogram"
+  packages = ["."]
+  pruneopts = "UT"
+  revision = "3a0bb77429bd3a61596f5e8a3172445844342120"
+
+[[projects]]
   digest = "1:311bf91433164cd03a7cf8c2a360177d85b4b369b7afec99dcb167a1025a48bd"
   name = "github.com/containerd/console"
   packages = ["."]
@@ -349,7 +357,7 @@
   version = "v1.0.0"
 
 [[projects]]
-  digest = "1:2fddf8ba427e7a749b78d21a5f983a0cbef23bfee718dd7b8a2a82b956daa992"
+  digest = "1:bb2cf83a6829fc1031c4d0d433fa523b12ac329156c07ab4a0849b8364609a26"
   name = "github.com/gravitational/satellite"
   packages = [
     "agent",
@@ -364,8 +372,8 @@
     "utils",
   ]
   pruneopts = "UT"
-  revision = "57869406f0ebe0d80989e632df28052a7a252ed9"
-  version = "5.5.2"
+  revision = "ad6ed36828386b9045cdb1049f46c7be9d0cbec8"
+  version = "5.5.5"
 
 [[projects]]
   digest = "1:afb36747f009e72637bdf1b3f5d27f3c1d5e1fc5478fc4aba2a33e40e8829dee"
@@ -374,6 +382,14 @@
   pruneopts = "UT"
   revision = "a5c40b57db7203332a073f20771214d0eeb2a168"
   version = "1.1.7"
+
+[[projects]]
+  digest = "1:841d5835e94129658adabece66a4cc54d2cec9a40fa8b51743ea35d0519dd6c2"
+  name = "github.com/gravitational/ttlmap"
+  packages = ["."]
+  pruneopts = "UT"
+  revision = "91fd36b9004c1ee5a778739752ea1aba5638c03a"
+  version = "0.0.1"
 
 [[projects]]
   digest = "1:01cb46669ee737a700ca9a0968ffe2aa820f262e5f49e1e54f8bfc441650ea8e"
@@ -531,6 +547,14 @@
   packages = ["diff"]
   pruneopts = "UT"
   revision = "d65d576e9348f5982d7f6d83682b694e731a45c6"
+
+[[projects]]
+  branch = "master"
+  digest = "1:1f97d3c252bf9bda0869c228d0ec84a440f1590d6e33e83221c0dff185caad1f"
+  name = "github.com/mailgun/minheap"
+  packages = ["."]
+  pruneopts = "UT"
+  revision = "3dbe6c6bf55f94c5efcf460dc7f86830c21a90b2"
 
 [[projects]]
   digest = "1:c658e84ad3916da105a761660dcaeb01e63416c8ec7bc62256a9b411a05fcd67"
@@ -1150,6 +1174,7 @@
     "github.com/cenkalti/backoff",
     "github.com/containerd/console",
     "github.com/coreos/etcd/client",
+    "github.com/coreos/etcd/clientv3",
     "github.com/coreos/go-systemd/dbus",
     "github.com/davecgh/go-spew/spew",
     "github.com/docker/docker/pkg/term",
@@ -1171,6 +1196,7 @@
     "github.com/gravitational/satellite/monitoring/collector",
     "github.com/gravitational/trace",
     "github.com/gravitational/version",
+    "github.com/hashicorp/serf/client",
     "github.com/imdario/mergo",
     "github.com/julienschmidt/httprouter",
     "github.com/kylelemons/godebug/diff",
