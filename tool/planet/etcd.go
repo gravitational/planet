@@ -153,13 +153,24 @@ func etcdBackup(backupFile string) error {
 
 // etcdDisable disables etcd on this machine
 // Used during upgrades
-func etcdDisable(upgradeService bool) error {
+func etcdDisable(upgradeService, stopAPIServer bool) error {
 	ctx, cancel := context.WithTimeout(context.Background(), EtcdUpgradeTimeout)
 	defer cancel()
+
+	// Kevin: Workaround, for the API server presenting stale data to clients while etcd is down. Make sure we shut down
+	// the API server as well (passwed as flag from gravity to prevent accidental usage).
+	// TODO: This fix needs to be revisited to include a permanent solution.
+	if stopAPIServer {
+		err := systemctl(ctx, "stop", APIServerServiceName)
+		if err != nil {
+			return trace.Wrap(err)
+		}
+	}
 
 	if upgradeService {
 		return trace.Wrap(disableService(ctx, ETCDUpgradeServiceName))
 	}
+
 	return trace.Wrap(disableService(ctx, ETCDServiceName))
 }
 
