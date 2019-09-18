@@ -325,7 +325,7 @@ const (
 	PlanetAgentServiceName = "planet-agent.service"
 	// FlannelServiceName is the name of the flannel service
 	FlannelServiceName = "flanneld.service"
-	// CorednsServiceName is the name of the flannel service
+	// CorednsServiceName is the name of the coredns service
 	CorednsServiceName = "coredns.service"
 
 	// ETCDDropinPath is the location of the systemd dropin when etcd is in gateway mode
