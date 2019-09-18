@@ -280,7 +280,8 @@ func etcdUpgrade(rollback bool) error {
 // restartEtcdClients - because the etcd cluster has been recreated, all clients need to be refreshed so their
 // watches are not pointing at incorrect revisions.
 func restartEtcdClients(ctx context.Context) {
-	services := []string{APIServerServiceName, PlanetAgentServiceName, FlannelServiceName}
+	services := []string{APIServerServiceName, PlanetAgentServiceName, FlannelServiceName, ProxyServiceName,
+		KubeletServiceName, CorednsServiceName}
 
 	for _, service := range services {
 		// reset the kubernetes api server to take advantage of any new etcd settings that may have changed
