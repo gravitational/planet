@@ -357,7 +357,7 @@
   version = "v1.0.0"
 
 [[projects]]
-  digest = "1:bb2cf83a6829fc1031c4d0d433fa523b12ac329156c07ab4a0849b8364609a26"
+  digest = "1:e57342e04517c3547254337561a3edf20d533fcdbc9fd9769f18564123364055"
   name = "github.com/gravitational/satellite"
   packages = [
     "agent",
@@ -372,8 +372,8 @@
     "utils",
   ]
   pruneopts = "UT"
-  revision = "ad6ed36828386b9045cdb1049f46c7be9d0cbec8"
-  version = "5.5.5"
+  revision = "c46219439fcdd07f2ba5a52e28523f4ba19f5ce8"
+  version = "5.5.6"
 
 [[projects]]
   digest = "1:afb36747f009e72637bdf1b3f5d27f3c1d5e1fc5478fc4aba2a33e40e8829dee"
@@ -1211,6 +1211,7 @@
     "github.com/prometheus/client_golang/prometheus",
     "github.com/sirupsen/logrus",
     "github.com/sirupsen/logrus/hooks/syslog",
+    "github.com/syndtr/gocapability/capability",
     "golang.org/x/net/websocket",
     "gopkg.in/alecthomas/kingpin.v2",
     "gopkg.in/check.v1",
