@@ -324,10 +324,16 @@ const (
 	ETCDUpgradeServiceName = "etcd-upgrade.service"
 	// APIServerServiceName names the service unit for k8s apiserver
 	APIServerServiceName = "kube-apiserver.service"
+	// ProxyServiceName is the name of the k8s proxy systemd service
+	ProxyServiceName = "kube-proxy.service"
+	// KubeletServiceName is the name of the k8s kubelet systemd service
+	KubeletServiceName = "kube-kubelet.service"
 	// PlanetAgentServiceName is the name of the planet agent
 	PlanetAgentServiceName = "planet-agent.service"
 	// FlannelServiceName is the name of the flannel service
 	FlannelServiceName = "flanneld.service"
+	// CorednsServiceName is the name of the coredns service
+	CorednsServiceName = "coredns.service"
 
 	// ETCDDropinPath is the location of the systemd dropin when etcd is in gateway mode
 	ETCDGatewayDropinPath = "/etc/systemd/system/etcd.service.d/10-gateway.conf"
