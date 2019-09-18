@@ -13,6 +13,7 @@ RUN apt-get update && apt-get install -q -y bridge-utils \
         libip4tc0 \
         iptables \
         ebtables \
+        nftables \
         libdevmapper1.02.1 \
         lvm2 \
         libsqlite3-0 \
