@@ -158,7 +158,7 @@ func etcdDisable(upgradeService, stopAPIServer bool) error {
 	defer cancel()
 
 	// Kevin: Workaround, for the API server presenting stale data to clients while etcd is down. Make sure we shut down
-	// the API server as well (passwed as flag from gravity to prevent accidental usage).
+	// the API server as well (passed as flag from gravity to prevent accidental usage).
 	// TODO: This fix needs to be revisited to include a permanent solution.
 	if stopAPIServer {
 		err := systemctl(ctx, "stop", APIServerServiceName)
