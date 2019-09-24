@@ -35,7 +35,7 @@ BUILDDIR ?= $(PWD)/build
 BUILDDIR := $(shell realpath $(BUILDDIR))
 OUTPUTDIR := $(BUILDDIR)/planet
 
-KUBE_VER ?= v1.15.4
+KUBE_VER ?= v1.16.0
 SECCOMP_VER ?= 2.3.1-2.1+deb9u1
 DOCKER_VER ?= 18.09.5
 # we currently use our own flannel fork: gravitational/flannel
@@ -46,9 +46,9 @@ NODE_PROBLEM_DETECTOR_VER := v0.6.4
 
 # ETCD Versions to include in the release
 # This list needs to include every version of etcd that we can upgrade from + latest
-ETCD_VER := v2.3.8 v3.3.4 v3.3.9 v3.3.11 v3.3.12
+ETCD_VER := v2.3.8 v3.3.4 v3.3.9 v3.3.11 v3.3.12 v3.3.15
 # This is the version of etcd we should upgrade to (from the version list)
-ETCD_LATEST_VER := v3.3.12
+ETCD_LATEST_VER := v3.3.15
 
 BUILDBOX_GO_VER ?= 1.12.9
 PLANET_BUILD_TAG ?= $(shell git describe --tags)
