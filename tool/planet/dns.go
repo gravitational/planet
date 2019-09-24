@@ -31,7 +31,7 @@ import (
 	"github.com/gravitational/satellite/cmd"
 	"github.com/gravitational/trace"
 	log "github.com/sirupsen/logrus"
-	"k8s.io/api/core/v1"
+	v1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/intstr"
@@ -114,7 +114,7 @@ func updateEnvDNSAddresses(client *kubernetes.Clientset, role agent.Role) error 
 // The service object is managed by gravity, but we create a placeholder here, so that we can read the IP address
 // of the service, and configure kubelet with the correct DNS addresses before starting
 func createService(name string) error {
-	client, err := cmd.GetKubeClientFromPath(constants.KubectlConfigPath)
+	client, err := cmd.GetKubeClientFromPath(constants.SchedulerConfigPath)
 	if err != nil {
 		return trace.Wrap(err)
 	}
