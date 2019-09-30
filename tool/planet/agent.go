@@ -244,7 +244,7 @@ func runAgent(conf *agent.Config, monitoringConf *monitoring.Config, leaderConf 
 	ctx, cancelCtx := context.WithCancel(context.Background())
 	defer cancelCtx()
 
-	err := monitoringConf.Check()
+	err := monitoringConf.CheckAndSetDefaults()
 	if err != nil {
 		return trace.Wrap(err)
 	}
@@ -262,6 +262,7 @@ func runAgent(conf *agent.Config, monitoringConf *monitoring.Config, leaderConf 
 	if err != nil {
 		return trace.Wrap(err)
 	}
+
 	err = monitoring.AddCheckers(monitoringAgent, monitoringConf)
 	if err != nil {
 		return trace.Wrap(err)
