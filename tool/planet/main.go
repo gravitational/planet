@@ -30,12 +30,13 @@ import (
 	"syscall"
 	"time"
 
-	"github.com/gravitational/configure/cstrings"
 	"github.com/gravitational/planet/lib/box"
+	"github.com/gravitational/planet/lib/constants"
 	"github.com/gravitational/planet/lib/monitoring"
 	"github.com/gravitational/planet/test/e2e"
 
 	kv "github.com/gravitational/configure"
+	"github.com/gravitational/configure/cstrings"
 	etcdconf "github.com/gravitational/coordinate/config"
 	"github.com/gravitational/satellite/agent"
 	"github.com/gravitational/satellite/agent/backend/inmemory"
@@ -143,6 +144,7 @@ func run() error {
 		cagentDNSZones               = DNSOverrides(cagent.Flag("dns-zones", "Comma-separated list of DNS zone to nameserver IP mappings as 'zone/nameserver' pairs").OverrideDefaultFromEnvar(EnvDNSZones))
 		cagentCloudProvider          = cagent.Flag("cloud-provider", "Which cloud provider backend the cluster is using").OverrideDefaultFromEnvar(EnvCloudProvider).String()
 		cagentHighWatermark          = cagent.Flag("high-watermark", "Usage percentage of monitored directories and devicemapper which is considered degrading").Default(strconv.Itoa(HighWatermark)).Uint64()
+		cagentHTTPTimeout            = cagent.Flag("http-timeout", "Timeout for HTTP requests, formatted as Go duration.").OverrideDefaultFromEnvar(EnvPlanetAgentHTTPTimeout).Default(constants.HTTPTimeout.String()).Duration()
 
 		// stop a running container
 		cstop = app.Command("stop", "Stop planet container")
@@ -316,6 +318,7 @@ func run() error {
 			CloudProvider:         *cagentCloudProvider,
 			HighWatermark:         uint(*cagentHighWatermark),
 			NodeName:              *cagentNodeName,
+			HTTPTimeout:           *cagentHTTPTimeout,
 		}
 		leaderConf := &LeaderConfig{
 			PublicIP:        cagentPublicIP.String(),

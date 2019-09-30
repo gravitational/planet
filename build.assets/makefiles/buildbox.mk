@@ -29,7 +29,7 @@ build: | $(ASSETDIR)
 		--env="TARGETDIR=/targetdir" \
 		--env="ASSETDIR=/assetdir" \
 		planet/buildbox:latest \
-		make -e \
+		dumb-init make -e \
 			KUBE_VER=$(KUBE_VER) \
 			FLANNEL_VER=$(FLANNEL_VER) \
 			ETCD_VER="$(ETCD_VER)" \
