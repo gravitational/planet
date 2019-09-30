@@ -96,9 +96,7 @@ ignored = ["github.com/Sirupsen/logrus", "github.com/gravitational/planet/build/
 
 [[constraint]]
   name = "github.com/gravitational/satellite"
-  #TODO(dmitri): update once satellite is merged
-  #version = "=7.0.2"
-  revision = "b63edb0d3f5bd351d5a3b6916f254db990beee24"
+  version = "=7.0.2"
 
 [[constraint]]
   name = "github.com/gravitational/trace"
