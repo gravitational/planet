@@ -357,7 +357,7 @@
   version = "v1.0.0"
 
 [[projects]]
-  digest = "1:e57342e04517c3547254337561a3edf20d533fcdbc9fd9769f18564123364055"
+  digest = "1:273cf792ccf5db437b9a7b86c95a6af30d140c28f04c357fb15b642dd8b57acd"
   name = "github.com/gravitational/satellite"
   packages = [
     "agent",
@@ -372,16 +372,16 @@
     "utils",
   ]
   pruneopts = "UT"
-  revision = "c46219439fcdd07f2ba5a52e28523f4ba19f5ce8"
-  version = "5.5.6"
+  revision = "696449702d913ab770809e8519fd3aaceeb010de"
+  version = "5.5.7"
 
 [[projects]]
-  digest = "1:afb36747f009e72637bdf1b3f5d27f3c1d5e1fc5478fc4aba2a33e40e8829dee"
+  digest = "1:418247f700939c99867b42639d985686ba229fd9f8ee9e119c7cc3ffde6e0fe3"
   name = "github.com/gravitational/trace"
   packages = ["."]
   pruneopts = "UT"
-  revision = "a5c40b57db7203332a073f20771214d0eeb2a168"
-  version = "1.1.7"
+  revision = "a535a178675fb4a11ba74818491754a8c5575dd6"
+  version = "1.1.8"
 
 [[projects]]
   digest = "1:841d5835e94129658adabece66a4cc54d2cec9a40fa8b51743ea35d0519dd6c2"
@@ -565,12 +565,12 @@
   version = "v0.0.9"
 
 [[projects]]
-  digest = "1:3bb9c8451d199650bfd303e0068d86f135952fead374ad87c09a9b8a2cc4bd7c"
+  digest = "1:36325ebb862e0382f2f14feef409ba9351271b89ada286ae56836c603d43b59c"
   name = "github.com/mattn/go-isatty"
   packages = ["."]
   pruneopts = "UT"
-  revision = "369ecd8cea9851e459abb67eb171853e3986591e"
-  version = "v0.0.6"
+  revision = "e1f7b56ace729e4a73a29a6b4fac6cd5fcda7ab3"
+  version = "v0.0.9"
 
 [[projects]]
   digest = "1:ff5ebae34cfbf047d505ee150de27e60570e8c394b3b8fdbb720ff6ac71985fc"
