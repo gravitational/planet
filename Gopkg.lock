@@ -343,7 +343,8 @@
     "utils",
   ]
   pruneopts = "UT"
-  revision = "f2806bba44319b357d45a6debf7e1234e0f153fc"
+  revision = "097fbc4daa1440dc454385927340526c9850ef01"
+  version = "5.2.9"
 
 [[projects]]
   digest = "1:e3391db7bc537e6d556635e3f8882dd877a1f04e98e40e64396b716d6a61cef6"
