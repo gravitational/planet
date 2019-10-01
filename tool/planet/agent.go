@@ -29,11 +29,12 @@ import (
 	"syscall"
 	"time"
 
+	"github.com/gravitational/planet/lib/constants"
+	"github.com/gravitational/planet/lib/monitoring"
+
 	etcd "github.com/coreos/etcd/client"
 	etcdconf "github.com/gravitational/coordinate/config"
 	"github.com/gravitational/coordinate/leader"
-	"github.com/gravitational/planet/lib/constants"
-	"github.com/gravitational/planet/lib/monitoring"
 	"github.com/gravitational/satellite/agent"
 	pb "github.com/gravitational/satellite/agent/proto/agentpb"
 	"github.com/gravitational/trace"
@@ -253,7 +254,7 @@ func runAgent(conf *agent.Config, monitoringConf *monitoring.Config, leaderConf 
 	ctx, cancelCtx := context.WithCancel(context.Background())
 	defer cancelCtx()
 
-	err := monitoringConf.Check()
+	err := monitoringConf.CheckAndSetDefaults()
 	if err != nil {
 		return trace.Wrap(err)
 	}
@@ -271,6 +272,7 @@ func runAgent(conf *agent.Config, monitoringConf *monitoring.Config, leaderConf 
 	if err != nil {
 		return trace.Wrap(err)
 	}
+
 	err = monitoring.AddCheckers(monitoringAgent, monitoringConf)
 	if err != nil {
 		return trace.Wrap(err)

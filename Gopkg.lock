@@ -356,7 +356,7 @@
   version = "v1.0.0"
 
 [[projects]]
-  digest = "1:c0624f214b7db24100fe8506851901e5aec72fbb0e058af82014c532e882e3f6"
+  digest = "1:bbcc410c5687987103e4f2ccb3e391c1e7bd19a18a70348bdde8dec3e9d2f91c"
   name = "github.com/gravitational/satellite"
   packages = [
     "agent",
@@ -371,16 +371,16 @@
     "utils",
   ]
   pruneopts = "UT"
-  revision = "baff9a58cfd7fadc8668657731a2a75d997f02a7"
-  version = "7.0.1"
+  revision = "1f7fd065d639303028860a763027e092da52b97c"
+  version = "7.0.2"
 
 [[projects]]
-  digest = "1:afb36747f009e72637bdf1b3f5d27f3c1d5e1fc5478fc4aba2a33e40e8829dee"
+  digest = "1:418247f700939c99867b42639d985686ba229fd9f8ee9e119c7cc3ffde6e0fe3"
   name = "github.com/gravitational/trace"
   packages = ["."]
   pruneopts = "UT"
-  revision = "a5c40b57db7203332a073f20771214d0eeb2a168"
-  version = "1.1.7"
+  revision = "a535a178675fb4a11ba74818491754a8c5575dd6"
+  version = "1.1.8"
 
 [[projects]]
   digest = "1:841d5835e94129658adabece66a4cc54d2cec9a40fa8b51743ea35d0519dd6c2"
@@ -489,12 +489,11 @@
   revision = "0b12d6b5"
 
 [[projects]]
-  digest = "1:75ab90ae3f5d876167e60f493beadfe66f0ed861a710f283fb06c86437a09538"
+  digest = "1:35f49695a600c368ad7811a672d583b3e004b44fe883a0a1eb2a6c0d75eaeb1b"
   name = "github.com/jonboulle/clockwork"
   packages = ["."]
   pruneopts = "UT"
-  revision = "2eee05ed794112d45db504eb05aa693efd2b8b09"
-  version = "v0.1.0"
+  revision = "62fb9bc030d14f92c58df3c1601e50a0e445edef"
 
 [[projects]]
   digest = "1:3e551bbb3a7c0ab2a2bf4660e7fcad16db089fdcfbb44b0199e62838038623ea"
@@ -678,15 +677,16 @@
   version = "v1.0.0"
 
 [[projects]]
-  digest = "1:f43f7e80e273179b98af510dd453d184c7860920d6f9aa5c89e06aed0494a7a8"
+  digest = "1:eb04f69c8991e52eff33c428bd729e04208bf03235be88e4df0d88497c6861b9"
   name = "github.com/prometheus/client_golang"
   packages = [
     "prometheus",
     "prometheus/internal",
+    "prometheus/promhttp",
   ]
   pruneopts = "UT"
-  revision = "1cafe34db7fdec6022e17e00e1c1ea501022f3e4"
-  version = "v0.9.0"
+  revision = "170205fb58decfd011f1550d4cfb737230d7ae4f"
+  version = "v1.1.0"
 
 [[projects]]
   branch = "master"
@@ -709,17 +709,16 @@
   revision = "bcb74de08d37a417cb6789eec1d6c810040f0470"
 
 [[projects]]
-  branch = "master"
-  digest = "1:ef74914912f99c79434d9c09658274678bc85080ebe3ab32bec3940ebce5e1fc"
+  digest = "1:a210815b437763623ecca8eb91e6a0bf4f2d6773c5a6c9aec0e28f19e5fd6deb"
   name = "github.com/prometheus/procfs"
   packages = [
     ".",
+    "internal/fs",
     "internal/util",
-    "nfs",
-    "xfs",
   ]
   pruneopts = "UT"
-  revision = "185b4288413d2a0dd0806f78c90dde719829e5ae"
+  revision = "499c85531f756d1129edd26485a5f73871eeb308"
+  version = "v0.0.5"
 
 [[projects]]
   branch = "master"
@@ -1177,6 +1176,7 @@
     "github.com/containerd/cgroups",
     "github.com/containerd/console",
     "github.com/coreos/etcd/client",
+    "github.com/coreos/etcd/clientv3",
     "github.com/coreos/go-systemd/dbus",
     "github.com/davecgh/go-spew/spew",
     "github.com/docker/docker/pkg/term",
@@ -1217,6 +1217,7 @@
     "github.com/sirupsen/logrus",
     "github.com/sirupsen/logrus/hooks/syslog",
     "github.com/stretchr/testify/assert",
+    "github.com/syndtr/gocapability/capability",
     "golang.org/x/net/websocket",
     "gopkg.in/alecthomas/kingpin.v2",
     "gopkg.in/check.v1",

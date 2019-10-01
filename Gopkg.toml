@@ -55,6 +55,10 @@ ignored = ["github.com/Sirupsen/logrus", "github.com/gravitational/planet/build/
   revision = "33e07d32887e1e06b7c025f27ce52f62c7990bc0"
 
 [[constraint]]
+  name = "github.com/jonboulle/clockwork"
+  revision = "62fb9bc030d14f92c58df3c1601e50a0e445edef"
+
+[[constraint]]
   name = "github.com/containerd/console"
   revision = "cb7008ab3d8359b78c5f464cb7cf160107ad5925"
 
@@ -92,11 +96,11 @@ ignored = ["github.com/Sirupsen/logrus", "github.com/gravitational/planet/build/
 
 [[constraint]]
   name = "github.com/gravitational/satellite"
-  version = "=7.0.1"
+  version = "=7.0.2"
 
 [[constraint]]
   name = "github.com/gravitational/trace"
-  version = "1.1.7"
+  version = "=1.1.8"
 
 [[constraint]]
   name = "github.com/julienschmidt/httprouter"
@@ -108,7 +112,7 @@ ignored = ["github.com/Sirupsen/logrus", "github.com/gravitational/planet/build/
 
 [[constraint]]
   name = "github.com/prometheus/client_golang"
-  version = ">=0.7.0, <=64.0.0-g275368f"
+  version = "=v1.1.0"
 
 [[constraint]]
   name = "github.com/sirupsen/logrus"

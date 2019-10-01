@@ -16,6 +16,8 @@ limitations under the License.
 
 package constants
 
+import "time"
+
 const (
 	// KubectlConfigPath is the path to kubectl configuration file
 	KubectlConfigPath = "/etc/kubernetes/kubectl.kubeconfig"
@@ -71,6 +73,9 @@ const (
 
 	// KubeletConfigFile specifies the file path for kubelet configuration
 	KubeletConfigFile = "/etc/kubernetes/kubelet.yaml"
+
+	// HTTPTimeout specifies the default HTTP timeout for checks
+	HTTPTimeout = 10 * time.Second
 )
 
 var (

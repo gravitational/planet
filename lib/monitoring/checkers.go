@@ -25,6 +25,7 @@ import (
 	"io/ioutil"
 	"net/http"
 	"strings"
+	"time"
 
 	"github.com/gravitational/planet/lib/constants"
 
@@ -67,14 +68,38 @@ type Config struct {
 	NodeName string
 	// HighWatermark is the usage limit percentage of monitored directories and devicemapper
 	HighWatermark uint
+	// HTTPTimeout specifies the HTTP timeout for checks
+	HTTPTimeout time.Duration
 }
 
-// Check validates monitoring configuration
-func (c Config) Check() error {
+// CheckAndSetDefaults validates monitoring configuration
+func (c *Config) CheckAndSetDefaults() error {
 	if c.HighWatermark > 100 {
 		return trace.BadParameter("high watermark percentage should be 0-100")
 	}
+	if c.HTTPTimeout == 0 {
+		c.HTTPTimeout = constants.HTTPTimeout
+	}
 	return nil
+}
+
+// NewETCDConfig returns new ETCD configuration
+func (c Config) NewETCDConfig() (*monitoring.ETCDConfig, error) {
+	etcdConfig := &monitoring.ETCDConfig{
+		Endpoints: c.ETCDConfig.Endpoints,
+		CAFile:    c.ETCDConfig.CAFile,
+		CertFile:  c.ETCDConfig.CertFile,
+		KeyFile:   c.ETCDConfig.KeyFile,
+	}
+	transport, err := etcdConfig.NewHTTPTransport()
+	if err != nil {
+		return nil, trace.Wrap(err)
+	}
+	etcdConfig.Client = &http.Client{
+		Transport: transport,
+		Timeout:   c.HTTPTimeout,
+	}
+	return etcdConfig, nil
 }
 
 // LocalTransport returns http transport that is set up with local certificate authority
@@ -124,13 +149,10 @@ func getKubeClientFromPath(kubeconfigPath string) (*kubernetes.Clientset, error)
 
 // AddCheckers adds checkers to the agent.
 func AddCheckers(node agent.Agent, config *Config) (err error) {
-	etcdConfig := &monitoring.ETCDConfig{
-		Endpoints: config.ETCDConfig.Endpoints,
-		CAFile:    config.ETCDConfig.CAFile,
-		CertFile:  config.ETCDConfig.CertFile,
-		KeyFile:   config.ETCDConfig.KeyFile,
+	etcdConfig, err := config.NewETCDConfig()
+	if err != nil {
+		return trace.Wrap(err)
 	}
-
 	switch config.Role {
 	case agent.RoleMaster:
 		err = addToMaster(node, config, etcdConfig)
@@ -147,6 +169,10 @@ func addToMaster(node agent.Agent, config *Config, etcdConfig *monitoring.ETCDCo
 	localTransport, err := config.LocalTransport()
 	if err != nil {
 		return trace.Wrap(err)
+	}
+	localClient := &http.Client{
+		Transport: localTransport,
+		Timeout:   config.HTTPTimeout,
 	}
 
 	etcdChecker, err := monitoring.EtcdHealth(etcdConfig)
@@ -168,7 +194,7 @@ func addToMaster(node agent.Agent, config *Config, etcdConfig *monitoring.ETCDCo
 	kubeConfig := monitoring.KubeConfig{Client: client}
 	node.AddChecker(monitoring.KubeAPIServerHealth(monitoring.KubeConfig{Client: apiServerClient}))
 	node.AddChecker(monitoring.DockerHealth("/var/run/docker.sock"))
-	node.AddChecker(dockerRegistryHealth(config.RegistryAddr, localTransport))
+	node.AddChecker(dockerRegistryHealth(config.RegistryAddr, localClient))
 	node.AddChecker(etcdChecker)
 	node.AddChecker(monitoring.SystemdHealth())
 	node.AddChecker(monitoring.NewIPForwardChecker())
@@ -292,8 +318,8 @@ func addToNode(node agent.Agent, config *Config, etcdConfig *monitoring.ETCDConf
 	return nil
 }
 
-func dockerRegistryHealth(addr string, transport *http.Transport) health.Checker {
-	return monitoring.NewHTTPHealthzCheckerWithTransport("docker-registry", fmt.Sprintf("%v/v2/", addr), transport, noopResponseChecker)
+func dockerRegistryHealth(addr string, client *http.Client) health.Checker {
+	return monitoring.NewHTTPHealthzCheckerWithClient("docker-registry", fmt.Sprintf("%v/v2/", addr), client, noopResponseChecker)
 }
 
 func noopResponseChecker(response io.Reader) error {
