@@ -144,6 +144,10 @@ const (
 	// of the agent key file
 	EnvPlanetAgentClientKeyFile = "PLANET_AGENT_CLIENT_KEYFILE"
 
+	// EnvPlanetAgentHTTPTimeout names the environment variable that overrides the HTTP client
+	// timeout for monitoring checks
+	EnvPlanetAgentHTTPTimeout = "PLANET_AGENT_HTTP_TIMEOUT"
+
 	// EnvDockerPromiscuousMode names the environment variable that specifies the
 	// promiscuous mode for docker
 	EnvDockerPromiscuousMode = "PLANET_DOCKER_PROMISCUOUS_MODE"

@@ -16,6 +16,8 @@ limitations under the License.
 
 package constants
 
+import "time"
+
 const (
 	// KubectlConfigPath is the path to kubectl configuration file
 	KubectlConfigPath = "/etc/kubernetes/kubectl.kubeconfig"
@@ -49,4 +51,7 @@ const (
 
 	// GravityDataDir is the directory where gravity data is stored in planet
 	GravityDataDir = "/var/lib/gravity"
+
+	// HTTPTimeout specifies the default HTTP timeout for checks
+	HTTPTimeout = 10 * time.Second
 )

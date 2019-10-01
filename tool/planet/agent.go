@@ -242,7 +242,7 @@ func unitsCommand(command string) error {
 // runAgent starts the master election / health check loops in background and
 // blocks until a signal has been received.
 func runAgent(conf *agent.Config, monitoringConf *monitoring.Config, leaderConf *LeaderConfig, peers []string) error {
-	err := monitoringConf.Check()
+	err := monitoringConf.CheckAndSetDefaults()
 	if err != nil {
 		return trace.Wrap(err)
 	}
