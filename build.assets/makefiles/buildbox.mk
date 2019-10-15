@@ -17,7 +17,20 @@ $(ASSETDIR):
 
 .PHONY: build
 build: | $(ASSETDIR)
-	@echo -e "\n---> Launching 'buildbox' Docker container to build planet:\n"
+	@echo -e "\n---> Launching 'buildbox-binary' Docker container to build planet binary:\n"
+	docker run -i -u $$(id -u) --rm=true \
+		--volume=$(ASSETS):/assets \
+		--volume=$(ROOTFS):/rootfs \
+		--volume=$(TARGETDIR):/targetdir \
+		--volume=$(ASSETDIR):/assetdir \
+		--volume=$(PWD):/gopath/src/github.com/gravitational/planet \
+		--env="ASSETS=/assets" \
+		--env="ROOTFS=/rootfs" \
+		--env="TARGETDIR=/targetdir" \
+		--env="ASSETDIR=/assetdir" \
+		planet/buildbox-binary:latest \
+		make -C /assets/makefiles -f planet-binary.mk
+	@echo -e "\n---> Launching 'buildbox' Docker container to build planet components:\n"
 	docker run -i -u $$(id -u) --rm=true \
 		--volume=$(ASSETS):/assets \
 		--volume=$(ROOTFS):/rootfs \

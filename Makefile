@@ -99,7 +99,7 @@ $(BUILD_ASSETS)/planet:
 	     go install -ldflags "$(PLANET_GO_LDFLAGS)" \
 	     $(PLANET_PACKAGE)/tool/planet -o $@
 
-$(BUILDDIR)/planet.tar.gz: buildbox Makefile $(wildcard build.assets/**/*) $(GO_FILES)
+$(BUILDDIR)/planet.tar.gz: buildbox buildbox-binary Makefile $(wildcard build.assets/**/*) $(GO_FILES)
 	$(MAKE) -C $(ASSETS)/makefiles -e \
 		PLANET_BASE_IMAGE=$(PLANET_IMAGE) \
 		TARGETDIR=$(OUTPUTDIR) \
@@ -169,6 +169,15 @@ buildbox: base
 	$(MAKE) -e BUILDIMAGE=planet/buildbox \
 		DOCKERFILE=buildbox.dockerfile \
 		EXTRA_ARGS="--build-arg GOVERSION=$(BUILDBOX_GO_VER) --build-arg PLANET_BASE_IMAGE=$(PLANET_IMAGE)" \
+		make-docker-image
+
+# Build a container used for building the planet binary
+.PHONY: buildbox-binary
+buildbox-binary:
+	@echo -e "\n---> Making Planet/Binary Docker image:\n" ;\
+	$(MAKE) -e BUILDIMAGE=planet/buildbox-binary \
+		DOCKERFILE=buildbox-binary.dockerfile \
+		EXTRA_ARGS="--build-arg GOVERSION=$(BUILDBOX_GO_VER)" \
 		make-docker-image
 
 # Remove build artifacts
