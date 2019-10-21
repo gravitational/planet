@@ -96,7 +96,8 @@ ignored = ["github.com/Sirupsen/logrus", "github.com/gravitational/planet/build/
 
 [[constraint]]
   name = "github.com/gravitational/satellite"
-  version = "=7.0.2"
+  #version = "=7.0.2"
+  branch = "kevin/master/735-remove-kernel-params"
 
 [[constraint]]
   name = "github.com/gravitational/trace"
