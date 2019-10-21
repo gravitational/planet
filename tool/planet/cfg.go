@@ -121,8 +121,6 @@ type Config struct {
 	APIServerOptions string
 	// ServiceUser defines the user context for container's service user
 	ServiceUser serviceUser
-	// DockerPromiscuousMode specifies whether to put docker bridge into promiscuous mode
-	DockerPromiscuousMode bool
 	// DNS is the local DNS configuration
 	DNS DNS
 	// Taints is a list of kubernetes taints to apply to the object
