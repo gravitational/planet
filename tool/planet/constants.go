@@ -388,9 +388,6 @@ const (
 	// APIServerKeyPath specifies the path to the api server key
 	APIServerKeyPath = "/var/state/apiserver.key"
 
-	// DefaultDockerBridge specifies the default name of the docker bridge
-	DefaultDockerBridge = "docker0"
-
 	// DefaultDockerUnit specifies the name of the docker service unit file
 	DefaultDockerUnit = "docker.service"
 

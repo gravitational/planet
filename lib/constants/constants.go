@@ -58,9 +58,6 @@ const (
 	// CloudProviderGCE is the Google Compute Engine cloud provider ID
 	CloudProviderGCE = "gce"
 
-	// OverlayInterfaceName is the name of the linux network interface connected to the overlay network
-	OverlayInterfaceName = "docker0"
-
 	// APIServerDNSName is the domain name of the current leader server.
 	APIServerDNSName = "leader.telekube.local"
 	// APIServerDNSNameGravity is the domain name of the current leader server.
