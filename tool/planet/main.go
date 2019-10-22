@@ -132,7 +132,6 @@ func run() error {
 					OverrideDefaultFromEnvar(EnvPlanetAPIServerOptions).String()
 		cstartDNSListenAddrs        = List(cstart.Flag("dns-listen-addr", "Comma-separated list of addresses for CoreDNS to listen on").OverrideDefaultFromEnvar(EnvPlanetDNSListenAddr).Default(DefaultDNSListenAddr))
 		cstartDNSPort               = cstart.Flag("dns-port", "DNS port for CoreDNS").OverrideDefaultFromEnvar(EnvPlanetDNSPort).Default(strconv.Itoa(DNSPort)).Int()
-		cstartDockerPromiscuousMode = cstart.Flag("docker-promiscuous-mode", "Whether to put docker bridge into promiscuous mode").OverrideDefaultFromEnvar(EnvDockerPromiscuousMode).Bool()
 		cstartTaints                = List(cstart.Flag("taint", "Kubernetes taints to apply to the node during creation").OverrideDefaultFromEnvar(EnvPlanetTaints))
 		cstartNodeLabels            = List(cstart.Flag("node-label", "Kubernetes node label to apply upon node registration").OverrideDefaultFromEnvar(EnvPlanetNodeLabels))
 		cstartDisableFlannel        = cstart.Flag("disable-flannel", "Disable flannel within the planet container").OverrideDefaultFromEnvar(EnvDisableFlannel).Bool()
@@ -427,7 +426,6 @@ func run() error {
 			},
 			KubeletOptions:        *cstartKubeletOptions,
 			APIServerOptions:      *cstartAPIServerOptions,
-			DockerPromiscuousMode: *cstartDockerPromiscuousMode,
 			Taints:                *cstartTaints,
 			NodeLabels:            *cstartNodeLabels,
 			DisableFlannel:        *cstartDisableFlannel,

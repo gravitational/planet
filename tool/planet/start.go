@@ -159,7 +159,6 @@ func start(config *Config, monitorc chan<- bool) (*runtimeContext, error) {
 		box.EnvPair{Name: EnvClusterID, Val: config.ClusterID},
 		box.EnvPair{Name: EnvNodeName, Val: config.NodeName},
 		box.EnvPair{Name: EnvElectionEnabled, Val: strconv.FormatBool(config.ElectionEnabled)},
-		box.EnvPair{Name: EnvDockerPromiscuousMode, Val: strconv.FormatBool(config.DockerPromiscuousMode)},
 		box.EnvPair{Name: EnvDNSHosts, Val: config.DNS.Hosts.String()},
 		box.EnvPair{Name: EnvDNSZones, Val: config.DNS.Zones.String()},
 	)
@@ -464,20 +463,6 @@ func addDockerOptions(config *Config) error {
 	config.Env.Append(EnvDockerOptions, "--log-opt max-file=9", " ")
 	if config.DockerOptions != "" {
 		config.Env.Append(EnvDockerOptions, config.DockerOptions, " ")
-	}
-
-	if config.DockerPromiscuousMode {
-		dropInDir := filepath.Join(config.Rootfs, constants.SystemdUnitPath, utils.DropInDir(DefaultDockerUnit))
-		err := utils.WriteDropIn(dropInDir, DockerPromiscuousModeDropIn, []byte(`
-[Service]
-ExecStartPost=
-ExecStartPost=/usr/bin/gravity system enable-promisc-mode docker0
-ExecStopPost=
-ExecStopPost=-/usr/bin/gravity system disable-promisc-mode docker0
-`))
-		if err != nil {
-			return trace.Wrap(err)
-		}
 	}
 
 	return nil

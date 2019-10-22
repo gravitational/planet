@@ -342,14 +342,6 @@
                 }
             },
             {
-                "type": "Bool",
-                "name": "dockerpromiscuousmode",
-                "env": "PLANET_DOCKER_PROMISCUOUS_MODE",
-                "cli": {
-                    "name": "docker-promiscuous-mode"
-                }
-            },
-            {
                 "type": "String",
                 "name": "serviceuid",
                 "env": "PLANET_SERVICE_UID",

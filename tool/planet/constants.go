@@ -191,9 +191,6 @@ const (
 	// timeout for monitoring checks
 	EnvPlanetAgentHTTPTimeout = "PLANET_AGENT_HTTP_TIMEOUT"
 
-	// EnvDockerPromiscuousMode names the environment variable that specifies the
-	// promiscuous mode for docker
-	EnvDockerPromiscuousMode = "PLANET_DOCKER_PROMISCUOUS_MODE"
 	// EnvServiceGID names the environment variable that specifies the service user ID
 	EnvServiceUID = "PLANET_SERVICE_UID"
 	// EnvServiceGID names the environment variable that specifies the service group ID
@@ -391,15 +388,8 @@ const (
 	// APIServerKeyPath specifies the path to the api server key
 	APIServerKeyPath = "/var/state/apiserver.key"
 
-	// DefaultDockerBridge specifies the default name of the docker bridge
-	DefaultDockerBridge = "docker0"
-
 	// DefaultDockerUnit specifies the name of the docker service unit file
 	DefaultDockerUnit = "docker.service"
-
-	// DockerPromiscuousModeDropIn names the drop-in file with promiscuous mode configuration
-	// for docker bridge
-	DockerPromiscuousModeDropIn = "99-docker-promisc.conf"
 
 	// MinKernelVersion specifies the minimum kernel version on the host
 	MinKernelVersion = 310
