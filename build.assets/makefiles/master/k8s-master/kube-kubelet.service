@@ -14,8 +14,7 @@ ExecStart=/usr/bin/kubelet \
         --cluster-dns=${DNS_ADDRESSES} \
         --pod-infra-container-image=${KUBE_APISERVER}:5000/gcr.io/google_containers/pause:3.0 \
         --kubeconfig=/etc/kubernetes/kubelet.kubeconfig \
-        --register-with-taints=${PLANET_NODE_TAINTS} \
-        --node-labels=${PLANET_NODE_LABELS} \
+        --register=node=false \
         --network-plugin=cni \
         --kube-reserved=${KUBE_RESERVED} \
         --system-reserved=${KUBE_SYSTEM_RESERVED} \
