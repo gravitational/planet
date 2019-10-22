@@ -100,6 +100,14 @@
   version = "v2.0.0"
 
 [[projects]]
+  digest = "1:b54ea408c3a0a82d6d644fbb4468d00b50b1368482abc337aec72b60a3ea7c12"
+  name = "github.com/checkpoint-restore/go-criu"
+  packages = ["rpc"]
+  pruneopts = "UT"
+  revision = "17b0214f6c48980c45dc47ecb0cfd6d9e02df723"
+  version = "v3.11"
+
+[[projects]]
   branch = "master"
   digest = "1:5aaec2559dbb1fde897fd21b4165881391d7f7e069700bef640802068c8e7988"
   name = "github.com/cloudfoundry/gosigar"
@@ -162,7 +170,7 @@
   version = "v0.2.0"
 
 [[projects]]
-  digest = "1:23b153950e96615981a18dfee3b3c85070eacd9f4432257f093c42f4a2bed406"
+  digest = "1:d5286d88d5620c43617ecec0ec188ded033bf7a434b0c708cd16cd9a40545d04"
   name = "github.com/coreos/go-systemd"
   packages = [
     "dbus",
@@ -171,14 +179,6 @@
   pruneopts = "UT"
   revision = "40e2722dffead74698ca12a750f64ef313ddce05"
   version = "v16"
-
-[[projects]]
-  digest = "1:6e2ff82d2fe11ee35ec8dceb4346b8144a761f1c8655592c4ebe99a92fcec327"
-  name = "github.com/coreos/pkg"
-  packages = ["dlopen"]
-  pruneopts = "UT"
-  revision = "97fdf19511ea361ae1c100dd393cc47f8dcfa1e1"
-  version = "v4"
 
 [[projects]]
   digest = "1:ec66ad050342a3573ed2f5a4337d51b4c6d5d2a717cc6c9ecf86b081235a5759"
@@ -356,7 +356,8 @@
   version = "v1.0.0"
 
 [[projects]]
-  digest = "1:2942d3494ad21f4fd4f5e33bec709b80de205de5d20ac40d4ebfd28941972e8d"
+  branch = "dmitri/6.1.x/3224-selinux"
+  digest = "1:68a0ab1325b70f045bc8f8f628cb3f81aea86d1f1eed40c05767400ea2bb604c"
   name = "github.com/gravitational/satellite"
   packages = [
     "agent",
@@ -371,8 +372,7 @@
     "utils"
   ]
   pruneopts = "UT"
-  revision = "c76d666421f42d197db80ffdd6b821831868213b"
-  version = "6.1.2"
+  revision = "e298bdf2412245729351a161b9547b9c740a0c6d"
 
 [[projects]]
   digest = "1:afb36747f009e72637bdf1b3f5d27f3c1d5e1fc5478fc4aba2a33e40e8829dee"
@@ -513,6 +513,14 @@
   version = "v1.2.0"
 
 [[projects]]
+  digest = "1:31e761d97c76151dde79e9d28964a812c46efc5baee4085b86f68f0c654450de"
+  name = "github.com/konsorten/go-windows-terminal-sequences"
+  packages = ["."]
+  pruneopts = "UT"
+  revision = "f55edac94c9bbba5d6182a4be46d86a2c9b5b50e"
+  version = "v1.0.2"
+
+[[projects]]
   digest = "1:ca955a9cd5b50b0f43d2cc3aeb35c951473eeca41b34eb67507f1dbcc0542394"
   name = "github.com/kr/pretty"
   packages = ["."]
@@ -609,7 +617,7 @@
   revision = "7d4729fb36185a7c1719923406c9d40e54fb93c7"
 
 [[projects]]
-  digest = "1:3a7b076f85f7786b280e7b06017cfa7f9379dfde983ac5280eb471d0f8a14baa"
+  digest = "1:a0a6bac15fb64d7300962814610edf5f294f39ea82e87127b0a539f9c3c9b1a4"
   name = "github.com/opencontainers/runc"
   packages = [
     "libcontainer",
@@ -619,10 +627,10 @@
     "libcontainer/cgroups/systemd",
     "libcontainer/configs",
     "libcontainer/configs/validate",
-    "libcontainer/criurpc",
     "libcontainer/devices",
     "libcontainer/intelrdt",
     "libcontainer/keys",
+    "libcontainer/logs",
     "libcontainer/mount",
     "libcontainer/nsenter",
     "libcontainer/seccomp",
@@ -632,8 +640,8 @@
     "libcontainer/utils"
   ]
   pruneopts = "UT"
-  revision = "ccb5efd37fb7c86364786e9137e22948751de7ed"
-  version = "v1.0.0-rc6"
+  revision = "d736ef14f0288d6993a1845745d6756cfc9ddd5a"
+  version = "v1.0.0-rc9"
 
 [[projects]]
   digest = "1:7a58202c5cdf3d2c1eb0621fe369315561cea7f036ad10f0f0479ac36bcc95eb"
@@ -643,15 +651,15 @@
   revision = "29686dbc5559d93fb1ef402eeda3e35c38d75af4"
 
 [[projects]]
-  digest = "1:5c65c485fa22fdfd6937db07aaf879904a4745770ee416d8d1f2a1434dc2d8ce"
+  digest = "1:13a9ef7516b4341849ea7ade3efdd3028ae4d3874d78dfa00ca39b28e15582ea"
   name = "github.com/opencontainers/selinux"
   packages = [
     "go-selinux",
     "go-selinux/label"
   ]
   pruneopts = "UT"
-  revision = "ba1aefe8057f1d0cfb8e88d0ec1dc85925ef987d"
-  version = "v1.0.0-rc1"
+  revision = "bd4431961747d849bd92a9853f63f05235344637"
+  version = "1.3.0"
 
 [[projects]]
   digest = "1:e5d0bd87abc2781d14e274807a470acd180f0499f8bf5bb18606e9ec22ad9de9"
@@ -738,16 +746,16 @@
   version = "v0.9.0"
 
 [[projects]]
-  digest = "1:2dc4fddf37503f952699873c7433efc11b569253ecd90d3ad4d8081431df100f"
+  branch = "dmitri/update-upstream"
+  digest = "1:68881bada573c001a65c7d3dd5f0d52301204d05b981cf5c030662728871b251"
   name = "github.com/sirupsen/logrus"
   packages = [
     ".",
     "hooks/syslog"
   ]
   pruneopts = "UT"
-  revision = "dcdb95d728dbb6fe4b9fbe6b3b9d1fb268e68036"
+  revision = "b1b7578d8a6f702e625185029eab4922c4cb2a77"
   source = "github.com/gravitational/logrus"
-  version = "1.0.6"
 
 [[projects]]
   digest = "1:c1b1102241e7f645bc8e0c22ae352e8f0dc6484b6cb4d132fa9f24174e0119e2"
@@ -846,14 +854,14 @@
   revision = "9dcd33a902f40452422c2367fefcb95b54f9f8f8"
 
 [[projects]]
-  digest = "1:a8b6f3b4dc60e2fa266203e846ae58bde7fd2a737201080827375e21455b0d2e"
+  digest = "1:689d11c3e6d3df8a1e2d2ad5a494ea99659d09faf706472bdd64cac7ac5f6887"
   name = "golang.org/x/sys"
   packages = [
     "unix",
     "windows"
   ]
   pruneopts = "UT"
-  revision = "78d5f264b493f125018180c204871ecf58a2dce1"
+  revision = "9eafafc0a87e0fd0aeeba439a4573537970c44c7"
 
 [[projects]]
   digest = "1:a2ab62866c75542dd18d2b069fec854577a20211d7c0ea6ae746072a1dccdd18"
