@@ -176,6 +176,9 @@ func Start(cfg Config) (*Box, error) {
 
 	// start the API server
 	socketPath := serverSockPath(cfg.Rootfs, cfg.SocketPath)
+	if err := os.RemoveAll(socketPath); err != nil {
+		return trace.ConvertSystemError(err)
+	}
 	listener, err := net.Listen("unix", socketPath)
 	if err != nil {
 		return nil, trace.Wrap(err)
