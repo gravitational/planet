@@ -177,7 +177,7 @@ func Start(cfg Config) (*Box, error) {
 	// start the API server
 	socketPath := serverSockPath(cfg.Rootfs, cfg.SocketPath)
 	if err := os.RemoveAll(socketPath); err != nil {
-		return trace.ConvertSystemError(err)
+		return nil, trace.ConvertSystemError(err)
 	}
 	listener, err := net.Listen("unix", socketPath)
 	if err != nil {
@@ -373,8 +373,9 @@ func getLibcontainerConfig(containerID, rootfs string, cfg Config) (*configs.Con
 			},
 		},
 
-		Devices:  append(configs.DefaultAutoCreatedDevices, append(loopDevices, disks...)...),
-		Hostname: hostname,
+		Devices:      append(configs.DefaultAutoCreatedDevices, append(loopDevices, disks...)...),
+		Hostname:     hostname,
+		ProcessLabel: cfg.ProcessLabel,
 	}
 
 	// Cgroup namespaces aren't currently available in redhat/centos based kernels

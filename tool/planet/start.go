@@ -278,8 +278,8 @@ func start(config *Config, monitorc chan<- bool) (*runtimeContext, error) {
 		InitArgs:     []string{"/bin/systemd"},
 		InitEnv:      []string{"container=docker", "LC_ALL=en_US.UTF-8"},
 		Capabilities: allCaps,
+		ProcessLabel: "system_u:system_r:init_t:s0", // FIXME: move to const
 	}
-	defer log.Infof("start() is done!")
 
 	listener, err := newUdevListener(config.Rootfs, config.SocketPath)
 	if err != nil {
