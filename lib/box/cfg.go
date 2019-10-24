@@ -37,20 +37,16 @@ type Config struct {
 	InitEnv []string
 	// InitUser is a user running the init process
 	InitUser string
-
 	// EnvFiles has a list of files that will generated when process starts
 	EnvFiles []EnvFile
 	// Files is an optional list of files that will be placed
 	// in the container when started
 	Files []File
-
 	// Rootfs is a root filesystem of the container
 	Rootfs string
-
 	// SocketPath is a path to the socket file for remote command control.
 	// Ignored with systemd socket-activation.
 	SocketPath string
-
 	// Mounts is a list of device/directory/file mounts passed to the server
 	Mounts Mounts
 	// Devices is a list of devices to create inside the container
@@ -59,6 +55,8 @@ type Config struct {
 	Capabilities []string
 	// DataDir is a directory where libcontainer stores the container state
 	DataDir string
+	// ProcessLabel specifies the SELinux process label
+	ProcessLabel string
 }
 
 // ClientConfig defines a configuration to connect to a running box.
