@@ -7,7 +7,7 @@
   name = "github.com/Azure/go-ansiterm"
   packages = [
     ".",
-    "winterm",
+    "winterm"
   ]
   pruneopts = "UT"
   revision = "19f72df4d05d31cbe1c56bfc8045c96babff6c7e"
@@ -17,7 +17,7 @@
   name = "github.com/alecthomas/template"
   packages = [
     ".",
-    "parse",
+    "parse"
   ]
   pruneopts = "UT"
   revision = "b867cc6ab45cece8143cfcc6fc9c77cf3f2c23c0"
@@ -64,7 +64,7 @@
     "private/protocol/query/queryutil",
     "private/protocol/rest",
     "private/protocol/xml/xmlutil",
-    "service/sts",
+    "service/sts"
   ]
   pruneopts = "UT"
   revision = "5197757a58a794d49d2d0c50a932997157734100"
@@ -123,7 +123,7 @@
     "pkg/tlsutil",
     "pkg/transport",
     "pkg/types",
-    "version",
+    "version"
   ]
   pruneopts = "UT"
   revision = "e348b1aedd9167360c466ae98f7343d3e22281f8"
@@ -142,7 +142,7 @@
   name = "github.com/coreos/go-systemd"
   packages = [
     "dbus",
-    "util",
+    "util"
   ]
   pruneopts = "UT"
   revision = "40e2722dffead74698ca12a750f64ef313ddce05"
@@ -177,7 +177,7 @@
   name = "github.com/docker/docker"
   packages = [
     "pkg/term",
-    "pkg/term/windows",
+    "pkg/term/windows"
   ]
   pruneopts = "UT"
   revision = "a34a1d598c6096ed8b5ce5219e77d68e5cd85462"
@@ -229,7 +229,7 @@
     "gogoproto",
     "proto",
     "protoc-gen-gogo/descriptor",
-    "sortkeys",
+    "sortkeys"
   ]
   pruneopts = "UT"
   revision = "100ba4e885062801d56799d78530b73b178a78f3"
@@ -250,7 +250,7 @@
     "ptypes",
     "ptypes/any",
     "ptypes/duration",
-    "ptypes/timestamp",
+    "ptypes/timestamp"
   ]
   pruneopts = "UT"
   revision = "8ee79997227bf9b34611aee7946ae64735e6fd93"
@@ -276,7 +276,7 @@
   packages = [
     "OpenAPIv2",
     "compiler",
-    "extensions",
+    "extensions"
   ]
   pruneopts = "UT"
   revision = "ee43cbb60db7bd22502942cccbc39059117352ab"
@@ -288,7 +288,7 @@
   name = "github.com/gravitational/configure"
   packages = [
     ".",
-    "cstrings",
+    "cstrings"
   ]
   pruneopts = "UT"
   revision = "4e0f2df8846ee9557b5c88307a769ff2f85e89cd"
@@ -299,7 +299,7 @@
   name = "github.com/gravitational/coordinate"
   packages = [
     "config",
-    "leader",
+    "leader"
   ]
   pruneopts = "UT"
   revision = "2bc9a83f6fe22919202fb09bfa01f2ff8b7784cb"
@@ -329,7 +329,7 @@
   revision = "f39421c51f636f6a03a79a168aacc628e37a584b"
 
 [[projects]]
-  digest = "1:2b834fa25388f2bda08992015e35000e002fabd11f257fbf9a996feb3ffa4d69"
+  digest = "1:a44d75c968d7601b20383d16b5dee570eae143887e13635dbcd29f69162c4be1"
   name = "github.com/gravitational/satellite"
   packages = [
     "agent",
@@ -340,11 +340,11 @@
     "lib/kubernetes",
     "monitoring",
     "monitoring/collector",
-    "utils",
+    "utils"
   ]
   pruneopts = "UT"
-  revision = "097fbc4daa1440dc454385927340526c9850ef01"
-  version = "5.2.9"
+  revision = "256ee603d970e04778733f00c10a26f57d6ff9a7"
+  version = "5.2.10"
 
 [[projects]]
   digest = "1:e3391db7bc537e6d556635e3f8882dd877a1f04e98e40e64396b716d6a61cef6"
@@ -367,7 +367,7 @@
   name = "github.com/gregjones/httpcache"
   packages = [
     ".",
-    "diskcache",
+    "diskcache"
   ]
   pruneopts = "UT"
   revision = "9cad4c3443a7200dd6400aef47183728de563a38"
@@ -401,7 +401,7 @@
   packages = [
     "client",
     "coordinate",
-    "serf",
+    "serf"
   ]
   pruneopts = "UT"
   revision = "11bb88abf7b17f0b794b51416a9107d781e95f35"
@@ -504,7 +504,7 @@
     "libcontainer/stacktrace",
     "libcontainer/system",
     "libcontainer/user",
-    "libcontainer/utils",
+    "libcontainer/utils"
   ]
   pruneopts = "UT"
   revision = "4fc53a81fb7c994640722ac585fa9ca548971871"
@@ -523,7 +523,7 @@
   name = "github.com/opencontainers/selinux"
   packages = [
     "go-selinux",
-    "go-selinux/label",
+    "go-selinux/label"
   ]
   pruneopts = "UT"
   revision = "ba1aefe8057f1d0cfb8e88d0ec1dc85925ef987d"
@@ -582,7 +582,7 @@
   packages = [
     "expfmt",
     "internal/bitbucket.org/ww/goautoneg",
-    "model",
+    "model"
   ]
   pruneopts = "UT"
   revision = "50022896a67062a54a54f268fb6fe4bf90b34859"
@@ -638,7 +638,7 @@
   name = "github.com/vishvananda/netlink"
   packages = [
     ".",
-    "nl",
+    "nl"
   ]
   pruneopts = "UT"
   revision = "bfd70f556483c008636b920dda142fdaa0d59ef9"
@@ -662,7 +662,7 @@
     "internal/timeseries",
     "lex/httplex",
     "trace",
-    "websocket",
+    "websocket"
   ]
   pruneopts = "UT"
   revision = "ab5485076ff3407ad2d02db054635913f017b0ed"
@@ -672,7 +672,7 @@
   name = "golang.org/x/sys"
   packages = [
     "unix",
-    "windows",
+    "windows"
   ]
   pruneopts = "UT"
   revision = "78d5f264b493f125018180c204871ecf58a2dce1"
@@ -690,7 +690,7 @@
     "unicode/bidi",
     "unicode/cldr",
     "unicode/norm",
-    "unicode/rangetable",
+    "unicode/rangetable"
   ]
   pruneopts = "UT"
   revision = "3bd178b88a8180be2df394a1fbb81313916f0e7b"
@@ -738,7 +738,7 @@
     "stats",
     "status",
     "tap",
-    "transport",
+    "transport"
   ]
   pruneopts = "UT"
   revision = "d11072e7ca9811b1100b80ca0269ac831f06d024"
@@ -807,7 +807,7 @@
     "settings/v1alpha1",
     "storage/v1",
     "storage/v1alpha1",
-    "storage/v1beta1",
+    "storage/v1beta1"
   ]
   pruneopts = "UT"
   revision = "2d6f90ab1293a1fb871cf149423ebb72aa7423aa"
@@ -852,7 +852,7 @@
     "pkg/util/yaml",
     "pkg/version",
     "pkg/watch",
-    "third_party/forked/golang/reflect",
+    "third_party/forked/golang/reflect"
   ]
   pruneopts = "UT"
   revision = "103fd098999dc9c0c88536f5c9ad2e5da39373ae"
@@ -913,7 +913,7 @@
     "util/connrotation",
     "util/flowcontrol",
     "util/homedir",
-    "util/integer",
+    "util/integer"
   ]
   pruneopts = "UT"
   revision = "7d04d0e2a0a1a4d4a1cd6baa432a2301492e4e65"
@@ -963,7 +963,7 @@
     "k8s.io/apimachinery/pkg/apis/meta/v1",
     "k8s.io/apimachinery/pkg/util/intstr",
     "k8s.io/client-go/kubernetes",
-    "k8s.io/client-go/tools/clientcmd",
+    "k8s.io/client-go/tools/clientcmd"
   ]
   solver-name = "gps-cdcl"
   solver-version = 1
