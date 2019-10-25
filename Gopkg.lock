@@ -356,8 +356,8 @@
   version = "v1.0.0"
 
 [[projects]]
-  branch = "kevin/master/735-remove-kernel-params"
-  digest = "1:7a9b62e4bd1670979e81943cb9ae7b1824695267758a24ea10c0dbc9d7d813e4"
+  branch = "sergei/bump_k8s_master"
+  digest = "1:ed870a58bc4612fe060a28d6384d9a70c3068d438fd420554a996a0fd3c2d268"
   name = "github.com/gravitational/satellite"
   packages = [
     "agent",
@@ -372,7 +372,7 @@
     "utils"
   ]
   pruneopts = "UT"
-  revision = "8d6b453c24c2873ec60f10aeb4f9ef714f5ef1dc"
+  revision = "a9e16e491011fee420cdb0883a0fbd05c4f09db0"
 
 [[projects]]
   digest = "1:418247f700939c99867b42639d985686ba229fd9f8ee9e119c7cc3ffde6e0fe3"
@@ -979,9 +979,10 @@
   version = "v2.2.2"
 
 [[projects]]
-  digest = "1:b2e959d92a38ffc25142da8e8bf4fefe0e5e687ecb871fabaac58db0497304df"
+  digest = "1:274e6b4fd11a6a01212ee6af5ba488c7623f5eaa7339d3bb5642220d96ee8744"
   name = "k8s.io/api"
   packages = [
+    "admissionregistration/v1",
     "admissionregistration/v1beta1",
     "apps/v1",
     "apps/v1beta1",
@@ -1001,6 +1002,7 @@
     "coordination/v1",
     "coordination/v1beta1",
     "core/v1",
+    "discovery/v1alpha1",
     "events/v1beta1",
     "extensions/v1beta1",
     "networking/v1",
@@ -1020,11 +1022,11 @@
     "storage/v1beta1"
   ]
   pruneopts = "UT"
-  revision = "b59d8169aab578b59c8d331a0e8cf6c56fae5fa0"
-  version = "kubernetes-1.15.1"
+  revision = "35e52d86657aba06859dd22099bfa14faf1effb2"
+  version = "kubernetes-1.16.2"
 
 [[projects]]
-  digest = "1:0851b2d4c2da18124262ac7716212a91314e884108858413f45f2b72b9cfa390"
+  digest = "1:a2de46a80e7c5496d9fa957b2f58484cdac99d0efda6d23162525cb955dec993"
   name = "k8s.io/apimachinery"
   packages = [
     "pkg/api/errors",
@@ -1065,16 +1067,17 @@
     "third_party/forked/golang/reflect"
   ]
   pruneopts = "UT"
-  revision = "1799e75a07195de9460b8ef7300883499f12127b"
-  version = "kubernetes-1.15.1"
+  revision = "a2eda9f80ab8a454a81bdde16d62a1afe5f931c0"
+  version = "kubernetes-1.16.2"
 
 [[projects]]
-  digest = "1:3620c1d82183765e30dd6d7190ed56fcb410a7e382c3e8410d7cf0cafa7dd9fd"
+  digest = "1:2744e19eaa390761c70a9836be95f53675aa71a31f22a747386d1c3e34ad975c"
   name = "k8s.io/client-go"
   packages = [
     "discovery",
     "kubernetes",
     "kubernetes/scheme",
+    "kubernetes/typed/admissionregistration/v1",
     "kubernetes/typed/admissionregistration/v1beta1",
     "kubernetes/typed/apps/v1",
     "kubernetes/typed/apps/v1beta1",
@@ -1094,6 +1097,7 @@
     "kubernetes/typed/coordination/v1",
     "kubernetes/typed/coordination/v1beta1",
     "kubernetes/typed/core/v1",
+    "kubernetes/typed/discovery/v1alpha1",
     "kubernetes/typed/events/v1beta1",
     "kubernetes/typed/extensions/v1beta1",
     "kubernetes/typed/networking/v1",
@@ -1133,8 +1137,8 @@
     "util/keyutil"
   ]
   pruneopts = "UT"
-  revision = "78d2af792babf2dd937ba2e2a8d99c753a5eda89"
-  version = "v12.0.0"
+  revision = "bec269661e48cb1e5fbb0d037f356ffe9e9978a0"
+  version = "kubernetes-1.16.2"
 
 [[projects]]
   digest = "1:e2999bf1bb6eddc2a6aa03fe5e6629120a53088926520ca3b4765f77d7ff7eab"
@@ -1145,12 +1149,12 @@
   version = "v0.1.0"
 
 [[projects]]
-  digest = "1:9cee2a0644de4caac433454657c8770ac8f076c050f8347506a7f4c6815f8485"
+  digest = "1:b61aa831a5a94628a1f58582bd49b07c4d795a15ee1eeb1467da70bcf268575d"
   name = "k8s.io/kubelet"
   packages = ["config/v1beta1"]
   pruneopts = "UT"
-  revision = "9b45f80d5747295459229f725b88bc9fb28129c3"
-  version = "kubernetes-1.15.1"
+  revision = "7841ed97f1b27683bb19367f01d3155524d5f5f0"
+  version = "kubernetes-1.16.2"
 
 [[projects]]
   branch = "master"
