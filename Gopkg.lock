@@ -356,8 +356,7 @@
   version = "v1.0.0"
 
 [[projects]]
-  branch = "sergei/bump_k8s_master"
-  digest = "1:ed870a58bc4612fe060a28d6384d9a70c3068d438fd420554a996a0fd3c2d268"
+  digest = "1:db6f78ce1b4c0b2404814735027cc00156b1317fefe279c76b8628bd6e5b9928"
   name = "github.com/gravitational/satellite"
   packages = [
     "agent",
@@ -372,7 +371,8 @@
     "utils"
   ]
   pruneopts = "UT"
-  revision = "a9e16e491011fee420cdb0883a0fbd05c4f09db0"
+  revision = "38ad0d30a6f68c28125b3c56a92137681f282c26"
+  version = "7.0.4"
 
 [[projects]]
   digest = "1:418247f700939c99867b42639d985686ba229fd9f8ee9e119c7cc3ffde6e0fe3"
