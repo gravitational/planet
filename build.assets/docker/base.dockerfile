@@ -70,4 +70,5 @@ RUN curl -L https://github.com/coredns/coredns/releases/download/v${COREDNS_VER}
     rm -rf /tmp/coredns*
 
 RUN groupadd --system --non-unique --gid 1000 planet ;\
-    useradd --system --non-unique --no-create-home -g 1000 -u 1000 planet
+    useradd --system --non-unique --no-create-home -g 1000 -u 1000 planet;\
+    groupadd --system docker;

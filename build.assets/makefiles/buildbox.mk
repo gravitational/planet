@@ -56,6 +56,8 @@ planet-image:
 	cd $(TARGETDIR) && fakeroot -- sh -c ' \
 		chown -R 1000:1000 . ; \
 		chown -R root:root rootfs/sbin/mount.* ; \
+		chown -R root:1000 rootfs/etc/ ; \
+		chmod -R g+r rootfs/etc/ ; \
 		tar -czf $(TARBALL) orbit.manifest.json rootfs'
 	@echo -e "\nDone --> $(TARBALL)"
 

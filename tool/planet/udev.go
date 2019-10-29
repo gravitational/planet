@@ -34,6 +34,9 @@ import (
 func newUdevListener(rootfs, socketPath string) (*udevListener, error) {
 	udev := udev.Udev{}
 	monitor := udev.NewMonitorFromNetlink("udev")
+	if monitor == nil {
+		return nil, trace.BadParameter("failed to create udev monitor")
+	}
 	doneC := make(chan struct{})
 
 	if err := monitor.FilterAddMatchSubsystemDevtype("block", "disk"); err != nil {

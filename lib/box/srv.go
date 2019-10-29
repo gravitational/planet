@@ -317,7 +317,9 @@ func getLibcontainerConfig(containerID, rootfs string, cfg Config) (*configs.Con
 				Source:      "sysfs",
 				Destination: "/sys",
 				Device:      "sysfs",
-				Flags:       defaultMountFlags,
+				// "rprivate", "nosuid", "noexec", "nodev", "rw"
+				// Flags: syscall.MS_PRIVATE | syscall.MS_REC | syscall.MS_NOSUID | syscall.MS_NOEXEC | syscall.MS_NODEV,
+				Flags: syscall.MS_NOSUID | syscall.MS_NOEXEC | syscall.MS_NODEV | syscall.MS_RDONLY,
 			},
 			{
 				Source:      "devpts",
@@ -360,6 +362,12 @@ func getLibcontainerConfig(containerID, rootfs string, cfg Config) (*configs.Con
 				Source:      "/run/udev",
 				Destination: "/run/udev",
 				Flags:       syscall.MS_BIND,
+			},
+			{
+				Device:      "bind",
+				Source:      "/etc/selinux",
+				Destination: "/etc/selinux",
+				Flags:       defaultMountFlags | syscall.MS_BIND | syscall.MS_RDONLY,
 			},
 		},
 		Cgroups: &configs.Cgroup{
