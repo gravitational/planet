@@ -354,6 +354,13 @@ func getLibcontainerConfig(containerID, rootfs string, cfg Config) (*configs.Con
 			// 	Flags: syscall.MS_PRIVATE | syscall.MS_REC | syscall.MS_NOSUID | syscall.MS_NOEXEC | syscall.MS_NODEV | syscall.MS_RELATIME,
 			// },
 			{
+				Destination: "/sys/fs/selinux",
+				Source:      "/sys/fs/selinux",
+				Device:      "bind",
+				// Flags:       syscall.MS_BIND | syscall.MS_RDONLY | syscall.MS_RELATIME,
+				Flags: syscall.MS_BIND | syscall.MS_RELATIME,
+			},
+			{
 				Device:      "bind",
 				Source:      "/etc/selinux",
 				Destination: "/etc/selinux",
