@@ -83,9 +83,9 @@ func startAndWait(config *Config) error {
 func start(config *Config, monitorc chan<- bool) (*runtimeContext, error) {
 	log.Infof("starting with config: %#v", config)
 
-	if !isRoot() {
-		return nil, trace.Errorf("must be run as root")
-	}
+	// if !isRoot() {
+	// 	return nil, trace.Errorf("must be run as root")
+	// }
 
 	var err error
 
@@ -236,9 +236,10 @@ func start(config *Config, monitorc chan<- bool) (*runtimeContext, error) {
 		return nil, trace.Wrap(err)
 	}
 
-	if err = setKubeConfigOwnership(config); err != nil {
-		return nil, trace.Wrap(err)
-	}
+	// FIXME: selinux
+	// if err = setKubeConfigOwnership(config); err != nil {
+	// 	return nil, trace.Wrap(err)
+	// }
 	mountSecrets(config)
 
 	err = setHosts(config, []utils.HostEntry{

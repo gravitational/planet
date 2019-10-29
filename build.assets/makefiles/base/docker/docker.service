@@ -18,10 +18,10 @@ ExecStartPre=-/bin/rm -f /var/run/docker.pid
 # On new install, docker will default to using 172.17.0.0/16 for the docker bridge, which CNI will refuse to manage
 # On upgrade, docker will use the flannel network, conflicting with the bridge created by CNI
 # So remove any cached network setting, so that docker gets reset back to 172.17.0.0/16 for its network
-ExecStartPre=-/bin/rm -r /ext/docker/network
-ExecStart=/usr/bin/dockerd  --iptables=false --ip-masq=false --graph=/ext/docker $DOCKER_OPTS
+ExecStartPre=-/bin/rm -rf /ext/docker/network
+ExecStart=/usr/bin/dockerd  --iptables=false --ip-masq=false --data-root=/ext/docker $DOCKER_OPTS
 ExecReload=/bin/kill -s HUP $MAINPID
-# Having non-zero Limit*s causes performance problems due to accounting overhead
+# Having non-zero Limits causes performance problems due to accounting overhead
 # in the kernel. We recommend using cgroups to do container-local accounting.
 #LimitNOFILE=infinity
 LimitNOFILE=1000000
