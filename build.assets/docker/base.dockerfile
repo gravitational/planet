@@ -10,6 +10,7 @@ ARG COREDNS_VER
 # as the package has a dependency on the older version as the one available.
 RUN apt-get update && apt-get install -q -y --allow-downgrades bridge-utils \
         seccomp=$SECCOMP_VER \
+	auditd \
         bash-completion \
         kmod \
         libip4tc0=1.6.0+snapshot20161117-6 \
