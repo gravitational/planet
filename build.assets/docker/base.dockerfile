@@ -11,6 +11,7 @@ ARG COREDNS_VER
 RUN apt-get update && apt-get install -q -y --allow-downgrades bridge-utils \
         seccomp=$SECCOMP_VER \
 	auditd \
+	policycoreutils \
         bash-completion \
         kmod \
         libip4tc0=1.6.0+snapshot20161117-6 \
@@ -72,4 +73,5 @@ RUN curl -L https://github.com/coredns/coredns/releases/download/v${COREDNS_VER}
 
 RUN groupadd --system --non-unique --gid 1000 planet ;\
     useradd --system --non-unique --no-create-home -g 1000 -u 1000 planet;\
+    usermod -a -G planet root;\
     groupadd --system docker;
