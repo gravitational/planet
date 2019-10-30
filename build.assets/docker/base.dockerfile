@@ -46,9 +46,10 @@ RUN apt-get update && apt-get install -q -y --allow-downgrades bridge-utils \
         nfs-common \
         jq \
         conntrack \
-        strace ; \
-    apt-get -t testing install -y lvm2; \
-    apt-get -y autoclean; apt-get -y clean
+        strace \
+        procps \
+        lvm2 && \
+    apt-get -y autoclean && apt-get -y clean
 
 # do not install docker from Debian repositories but rather download static binaries for seccomp support
 RUN curl https://download.docker.com/linux/static/stable/x86_64/docker-$DOCKER_VER-ce.tgz -o /tmp/docker-$DOCKER_VER.tgz && \
@@ -68,4 +69,3 @@ RUN curl -L https://github.com/coredns/coredns/releases/download/v${COREDNS_VER}
 
 RUN groupadd --system --non-unique --gid 1000 planet ;\
     useradd --system --non-unique --no-create-home -g 1000 -u 1000 planet
-
