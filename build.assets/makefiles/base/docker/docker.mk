@@ -7,9 +7,11 @@ REGISTRY_ALIASES := apiserver:5000 \
 		leader.telekube.local:5000 \
 		leader.gravity.local:5000 \
 		registry.local:5000
+TARBALL := $(ASSETDIR)/docker-v$(DOCKER_VER).tgz
 
 .PHONY: all
-all: service scripts certs
+all: service scripts certs $(TARBALL)
+	tar xvzf $(TARBALL) --strip-components=1 -C $(ROOTFS)/usr/bin
 
 .PHONY: service
 service:
@@ -35,3 +37,6 @@ certs:
 		ln -sf /var/state/kubelet.cert $(ROOTFS)/etc/docker/certs.d/$$r/client.cert; \
 		ln -sf /var/state/kubelet.key $(ROOTFS)/etc/docker/certs.d/$$r/client.key; \
 	done
+
+$(TARBALL):
+	curl https://download.docker.com/linux/static/stable/x86_64/docker-$(DOCKER_VER).tgz -o $@

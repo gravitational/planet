@@ -5,16 +5,16 @@ NAME := flannel
 TARGET := $(NAME)-$(FLANNEL_VER)
 TARGET_TAR := $(TARGET)-linux-$(ARCH).tar.gz
 BINARIES := $(ASSETDIR)/flanneld-$(FLANNEL_VER)
+CNI_TARBALL := $(ASSETDIR)/cni-plugins-amd64-v$(CNI_VER).tgz
 
-all: $(BINARIES) network.mk
+all: $(BINARIES) $(CNI_TARBALL) network.mk
 	@echo "\\n---> Installing Flannel and preparing network stack for Kubernetes:\\n"
 	mkdir -p $(ASSETDIR)
 	cp -af $(BINARIES) $(ROOTFS)/usr/bin/flanneld
 	cp -af ./flanneld.service $(ROOTFS)/lib/systemd/system
 	# Setup CNI and include flannel as a plugin
 	mkdir -p $(ROOTFS)/etc/cni/net.d/ $(ROOTFS)/opt/cni/bin
-	curl -L --retry 5 https://github.com/containernetworking/plugins/releases/download/v0.7.5/cni-plugins-amd64-v0.7.5.tgz \
-		| tar -xz -C $(ROOTFS)/opt/cni/bin ./bridge ./loopback ./host-local ./portmap ./tuning ./flannel
+	tar -xzvf $(CNI_TARBALL) -C $(ROOTFS)/opt/cni/bin ./bridge ./loopback ./host-local ./portmap ./tuning ./flannel
 
 # script that allows waiting for etcd to come up
 	mkdir -p $(ROOTFS)/usr/bin/scripts
@@ -32,3 +32,9 @@ $(BINARIES):
 	cd $(DIR)/src/github.com/coreos/flannel && go build -o flanneld .
 	cp $(DIR)/src/github.com/coreos/flannel/flanneld $@
 	rm -rf $(DIR)
+
+$(CNI_TARBALL):
+	curl -L --retry 5 \
+		https://github.com/containernetworking/plugins/releases/download/v$(CNI_VER)/cni-plugins-amd64-v$(CNI_VER).tgz \
+		-o $@
+

@@ -32,9 +32,13 @@ build: | $(ASSETDIR)
 		--env="TARGETDIR=/targetdir" \
 		--env="ASSETDIR=/assetdir" \
 		$(BUILDBOX_IMAGE) \
-		make -e \
+		dumb-init make -e \
 			KUBE_VER=$(KUBE_VER) \
+			HELM_VER=$(HELM_VER) \
+			COREDNS_VER=$(COREDNS_VER) \
+			CNI_VER=$(CNI_VER) \
 			FLANNEL_VER=$(FLANNEL_VER) \
+			DOCKER_VER=$(DOCKER_VER) \
 			SERF_VER=$(SERF_VER) \
 			ETCD_VER="$(ETCD_VER)" \
 			ETCD_LATEST_VER=$(ETCD_LATEST_VER) \
