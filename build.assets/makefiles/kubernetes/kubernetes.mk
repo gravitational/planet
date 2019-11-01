@@ -15,14 +15,14 @@ BINARIES := kube-apiserver \
 KUBE_OUTPUTS := $(addprefix $(OUTPUTDIR)/, $(BINARIES))
 OUTPUTS := $(KUBE_OUTPUTS) $(HELM_TARBALL) $(COREDNS_TARBALL)
 
-all: kubernetes.mk $(OUTPUTS) | $(DIRS)
+all: kubernetes.mk $(OUTPUTS)
 	tar xvzf $(COREDNS_TARBALL) --strip-components=1 -C $(ROOTFS)/usr/bin coredns
 	tar xvzf $(HELM_TARBALL) --strip-components=1 -C $(ROOTFS)/usr/bin linux-amd64/helm
 
-$(DIRS):
-	mkdir -p $(OUTPUTDIR) $(HELM_OUTPUTDIR) $(COREDNS_OUTPUTDIR)
+$(OUTPUTDIR):
+	mkdir -p $@
 
-$(KUBE_OUTPUTS):
+$(KUBE_OUTPUTS): | $(OUTPUTDIR)
 	@echo "\n---> Downloading kubernetes:\n"
 	curl $(CURL_OPTS) -o $@ $(DOWNLOAD_URL)/$(notdir $@)
 	chmod +x $@
