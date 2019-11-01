@@ -29,9 +29,13 @@ build: | $(ASSETDIR)
 		--env="TARGETDIR=/targetdir" \
 		--env="ASSETDIR=/assetdir" \
 		planet/buildbox:latest \
-		make -e \
+		dumb-init make -e \
 			KUBE_VER=$(KUBE_VER) \
+			HELM_VER=$(HELM_VER) \
+			COREDNS_VER=$(COREDNS_VER) \
+			CNI_VER=$(CNI_VER) \
 			FLANNEL_VER=$(FLANNEL_VER) \
+			DOCKER_VER=$(DOCKER_VER) \
 			ETCD_VER="$(ETCD_VER)" \
 			ETCD_LATEST_VER=$(ETCD_LATEST_VER) \
 			-C /assets/makefiles -f planet.mk

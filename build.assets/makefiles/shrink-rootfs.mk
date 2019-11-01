@@ -33,3 +33,10 @@ all:
 	$(foreach timer,$(timers),rm -f $(ROOTFS)/lib/systemd/system/timers.target.wants/$(timer).timer;)
 	$(foreach timer,$(timers),rm -f $(ROOTFS)/etc/systemd/system/timers.target.wants/$(timer).timer;)
 	rm -rf $(ROOTFS)/usr/share/locale
+	cd $(ROOTFS) && find -P . -maxdepth 1 -xdev '!' -type l \
+		-not -path './proc' \
+		-not -path './sys' \
+		-not -path './dev' \
+		-not -path './.relabelpaths' \
+		-not -path '.' \
+		-printf '/%P\0' > $(ROOTFS)/.relabelpaths
