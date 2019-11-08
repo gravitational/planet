@@ -28,6 +28,14 @@ all:
 	rm -rf $(ROOTFS)/var/cache
 	rm -rf $(ROOTFS)/lib/systemd/system/sysinit.target.wants/proc-sys-fs-binfmt_misc.automount
 	rm -rf $(ROOTFS)/lib/modules-load.d/open-iscsi.conf
+
+	ln -sf /dev/null $(ROOTFS)/etc/systemd/system/getty.target
+	ln -sf /dev/null $(ROOTFS)/etc/systemd/system/systemd-ask-password-wall.path
+	ln -sf /dev/null $(ROOTFS)/etc/systemd/system/systemd-logind.service
+	ln -sf /dev/null $(ROOTFS)/etc/systemd/system/systemd-remount-fs.service
+	ln -sf /dev/null $(ROOTFS)/etc/systemd/system/dev-hugepages.mount
+	ln -sf /dev/null $(ROOTFS)/etc/systemd/system/sys-fs-fuse-connections.mount
+
 	$(foreach unit,$(units),rm -f $(ROOTFS)/lib/systemd/system/multi-user.target.wants/$(unit);)
 	$(foreach unit,$(units),rm -f $(ROOTFS)/etc/systemd/system/multi-user.target.wants/$(unit);)
 	$(foreach unit,$(units),rm -f $(ROOTFS)/etc/systemd/system/sysinit.target.wants/$(unit);)

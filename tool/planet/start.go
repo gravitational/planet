@@ -35,6 +35,7 @@ import (
 	"github.com/gravitational/planet/lib/box"
 	"github.com/gravitational/planet/lib/check"
 	"github.com/gravitational/planet/lib/constants"
+	"github.com/gravitational/planet/lib/defaults"
 	"github.com/gravitational/planet/lib/user"
 	"github.com/gravitational/planet/lib/utils"
 
@@ -274,12 +275,12 @@ func start(config *Config, monitorc chan<- bool) (*runtimeContext, error) {
 		Files:        config.Files,
 		Mounts:       config.Mounts,
 		Devices:      config.Devices,
-		DataDir:      "/var/run/planet",
-		InitUser:     "root",
-		InitArgs:     []string{"/bin/systemd"},
+		DataDir:      defaults.PlanetDataDir,
+		InitUser:     defaults.InitUser,
+		InitArgs:     defaults.InitArgs,
 		InitEnv:      []string{"container=docker", "LC_ALL=en_US.UTF-8"},
 		Capabilities: allCaps,
-		ProcessLabel: "system_u:system_r:init_t:s0", // FIXME: move to const
+		ProcessLabel: constants.ContainerInitProcessLabel,
 	}
 
 	listener, err := newUdevListener(config.Rootfs, config.SocketPath)

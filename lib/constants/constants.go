@@ -88,6 +88,11 @@ const (
 	// as used to be in previous versions.
 	// This is kept for backwards-compatibility
 	LegacyAPIServerDNSName = "apiserver"
+
+	// ContainerRuntimeProcessLabel specifies the SELinux label for the planet process
+	ContainerRuntimeProcessLabel = "system_u:system_r:gravity_container_t:s0"
+	// ContainerInitProcessLabel specifies the SELinux label for the init process
+	ContainerInitProcessLabel = "system_u:system_r:gravity_container_init_t:s0"
 )
 
 var (

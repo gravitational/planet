@@ -93,12 +93,13 @@ type TTY struct {
 // ProcessConfig is a configuration passed to the process started
 // in the namespace of the container
 type ProcessConfig struct {
-	In   io.Reader `json:"-"`
-	Out  io.Writer `json:"-"`
-	TTY  *TTY      `json:"tty"`
-	Args []string  `json:"args"`
-	User string    `json:"user"`
-	Env  EnvVars   `json:"env"`
+	In           io.Reader `json:"-"`
+	Out          io.Writer `json:"-"`
+	TTY          *TTY      `json:"tty,omitempty"`
+	Args         []string  `json:"args"`
+	User         string    `json:"user"`
+	Env          EnvVars   `json:"env,omitempty"`
+	ProcessLabel string    `json:"process_label,omitempty"`
 }
 
 // Environment returns a slice of environment variables in key=value

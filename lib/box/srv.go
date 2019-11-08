@@ -31,15 +31,16 @@ import (
 	"strings"
 	"syscall"
 
-	udev "github.com/gravitational/go-udev"
+	"github.com/gravitational/planet/lib/constants"
+	"github.com/gravitational/planet/lib/defaults"
+
+	"github.com/gravitational/go-udev"
 	"github.com/gravitational/trace"
-
-	log "github.com/sirupsen/logrus"
-
 	"github.com/opencontainers/runc/libcontainer"
 	"github.com/opencontainers/runc/libcontainer/cgroups/systemd"
 	"github.com/opencontainers/runc/libcontainer/configs"
 	"github.com/pborman/uuid"
+	log "github.com/sirupsen/logrus"
 )
 
 type ContainerServer interface {
@@ -254,8 +255,8 @@ func getLibcontainerConfig(containerID, rootfs string, cfg Config) (*configs.Con
 				Path:        device.Devnode(),
 				Major:       int64(devnum.Major()),
 				Minor:       int64(devnum.Minor()),
-				Permissions: "rwm",
-				FileMode:    0660,
+				Permissions: constants.DeviceReadWritePerms,
+				FileMode:    constants.GroupReadWriteMask,
 			})
 		}
 	}
@@ -269,8 +270,8 @@ func getLibcontainerConfig(containerID, rootfs string, cfg Config) (*configs.Con
 			Minor:       int64(i),
 			Uid:         0,
 			Gid:         0,
-			Permissions: "rwm",
-			FileMode:    0660,
+			Permissions: constants.DeviceReadWritePerms,
+			FileMode:    constants.GroupReadWriteMask,
 		}
 	}
 
@@ -294,16 +295,16 @@ func getLibcontainerConfig(containerID, rootfs string, cfg Config) (*configs.Con
 		}),
 		Mounts: []*configs.Mount{
 			{
-				Source:      "/proc",
+				Source:      "proc",
 				Destination: "/proc",
 				Device:      "proc",
 				Flags:       defaultMountFlags,
 			},
 			// this is needed for flanneld that does modprobe
 			{
-				Device:      "bind",
 				Source:      "/lib/modules",
 				Destination: "/lib/modules",
+				Device:      "bind",
 				Flags:       defaultMountFlags | syscall.MS_BIND,
 			},
 			{
@@ -319,7 +320,7 @@ func getLibcontainerConfig(containerID, rootfs string, cfg Config) (*configs.Con
 				Device:      "sysfs",
 				// "rprivate", "nosuid", "noexec", "nodev", "rw"
 				// Flags: syscall.MS_PRIVATE | syscall.MS_REC | syscall.MS_NOSUID | syscall.MS_NOEXEC | syscall.MS_NODEV,
-				Flags: syscall.MS_NOSUID | syscall.MS_NOEXEC | syscall.MS_NODEV | syscall.MS_RDONLY,
+				Flags: defaultMountFlags | syscall.MS_RDONLY,
 			},
 			{
 				Source:      "devpts",
@@ -327,6 +328,21 @@ func getLibcontainerConfig(containerID, rootfs string, cfg Config) (*configs.Con
 				Device:      "devpts",
 				Flags:       syscall.MS_NOSUID | syscall.MS_NOEXEC,
 				Data:        "newinstance,ptmxmode=0666,mode=0620,gid=5",
+			},
+			// FIXME
+			{
+				Source:      "shm",
+				Destination: "/dev/shm",
+				Device:      "tmpfs",
+				Data:        "mode=1777,size=65536k",
+				Flags:       defaultMountFlags,
+			},
+			// FIXME
+			{
+				Source:      "mqueue",
+				Destination: "/dev/mqueue",
+				Device:      "mqueue",
+				Flags:       defaultMountFlags,
 			},
 			// needed for dynamically provisioned/attached persistent volumes
 			// to work on some cloud providers (e.g. GCE) which use symlinks
@@ -344,7 +360,8 @@ func getLibcontainerConfig(containerID, rootfs string, cfg Config) (*configs.Con
 				Device:      "bind",
 				Source:      "/dev/kmsg",
 				Destination: "/dev/kmsg",
-				Flags:       syscall.MS_BIND,
+				// FIXME: readonly
+				Flags: syscall.MS_BIND | syscall.MS_RDONLY,
 			},
 			// /run has to be mounted explicitly as tmpfs in order to be able
 			// to mount /run/udev below
@@ -368,13 +385,27 @@ func getLibcontainerConfig(containerID, rootfs string, cfg Config) (*configs.Con
 				Source:      "/sys/fs/selinux",
 				Device:      "bind",
 				// Flags:       syscall.MS_BIND | syscall.MS_RDONLY | syscall.MS_RELATIME,
-				Flags: syscall.MS_BIND | syscall.MS_RELATIME,
+				Flags: syscall.MS_BIND | syscall.MS_RELATIME | syscall.MS_RDONLY,
 			},
 			{
 				Device:      "bind",
 				Source:      "/etc/selinux",
 				Destination: "/etc/selinux",
 				Flags:       defaultMountFlags | syscall.MS_BIND | syscall.MS_RDONLY,
+			},
+		},
+		UidMappings: []configs.IDMap{
+			{
+				ContainerID: 0,
+				HostID:      defaults.ContainerBaseUID,
+				Size:        65536,
+			},
+		},
+		GidMappings: []configs.IDMap{
+			{
+				ContainerID: 0,
+				HostID:      defaults.ContainerBaseGID,
+				Size:        65536,
 			},
 		},
 		Cgroups: &configs.Cgroup{
@@ -390,6 +421,7 @@ func getLibcontainerConfig(containerID, rootfs string, cfg Config) (*configs.Con
 
 		Devices:      append(configs.DefaultAutoCreatedDevices, append(loopDevices, disks...)...),
 		Hostname:     hostname,
+		MountLabel:   defaults.ContainerFileLabel,
 		ProcessLabel: cfg.ProcessLabel,
 	}
 

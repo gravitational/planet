@@ -21,9 +21,11 @@ import (
 	"os"
 	"path/filepath"
 
-	"github.com/docker/docker/pkg/term"
 	"github.com/gravitational/planet/lib/box"
 	"github.com/gravitational/planet/lib/constants"
+	"github.com/gravitational/planet/lib/defaults"
+
+	"github.com/docker/docker/pkg/term"
 	"github.com/gravitational/trace"
 	log "github.com/sirupsen/logrus"
 )
@@ -38,6 +40,7 @@ func enterConsole(rootfs, socketPath, cmd, user string, tty bool, stdin bool, ar
 				Val:  DefaultEnvPath,
 			},
 		},
+		ProcessLabel: defaults.ContainerProcessLabel,
 	}
 
 	// tty allocation implies stdin
@@ -61,7 +64,10 @@ func enterConsole(rootfs, socketPath, cmd, user string, tty bool, stdin bool, ar
 // managed by the planet master process and mantains websocket connection
 // to proxy input and output
 func enter(rootfs, socketPath string, cfg *box.ProcessConfig) error {
-	log.Infof("enter: %v %#v", rootfs, cfg)
+	log.WithFields(log.Fields{
+		"rootfs": rootfs,
+		"config": cfg,
+	}).Debug("Enter.")
 	if cfg.TTY != nil {
 		oldState, err := term.SetRawTerminal(os.Stdin.Fd())
 		if err != nil {
@@ -101,10 +107,11 @@ func enter(rootfs, socketPath string, cfg *box.ProcessConfig) error {
 func stop(rootfs, socketPath string) error {
 	log.Infof("stop: %v", rootfs)
 	cfg := &box.ProcessConfig{
-		User: "root",
-		Args: []string{"/bin/systemctl", "halt"},
-		In:   os.Stdin,
-		Out:  os.Stdout,
+		User:         "root",
+		Args:         []string{"/bin/systemctl", "halt"},
+		In:           os.Stdin,
+		Out:          os.Stdout,
+		ProcessLabel: constants.ContainerInitProcessLabel,
 	}
 
 	return enter(rootfs, socketPath, cfg)

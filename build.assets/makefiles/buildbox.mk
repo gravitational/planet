@@ -58,9 +58,9 @@ planet-image:
 	sed -i "s/REPLACE_COREDNS_LATEST_VERSION/$(COREDNS_VER)/g" $(TARGETDIR)/orbit.manifest.json
 	@echo -e "\n---> Creating Planet image...\n"
 	cd $(TARGETDIR) && fakeroot -- sh -c ' \
-		chown -R planet:planet . ; \
+		chown -R 1000:1000 . ; \
 		chown -R root:root rootfs/sbin/mount.* ; \
-		chown -R root:planet rootfs/etc/ ; \
+		chown -R root:1000 rootfs/etc/ ; \
 		chmod -R g+rw rootfs/etc ; \
 		tar -czf $(TARBALL) orbit.manifest.json rootfs'
 	@echo -e "\nDone --> $(TARBALL)"

@@ -49,18 +49,18 @@ func StartProcess(c libcontainer.Container, cfg ProcessConfig) error {
 
 	if cfg.TTY != nil {
 		return StartProcessTTY(c, cfg)
-	} else {
-		return StartProcessStdout(c, cfg)
 	}
+	return StartProcessStdout(c, cfg)
 }
 
 func StartProcessTTY(c libcontainer.Container, cfg ProcessConfig) error {
 	p := &libcontainer.Process{
 		Args:          cfg.Args,
 		User:          cfg.User,
-		Env:           append(cfg.Environment(), "TERM=xterm", "LC_ALL=en_US.UTF-8"),
+		Env:           append(cfg.Environment(), defaultProcessEnviron()...),
 		ConsoleHeight: uint16(cfg.TTY.H),
 		ConsoleWidth:  uint16(cfg.TTY.W),
+		Label:         cfg.ProcessLabel,
 	}
 
 	parentConsole, childConsole, err := libcontainerutils.NewSockPair("console")
@@ -139,7 +139,8 @@ func StartProcessStdout(c libcontainer.Container, cfg ProcessConfig) error {
 		Stdout: cfg.Out,
 		Stdin:  in,
 		Stderr: cfg.Out,
-		Env:    append(cfg.Environment(), "TERM=xterm", "LC_ALL=en_US.UTF-8"),
+		Env:    append(cfg.Environment(), defaultProcessEnviron()...),
+		Label:  cfg.ProcessLabel,
 	}
 
 	// this will cause libcontainer to exec this binary again
@@ -152,8 +153,7 @@ func StartProcessStdout(c libcontainer.Container, cfg ProcessConfig) error {
 	setProcessUserCgroup(c, p)
 
 	// wait for the process to finish
-	log.Infof("Waiting for StartProcessStdout(%v)...", cfg.Args)
-	defer log.Infof("StartProcessStdout(%v) completed", cfg.Args)
+	log.WithField("args", cfg.Args).Info("Wait for process.")
 	_, err := p.Wait()
 	if err != nil {
 		return trace.Wrap(err)
@@ -209,4 +209,10 @@ func setProcessUserCgroupImpl(c libcontainer.Container, p *libcontainer.Process)
 	}
 
 	return trace.Wrap(control.Add(cgroups.Process{Pid: pid}))
+}
+
+func defaultProcessEnviron() []string {
+	return []string{
+		"TERM=xterm", "LC_ALL=en_US.UTF-8",
+	}
 }
