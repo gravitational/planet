@@ -289,6 +289,7 @@ func getLibcontainerConfig(containerID, rootfs string, cfg Config) (*configs.Con
 		Capabilities: &capabilities,
 		Namespaces: configs.Namespaces([]configs.Namespace{
 			{Type: configs.NEWNS},
+			// {Type: configs.NEWUSER},
 			{Type: configs.NEWUTS},
 			{Type: configs.NEWIPC},
 			{Type: configs.NEWPID},
@@ -394,20 +395,20 @@ func getLibcontainerConfig(containerID, rootfs string, cfg Config) (*configs.Con
 				Flags:       defaultMountFlags | syscall.MS_BIND | syscall.MS_RDONLY,
 			},
 		},
-		UidMappings: []configs.IDMap{
-			{
-				ContainerID: 0,
-				HostID:      defaults.ContainerBaseUID,
-				Size:        65536,
-			},
-		},
-		GidMappings: []configs.IDMap{
-			{
-				ContainerID: 0,
-				HostID:      defaults.ContainerBaseGID,
-				Size:        65536,
-			},
-		},
+		// UidMappings: []configs.IDMap{
+		// 	{
+		// 		ContainerID: 0,
+		// 		HostID:      defaults.ContainerBaseUID,
+		// 		Size:        65536,
+		// 	},
+		// },
+		// GidMappings: []configs.IDMap{
+		// 	{
+		// 		ContainerID: 0,
+		// 		HostID:      defaults.ContainerBaseGID,
+		// 		Size:        65536,
+		// 	},
+		// },
 		Cgroups: &configs.Cgroup{
 			Name: fmt.Sprintf("planet-%v", containerID),
 			Resources: &configs.Resources{
