@@ -16,7 +16,7 @@ KUBE_OUTPUTS := $(addprefix $(OUTPUTDIR)/, $(BINARIES))
 OUTPUTS := $(KUBE_OUTPUTS) $(HELM_TARBALL) $(COREDNS_TARBALL)
 
 all: kubernetes.mk $(OUTPUTS)
-	tar xvzf $(COREDNS_TARBALL) --strip-components=1 -C $(ROOTFS)/usr/bin coredns
+	tar xvzf $(COREDNS_TARBALL) -C $(ROOTFS)/usr/bin coredns
 	tar xvzf $(HELM_TARBALL) --strip-components=1 -C $(ROOTFS)/usr/bin linux-amd64/helm
 
 $(OUTPUTDIR):

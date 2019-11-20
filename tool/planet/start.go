@@ -278,7 +278,7 @@ func start(config *Config, monitorc chan<- bool) (*runtimeContext, error) {
 		DataDir:      defaults.PlanetDataDir,
 		InitUser:     defaults.InitUser,
 		InitArgs:     defaults.InitArgs,
-		InitEnv:      []string{"container=docker", "LC_ALL=en_US.UTF-8"},
+		InitEnv:      []string{"container=container-other", "LC_ALL=en_US.UTF-8"},
 		Capabilities: allCaps,
 		ProcessLabel: constants.ContainerInitProcessLabel,
 	}

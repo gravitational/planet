@@ -11,14 +11,6 @@
 # Disable lvm2 metadata daemon/socket and monitor
 # Disable block availability service (blk-availability.service) to avoid deactivation
 # of block devices on container stop
-units := \
-	cgproxy.service cgmanager.service \
-	apt-daily.service apt-daily-upgrade.service \
-	lvm2-monitor.service lvm2-lvmetad.service lvm2-lvmetad.socket \
-	blk-availability.service
-# disable apt upgrade timers
-timers := apt-daily apt-daily-upgrade
-
 all:
 	@echo "\n---> Shrinking Planet image in ($(ROOTFS))...\n"
 	rm -rf $(ROOTFS)/usr/share/man
@@ -29,18 +21,6 @@ all:
 	rm -rf $(ROOTFS)/lib/systemd/system/sysinit.target.wants/proc-sys-fs-binfmt_misc.automount
 	rm -rf $(ROOTFS)/lib/modules-load.d/open-iscsi.conf
 
-	ln -sf /dev/null $(ROOTFS)/etc/systemd/system/getty.target
-	ln -sf /dev/null $(ROOTFS)/etc/systemd/system/systemd-ask-password-wall.path
-	ln -sf /dev/null $(ROOTFS)/etc/systemd/system/systemd-logind.service
-	ln -sf /dev/null $(ROOTFS)/etc/systemd/system/systemd-remount-fs.service
-	ln -sf /dev/null $(ROOTFS)/etc/systemd/system/dev-hugepages.mount
-	ln -sf /dev/null $(ROOTFS)/etc/systemd/system/sys-fs-fuse-connections.mount
-
-	$(foreach unit,$(units),rm -f $(ROOTFS)/lib/systemd/system/multi-user.target.wants/$(unit);)
-	$(foreach unit,$(units),rm -f $(ROOTFS)/etc/systemd/system/multi-user.target.wants/$(unit);)
-	$(foreach unit,$(units),rm -f $(ROOTFS)/etc/systemd/system/sysinit.target.wants/$(unit);)
-	$(foreach timer,$(timers),rm -f $(ROOTFS)/lib/systemd/system/timers.target.wants/$(timer).timer;)
-	$(foreach timer,$(timers),rm -f $(ROOTFS)/etc/systemd/system/timers.target.wants/$(timer).timer;)
 	rm -rf $(ROOTFS)/usr/share/locale
 	cd $(ROOTFS) && find -P . -maxdepth 1 -xdev '!' -type l \
 		-not -path './proc' \

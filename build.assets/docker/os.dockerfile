@@ -31,6 +31,15 @@ RUN locale-gen \
 # Exit code 1 is either created successfully or symlink already exists
 # Exit codes < 0 are failures
 RUN systemctl set-default multi-user.target; if [ "$?" -lt 0 ]; then exit $?; fi;
+RUN systemctl mask cgproxy.service cgmanager.service \
+	apt-daily.service apt-daily-upgrade.service \
+	lvm2-monitor.service lvm2-lvmetad.service lvm2-lvmetad.socket \
+	blk-availability.service \
+	# Mask timers
+	apt-daily.timer apt-daily-upgrade.timer \
+	# Mask mount units and getty service so that we don't get login prompt
+	systemd-remount-fs.service dev-hugepages.mount sys-fs-fuse-connections.mount \
+	getty.target console-getty.service;
 
 # TODO(r0mant): Disable *iscsi* services cause they may be running on host
 #               In the future we will need to enable them conditionally to
