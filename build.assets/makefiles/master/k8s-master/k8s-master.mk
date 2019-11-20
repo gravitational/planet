@@ -5,7 +5,6 @@ BINDIR:=$(ASSETDIR)/k8s-$(KUBE_VER)
 all: k8s-master.mk
 	@echo "\n---> Building Kubernetes master components\n"
 	mkdir -p $(ROOTFS)/etc/kubernetes
-	cp -TRv -p rootfs/etc/kubernetes $(ROOTFS)/etc/kubernetes
 	cp -af ./kube-apiserver.service $(ROOTFS)/lib/systemd/system
 	cp -af ./kube-controller-manager.service $(ROOTFS)/lib/systemd/system
 	cp -af ./kube-scheduler.service $(ROOTFS)/lib/systemd/system

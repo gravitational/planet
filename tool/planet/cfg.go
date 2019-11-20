@@ -279,11 +279,11 @@ func (r boolFlag) String() string {
 	return strconv.FormatBool(bool(r))
 }
 
-// NewKubeConfig returns a kubectl config for the specified kubernetes API server IP
-func NewKubeConfig(ip net.IP, stateDir string) ([]byte, error) {
+// newKubectlConfig returns a kubectl config for the specified kubernetes API server IP
+func newKubectlConfig(stateDir string) ([]byte, error) {
 	var b bytes.Buffer
-	err := kubeConfig.Execute(&b, map[string]string{
-		"ip": ip.String(), "stateDir": stateDir,
+	err := kubectlConfig.Execute(&b, map[string]string{
+		"stateDir": stateDir,
 	})
 	if err != nil {
 		return nil, trace.Wrap(err)
@@ -291,15 +291,15 @@ func NewKubeConfig(ip net.IP, stateDir string) ([]byte, error) {
 	return b.Bytes(), nil
 }
 
-// kubeConfig is a template of a configuration file for kubectl
-var kubeConfig = template.Must(template.New("kubeConfig").Parse(`apiVersion: v1
+// kubectlConfig is a template of a configuration file for kubectl
+var kubectlConfig = template.Must(template.New("kubeConfig").Parse(`apiVersion: v1
 kind: Config
 current-context: default
 clusters:
 - name: default
   cluster:
     certificate-authority: {{.stateDir}}/secrets/root.cert
-    server: https://{{.ip}}
+    server: server: https://leader.telekube.local:6443
 users:
 - name: default
   user:
