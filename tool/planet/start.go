@@ -215,7 +215,7 @@ func start(config *Config, monitorc chan<- bool) (*runtimeContext, error) {
 		return nil, trace.Wrap(err)
 	}
 
-	if err = addKubeConfig(config); err != nil {
+	if err = addKubectlConfig(config); err != nil {
 		return nil, trace.Wrap(err)
 	}
 
@@ -578,31 +578,18 @@ func applyConfigOverrides(config *kubeletconfig.KubeletConfiguration) error {
 	return nil
 }
 
-// addKubeConfig writes a kubectl config file
-func addKubeConfig(config *Config) error {
-	// Generate two kubectl configuration files: one will be used by
-	// kubectl when invoked from host, another one - from planet,
-	// because state directory may be different.
-	kubeConfigs := map[string]string{
-		constants.KubectlConfigPath:     constants.GravityDataDir,
-		constants.KubectlHostConfigPath: config.HostStateDir(),
+// addKubectlConfig writes a kubectl config file
+func addKubectlConfig(config *Config) error {
+	const path = constants.KubectlConfigPath
+	err := os.MkdirAll(filepath.Dir(path), constants.SharedDirMask)
+	if err != nil {
+		return trace.Wrap(err)
 	}
-	for configPath, stateDir := range kubeConfigs {
-		kubeConfig, err := NewKubeConfig(config.APIServerIP(), stateDir)
-		if err != nil {
-			return trace.Wrap(err)
-		}
-		path := filepath.Join(config.Rootfs, configPath)
-		err = os.MkdirAll(filepath.Dir(path), constants.SharedDirMask)
-		if err != nil {
-			return trace.Wrap(err)
-		}
-		err = utils.SafeWriteFile(path, kubeConfig, constants.SharedReadMask)
-		if err != nil {
-			return trace.Wrap(err)
-		}
+	kubectlConfig, err := newKubectlConfig(config.HostStateDir())
+	if err != nil {
+		return trace.Wrap(err)
 	}
-	return nil
+	return utils.SafeWriteFile(path, kubectlConfig, constants.SharedReadMask)
 }
 
 // setKubeConfigOwnership adjusts ownership of k8s config files to root:root
