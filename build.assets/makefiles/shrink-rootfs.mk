@@ -18,6 +18,7 @@ all:
 	rm -rf $(ROOTFS)/var/lib/apt
 	rm -rf $(ROOTFS)/var/log/*
 	rm -rf $(ROOTFS)/var/cache
+	rm -rf $(ROOTFS)/var/log/exim4/
 	rm -rf $(ROOTFS)/lib/systemd/system/sysinit.target.wants/proc-sys-fs-binfmt_misc.automount
 	rm -rf $(ROOTFS)/lib/modules-load.d/open-iscsi.conf
 

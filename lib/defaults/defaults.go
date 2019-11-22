@@ -2,7 +2,7 @@ package defaults
 
 const (
 	// ContainerProcessLabel specifies the default SELinux label for processes inside the container
-	ContainerProcessLabel = "system_u:system_r:container_t:s0"
+	ContainerProcessLabel = "system_u:system_r:gravity_container_t:s0"
 
 	// ContainerFileLabel specifies the default SELinux label for files inside the container
 	ContainerFileLabel = "system_u:object_r:container_file_t:s0"
