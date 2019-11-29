@@ -5,7 +5,7 @@ const (
 	ContainerProcessLabel = "system_u:system_r:gravity_container_t:s0"
 
 	// ContainerFileLabel specifies the default SELinux label for files inside the container
-	ContainerFileLabel = "system_u:object_r:container_file_t:s0"
+	ContainerFileLabel = "system_u:object_r:gravity_container_file_t:s0"
 
 	// PlanetDataDir specifies the location for libcontainer-specific data
 	PlanetDataDir = "/var/run/planet"

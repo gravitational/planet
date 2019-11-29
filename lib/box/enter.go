@@ -44,8 +44,8 @@ func CombinedOutput(c libcontainer.Container, cfg ProcessConfig) ([]byte, error)
 }
 
 func StartProcess(c libcontainer.Container, cfg ProcessConfig) error {
-	log.Infof("StartProcess(%v)", cfg)
-	defer log.Infof("StartProcess(%v) is done!", cfg)
+	log.WithField("process", cfg).Info("Start process.")
+	defer log.WithField("process", cfg.Args).Info("Started process.")
 
 	if cfg.TTY != nil {
 		return StartProcessTTY(c, cfg)
@@ -75,7 +75,7 @@ func StartProcessTTY(c libcontainer.Container, cfg ProcessConfig) error {
 	if err := c.Run(p); err != nil {
 		return trace.Wrap(err)
 	}
-	log.Debugf("Process %#v started.", p)
+	log.WithField("process", cfg).Debug("Process started.")
 
 	setProcessUserCgroup(c, p)
 
@@ -166,7 +166,7 @@ func StartProcessStdout(c libcontainer.Container, cfg ProcessConfig) error {
 func setProcessUserCgroup(c libcontainer.Container, p *libcontainer.Process) {
 	err := setProcessUserCgroupImpl(c, p)
 	if err != nil {
-		log.Warn("Error setting process into user cgroup: ", trace.DebugReport(err))
+		log.WithError(err).Warn("Error setting process into user cgroup.")
 	}
 }
 

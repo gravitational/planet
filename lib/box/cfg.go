@@ -102,6 +102,18 @@ type ProcessConfig struct {
 	ProcessLabel string    `json:"process_label,omitempty"`
 }
 
+// String returns human-readable description of this configuration
+func (e *ProcessConfig) String() string {
+	var buf bytes.Buffer
+	fmt.Fprint(&buf, "ProcessConfig(")
+	fmt.Fprintf(&buf, "args=%q,user=%q,env=%v", e.Args, e.User, e.Env)
+	if e.ProcessLabel != "" {
+		fmt.Fprintf(&buf, ",label=%q", e.ProcessLabel)
+	}
+	fmt.Fprint(&buf, ")")
+	return buf.String()
+}
+
 // Environment returns a slice of environment variables in key=value
 // format as required by libcontainer
 func (e *ProcessConfig) Environment() []string {

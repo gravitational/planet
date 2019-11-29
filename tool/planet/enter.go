@@ -19,6 +19,7 @@ package main
 import (
 	"bytes"
 	"os"
+	"os/exec"
 	"path/filepath"
 
 	"github.com/gravitational/planet/lib/box"
@@ -31,6 +32,14 @@ import (
 )
 
 func enterConsole(rootfs, socketPath, cmd, user string, tty bool, stdin bool, args []string) (err error) {
+	label, err := getProcLabel(filepath.Join(rootfs, cmd))
+	if err != nil {
+		log.WithFields(log.Fields{
+			log.ErrorKey: err,
+			"path":       cmd,
+		}).Warn("Failed to compute process label.")
+		label = defaults.ContainerProcessLabel
+	}
 	cfg := &box.ProcessConfig{
 		Out:  os.Stdout,
 		Args: append([]string{cmd}, args...),
@@ -40,7 +49,7 @@ func enterConsole(rootfs, socketPath, cmd, user string, tty bool, stdin bool, ar
 				Val:  DefaultEnvPath,
 			},
 		},
-		ProcessLabel: defaults.ContainerProcessLabel,
+		ProcessLabel: label,
 	}
 
 	// tty allocation implies stdin
@@ -117,20 +126,13 @@ func stop(rootfs, socketPath string) error {
 	return enter(rootfs, socketPath, cfg)
 }
 
-// enterCommand is a helper function that runs a command as root
-// in the namespace of planet's container. It returns error
-// if command failed, or command standard output otherwise
-func enterCommand(rootfs, socketPath string, args []string) ([]byte, error) {
-	buf := &bytes.Buffer{}
-	cfg := &box.ProcessConfig{
-		User: "root",
-		Args: args,
-		In:   os.Stdin,
-		Out:  buf,
-	}
-	err := enter(rootfs, socketPath, cfg)
+// getProcLabel computes the label for the new process initiating from the file
+// given wih path. The label is computed in the context of the init process.
+func getProcLabel(path string) (label string, err error) {
+	out, err := exec.Command("selinuxexeccon", path, constants.ContainerInitProcessLabel).CombinedOutput()
 	if err != nil {
-		err = trace.Wrap(err)
+		return "", trace.Wrap(err, "failed to compute process label for %v: %s",
+			path, out)
 	}
-	return buf.Bytes(), err
+	return string(bytes.TrimSpace(out)), nil
 }

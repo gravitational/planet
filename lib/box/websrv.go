@@ -69,12 +69,12 @@ func NewWebServer(c libcontainer.Container) *webServer {
 // error checking and JSON encoding of the output.
 func (h *webServer) makeJSONHandler(fn handler) httprouter.Handle {
 	return func(w http.ResponseWriter, r *http.Request, p httprouter.Params) {
-		if err := fn(w, r, p); err != nil {
-			log.Errorf("error in handler: %v", err)
-			roundtrip.ReplyJSON(
-				w, http.StatusInternalServerError, err.Error())
+		err := fn(w, r, p)
+		if err == nil {
 			return
 		}
+		log.WithError(err).Error("Handler failed.")
+		roundtrip.ReplyJSON(w, http.StatusInternalServerError, err.Error())
 	}
 }
 
@@ -91,7 +91,7 @@ func (s *webServer) enter(w http.ResponseWriter, r *http.Request, p httprouter.P
 		return trace.Wrap(err)
 	}
 
-	log.Infof("webServer.enter(command=%v)", cfg)
+	log.WithField("process", cfg).Debug("Enter.")
 
 	// use websocket server to establish a bidirectional communication:
 	s.socketServer.Handler = func(conn *websocket.Conn) {
@@ -107,7 +107,10 @@ func (s *webServer) enter(w http.ResponseWriter, r *http.Request, p httprouter.P
 			return
 		}
 
-		log.Errorf("StartProcess(%v) failed with %v", cfg, trace.DebugReport(err))
+		log.WithFields(log.Fields{
+			log.ErrorKey: err,
+			"process":    cfg,
+		}).Warn("StartProcess failed.")
 
 		if errExit, ok := trace.Unwrap(err).(*exec.ExitError); ok {
 			if waitStatus, ok := errExit.ProcessState.Sys().(syscall.WaitStatus); ok {
