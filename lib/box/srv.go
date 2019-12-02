@@ -339,8 +339,14 @@ func getLibcontainerConfig(containerID, rootfs string, cfg Config) (*configs.Con
 			return nil, trace.Wrap(err, "invalid glob pattern %q", mountSpec.Src)
 		}
 
-		if len(matches) == 0 && mountSpec.SkipIfMissing {
-			// Skip the non-existent mount source
+		if len(matches) == 0 {
+			if !mountSpec.SkipIfMissing {
+				return nil, trace.NotFound("mount source not found").AddFields(map[string]interface{}{
+					"src": mountSpec.Src,
+					"dst": mountSpec.Dst,
+				})
+			}
+			// Skip the non-existent mount source if SkipIfMissing is set
 			continue
 		}
 
