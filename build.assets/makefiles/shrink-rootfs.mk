@@ -40,4 +40,5 @@ all:
 	rm -f $(ROOTFS)/etc/systemd/system/iscsi.service
 	rm -f $(ROOTFS)/lib/systemd/system/iscsid.service
 	rm -f $(ROOTFS)/lib/systemd/system/open-iscsi.service
+	rm -f $(ROOTFS)/lib/modules-load.d/open-iscsi.conf
 	rm -rf $(ROOTFS)/usr/share/locale
