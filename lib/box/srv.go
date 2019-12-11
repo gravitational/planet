@@ -330,7 +330,6 @@ func getLibcontainerConfig(containerID, rootfs string, cfg Config) (*configs.Con
 				Flags:       syscall.MS_NOSUID | syscall.MS_NOEXEC,
 				Data:        "newinstance,ptmxmode=0666,mode=0620,gid=5",
 			},
-			// FIXME
 			{
 				Source:      "shm",
 				Destination: "/dev/shm",
@@ -338,7 +337,6 @@ func getLibcontainerConfig(containerID, rootfs string, cfg Config) (*configs.Con
 				Data:        "mode=1777,size=65536k",
 				Flags:       defaultMountFlags,
 			},
-			// FIXME
 			{
 				Source:      "mqueue",
 				Destination: "/dev/mqueue",
@@ -382,6 +380,12 @@ func getLibcontainerConfig(containerID, rootfs string, cfg Config) (*configs.Con
 				Flags:       syscall.MS_BIND,
 			},
 			{
+				Source:      "tmpfs",
+				Destination: "/run/lock",
+				Device:      "tmpfs",
+				Flags:       defaultMountFlags,
+			},
+			{
 				Destination: "/sys/fs/selinux",
 				Source:      "/sys/fs/selinux",
 				Device:      "bind",
@@ -395,20 +399,6 @@ func getLibcontainerConfig(containerID, rootfs string, cfg Config) (*configs.Con
 				Flags:       defaultMountFlags | syscall.MS_BIND | syscall.MS_RDONLY,
 			},
 		},
-		// UidMappings: []configs.IDMap{
-		// 	{
-		// 		ContainerID: 0,
-		// 		HostID:      defaults.ContainerBaseUID,
-		// 		Size:        65536,
-		// 	},
-		// },
-		// GidMappings: []configs.IDMap{
-		// 	{
-		// 		ContainerID: 0,
-		// 		HostID:      defaults.ContainerBaseGID,
-		// 		Size:        65536,
-		// 	},
-		// },
 		Cgroups: &configs.Cgroup{
 			Name: fmt.Sprintf("planet-%v", containerID),
 			Resources: &configs.Resources{
@@ -426,6 +416,23 @@ func getLibcontainerConfig(containerID, rootfs string, cfg Config) (*configs.Con
 		ProcessLabel: cfg.ProcessLabel,
 	}
 
+	if cfg.SELinux {
+		config.Mounts = append(config.Mounts, []*configs.Mount{
+			{
+				Destination: "/sys/fs/selinux",
+				Source:      "/sys/fs/selinux",
+				Device:      "bind",
+				Flags:       syscall.MS_BIND | syscall.MS_RELATIME | syscall.MS_RDONLY,
+			},
+			{
+				Device:      "bind",
+				Source:      "/etc/selinux",
+				Destination: "/etc/selinux",
+				Flags:       defaultMountFlags | syscall.MS_BIND | syscall.MS_RDONLY,
+			},
+		}...)
+	}
+
 	// Cgroup namespaces aren't currently available in redhat/centos based kernels
 	// only use cgroup namespaces on kernels that have cgroup namespaces enabled
 	cgroupsEnabled, err := CgroupNSEnabled()
@@ -435,6 +442,19 @@ func getLibcontainerConfig(containerID, rootfs string, cfg Config) (*configs.Con
 	if cgroupsEnabled {
 		config.Namespaces = append(config.Namespaces, configs.Namespace{
 			Type: configs.NEWCGROUP,
+		})
+		config.Mounts = append(config.Mounts, &configs.Mount{
+			Source:      "cgroup",
+			Destination: "/sys/fs/cgroup",
+			Device:      "cgroup",
+			Flags:       syscall.MS_PRIVATE,
+		})
+	} else {
+		config.Mounts = append(config.Mounts, &configs.Mount{
+			Source:      "/sys/fs/cgroup",
+			Destination: "/sys/fs/cgroup",
+			Device:      "bind",
+			Flags:       syscall.MS_PRIVATE | syscall.MS_BIND,
 		})
 	}
 

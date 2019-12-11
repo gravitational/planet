@@ -31,9 +31,9 @@ import (
 )
 
 type Config struct {
-	//InitArgs list of arguments to exec as an init process
+	// InitArgs lists the command to execute and any arguments
 	InitArgs []string
-	// InitEnv list of env variables to pass to executable
+	// InitEnv lists the environment variables to pass to the process
 	InitEnv []string
 	// InitUser is a user running the init process
 	InitUser string
@@ -57,6 +57,8 @@ type Config struct {
 	DataDir string
 	// ProcessLabel specifies the SELinux process label
 	ProcessLabel string
+	// SELinux turns on SELinux support
+	SELinux bool
 }
 
 // ClientConfig defines a configuration to connect to a running box.

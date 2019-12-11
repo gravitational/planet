@@ -253,6 +253,11 @@ const (
 	// privileged containers are allowed.
 	EnvPlanetAllowPrivileged = "PLANET_ALLOW_PRIVILEGED"
 
+	// EnvPlanetSELinux is an environment variable that indicates whether
+	// SELinux support has been requested
+	EnvPlanetSELinux = "PLANET_SELINUX"
+
+	// DefaultDNSListenAddr is the default IP address CoreDNS will listen on
 	// DefaultDNSListenAddr is the default IP address CoreDNS will listen on
 	DefaultDNSListenAddr = "127.0.0.2"
 

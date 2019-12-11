@@ -135,6 +135,8 @@ type Config struct {
 	CloudConfig string
 	// AllowPrivileged controls whether privileged containers are allowed.
 	AllowPrivileged bool
+	// SELinux turns on SELinux support
+	SELinux bool
 }
 
 // DNS describes DNS server configuration
