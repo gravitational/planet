@@ -66,14 +66,14 @@ const (
 	// EnvAPIServerName names the environment variable that specifies
 	// the address of the API server
 	EnvAPIServerName = "KUBE_APISERVER"
-	// See https://coreos.com/etcd/docs/latest/v2/configuration.html
 	// EnvEtcdProxy names the environment variable that specifies
 	// the value of the proxy mode setting
+	// See https://coreos.com/etcd/docs/latest/v2/configuration.html
 	EnvEtcdProxy = "PLANET_ETCD_PROXY"
 	// EnvEtcdMemberName names the environment variable that specifies
 	// the name of this node in the etcd cluster
 	EnvEtcdMemberName = "PLANET_ETCD_MEMBER_NAME"
-	// EnvEtcdInitialClusterState names the environment variable that specifies
+	// EnvEtcdInitialCluster names the environment variable that specifies
 	// the initial etcd cluster configuration for bootstrapping
 	EnvEtcdInitialCluster = "ETCD_INITIAL_CLUSTER"
 	// EnvEtcdGatewayEndpoints is a list of endpoints the etcd gateway can use
@@ -190,10 +190,11 @@ const (
 	// of the agent key file
 	EnvPlanetAgentClientKeyFile = "PLANET_AGENT_CLIENT_KEYFILE"
 
-	// EnvDockerPromiscuousMode names the environment variable that specifies the
-	// promiscuous mode for docker
-	EnvDockerPromiscuousMode = "PLANET_DOCKER_PROMISCUOUS_MODE"
-	// EnvServiceGID names the environment variable that specifies the service user ID
+	// EnvPlanetAgentHTTPTimeout names the environment variable that overrides the HTTP client
+	// timeout for monitoring checks
+	EnvPlanetAgentHTTPTimeout = "PLANET_AGENT_HTTP_TIMEOUT"
+
+	// EnvServiceUID names the environment variable that specifies the service user ID
 	EnvServiceUID = "PLANET_SERVICE_UID"
 	// EnvServiceGID names the environment variable that specifies the service group ID
 	EnvServiceGID = "PLANET_SERVICE_GID"
@@ -309,10 +310,9 @@ const (
 	// This is kept for backwards-compatibility
 	LegacyAPIServerDNSName = "apiserver"
 
-	// See resolv.conf(5) on a Linux machine
-	//
 	// DNSNdots defines the threshold for amount of dots that must appear in a name
 	// before an initial absolute query will be made
+	// See resolv.conf(5) on a Linux machine
 	DNSNdots = 2
 	// DNSTimeout is the amount time resolver will wait for response before retrying
 	// the query with a different name server. Measured in seconds
@@ -335,7 +335,7 @@ const (
 	// CorednsServiceName is the name of the coredns service
 	CorednsServiceName = "coredns.service"
 
-	// ETCDDropinPath is the location of the systemd dropin when etcd is in gateway mode
+	// ETCDGatewayDropinPath is the location of the systemd dropin when etcd is in gateway mode
 	ETCDGatewayDropinPath = "/etc/systemd/system/etcd.service.d/10-gateway.conf"
 
 	// PlanetResolv is planet local resolver
@@ -399,10 +399,6 @@ const (
 
 	// DefaultDockerUnit specifies the name of the docker service unit file
 	DefaultDockerUnit = "docker.service"
-
-	// DockerPromiscuousModeDropIn names the drop-in file with promiscuous mode configuration
-	// for docker bridge
-	DockerPromiscuousModeDropIn = "99-docker-promisc.conf"
 
 	// MinKernelVersion specifies the minimum kernel version on the host
 	MinKernelVersion = 310
