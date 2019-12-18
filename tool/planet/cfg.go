@@ -123,10 +123,6 @@ type Config struct {
 	ServiceUser serviceUser
 	// DNS is the local DNS configuration
 	DNS DNS
-	// Taints is a list of kubernetes taints to apply to the object
-	Taints []string
-	// NodeLabels is Kubernetes node labels
-	NodeLabels []string
 	// DisableFlannel tells planet to disable the embedded flannel plugin
 	DisableFlannel bool
 	// KubeletConfig specifies the configuration for kubelet as JSON-encoded payload
