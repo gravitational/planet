@@ -19,7 +19,6 @@ package main
 import (
 	"context"
 	"fmt"
-	"io"
 	"io/ioutil"
 	"log"
 	"os"
@@ -32,9 +31,11 @@ import (
 	"github.com/docker/docker/client"
 	"github.com/docker/go-connections/nat"
 	"github.com/gravitational/trace"
+	"github.com/magefile/mage/sh"
 )
 
-const image = "gcr.io/etcd-development/etcd:v3.3.15"
+//const image = "gcr.io/etcd-development/etcd:v3.4.3"
+const image = "gcr.io/etcd-development/etcd:v3-test"
 const containerId = "etcd-test-0"
 
 func main() {
@@ -42,18 +43,24 @@ func main() {
 	if err != nil {
 		log.Fatal(err)
 	}
-	defer os.RemoveAll(etcdDir)
+	//defer os.RemoveAll(etcdDir)
 	fmt.Println("Temp etcd directory: ", etcdDir)
 
-	err = startEtcd(etcdDir)
+	err = startEtcd(etcdDir, false)
 	if err != nil {
-		panic(err)
+		panic(trace.DebugReport(err))
 	}
-	defer stopEtcd()
-
+	//defer stopEtcd()
 	fmt.Println("Etcd Started")
 
 	c := etcdClient()
+	clientv3 := etcd3Client()
+	err = clientv3.Sync(context.TODO())
+	if err != nil {
+		panic(trace.DebugReport(err))
+	}
+	fmt.Println("Etcd3 endpoints: ", clientv3.Endpoints())
+
 	err = waitEtcdHealthy(context.TODO(), c)
 	if err != nil {
 		log.Fatal(trace.DebugReport(err))
@@ -84,59 +91,80 @@ func main() {
 		log.Fatal(trace.DebugReport(err))
 	}
 
-	/*fmt.Println("Upgrading DB")
-	stopEtcd()
+	fmt.Println("Upgrading DB")
+	/*stopEtcd()
 	os.RemoveAll(filepath.Join(etcdDir, "member"))
-	err = startEtcd(etcdDir)
+	err = startEtcd(etcdDir, false)
 	if err != nil {
 		log.Fatal(trace.DebugReport(err))
 	}
-	*/
 
 	fmt.Println("Waiting for etcd")
 	err = waitEtcdHealthy(context.TODO(), c)
 	if err != nil {
 		log.Fatal(trace.DebugReport(err))
 	}
-
-	fmt.Println("Triggering watch")
-	err = triggerWatch(c)
-	if err != nil {
-		log.Fatal(trace.DebugReport(err))
-	}
+	*/
+	//fmt.Println("Writing etcd3 keys")
+	etcdv3Write100Keys(clientv3)
 
 	fmt.Println("Updating Index")
 	stopEtcd()
-	exploreDB(etcdDir)
+
+	sh.RunV("~/go/src/go.etcd.io/etcd/bin/etcdctl", "migrate", fmt.Sprintf("--data-dir=%v", etcdDir))
+
+	tryJumpEtcdIndex(etcdDir)
+	startEtcd(etcdDir, false)
+
+	//stopEtcd()
+	//exploreDB(etcdDir)
 
 	fmt.Println("Sleeping")
 	time.Sleep(30 * time.Second)
 }
 
-func startEtcd(dir string) error {
+func startEtcd(dir string, forceNewCluster bool) error {
 	cli := dockerClient()
 
-	reader, err := cli.ImagePull(context.TODO(), image, types.ImagePullOptions{})
+	/*reader, err := cli.ImagePull(context.TODO(), image, types.ImagePullOptions{})
 	if err != nil {
 		panic(err)
 	}
-	io.Copy(os.Stdout, reader)
+	io.Copy(os.Stdout, reader)*/
+
+	containers, err := cli.ContainerList(context.TODO(), types.ContainerListOptions{All: true})
+	if err != nil {
+		return trace.Wrap(err)
+	}
+	for _, container := range containers {
+		if len(container.Names) > 0 && container.Names[0] == fmt.Sprintf("/%v", containerId) {
+			fmt.Println("Stopping Container ID: ", container.ID)
+			cli.ContainerStop(context.TODO(), container.ID, nil)
+		}
+	}
 
 	etcdClientPort, err := nat.NewPort("tcp", "2379")
 	if err != nil {
 		return trace.Wrap(err)
 	}
 
+	cmd := []string{"/usr/local/bin/etcd",
+		"--data-dir", "/etcd-data",
+		"--enable-v2=true",
+		"--listen-client-urls", "http://0.0.0.0:2379",
+		"--advertise-client-urls", "http://127.0.0.1:2379",
+		"--snapshot-count", "100",
+		"--initial-cluster-state", "new",
+		"--log-level", "debug",
+	}
+	if forceNewCluster {
+		cmd = append(cmd, "--force-new-cluster")
+	}
 	cont, err := cli.ContainerCreate(context.TODO(),
 		&container.Config{
 			User:  fmt.Sprint(os.Getuid()),
 			Image: image,
-			Cmd: []string{"/usr/local/bin/etcd",
-				"--data-dir", "/etcd-data",
-				"--listen-client-urls", "http://0.0.0.0:2379",
-				"--advertise-client-urls", "http://127.0.0.1:2379",
-				"--snapshot-count", "100",
-			},
+			Cmd:   cmd,
 		},
 		&container.HostConfig{
 			AutoRemove: true,

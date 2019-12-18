@@ -20,12 +20,17 @@ import (
 	"context"
 	"fmt"
 	"log"
+	"os"
 	"path/filepath"
 	"time"
 
 	"github.com/gravitational/trace"
 	bolt "go.etcd.io/bbolt"
 	"go.etcd.io/etcd/client"
+	"go.etcd.io/etcd/clientv3"
+	"go.etcd.io/etcd/mvcc"
+	"go.etcd.io/etcd/mvcc/backend"
+	"go.etcd.io/etcd/mvcc/mvccpb"
 )
 
 func etcdClient() client.Client {
@@ -41,6 +46,23 @@ func etcdClient() client.Client {
 	}
 
 	return c
+}
+
+func etcd3Client() *clientv3.Client {
+	cli, err := clientv3.New(clientv3.Config{
+		Endpoints:   []string{"http://localhost:2379"},
+		DialTimeout: 5 * time.Second,
+	})
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	_, err = cli.Put(context.TODO(), "foo", "bar")
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	return cli
 }
 
 func waitEtcdHealthy(ctx context.Context, c client.Client) error {
@@ -69,10 +91,22 @@ func etcdWrite100Keys(c client.Client) error {
 	return nil
 }
 
+func etcdv3Write100Keys(c *clientv3.Client) error {
+	for i := 1; i <= 1000; i++ {
+		_, err := c.Put(context.TODO(), fmt.Sprint("etcd3-", i), fmt.Sprint(i))
+		if err != nil {
+			return trace.Wrap(err)
+		}
+
+		//spew.Dump(resp)
+	}
+	return nil
+}
+
 func etcdGenerateTraffic(c client.Client) error {
 	kapi := client.NewKeysAPI(c)
 
-	for k := 1; k <= 100; k++ {
+	for k := 1; k <= 1000; k++ {
 		for i := 1; i <= 10; i++ {
 			_, err := kapi.Set(context.TODO(), fmt.Sprint(i), fmt.Sprint(i+k), nil)
 			if err != nil {
@@ -97,7 +131,56 @@ func triggerWatch(c client.Client) error {
 }
 
 func tryJumpEtcdIndex(dir string) {
+	var be backend.Backend
 
+	time.Sleep(1 * time.Second)
+
+	bch := make(chan struct{})
+	dbpath := filepath.Join(dir, "member", "snap", "db")
+	fmt.Println("Dbpath: ", dbpath)
+	go func() {
+		defer close(bch)
+		be = backend.NewDefaultBackend(dbpath)
+	}()
+
+	select {
+	case <-bch:
+	case <-time.After(time.Second):
+		fmt.Fprintf(os.Stderr, "waiting for etcd to close and release its lock on %q\n", dbpath)
+		<-bch
+	}
+	defer be.Close()
+
+	fmt.Println("BatchTx")
+	tx := be.BatchTx()
+	tx.Lock()
+	tx.UnsafeCreateBucket([]byte("key"))
+	tx.UnsafeCreateBucket([]byte("meta"))
+	tx.Unlock()
+
+	fmt.Println("WriteKV")
+	mvcc.WriteKV(be, mvccpb.KeyValue{
+		Key:            []byte("test-999"),
+		CreateRevision: 10 * 1000 * 999,
+		ModRevision:    10 * 1000 * 999,
+		Value:          []byte("test-999"),
+		Version:        1,
+	})
+	mvcc.WriteKV(be, mvccpb.KeyValue{
+		Key:            []byte("test"),
+		CreateRevision: 10 * 1000 * 1000,
+		ModRevision:    10 * 1000 * 1000,
+		Value:          []byte("test"),
+		Version:        1,
+	})
+
+	fmt.Println("UpdateConsistentIndex")
+	//mvcc.UpdateConsistentIndex(be, 10*1000*1000)
+
+	fmt.Println("Read Consistent Index")
+	//_, vs := tx.UnsafeRange([]byte("meta"), []byte("consistent_index"), nil, 0)
+	//v := binary.BigEndian.Uint64(vs[0])
+	//fmt.Println("consistent_index: ", v)
 }
 
 func exploreDB(dir string) error {

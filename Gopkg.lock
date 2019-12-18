@@ -13,6 +13,17 @@
   revision = "d6e3b3328b783f23731bc4d058875b0371ff8109"
 
 [[projects]]
+  digest = "1:d5e752c67b445baa5b6cb6f8aa706775c2aa8e41aca95a0c651520ff2c80361a"
+  name = "github.com/Microsoft/go-winio"
+  packages = [
+    ".",
+    "pkg/guid"
+  ]
+  pruneopts = "UT"
+  revision = "6c72808b55902eae4c5943626030429ff20f3b63"
+  version = "v0.4.14"
+
+[[projects]]
   branch = "master"
   digest = "1:315c5f2f60c76d89b871c73f9bd5fe689cad96597afd50fb9992228ef80bdd34"
   name = "github.com/alecthomas/template"
@@ -133,6 +144,14 @@
   revision = "cb7008ab3d8359b78c5f464cb7cf160107ad5925"
 
 [[projects]]
+  digest = "1:771809465d2d81b1e2631f0e062b7458647135b2eca9e1cc577e58d1db0d987f"
+  name = "github.com/containerd/containerd"
+  packages = ["errdefs"]
+  pruneopts = "UT"
+  revision = "ff48f57fc83a8c44cf4ad5d672424a98ba37ded6"
+  version = "v1.3.2"
+
+[[projects]]
   digest = "1:4f618dd2213260a992922925a03349430af6994d8a481c53280703732e5bc4ab"
   name = "github.com/coreos/etcd"
   packages = [
@@ -197,15 +216,58 @@
   version = "v1.1.1"
 
 [[projects]]
-  digest = "1:a30d2758be5d1088a185e3c86266b0592d555a9781fd8e26453ad5e48b500b8a"
+  digest = "1:5d7f88f9487f370e3ae52155465156370fc5798102d811d2d4448d2385ccaf67"
+  name = "github.com/docker/distribution"
+  packages = [
+    "digestset",
+    "reference",
+    "registry/api/errcode"
+  ]
+  pruneopts = "UT"
+  revision = "2461543d988979529609e8cb6fca9ca190dc48da"
+  version = "v2.7.1"
+
+[[projects]]
+  digest = "1:45adc82655f1f7ddc036e9e70856113c23e3b6b1fe04f22349d4c0689f39cd8e"
   name = "github.com/docker/docker"
   packages = [
+    "api",
+    "api/types",
+    "api/types/blkiodev",
+    "api/types/container",
+    "api/types/events",
+    "api/types/filters",
+    "api/types/image",
+    "api/types/mount",
+    "api/types/network",
+    "api/types/registry",
+    "api/types/strslice",
+    "api/types/swarm",
+    "api/types/swarm/runtime",
+    "api/types/time",
+    "api/types/versions",
+    "api/types/volume",
+    "client",
+    "errdefs",
     "pkg/term",
     "pkg/term/windows"
   ]
   pruneopts = "UT"
-  revision = "a34a1d598c6096ed8b5ce5219e77d68e5cd85462"
-  version = "v1.9.1"
+  revision = "ea84732a77251e0d7af278e2b7df1d6a59fca46b"
+  source = "github.com/docker/engine"
+  version = "v19.03.5"
+
+[[projects]]
+  digest = "1:811c86996b1ca46729bad2724d4499014c4b9effd05ef8c71b852aad90deb0ce"
+  name = "github.com/docker/go-connections"
+  packages = [
+    "nat",
+    "sockets",
+    "tlsconfig"
+  ]
+  pruneopts = "UT"
+  revision = "7395e3f8aa162843a74ed6d48e79627d9792ac55"
+  version = "v0.4.0"
 
 [[projects]]
   digest = "1:6f82cacd0af5921e99bf3f46748705239b36489464f4529a1589bc895764fb18"
@@ -608,6 +670,25 @@
   revision = "7d4729fb36185a7c1719923406c9d40e54fb93c7"
 
 [[projects]]
+  digest = "1:ee4d4af67d93cc7644157882329023ce9a7bcfce956a079069a9405521c7cc8d"
+  name = "github.com/opencontainers/go-digest"
+  packages = ["."]
+  pruneopts = "UT"
+  revision = "279bed98673dd5bef374d3b6e4b09e2af76183bf"
+  version = "v1.0.0-rc1"
+
+[[projects]]
+  digest = "1:11db38d694c130c800d0aefb502fb02519e514dc53d9804ce51d1ad25ec27db6"
+  name = "github.com/opencontainers/image-spec"
+  packages = [
+    "specs-go",
+    "specs-go/v1"
+  ]
+  pruneopts = "UT"
+  revision = "d60099175f88c47cd379c4738d158884749ed235"
+  version = "v1.0.1"
+
+[[projects]]
   digest = "1:3a7b076f85f7786b280e7b06017cfa7f9379dfde983ac5280eb471d0f8a14baa"
   name = "github.com/opencontainers/runc"
   packages = [
@@ -799,6 +880,28 @@
   revision = "13995c7128ccc8e51e9a6bd2b551020a27180abd"
 
 [[projects]]
+  digest = "1:f2ac2c724fc8214bb7b9dd6d4f5b7a983152051f5133320f228557182263cb94"
+  name = "go.etcd.io/bbolt"
+  packages = ["."]
+  pruneopts = "UT"
+  revision = "a0458a2b35708eef59eb5f620ceb3cd1c01a824d"
+  version = "v1.3.3"
+
+[[projects]]
+  digest = "1:de13a61d68cac9a13dfeabc4f3dd70ec0a08366d5c85f88ce68c0a600c7b7f71"
+  name = "go.etcd.io/etcd"
+  packages = [
+    "client",
+    "pkg/pathutil",
+    "pkg/srv",
+    "pkg/types",
+    "version"
+  ]
+  pruneopts = "UT"
+  revision = "3cf2f69b5738fb702ba1a935590f36b52b18979b"
+  version = "v3.4.3"
+
+[[projects]]
   branch = "master"
   digest = "1:583f2f436bab7b59a7bd3e759f1375b06f460760ed1f9235604d143eaab83009"
   name = "golang.org/x/crypto"
@@ -812,7 +915,7 @@
 
 [[projects]]
   branch = "release-branch.go1.9"
-  digest = "1:04205e69d81f7a8272a9c62d9561803ac123fa33da001b2bb97ce373e0f100ca"
+  digest = "1:a81e89f9cddbd87817d7a15761e0b3c11bb0a80d13ac3b554d658b19bdf1f733"
   name = "golang.org/x/net"
   packages = [
     "bpf",
@@ -827,6 +930,7 @@
     "ipv4",
     "ipv6",
     "lex/httplex",
+    "proxy",
     "trace",
     "websocket"
   ]
@@ -1183,7 +1287,13 @@
     "github.com/coreos/etcd/clientv3",
     "github.com/coreos/go-systemd/dbus",
     "github.com/davecgh/go-spew/spew",
+    "github.com/docker/docker/api/types",
+    "github.com/docker/docker/api/types/container",
+    "github.com/docker/docker/api/types/mount",
+    "github.com/docker/docker/api/types/network",
+    "github.com/docker/docker/client",
     "github.com/docker/docker/pkg/term",
+    "github.com/docker/go-connections/nat",
     "github.com/fatih/color",
     "github.com/ghodss/yaml",
     "github.com/godbus/dbus",
@@ -1222,6 +1332,8 @@
     "github.com/sirupsen/logrus/hooks/syslog",
     "github.com/stretchr/testify/assert",
     "github.com/syndtr/gocapability/capability",
+    "go.etcd.io/bbolt",
+    "go.etcd.io/etcd/client",
     "golang.org/x/net/websocket",
     "gopkg.in/alecthomas/kingpin.v2",
     "gopkg.in/check.v1",
