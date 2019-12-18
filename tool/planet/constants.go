@@ -232,12 +232,6 @@ const (
 	// EnvPlanetDNSPort is the environment variable with the DNS port
 	EnvPlanetDNSPort = "PLANET_DNS_PORT"
 
-	// EnvPlanetTaints is an environment variable for Kubernetes taints to apply to the node during creation
-	EnvPlanetTaints = "PLANET_NODE_TAINTS"
-
-	// EnvPlanetNodeLabels is an environment variable for Kubernetes node labels
-	EnvPlanetNodeLabels = "PLANET_NODE_LABELS"
-
 	// EnvDisableFlannel is an environment variable to indicate whether we should disable flannel within planet
 	EnvDisableFlannel = "PLANET_DISABLE_FLANNEL"
 
