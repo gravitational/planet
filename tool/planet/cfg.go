@@ -276,9 +276,10 @@ func (r boolFlag) String() string {
 }
 
 // newKubectlConfig returns a kubectl config for the specified kubernetes API server IP
-func newKubectlConfig(stateDir string) ([]byte, error) {
+func newKubectlConfig(ip net.IP, stateDir string) ([]byte, error) {
 	var b bytes.Buffer
 	err := kubectlConfig.Execute(&b, map[string]string{
+		"ip":       ip.String(),
 		"stateDir": stateDir,
 	})
 	if err != nil {
@@ -295,7 +296,7 @@ clusters:
 - name: default
   cluster:
     certificate-authority: {{.stateDir}}/secrets/root.cert
-    server: server: https://leader.telekube.local:6443
+    server: https://{{.ip}}:6443
 users:
 - name: default
   user:
