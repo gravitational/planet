@@ -296,7 +296,7 @@ clusters:
 - name: default
   cluster:
     certificate-authority: {{.stateDir}}/secrets/root.cert
-    server: https://{{.ip}}:6443
+    server: https://{{.ip}}
 users:
 - name: default
   user:
