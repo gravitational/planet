@@ -470,16 +470,19 @@ func pickDockerStorageBackend() (dockerBackend string, err error) {
 func addDockerOptions(config *Config) error {
 	// add supported storage backend
 	config.Env.Append(EnvDockerOptions,
-		fmt.Sprintf("--storage-driver=%s", config.DockerBackend), " ")
+		fmt.Sprintf("--storage-driver=%s", config.DockerBackend))
 
 	// use cgroups native driver, because of this:
 	// https://github.com/docker/docker/issues/16256
-	config.Env.Append(EnvDockerOptions, "--exec-opt native.cgroupdriver=cgroupfs", " ")
+	config.Env.Append(EnvDockerOptions, "--exec-opt native.cgroupdriver=cgroupfs")
 	// Add sensible size limits to logging driver
-	config.Env.Append(EnvDockerOptions, "--log-opt max-size=50m", " ")
-	config.Env.Append(EnvDockerOptions, "--log-opt max-file=9", " ")
+	config.Env.Append(EnvDockerOptions, "--log-opt max-size=50m")
+	config.Env.Append(EnvDockerOptions, "--log-opt max-file=9")
 	if config.DockerOptions != "" {
-		config.Env.Append(EnvDockerOptions, config.DockerOptions, " ")
+		config.Env.Append(EnvDockerOptions, config.DockerOptions)
+	}
+	if config.SELinux {
+		config.Env.Append(EnvDockerOptions, "--selinux-enabled")
 	}
 
 	return nil
@@ -488,7 +491,7 @@ func addDockerOptions(config *Config) error {
 // addEtcdOptions sets extra etcd command line arguments in environment
 func addEtcdOptions(config *Config) {
 	if config.EtcdOptions != "" {
-		config.Env.Append(EnvEtcdOptions, config.EtcdOptions, " ")
+		config.Env.Append(EnvEtcdOptions, config.EtcdOptions)
 	}
 }
 
@@ -528,18 +531,18 @@ func addComponentOptions(config *Config) error {
 		return trace.Wrap(err)
 	}
 	if config.APIServerOptions != "" {
-		config.Env.Append(EnvAPIServerOptions, config.APIServerOptions, " ")
+		config.Env.Append(EnvAPIServerOptions, config.APIServerOptions)
 	}
 	if config.ServiceNodePortRange != "" {
 		config.Env.Append(EnvAPIServerOptions,
-			fmt.Sprintf("--service-node-port-range=%v", config.ServiceNodePortRange), " ")
+			fmt.Sprintf("--service-node-port-range=%v", config.ServiceNodePortRange))
 	}
 	if config.ProxyPortRange != "" {
 		config.Env.Append(EnvKubeProxyOptions,
-			fmt.Sprintf("--proxy-port-range=%v", config.ProxyPortRange), " ")
+			fmt.Sprintf("--proxy-port-range=%v", config.ProxyPortRange))
 	}
 	if config.FeatureGates != "" {
-		config.Env.Append(EnvKubeComponentFlags, fmt.Sprintf("--feature-gates=%v", config.FeatureGates), " ")
+		config.Env.Append(EnvKubeComponentFlags, fmt.Sprintf("--feature-gates=%v", config.FeatureGates))
 	}
 	return nil
 }
@@ -547,7 +550,7 @@ func addComponentOptions(config *Config) error {
 // addKubeletOptions sets extra kubelet command line arguments in environment
 func addKubeletOptions(config *Config) error {
 	if config.KubeletOptions != "" {
-		config.Env.Append(EnvKubeletOptions, config.KubeletOptions, " ")
+		config.Env.Append(EnvKubeletOptions, config.KubeletOptions)
 	}
 	kubeletConfig := KubeletConfig
 	if config.KubeletConfig != "" {

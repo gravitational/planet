@@ -422,7 +422,10 @@ func getLibcontainerConfig(containerID, rootfs string, cfg Config) (*configs.Con
 				Destination: "/sys/fs/selinux",
 				Source:      "/sys/fs/selinux",
 				Device:      "bind",
-				Flags:       syscall.MS_BIND | syscall.MS_RELATIME | syscall.MS_RDONLY,
+				//Flags:       syscall.MS_BIND | syscall.MS_RELATIME | syscall.MS_RDONLY,
+				// FIXME: need this r/w for docker et al?
+				// Is there a way to force docker to not start containers as spc_t?
+				Flags: syscall.MS_BIND | syscall.MS_RELATIME,
 			},
 			{
 				Device:      "bind",

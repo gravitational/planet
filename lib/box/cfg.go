@@ -162,7 +162,8 @@ func (vars *EnvVars) Delete(v string) string {
 }
 
 // Append adds a new environment variable given with k, v and delimiter delim
-func (vars *EnvVars) Append(k, v, delim string) {
+func (vars *EnvVars) Append(k, v string) {
+	const delim = " "
 	if existing := vars.Get(k); existing != "" {
 		vars.Upsert(k, strings.Join([]string{existing, v}, delim))
 	} else {
