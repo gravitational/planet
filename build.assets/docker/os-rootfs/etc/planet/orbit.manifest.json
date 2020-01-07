@@ -394,6 +394,30 @@
                 }
             },
             {
+                "type": "List",
+                "name": "taint",
+                "spec": {
+                    "name": "taint",
+                    "env": "PLANET_NODE_TAINTS",
+                    "type": "String",
+                    "cli": {
+                        "name": "taint"
+                    }
+                }
+            },
+            {
+                "type": "List",
+                "name": "nodelabels",
+                "spec": {
+                    "name": "nodelabel",
+                    "env": "PLANET_NODE_LABELS",
+                    "type": "String",
+                    "cli": {
+                        "name": "node-label"
+                    }
+                }
+            },
+            {
                 "type": "Bool",
                 "name": "disableflannel",
                 "env": "PLANET_DISABLE_FLANNEL",
