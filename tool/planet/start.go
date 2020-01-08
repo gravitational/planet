@@ -211,6 +211,22 @@ func start(config *Config, monitorc chan<- bool) (*runtimeContext, error) {
 			Val:  strings.Join(localNameservers, ","),
 		})
 
+	if len(config.Taints) > 0 {
+		config.Env = append(config.Env,
+			box.EnvPair{
+				Name: EnvPlanetTaints,
+				Val:  strings.Join(config.Taints, ","),
+			})
+	}
+
+	if len(config.NodeLabels) > 0 {
+		config.Env = append(config.Env,
+			box.EnvPair{
+				Name: EnvPlanetNodeLabels,
+				Val:  strings.Join(config.NodeLabels, ","),
+			})
+	}
+
 	if err = setCoreDNS(config); err != nil {
 		return nil, trace.Wrap(err)
 	}
