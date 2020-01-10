@@ -9,15 +9,16 @@ ADD os-rootfs/ /
 
 RUN set -ex; \
 	if ! command -v gpg > /dev/null; then \
-	apt-get update; \
-	apt-get install -y --no-install-recommends \
-	gnupg2 \
-	dirmngr \
-	; \
-	rm -rf /var/lib/apt/lists/*; \
+		apt-get update; \
+		apt-get install -y --no-install-recommends \
+		gnupg2 \
+		dirmngr \
+		; \
+		rm -rf /var/lib/apt/lists/*; \
 	fi
 
-RUN sed -i 's/main/main contrib non-free/g' /etc/apt/sources.list && \
+RUN set -ex; \
+	sed -i 's/main/main contrib non-free/g' /etc/apt/sources.list && \
 	apt-get update && apt-get -q -y install apt-transport-https \
 	&& apt-get install -q -y apt-utils less locales \
 	&& apt-get install -t stretch-backports -q -y systemd

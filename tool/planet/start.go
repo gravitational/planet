@@ -281,6 +281,7 @@ func start(config *Config, monitorc chan<- bool) (*runtimeContext, error) {
 		InitEnv:      []string{"container=container-other", "LC_ALL=en_US.UTF-8"},
 		Capabilities: allCaps,
 		ProcessLabel: constants.ContainerInitProcessLabel,
+		SELinux:      config.SELinux,
 	}
 
 	listener, err := newUdevListener(config.Rootfs, config.SocketPath)
