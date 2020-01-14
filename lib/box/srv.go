@@ -53,27 +53,27 @@ type ContainerServer interface {
 // and an API server that exposes a unix socket endpoint.
 // Once started, the box can be shut down with Close.
 type Box struct {
-	Process   *libcontainer.Process
-	Container libcontainer.Container
-	listener  net.Listener
+	*libcontainer.Process
+	libcontainer.Container
+	listener net.Listener
+	selinuxLabelGetter
 }
 
 // Close shuts down the box. It is written to be safe to call multiple
 // times in a row for extra robustness.
 func (b *Box) Close() error {
-	var err error
-
+	var errors []error
 	if b.Container != nil {
-		if err = b.Container.Destroy(); err != nil {
-			log.Errorf("box.Close() :%v", err)
+		if err := b.Container.Destroy(); err != nil {
+			errors = append(errors, err)
 		}
 	}
 	if b.listener != nil {
-		if err = b.listener.Close(); err != nil {
-			log.Warningf("box.Close(): %v", err)
+		if err := b.listener.Close(); err != nil {
+			errors = append(errors, err)
 		}
 	}
-	return err
+	return trace.NewAggregate(errors...)
 }
 
 // Wait blocks waiting the init process to finish.
@@ -190,11 +190,6 @@ func Start(cfg Config) (*Box, error) {
 		}
 	}()
 
-	err = startWebServer(listener, container)
-	if err != nil {
-		return nil, trace.Wrap(err)
-	}
-
 	process := &libcontainer.Process{
 		Args:   cfg.InitArgs,
 		Env:    cfg.InitEnv,
@@ -215,13 +210,26 @@ func Start(cfg Config) (*Box, error) {
 	if err != nil {
 		return nil, trace.Wrap(err)
 	}
-	log.Infof("Container status: %v (err=%v).", status, err)
+	log.WithFields(log.Fields{
+		log.ErrorKey: err,
+		"status":     status,
+	}).Info("Start container.")
 
-	return &Box{
+	box := &Box{
 		Process:   process,
 		Container: container,
 		listener:  listener,
-	}, nil
+	}
+	if cfg.SELinux {
+		box.selinuxLabelGetter = getSELinuxProcLabel(config.Rootfs)
+	}
+
+	err = startWebServer(listener, box)
+	if err != nil {
+		return nil, trace.Wrap(err)
+	}
+
+	return box, nil
 }
 
 func getLibcontainerConfig(containerID, rootfs string, cfg Config) (*configs.Config, error) {
@@ -410,13 +418,12 @@ func getLibcontainerConfig(containerID, rootfs string, cfg Config) (*configs.Con
 			},
 		},
 
-		Devices:      append(configs.DefaultAutoCreatedDevices, append(loopDevices, disks...)...),
-		Hostname:     hostname,
-		MountLabel:   defaults.ContainerFileLabel,
-		ProcessLabel: cfg.ProcessLabel,
+		Devices:    append(configs.DefaultAutoCreatedDevices, append(loopDevices, disks...)...),
+		Hostname:   hostname,
+		MountLabel: defaults.ContainerFileLabel,
 	}
-
 	if cfg.SELinux {
+		config.ProcessLabel = cfg.ProcessLabel
 		config.Mounts = append(config.Mounts, []*configs.Mount{
 			{
 				Destination: "/sys/fs/selinux",
@@ -674,18 +681,18 @@ func writeConfig(target, source string) error {
 // startWebServer starts a web server to serve remote process control on the given listener
 // in the specified container.
 // This function leaves a running goroutine behind.
-func startWebServer(listener net.Listener, c libcontainer.Container) error {
+func startWebServer(listener net.Listener, box *Box) error {
 	srv := &http.Server{
-		Handler: NewWebServer(c),
+		Handler: NewWebServer(box),
 	}
 	go func() {
 		defer func() {
 			if err := listener.Close(); err != nil {
-				log.Warnf("Failed to remove socket file: %v.", err)
+				log.WithError(err).Warn("Failed to remove socket file.")
 			}
 		}()
 		if err := srv.Serve(listener); err != nil {
-			log.Warnf("Server finished with %v.", err)
+			log.WithError(err).Warn("Server finished.")
 		}
 	}()
 	return nil

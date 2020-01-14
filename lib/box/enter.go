@@ -33,27 +33,37 @@ import (
 	log "github.com/sirupsen/logrus"
 )
 
-func CombinedOutput(c libcontainer.Container, cfg ProcessConfig) ([]byte, error) {
-	var b bytes.Buffer
-	cfg.Out = &b
-	err := StartProcess(c, cfg)
-	if err != nil {
-		return b.Bytes(), err
-	}
-	return b.Bytes(), nil
+// CombinedOutput executes the command specified with cfg and returns
+// its output as a combination of stdout/stderr
+func (b *Box) CombinedOutput(cfg ProcessConfig) (output []byte, err error) {
+	var buf bytes.Buffer
+	cfg.Out = &buf
+	err = b.StartProcess(cfg)
+	return buf.Bytes(), trace.Wrap(err)
 }
 
-func StartProcess(c libcontainer.Container, cfg ProcessConfig) error {
+// StartPtocess starts the command specified with cfg.
+// It does not wait for command to finish - use Box.Wait() to achieve this
+func (b *Box) StartProcess(cfg ProcessConfig) error {
 	log.WithField("process", cfg).Info("Start process.")
 	defer log.WithField("process", cfg.Args).Info("Started process.")
 
-	if cfg.TTY != nil {
-		return StartProcessTTY(c, cfg)
+	if b.selinuxLabelGetter != nil {
+		if len(cfg.ProcessLabel) == 0 {
+			cfg.ProcessLabel = b.selinuxLabelGetter.getSELinuxLabel(cfg.Args[0])
+		}
+	} else {
+		// Empty the label if SELinux is not on
+		cfg.ProcessLabel = ""
 	}
-	return StartProcessStdout(c, cfg)
+
+	if cfg.TTY != nil {
+		return b.startProcessTTY(cfg)
+	}
+	return b.startProcessStdout(cfg)
 }
 
-func StartProcessTTY(c libcontainer.Container, cfg ProcessConfig) error {
+func (b *Box) startProcessTTY(cfg ProcessConfig) error {
 	p := &libcontainer.Process{
 		Args:          cfg.Args,
 		User:          cfg.User,
@@ -72,12 +82,12 @@ func StartProcessTTY(c libcontainer.Container, cfg ProcessConfig) error {
 	// this will cause libcontainer to exec this binary again
 	// with "init" command line argument.  (this is the default setting)
 	// then our init() function comes into play
-	if err := c.Run(p); err != nil {
+	if err := b.Container.Run(p); err != nil {
 		return trace.Wrap(err)
 	}
 	log.WithField("process", cfg).Debug("Process started.")
 
-	setProcessUserCgroup(c, p)
+	setProcessUserCgroup(b.Container, p)
 
 	containerConsole, err := getContainerConsole(context.TODO(), parentConsole)
 	if err != nil {
@@ -106,14 +116,10 @@ func StartProcessTTY(c libcontainer.Container, cfg ProcessConfig) error {
 
 	// wait for the process to finish.
 	_, err = p.Wait()
-	if err != nil {
-		return trace.Wrap(err)
-	}
-
-	return nil
+	return trace.Wrap(err)
 }
 
-func StartProcessStdout(c libcontainer.Container, cfg ProcessConfig) error {
+func (b *Box) startProcessStdout(cfg ProcessConfig) error {
 	var in io.Reader
 	if cfg.In != nil {
 		// we have to pass real pipe to libcontainer.Process because:
@@ -146,19 +152,16 @@ func StartProcessStdout(c libcontainer.Container, cfg ProcessConfig) error {
 	// this will cause libcontainer to exec this binary again
 	// with "init" command line argument.  (this is the default setting)
 	// then our init() function comes into play
-	if err := c.Start(p); err != nil {
+	if err := b.Container.Start(p); err != nil {
 		return trace.Wrap(err)
 	}
 
-	setProcessUserCgroup(c, p)
+	setProcessUserCgroup(b.Container, p)
 
 	// wait for the process to finish
 	log.WithField("args", cfg.Args).Info("Wait for process.")
 	_, err := p.Wait()
-	if err != nil {
-		return trace.Wrap(err)
-	}
-	return nil
+	return trace.Wrap(err)
 }
 
 // setProcessUserCgroup sets the provided libcontainer process into the /user cgroup inside the container

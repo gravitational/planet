@@ -42,7 +42,6 @@ import (
 	"github.com/ghodss/yaml"
 	"github.com/gravitational/trace"
 	"github.com/imdario/mergo"
-	"github.com/opencontainers/runc/libcontainer"
 	log "github.com/sirupsen/logrus"
 	kubeletconfig "k8s.io/kubelet/config/v1beta1"
 )
@@ -66,7 +65,7 @@ func startAndWait(config *Config) error {
 		return trace.Wrap(err)
 	}
 
-	ctx, err := start(config, nil)
+	ctx, err := start(config)
 	if err != nil {
 		return trace.Wrap(err)
 	}
@@ -81,12 +80,12 @@ func startAndWait(config *Config) error {
 	return nil
 }
 
-func start(config *Config, monitorc chan<- bool) (*runtimeContext, error) {
-	log.Infof("starting with config: %#v", config)
+func start(config *Config) (*runtimeContext, error) {
+	log.Infof("Starting with config: %#v.", config)
 
-	// if !isRoot() {
-	// 	return nil, trace.Errorf("must be run as root")
-	// }
+	if !config.SELinux && !isRoot() {
+		return nil, trace.CompareFailed("must be run as root")
+	}
 
 	var err error
 
@@ -95,14 +94,14 @@ func start(config *Config, monitorc chan<- bool) (*runtimeContext, error) {
 	if err != nil {
 		return nil, trace.Wrap(err)
 	}
-	log.Infof("kernel: %v\n", v)
+	log.Infof("Kernel: %v.", v)
 	if v < MinKernelVersion {
 		err := trace.Errorf(
 			"current minimum supported kernel version is %0.2f. Upgrade kernel before moving on.", MinKernelVersion/100.0)
 		if !config.IgnoreChecks {
 			return nil, trace.Wrap(err)
 		}
-		log.Infof("warning: %v", err)
+		log.WithError(err).Warn("Ignore kernel supported version check.")
 	}
 
 	// check & mount cgroups:
@@ -236,10 +235,11 @@ func start(config *Config, monitorc chan<- bool) (*runtimeContext, error) {
 		return nil, trace.Wrap(err)
 	}
 
-	// FIXME: selinux
-	// if err = setKubeConfigOwnership(config); err != nil {
-	// 	return nil, trace.Wrap(err)
-	// }
+	if !config.SELinux {
+		if err = setKubeConfigOwnership(config); err != nil {
+			return nil, trace.Wrap(err)
+		}
+	}
 	mountSecrets(config)
 
 	err = setHosts(config, []utils.HostEntry{
@@ -295,15 +295,13 @@ func start(config *Config, monitorc chan<- bool) (*runtimeContext, error) {
 		return nil, trace.Wrap(err)
 	}
 
-	units := []string{}
+	var units []string
 	if config.hasRole(RoleMaster) {
-		units = append(units, masterUnits...)
+		units = masterUnits
+	} else {
+		units = nodeUnits
 	}
-	if config.hasRole(RoleNode) {
-		units = appendUnique(units, nodeUnits)
-	}
-
-	go monitorUnits(box.Container, units, monitorc)
+	go monitorUnits(box, units...)
 
 	return &runtimeContext{
 		process:  box,
@@ -971,6 +969,87 @@ multizone=true
 `))
 )
 
+func monitorUnits(box *box.Box, units ...string) {
+	unitState := make(map[string]string, len(units))
+	for _, unit := range units {
+		unitState[unit] = ""
+	}
+	start := time.Now()
+	var inactiveUnits []string
+	for i := 0; i < 30; i++ {
+		for _, unit := range units {
+			status, err := getStatus(box, unit)
+			if err != nil {
+				log.WithFields(log.Fields{
+					log.ErrorKey: err,
+					"service":    unit,
+				}).Warn("Failed to query service status.")
+			}
+			unitState[unit] = status
+		}
+
+		out := &bytes.Buffer{}
+		fmt.Fprintf(out, "%v", time.Now().Sub(start))
+		for _, unit := range units {
+			if state, _ := unitState[unit]; state == serviceActive {
+				fmt.Fprintf(out, " %v \x1b[32m[OK]\x1b[0m", unit)
+			} else {
+				fmt.Fprintf(out, " %v [%v]", unit, state)
+			}
+		}
+		fmt.Println("\n", out.String())
+		inactiveUnits = getInactiveUnits(unitState)
+		if len(inactiveUnits) == 0 {
+			fmt.Println("All units are up.")
+			return
+		}
+		time.Sleep(time.Second)
+	}
+
+	fmt.Println("Some units have not started:", inactiveUnits)
+	fmt.Println("Run `planet enter` and check journalctl for details.")
+}
+
+func getInactiveUnits(units map[string]string) (inactive []string) {
+	for name, state := range units {
+		if state != serviceActive {
+			inactive = append(inactive, name)
+		}
+	}
+	return inactive
+}
+
+func unitNames(units map[string]string) []string {
+	out := []string{}
+	for unit := range units {
+		out = append(out, unit)
+	}
+	sort.StringSlice(out).Sort()
+	return out
+}
+
+func getStatus(b *box.Box, unit string) (status string, err error) {
+	out, err := b.CombinedOutput(
+		box.ProcessConfig{
+			User: "root",
+			Args: []string{
+				"/bin/systemctl", "is-active",
+				fmt.Sprintf("%v.service", unit),
+			},
+		})
+	if err == nil {
+		return serviceActive, nil
+	}
+	if utils.IsExecFailedError(err) {
+		return "", err
+	}
+	return strings.TrimSpace(string(out)), trace.Wrap(err)
+}
+
+func isRoot() bool {
+	return os.Geteuid() == 0
+}
+
 var masterUnits = []string{
 	"etcd",
 	"flanneld",
@@ -988,95 +1067,4 @@ var nodeUnits = []string{
 	"etcd",
 }
 
-func appendUnique(a, b []string) []string {
-	as := make(map[string]bool, len(a))
-	for _, i := range a {
-		as[i] = true
-	}
-	for _, i := range b {
-		if _, ok := as[i]; !ok {
-			a = append(a, i)
-		}
-	}
-	return a
-}
-
-func monitorUnits(c libcontainer.Container, units []string, monitorc chan<- bool) {
-	if monitorc != nil {
-		defer close(monitorc)
-	}
-
-	unitState := make(map[string]string, len(units))
-	for _, unit := range units {
-		unitState[unit] = ""
-	}
-	start := time.Now()
-	var inactiveUnits []string
-	for i := 0; i < 30; i++ {
-		for _, unit := range units {
-			status, err := getStatus(c, unit)
-			if err != nil {
-				log.Infof("error getting status: %v", err)
-			}
-			unitState[unit] = status
-		}
-
-		out := &bytes.Buffer{}
-		fmt.Fprintf(out, "%v", time.Now().Sub(start))
-		for _, unit := range units {
-			if unitState[unit] != "" {
-				fmt.Fprintf(out, " %v \x1b[32m[OK]\x1b[0m", unit)
-			} else {
-				fmt.Fprintf(out, " %v[  ]", unit)
-			}
-		}
-		fmt.Printf("\r %v", out.String())
-		inactiveUnits = getInactiveUnits(unitState)
-		if len(inactiveUnits) == 0 {
-			if monitorc != nil {
-				monitorc <- true
-			}
-			fmt.Printf("\nall units are up\n")
-			return
-		}
-		time.Sleep(time.Second)
-	}
-
-	fmt.Printf("\nsome units have not started: %q.\n Run `planet enter` and check journalctl for details\n", inactiveUnits)
-}
-
-func getInactiveUnits(units map[string]string) (inactive []string) {
-	for name, state := range units {
-		if state == "" {
-			inactive = append(inactive, name)
-		}
-	}
-	return inactive
-}
-
-func unitNames(units map[string]string) []string {
-	out := []string{}
-	for unit := range units {
-		out = append(out, unit)
-	}
-	sort.StringSlice(out).Sort()
-	return out
-}
-
-func getStatus(c libcontainer.Container, unit string) (string, error) {
-	out, err := box.CombinedOutput(
-		c, box.ProcessConfig{
-			User: "root",
-			Args: []string{
-				"/bin/systemctl", "is-active",
-				fmt.Sprintf("%v.service", unit),
-			}})
-	if err != nil {
-		return "", err
-	}
-	return strings.TrimSpace(string(out)), nil
-}
-
-func isRoot() bool {
-	return os.Geteuid() == 0
-}
+const serviceActive = "active"

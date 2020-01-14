@@ -110,7 +110,7 @@ func (e *ProcessConfig) String() string {
 	fmt.Fprint(&buf, "ProcessConfig(")
 	fmt.Fprintf(&buf, "args=%q,user=%q,env=%v", e.Args, e.User, e.Env)
 	if e.ProcessLabel != "" {
-		fmt.Fprintf(&buf, ",label=%q", e.ProcessLabel)
+		fmt.Fprintf(&buf, ",selinux_domain=%q", e.ProcessLabel)
 	}
 	fmt.Fprint(&buf, ")")
 	return buf.String()

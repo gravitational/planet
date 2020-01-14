@@ -29,7 +29,6 @@ import (
 	"github.com/gravitational/trace"
 
 	"github.com/julienschmidt/httprouter"
-	"github.com/opencontainers/runc/libcontainer"
 	log "github.com/sirupsen/logrus"
 	"golang.org/x/net/websocket"
 )
@@ -51,12 +50,14 @@ type handler func(http.ResponseWriter, *http.Request, httprouter.Params) error
 
 type webServer struct {
 	httprouter.Router
-	container    libcontainer.Container
 	socketServer websocket.Server
+	box          *Box
 }
 
-func NewWebServer(c libcontainer.Container) *webServer {
-	s := &webServer{container: c}
+// NewWebServer creates a new instance of the web server that
+// handles external command execution requests
+func NewWebServer(box *Box) *webServer {
+	s := &webServer{box: box}
 
 	// it has to be GET because we use websockets,
 	// so we are using the weird argument passing in query
@@ -102,7 +103,7 @@ func (s *webServer) enter(w http.ResponseWriter, r *http.Request, p httprouter.P
 		cfg.In = conn
 		cfg.Out = cmdOut
 
-		err = StartProcess(s.container, *cfg)
+		err = s.box.StartProcess(*cfg)
 		if err == nil {
 			return
 		}
