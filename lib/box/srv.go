@@ -297,7 +297,6 @@ func getLibcontainerConfig(containerID, rootfs string, cfg Config) (*configs.Con
 		Capabilities: &capabilities,
 		Namespaces: configs.Namespaces([]configs.Namespace{
 			{Type: configs.NEWNS},
-			// {Type: configs.NEWUSER},
 			{Type: configs.NEWUTS},
 			{Type: configs.NEWIPC},
 			{Type: configs.NEWPID},
@@ -327,9 +326,7 @@ func getLibcontainerConfig(containerID, rootfs string, cfg Config) (*configs.Con
 				Source:      "sysfs",
 				Destination: "/sys",
 				Device:      "sysfs",
-				// "rprivate", "nosuid", "noexec", "nodev", "rw"
-				// Flags: syscall.MS_PRIVATE | syscall.MS_REC | syscall.MS_NOSUID | syscall.MS_NOEXEC | syscall.MS_NODEV,
-				Flags: defaultMountFlags | syscall.MS_RDONLY,
+				Flags:       defaultMountFlags | syscall.MS_RDONLY,
 			},
 			{
 				Source:      "devpts",
@@ -367,8 +364,7 @@ func getLibcontainerConfig(containerID, rootfs string, cfg Config) (*configs.Con
 				Device:      "bind",
 				Source:      "/dev/kmsg",
 				Destination: "/dev/kmsg",
-				// FIXME: readonly
-				Flags: syscall.MS_BIND | syscall.MS_RDONLY,
+				Flags:       syscall.MS_BIND | syscall.MS_RDONLY,
 			},
 			// /run has to be mounted explicitly as tmpfs in order to be able
 			// to mount /run/udev below
@@ -429,10 +425,7 @@ func getLibcontainerConfig(containerID, rootfs string, cfg Config) (*configs.Con
 				Destination: "/sys/fs/selinux",
 				Source:      "/sys/fs/selinux",
 				Device:      "bind",
-				//Flags:       syscall.MS_BIND | syscall.MS_RELATIME | syscall.MS_RDONLY,
-				// FIXME: need this r/w for docker et al?
-				// Is there a way to force docker to not start containers as spc_t?
-				Flags: syscall.MS_BIND | syscall.MS_RELATIME,
+				Flags:       syscall.MS_BIND | syscall.MS_RELATIME,
 			},
 			{
 				Device:      "bind",

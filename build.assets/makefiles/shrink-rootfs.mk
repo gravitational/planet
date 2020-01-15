@@ -18,15 +18,6 @@ all:
 	rm -rf $(ROOTFS)/var/lib/apt
 	rm -rf $(ROOTFS)/var/log/*
 	rm -rf $(ROOTFS)/var/cache
-	rm -rf $(ROOTFS)/var/log/exim4/
 	rm -rf $(ROOTFS)/lib/systemd/system/sysinit.target.wants/proc-sys-fs-binfmt_misc.automount
 	rm -rf $(ROOTFS)/lib/modules-load.d/open-iscsi.conf
-
 	rm -rf $(ROOTFS)/usr/share/locale
-	cd $(ROOTFS) && find -P . -maxdepth 1 -xdev '!' -type l \
-		-not -path './proc' \
-		-not -path './sys' \
-		-not -path './dev' \
-		-not -path './.relabelpaths' \
-		-not -path '.' \
-		-printf '/%P\0' > $(ROOTFS)/.relabelpaths

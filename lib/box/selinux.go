@@ -51,9 +51,3 @@ func (r selinuxLabelGetterFunc) getSELinuxLabel(cmd string) (label string) {
 }
 
 type selinuxLabelGetterFunc func(cmd string) (label string)
-
-func (noopLabelGetter) getSELinuxLabel(string) (label string) {
-	return ""
-}
-
-type noopLabelGetter struct{}
