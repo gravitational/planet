@@ -124,17 +124,18 @@ func StringInSlice(haystack []string, needle string) bool {
 	return false
 }
 
-// IsExecFailedError returns true if the specified error
-// represents a failure to execute a command
-func IsExecFailedError(err error) bool {
+/ ExitStatusFromError returns the exit status from the specified error.
+// If the error is not exit status error, return nil
+func ExitStatusFromError(err error) *int {
 	exitErr, ok := err.(*exec.ExitError)
 	if !ok {
-		return false
+		return nil
 	}
 	if waitStatus, ok := exitErr.ProcessState.Sys().(syscall.WaitStatus); ok {
-		return waitStatus.ExitStatus() < 0
+		status := waitStatus.ExitStatus()
+		return &status
 	}
-	return false
+	return nil
 }
 
 // ToJSON converts a single YAML document into a JSON document

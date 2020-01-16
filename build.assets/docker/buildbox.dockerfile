@@ -1,7 +1,9 @@
 FROM quay.io/gravitational/debian-venti:go1.12.9-buster
 
+ARG GOVERSION=1.12.9
+
 ENV PATH $PATH:$GOPATH/bin:$GOROOT/bin
-ENV GOCACHE ${GOPATH}/.gocache
+ENV GOCACHE ${GOPATH}/.gocache-${GOVERSION}
 
 # Have our own /etc/passwd with users populated from 990 to 1000
 COPY passwd /etc/passwd

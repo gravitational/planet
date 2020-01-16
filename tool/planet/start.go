@@ -979,7 +979,7 @@ func monitorUnits(box *box.Box, units ...string) {
 	for i := 0; i < 30; i++ {
 		for _, unit := range units {
 			status, err := getStatus(box, unit)
-			if err != nil {
+			if err != nil && !isProgramNotRunningError(err) {
 				log.WithFields(log.Fields{
 					log.ErrorKey: err,
 					"service":    unit,
@@ -1040,9 +1040,6 @@ func getStatus(b *box.Box, unit string) (status string, err error) {
 	if err == nil {
 		return serviceActive, nil
 	}
-	if utils.IsExecFailedError(err) {
-		return "", err
-	}
 	return strings.TrimSpace(string(out)), trace.Wrap(err)
 }
 
@@ -1065,6 +1062,16 @@ var nodeUnits = []string{
 	"kube-proxy",
 	"kube-kubelet",
 	"etcd",
+}
+
+func isProgramNotRunningError(err error) bool {
+	// See: http://refspecs.linuxbase.org/LSB_3.0.0/LSB-PDA/LSB-PDA/iniscrptact.html
+	// LSB 3: program not running
+	const exitProgramNotRunning = 3
+	if status := utils.ExitStatusFromError(err); status != nil {
+		return *status == exitProgramNotRunning
+	}
+	return false
 }
 
 const serviceActive = "active"
