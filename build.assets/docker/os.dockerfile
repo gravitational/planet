@@ -17,7 +17,7 @@ RUN set -ex; \
 		rm -rf /var/lib/apt/lists/*; \
 	fi
 
-RUN set -ex; \
+RUN set -ex && \
 	sed -i 's/main/main contrib non-free/g' /etc/apt/sources.list && \
 	apt-get update && apt-get -q -y install apt-transport-https \
 	&& apt-get install -q -y apt-utils less locales \
@@ -32,7 +32,8 @@ RUN locale-gen \
 # Exit code 1 is either created successfully or symlink already exists
 # Exit codes < 0 are failures
 RUN systemctl set-default multi-user.target; if [ "$?" -lt 0 ]; then exit $?; fi;
-RUN systemctl mask cgproxy.service cgmanager.service \
+RUN set -ex && \
+	systemctl mask cgproxy.service cgmanager.service \
 	apt-daily.service apt-daily-upgrade.service \
 	lvm2-monitor.service lvm2-lvmetad.service lvm2-lvmetad.socket \
 	blk-availability.service \

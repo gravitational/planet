@@ -382,7 +382,7 @@ func run() error {
 			break
 		}
 		if *cstartSELinux && !selinux.GetEnabled() {
-			return trace.BadParameter("SELinux supported requested but SELinux is not enabled on host")
+			return trace.BadParameter("SELinux support requested but SELinux is not enabled on host")
 		}
 		rootfs, err = findRootfs()
 		if err != nil {

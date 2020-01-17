@@ -1,6 +1,5 @@
-FROM quay.io/gravitational/debian-venti:go1.12.9-buster
-
 ARG GOVERSION=1.12.9
+FROM quay.io/gravitational/debian-venti:go${GOVERSION}-buster
 
 ENV PATH $PATH:$GOPATH/bin:$GOROOT/bin
 ENV GOCACHE ${GOPATH}/.gocache-${GOVERSION}
