@@ -1302,6 +1302,7 @@
     "github.com/opencontainers/runc/libcontainer/user",
     "github.com/opencontainers/runc/libcontainer/utils",
     "github.com/opencontainers/runtime-spec/specs-go",
+    "github.com/opencontainers/selinux/go-selinux",
     "github.com/pborman/uuid",
     "github.com/prometheus/client_golang/prometheus",
     "github.com/sirupsen/logrus",

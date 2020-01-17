@@ -118,8 +118,7 @@ ignored = ["github.com/Sirupsen/logrus", "github.com/gravitational/planet/build/
 [[constraint]]
   name = "github.com/sirupsen/logrus"
   source = "github.com/gravitational/logrus"
-  #version = "v1.4.3"
-  branch = "dmitri/update-upstream"
+  version = "v1.4.3-alpha.1"
 
 [[constraint]]
   name = "gopkg.in/alecthomas/kingpin.v2"
