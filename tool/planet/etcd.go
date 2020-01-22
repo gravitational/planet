@@ -431,9 +431,7 @@ func etcdRestore(file string) error {
 
 	// wait for the temporary etcd instance to complete startup
 	log.Info("Waiting for etcd initialization to complete")
-	waitCtx, cancel := context.WithTimeout(context.Background(), 1*time.Minute)
-	defer cancel()
-	err = waitEtcdHealthy(waitCtx, client)
+	err = waitEtcdHealthyTimeout(waitCtx, 1*time.Minute, client)
 	if err != nil {
 		return trace.Wrap(err)
 	}
@@ -471,6 +469,12 @@ func etcdRestore(file string) error {
 		return trace.Wrap(err)
 	}
 
+	log.Info("Waiting for etcd ")
+	err = waitEtcdHealthyTimeout(waitCtx, 1*time.Minute, client)
+	if err != nil {
+		return trace.Wrap(err)
+	}
+
 	log.Info("Restoring backup to temporary etcd")
 	restoreConf = backup.RestoreConfig{
 		EtcdConfig:    etcdConf,
@@ -499,7 +503,14 @@ func etcdRestore(file string) error {
 	return nil
 }
 
-// waitEtcdHealthy waits for
+func waitEtcdHealthyTimeout(ctx context.Context, timeout time.Duration, client etcd.Client) error {
+	ctx, cancel := context.WithTimeout(ctx, timeout)
+	defer cancel()
+
+	return trace.Wrap(waitEtcdHealthy(ctx, client))
+}
+
+// waitEtcdHealthy waits for etcd to have a leader elected
 func waitEtcdHealthy(ctx context.Context, client etcd.Client) error {
 	mapi := etcd.NewMembersAPI(client)
 
