@@ -431,7 +431,7 @@ func etcdRestore(file string) error {
 
 	// wait for the temporary etcd instance to complete startup
 	log.Info("Waiting for etcd initialization to complete")
-	err = waitEtcdHealthyTimeout(waitCtx, 1*time.Minute, client)
+	err = waitEtcdHealthyTimeout(context.TODO(), 1*time.Minute, client)
 	if err != nil {
 		return trace.Wrap(err)
 	}
@@ -470,7 +470,7 @@ func etcdRestore(file string) error {
 	}
 
 	log.Info("Waiting for etcd ")
-	err = waitEtcdHealthyTimeout(waitCtx, 1*time.Minute, client)
+	err = waitEtcdHealthyTimeout(context.TODO(), 1*time.Minute, client)
 	if err != nil {
 		return trace.Wrap(err)
 	}
