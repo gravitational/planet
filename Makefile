@@ -46,9 +46,12 @@ NODE_PROBLEM_DETECTOR_VER := v0.6.4
 
 # ETCD Versions to include in the release
 # This list needs to include every version of etcd that we can upgrade from + latest
-ETCD_VER := v2.3.8 v3.3.4 v3.3.9 v3.3.11 v3.3.12 v3.3.15
+ETCD_VER := v2.3.8 v3.3.4 v3.3.9 v3.3.11 v3.3.12 v3.3.15 v3.4.3
 # This is the version of etcd we should upgrade to (from the version list)
-ETCD_LATEST_VER := v3.3.15
+# Note: When bumping the ETCD_LATEST_VERSION, please ensure that:
+#   - The version of etcd vendored as a library is the same (Gopkg.toml)
+#   - To run the etcd upgrade integration test (go run mage.go ci:testEtcdUpgrade)
+ETCD_LATEST_VER := v3.4.3
 
 BUILDBOX_GO_VER ?= 1.12.9
 PLANET_BUILD_TAG ?= $(shell git describe --tags)

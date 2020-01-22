@@ -37,22 +37,12 @@ func (c *Conn) Subscribe() error {
 	c.sigconn.BusObject().Call("org.freedesktop.DBus.AddMatch", 0,
 		"type='signal',interface='org.freedesktop.DBus.Properties',member='PropertiesChanged'")
 
-	err := c.sigobj.Call("org.freedesktop.systemd1.Manager.Subscribe", 0).Store()
-	if err != nil {
-		return err
-	}
-
-	return nil
+	return c.sigobj.Call("org.freedesktop.systemd1.Manager.Subscribe", 0).Store()
 }
 
 // Unsubscribe this connection from systemd dbus events.
 func (c *Conn) Unsubscribe() error {
-	err := c.sigobj.Call("org.freedesktop.systemd1.Manager.Unsubscribe", 0).Store()
-	if err != nil {
-		return err
-	}
-
-	return nil
+	return c.sigobj.Call("org.freedesktop.systemd1.Manager.Unsubscribe", 0).Store()
 }
 
 func (c *Conn) dispatch() {
@@ -104,7 +94,7 @@ func (c *Conn) dispatch() {
 	}()
 }
 
-// Returns two unbuffered channels which will receive all changed units every
+// SubscribeUnits returns two unbuffered channels which will receive all changed units every
 // interval.  Deleted units are sent as nil.
 func (c *Conn) SubscribeUnits(interval time.Duration) (<-chan map[string]*UnitStatus, <-chan error) {
 	return c.SubscribeUnitsCustom(interval, 0, func(u1, u2 *UnitStatus) bool { return *u1 != *u2 }, nil)

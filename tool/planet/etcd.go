@@ -36,8 +36,6 @@ import (
 	"github.com/gravitational/planet/lib/monitoring"
 	"github.com/gravitational/planet/lib/utils"
 
-	etcd "github.com/coreos/etcd/client"
-	etcdv3 "github.com/coreos/etcd/clientv3"
 	"github.com/coreos/go-systemd/dbus"
 	"github.com/davecgh/go-spew/spew"
 	etcdconf "github.com/gravitational/coordinate/config"
@@ -45,6 +43,8 @@ import (
 	"github.com/gravitational/trace"
 	ps "github.com/mitchellh/go-ps"
 	log "github.com/sirupsen/logrus"
+	etcd "go.etcd.io/etcd/client"
+	etcdv3 "go.etcd.io/etcd/clientv3"
 )
 
 // etcdInit detects which version of etcd should be running, and sets symlinks to point
@@ -412,29 +412,110 @@ func getBaseEtcdDir(version string) string {
 }
 
 func etcdRestore(file string) error {
-	ctx := context.TODO()
-	log.Info("Restoring backup to temporary etcd")
+	log.Info("Initializing new etcd database")
+	err := etcdEnable(true)
+	if err != nil {
+		return trace.Wrap(err)
+	}
+
+	etcdConf := etcdconf.Config{
+		Endpoints: []string{DefaultEtcdUpgradeEndpoints},
+		KeyFile:   DefaultEtcdctlKeyFile,
+		CertFile:  DefaultEtcdctlCertFile,
+		CAFile:    DefaultEtcdctlCAFile,
+	}
+	client, err := etcdConf.NewClient()
+	if err != nil {
+		return trace.Wrap(err)
+	}
+
+	// wait for the temporary etcd instance to complete startup
+	log.Info("Waiting for etcd initialization to complete")
+	waitCtx, cancel := context.WithTimeout(context.Background(), 1*time.Minute)
+	defer cancel()
+	err = waitEtcdHealthy(waitCtx, client)
+	if err != nil {
+		return trace.Wrap(err)
+	}
+
+	// stop etcd now that it's DB is initialized but empty, to run offline backups
+	log.Info("Etcd initialization complete, stopping")
+	err = etcdDisable(true, false)
+	if err != nil {
+		return trace.Wrap(err)
+	}
+
+	// run offline restoration steps
 	restoreConf := backup.RestoreConfig{
-		EtcdConfig: etcdconf.Config{
-			Endpoints: []string{DefaultEtcdUpgradeEndpoints},
-			KeyFile:   DefaultEtcdctlKeyFile,
-			CertFile:  DefaultEtcdctlCertFile,
-			CAFile:    DefaultEtcdctlCAFile,
-		},
+		Prefix: []string{""}, // Restore all etcd data
+		File:   file,
+	}
+	log.Info("Offline RestoreConfig: ", spew.Sdump(restoreConf))
+	restoreConf.Log = log.StandardLogger()
+
+	datadir, err := getEtcdDataDir()
+	if err != nil {
+		return trace.Wrap(err)
+	}
+
+	log.Info("Starting offline etcd restoration")
+	err = backup.OfflineRestore(context.TODO(), restoreConf, datadir)
+	if err != nil {
+		return trace.Wrap(err)
+	}
+
+	// start etcd for running online restoration steps
+	log.Info("Starting temporary etcd cluster for online restoration")
+	err = etcdEnable(true)
+	if err != nil {
+		return trace.Wrap(err)
+	}
+
+	log.Info("Restoring backup to temporary etcd")
+	restoreConf = backup.RestoreConfig{
+		EtcdConfig:    etcdConf,
 		Prefix:        []string{"/"},                // Restore all etcd data
 		MigratePrefix: []string{ETCDRegistryPrefix}, // migrate kubernetes data to etcd3 datastore
 		File:          file,
+		SkipV3:        true,
 	}
-	log.Info("RestoreConfig: ", spew.Sdump(restoreConf))
+	log.Info("Online RestoreConfig: ", spew.Sdump(restoreConf))
 	restoreConf.Log = log.StandardLogger()
 
-	err := backup.Restore(ctx, restoreConf)
+	log.Info("Starting online restoration")
+	err = backup.Restore(context.TODO(), restoreConf)
+	if err != nil {
+		return trace.Wrap(err)
+	}
+
+	// stop etcd now that the restoration is completed, gravity will coordinate the restart of the cluster
+	log.Info("Stopping temporary etcd cluster")
+	err = etcdDisable(true, false)
 	if err != nil {
 		return trace.Wrap(err)
 	}
 
 	log.Info("Restore complete")
 	return nil
+}
+
+// waitEtcdHealthy waits for
+func waitEtcdHealthy(ctx context.Context, client etcd.Client) error {
+	mapi := etcd.NewMembersAPI(client)
+
+	ticker := time.NewTicker(1 * time.Second)
+	defer ticker.Stop()
+	for {
+		select {
+		case <-ctx.Done():
+			return trace.Wrap(ctx.Err())
+		case <-ticker.C:
+			leader, _ := mapi.Leader(ctx)
+			if leader != nil {
+				return nil
+			}
+		}
+	}
 }
 
 // etcdWipe wipes out all local etcd data

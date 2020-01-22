@@ -28,7 +28,7 @@ ignored = ["github.com/Sirupsen/logrus", "github.com/gravitational/planet/build/
 
 [[override]]
   name = "github.com/coreos/go-systemd"
-  version = "v16"
+  version = "v21"
 
 [[override]]
   name = "bitbucket.org/ww/goautoneg"
@@ -48,7 +48,7 @@ ignored = ["github.com/Sirupsen/logrus", "github.com/gravitational/planet/build/
 
 [[override]]
   name = "golang.org/x/sys"
-  revision = "78d5f264b493f125018180c204871ecf58a2dce1"
+  revision = "86b910548bc16777f40503131aa424ae0a092199"
 
 [[override]]
   name = "github.com/syndtr/gocapability"
@@ -66,9 +66,11 @@ ignored = ["github.com/Sirupsen/logrus", "github.com/gravitational/planet/build/
   name = "github.com/cenkalti/backoff"
   version = "2.0.0"
 
-[[constraint]]
-  name = "github.com/coreos/etcd"
-  version = "3.3.3"
+[[override]]
+  name = "go.etcd.io/etcd"
+  # when changing version, make sure it matches the variable ETCD_LATEST_VER in the Makefile
+  # this is because our upgrade logic uses etcd internal code, and it's safest if these versions match
+  version = "3.4.3"
 
 [[constraint]]
   name = "github.com/docker/docker"
@@ -80,11 +82,13 @@ ignored = ["github.com/Sirupsen/logrus", "github.com/gravitational/planet/build/
   name = "github.com/gravitational/configure"
 
 [[constraint]]
-  branch = "master"
+  #branch = "master"
+  branch = "kevin/master/update-etcd-imports"
   name = "github.com/gravitational/coordinate"
 
 [[constraint]]
-  version = "=0.0.2"
+  #version = "=0.0.2"
+  branch = "kevin/master/preserve-revisions"
   name = "github.com/gravitational/etcd-backup"
 
 [[constraint]]
@@ -109,16 +113,18 @@ ignored = ["github.com/Sirupsen/logrus", "github.com/gravitational/planet/build/
 
 [[constraint]]
   name = "github.com/opencontainers/runc"
-  version = "v1.0.0-rc6"
+  version = "v1.0.0-rc9"
 
 [[constraint]]
   name = "github.com/prometheus/client_golang"
   version = "=v1.1.0"
 
-[[constraint]]
+[[override]]
   name = "github.com/sirupsen/logrus"
   source = "github.com/gravitational/logrus"
-  version = "1.0.6"
+  # version = "1.0.6"
+  # waiting for https://github.com/gravitational/logrus/pull/6
+  revision = "7121457ee77d2dcccfd81df2d9750cab89a984a4"
 
 [[constraint]]
   name = "gopkg.in/alecthomas/kingpin.v2"
@@ -169,3 +175,7 @@ ignored = ["github.com/Sirupsen/logrus", "github.com/gravitational/planet/build/
 [[override]]
   name = "github.com/opencontainers/runtime-spec"
   revision = "29686dbc5559d93fb1ef402eeda3e35c38d75af4"
+
+[[override]]
+  name = "github.com/godbus/dbus"
+  version = "=v5.0.3"

@@ -11,10 +11,11 @@ import (
 	"bytes"
 	"fmt"
 	"go/format"
-	"go/importer"
 	"go/types"
 	"log"
 	"os"
+
+	"golang.org/x/tools/go/packages"
 )
 
 var packageHdr = `
@@ -39,9 +40,19 @@ func getTypeStruct(t types.Type, scope *types.Scope) (*types.Struct, bool) {
 	return nil, false
 }
 
+// loadModule retrieves package description for a given module.
+func loadModule(name string) (*types.Package, error) {
+	conf := packages.Config{Mode: packages.NeedTypes | packages.NeedTypesInfo}
+	pkgs, err := packages.Load(&conf, name)
+	if err != nil {
+		return nil, err
+	}
+	return pkgs[0].Types, nil
+}
+
 func main() {
 	// Import and type-check the package
-	pkg, err := importer.Default().Import("github.com/miekg/dns")
+	pkg, err := loadModule("github.com/miekg/dns")
 	fatalIfErr(err)
 	scope := pkg.Scope()
 
@@ -57,10 +68,7 @@ func main() {
 			continue
 		}
 
-		if name == "PrivateRR" || name == "RFC3597" {
-			continue
-		}
-		if name == "OPT" || name == "ANY" || name == "IXFR" || name == "AXFR" {
+		if name == "PrivateRR" || name == "OPT" {
 			continue
 		}
 
@@ -69,22 +77,6 @@ func main() {
 
 	b := &bytes.Buffer{}
 	b.WriteString(packageHdr)
-
-	// Generate the giant switch that calls the correct function for each type.
-	fmt.Fprint(b, "// isDuplicateRdata calls the rdata specific functions\n")
-	fmt.Fprint(b, "func isDuplicateRdata(r1, r2 RR) bool {\n")
-	fmt.Fprint(b, "switch r1.Header().Rrtype {\n")
-
-	for _, name := range namedTypes {
-
-		o := scope.Lookup(name)
-		_, isEmbedded := getTypeStruct(o.Type(), scope)
-		if isEmbedded {
-			continue
-		}
-		fmt.Fprintf(b, "case Type%s:\nreturn isDuplicate%s(r1.(*%s), r2.(*%s))\n", name, name, name, name)
-	}
-	fmt.Fprintf(b, "}\nreturn false\n}\n")
 
 	// Generate the duplicate check for each type.
 	fmt.Fprint(b, "// isDuplicate() functions\n\n")
@@ -95,7 +87,10 @@ func main() {
 		if isEmbedded {
 			continue
 		}
-		fmt.Fprintf(b, "func isDuplicate%s(r1, r2 *%s) bool {\n", name, name)
+		fmt.Fprintf(b, "func (r1 *%s) isDuplicate(_r2 RR) bool {\n", name)
+		fmt.Fprintf(b, "r2, ok := _r2.(*%s)\n", name)
+		fmt.Fprint(b, "if !ok { return false }\n")
+		fmt.Fprint(b, "_ = r2\n")
 		for i := 1; i < st.NumFields(); i++ {
 			field := st.Field(i).Name()
 			o2 := func(s string) { fmt.Fprintf(b, s+"\n", field, field) }
@@ -103,12 +98,22 @@ func main() {
 
 			// For some reason, a and aaaa don't pop up as *types.Slice here (mostly like because the are
 			// *indirectly* defined as a slice in the net package).
-			if _, ok := st.Field(i).Type().(*types.Slice); ok || st.Tag(i) == `dns:"a"` || st.Tag(i) == `dns:"aaaa"` {
+			if _, ok := st.Field(i).Type().(*types.Slice); ok {
 				o2("if len(r1.%s) != len(r2.%s) {\nreturn false\n}")
 
 				if st.Tag(i) == `dns:"cdomain-name"` || st.Tag(i) == `dns:"domain-name"` {
 					o3(`for i := 0; i < len(r1.%s); i++ {
-						if !isDulicateName(r1.%s[i], r2.%s[i]) {
+						if !isDuplicateName(r1.%s[i], r2.%s[i]) {
+							return false
+						}
+					}`)
+
+					continue
+				}
+
+				if st.Tag(i) == `dns:"apl"` {
+					o3(`for i := 0; i < len(r1.%s); i++ {
+						if !r1.%s[i].equals(&r2.%s[i]) {
 							return false
 						}
 					}`)
@@ -128,8 +133,10 @@ func main() {
 			switch st.Tag(i) {
 			case `dns:"-"`:
 				// ignored
+			case `dns:"a"`, `dns:"aaaa"`:
+				o2("if !r1.%s.Equal(r2.%s) {\nreturn false\n}")
 			case `dns:"cdomain-name"`, `dns:"domain-name"`:
-				o2("if !isDulicateName(r1.%s, r2.%s) {\nreturn false\n}")
+				o2("if !isDuplicateName(r1.%s, r2.%s) {\nreturn false\n}")
 			default:
 				o2("if r1.%s != r2.%s {\nreturn false\n}")
 			}
