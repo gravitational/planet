@@ -31,6 +31,7 @@ import (
 
 	"github.com/gravitational/planet/lib/constants"
 	"github.com/gravitational/planet/lib/monitoring"
+	"github.com/gravitational/satellite/lib/rpc/client"
 
 	etcd "github.com/coreos/etcd/client"
 	etcdconf "github.com/gravitational/coordinate/config"
@@ -383,14 +384,22 @@ type statusConfig struct {
 // status obtains either the status of the planet cluster or that of
 // the local node from the local planet agent.
 func status(c statusConfig) (ok bool, err error) {
-	client, err := agent.NewClient(rpcAddr(c.rpcPort), c.caFile, c.clientCertFile, c.clientKeyFile)
+	ctx, cancel := context.WithTimeout(context.TODO(), c.timeout)
+	defer cancel()
+
+	config := client.Config{
+		Address:  rpcAddr(c.rpcPort),
+		CAFile:   c.caFile,
+		CertFile: c.clientCertFile,
+		KeyFile:  c.clientKeyFile,
+	}
+
+	client, err := client.NewClient(ctx, config)
 	if err != nil {
 		return false, trace.Wrap(err)
 	}
 	var statusJson []byte
 	var statusBlob interface{}
-	ctx, cancel := context.WithTimeout(context.TODO(), c.timeout)
-	defer cancel()
 	if c.local {
 		status, err := client.LocalStatus(ctx)
 		if err != nil {

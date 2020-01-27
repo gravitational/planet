@@ -7,7 +7,7 @@
   name = "github.com/Azure/go-ansiterm"
   packages = [
     ".",
-    "winterm"
+    "winterm",
   ]
   pruneopts = "UT"
   revision = "d6e3b3328b783f23731bc4d058875b0371ff8109"
@@ -18,7 +18,7 @@
   name = "github.com/alecthomas/template"
   packages = [
     ".",
-    "parse"
+    "parse",
   ]
   pruneopts = "UT"
   revision = "a0175ee3bccc567396460bf5acd36800cb10c49c"
@@ -69,7 +69,7 @@
     "private/protocol/query/queryutil",
     "private/protocol/rest",
     "private/protocol/xml/xmlutil",
-    "service/sts"
+    "service/sts",
   ]
   pruneopts = "UT"
   revision = "66832f7f150914a46ffbfc03210f3b9cb0e4c005"
@@ -105,7 +105,7 @@
   name = "github.com/cloudfoundry/gosigar"
   packages = [
     ".",
-    "sys/windows"
+    "sys/windows",
   ]
   pruneopts = "UT"
   revision = "50ddd08d81d770b1e0ce2c969a46e46c73580e2a"
@@ -147,7 +147,7 @@
     "pkg/tlsutil",
     "pkg/transport",
     "pkg/types",
-    "version"
+    "version",
   ]
   pruneopts = "UT"
   revision = "27fc7e2296f506182f58ce846e48f36b34fe6842"
@@ -166,7 +166,7 @@
   name = "github.com/coreos/go-systemd"
   packages = [
     "dbus",
-    "util"
+    "util",
   ]
   pruneopts = "UT"
   revision = "40e2722dffead74698ca12a750f64ef313ddce05"
@@ -201,7 +201,7 @@
   name = "github.com/docker/docker"
   packages = [
     "pkg/term",
-    "pkg/term/windows"
+    "pkg/term/windows",
   ]
   pruneopts = "UT"
   revision = "a34a1d598c6096ed8b5ce5219e77d68e5cd85462"
@@ -261,7 +261,7 @@
     "gogoproto",
     "proto",
     "protoc-gen-gogo/descriptor",
-    "sortkeys"
+    "sortkeys",
   ]
   pruneopts = "UT"
   revision = "636bf0302bc95575d69441b25a2603156ffdddf1"
@@ -275,7 +275,7 @@
     "ptypes",
     "ptypes/any",
     "ptypes/duration",
-    "ptypes/timestamp"
+    "ptypes/timestamp",
   ]
   pruneopts = "UT"
   revision = "aa810b61a9c79d51363740d207bb46cf8e620ed5"
@@ -303,7 +303,7 @@
   packages = [
     "OpenAPIv2",
     "compiler",
-    "extensions"
+    "extensions",
   ]
   pruneopts = "UT"
   revision = "7c663266750e7d82587642f65e60bc4083f1f84e"
@@ -315,7 +315,7 @@
   name = "github.com/gravitational/configure"
   packages = [
     ".",
-    "cstrings"
+    "cstrings",
   ]
   pruneopts = "UT"
   revision = "c3428bd84c23f0cfcc759f2ef12632be5ff5d95d"
@@ -326,7 +326,7 @@
   name = "github.com/gravitational/coordinate"
   packages = [
     "config",
-    "leader"
+    "leader",
   ]
   pruneopts = "UT"
   revision = "2bc9a83f6fe22919202fb09bfa01f2ff8b7784cb"
@@ -356,7 +356,8 @@
   version = "v1.0.0"
 
 [[projects]]
-  digest = "1:db6f78ce1b4c0b2404814735027cc00156b1317fefe279c76b8628bd6e5b9928"
+  branch = "bernard/timeline-testing"
+  digest = "1:4489decf2eef6d9ac17381b51063d1809049b1bf10a435cce20369b7a70266cc"
   name = "github.com/gravitational/satellite"
   packages = [
     "agent",
@@ -365,14 +366,18 @@
     "agent/health",
     "agent/proto/agentpb",
     "cmd",
+    "lib/history",
+    "lib/history/sqlite",
     "lib/kubernetes",
+    "lib/membership",
+    "lib/rpc",
+    "lib/rpc/client",
     "monitoring",
     "monitoring/collector",
-    "utils"
+    "utils",
   ]
   pruneopts = "UT"
-  revision = "38ad0d30a6f68c28125b3c56a92137681f282c26"
-  version = "7.0.4"
+  revision = "d1a63e333a4a73bfa559c6209dd89a376a3d7053"
 
 [[projects]]
   digest = "1:418247f700939c99867b42639d985686ba229fd9f8ee9e119c7cc3ffde6e0fe3"
@@ -468,7 +473,7 @@
   packages = [
     "client",
     "coordinate",
-    "serf"
+    "serf",
   ]
   pruneopts = "UT"
   revision = "11bb88abf7b17f0b794b51416a9107d781e95f35"
@@ -487,6 +492,17 @@
   packages = ["."]
   pruneopts = "UT"
   revision = "0b12d6b5"
+
+[[projects]]
+  digest = "1:6c41d4f998a03b6604227ccad36edaed6126c397e5d78709ef4814a1145a6757"
+  name = "github.com/jmoiron/sqlx"
+  packages = [
+    ".",
+    "reflectx",
+  ]
+  pruneopts = "UT"
+  revision = "d161d7a76b5661016ad0b085869f77fd410f3e6a"
+  version = "v1.2.0"
 
 [[projects]]
   digest = "1:35f49695a600c368ad7811a672d583b3e004b44fe883a0a1eb2a6c0d75eaeb1b"
@@ -560,6 +576,14 @@
   version = "v0.0.6"
 
 [[projects]]
+  digest = "1:f4d329a16a6f1a7f694148ec7531f85d62cfa6a79bb8200ca612667e40d09923"
+  name = "github.com/mattn/go-sqlite3"
+  packages = ["."]
+  pruneopts = "UT"
+  revision = "590d44c02bca83987d23f6eab75e6d0ddf95f644"
+  version = "v1.13.0"
+
+[[projects]]
   digest = "1:ff5ebae34cfbf047d505ee150de27e60570e8c394b3b8fdbb720ff6ac71985fc"
   name = "github.com/matttproud/golang_protobuf_extensions"
   packages = ["pbutil"]
@@ -628,7 +652,7 @@
     "libcontainer/stacktrace",
     "libcontainer/system",
     "libcontainer/user",
-    "libcontainer/utils"
+    "libcontainer/utils",
   ]
   pruneopts = "UT"
   revision = "ccb5efd37fb7c86364786e9137e22948751de7ed"
@@ -646,7 +670,7 @@
   name = "github.com/opencontainers/selinux"
   packages = [
     "go-selinux",
-    "go-selinux/label"
+    "go-selinux/label",
   ]
   pruneopts = "UT"
   revision = "ba1aefe8057f1d0cfb8e88d0ec1dc85925ef987d"
@@ -682,7 +706,7 @@
   packages = [
     "prometheus",
     "prometheus/internal",
-    "prometheus/promhttp"
+    "prometheus/promhttp",
   ]
   pruneopts = "UT"
   revision = "170205fb58decfd011f1550d4cfb737230d7ae4f"
@@ -703,7 +727,7 @@
   packages = [
     "expfmt",
     "internal/bitbucket.org/ww/goautoneg",
-    "model"
+    "model",
   ]
   pruneopts = "UT"
   revision = "bcb74de08d37a417cb6789eec1d6c810040f0470"
@@ -714,7 +738,7 @@
   packages = [
     ".",
     "internal/fs",
-    "internal/util"
+    "internal/util",
   ]
   pruneopts = "UT"
   revision = "499c85531f756d1129edd26485a5f73871eeb308"
@@ -741,7 +765,7 @@
   name = "github.com/sirupsen/logrus"
   packages = [
     ".",
-    "hooks/syslog"
+    "hooks/syslog",
   ]
   pruneopts = "UT"
   revision = "dcdb95d728dbb6fe4b9fbe6b3b9d1fb268e68036"
@@ -784,7 +808,7 @@
   name = "github.com/vishvananda/netlink"
   packages = [
     ".",
-    "nl"
+    "nl",
   ]
   pruneopts = "UT"
   revision = "a2ad57a690f3caf3015351d2d6e1c0b95c349752"
@@ -805,7 +829,7 @@
   packages = [
     "ed25519",
     "ed25519/internal/edwards25519",
-    "ssh/terminal"
+    "ssh/terminal",
   ]
   pruneopts = "UT"
   revision = "0c41d7ab0a0ee717d4590a44bcb987dfd9e183eb"
@@ -828,7 +852,7 @@
     "ipv6",
     "lex/httplex",
     "trace",
-    "websocket"
+    "websocket",
   ]
   pruneopts = "UT"
   revision = "44b7c21cbf19450f38b337eb6b6fe4f6496fb5b3"
@@ -839,7 +863,7 @@
   name = "golang.org/x/oauth2"
   packages = [
     ".",
-    "internal"
+    "internal",
   ]
   pruneopts = "UT"
   revision = "9dcd33a902f40452422c2367fefcb95b54f9f8f8"
@@ -849,7 +873,7 @@
   name = "golang.org/x/sys"
   packages = [
     "unix",
-    "windows"
+    "windows",
   ]
   pruneopts = "UT"
   revision = "78d5f264b493f125018180c204871ecf58a2dce1"
@@ -871,7 +895,7 @@
     "unicode/bidi",
     "unicode/cldr",
     "unicode/norm",
-    "unicode/rangetable"
+    "unicode/rangetable",
   ]
   pruneopts = "UT"
   revision = "f21a4dfb5e38f5895301dc265a8def02365cc3d0"
@@ -895,7 +919,7 @@
     "internal/log",
     "internal/remote_api",
     "internal/urlfetch",
-    "urlfetch"
+    "urlfetch",
   ]
   pruneopts = "UT"
   revision = "ae0ab99deb4dc413a2b4bd6c8bdd0eb67f1e4d06"
@@ -939,7 +963,7 @@
     "resolver/passthrough",
     "stats",
     "status",
-    "tap"
+    "tap",
   ]
   pruneopts = "UT"
   revision = "8dea3dc473e90c8179e519d91302d0597c0ca1d1"
@@ -1019,7 +1043,7 @@
     "settings/v1alpha1",
     "storage/v1",
     "storage/v1alpha1",
-    "storage/v1beta1"
+    "storage/v1beta1",
   ]
   pruneopts = "UT"
   revision = "35e52d86657aba06859dd22099bfa14faf1effb2"
@@ -1064,7 +1088,7 @@
     "pkg/util/yaml",
     "pkg/version",
     "pkg/watch",
-    "third_party/forked/golang/reflect"
+    "third_party/forked/golang/reflect",
   ]
   pruneopts = "UT"
   revision = "a2eda9f80ab8a454a81bdde16d62a1afe5f931c0"
@@ -1134,7 +1158,7 @@
     "util/connrotation",
     "util/flowcontrol",
     "util/homedir",
-    "util/keyutil"
+    "util/keyutil",
   ]
   pruneopts = "UT"
   revision = "bec269661e48cb1e5fbb0d037f356ffe9e9978a0"
@@ -1199,6 +1223,8 @@
     "github.com/gravitational/satellite/agent/health",
     "github.com/gravitational/satellite/agent/proto/agentpb",
     "github.com/gravitational/satellite/cmd",
+    "github.com/gravitational/satellite/lib/history/sqlite",
+    "github.com/gravitational/satellite/lib/rpc/client",
     "github.com/gravitational/satellite/monitoring",
     "github.com/gravitational/satellite/monitoring/collector",
     "github.com/gravitational/trace",
@@ -1233,7 +1259,7 @@
     "k8s.io/apimachinery/pkg/util/intstr",
     "k8s.io/client-go/kubernetes",
     "k8s.io/client-go/tools/clientcmd",
-    "k8s.io/kubelet/config/v1beta1"
+    "k8s.io/kubelet/config/v1beta1",
   ]
   solver-name = "gps-cdcl"
   solver-version = 1
