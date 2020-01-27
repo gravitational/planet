@@ -39,7 +39,7 @@ KUBE_VER ?= v1.16.2
 SECCOMP_VER ?= 2.3.1-2.1+deb9u1
 DOCKER_VER ?= 18.09.9
 # we currently use our own flannel fork: gravitational/flannel
-FLANNEL_VER := v0.10.0-gravitational
+FLANNEL_VER := v0.10.1-gravitational
 HELM_VER := v2.15.0
 COREDNS_VER := 1.3.1
 NODE_PROBLEM_DETECTOR_VER := v0.6.4
