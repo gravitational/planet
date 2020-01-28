@@ -8,6 +8,7 @@ REGISTRY_ALIASES := apiserver:5000 \
 		leader.gravity.local:5000 \
 		registry.local:5000
 TARBALL := $(ASSETDIR)/docker-v$(DOCKER_VER).tgz
+CURL ?= curl -L --retry 5
 
 .PHONY: all
 all: service scripts certs $(TARBALL)
@@ -39,4 +40,4 @@ certs:
 	done
 
 $(TARBALL):
-	curl https://download.docker.com/linux/static/stable/x86_64/docker-$(DOCKER_VER).tgz -o $@
+	$(CURL) https://download.docker.com/linux/static/stable/x86_64/docker-$(DOCKER_VER).tgz -o $@

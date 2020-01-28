@@ -1054,6 +1054,8 @@ var masterUnits = []string{
 	"kube-apiserver",
 	"kube-controller-manager",
 	"kube-scheduler",
+	"kube-proxy",
+	"kube-kubelet",
 }
 
 var nodeUnits = []string{

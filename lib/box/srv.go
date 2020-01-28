@@ -56,7 +56,7 @@ type Box struct {
 	*libcontainer.Process
 	libcontainer.Container
 	listener net.Listener
-	selinuxLabelGetter
+	seLinuxLabelGetter
 }
 
 // Close shuts down the box. It is written to be safe to call multiple
@@ -221,7 +221,7 @@ func Start(cfg Config) (*Box, error) {
 		listener:  listener,
 	}
 	if cfg.SELinux {
-		box.selinuxLabelGetter = getSELinuxProcLabel(config.Rootfs)
+		box.seLinuxLabelGetter = getSELinuxProcLabel(config.Rootfs)
 	}
 
 	err = startWebServer(listener, box)
@@ -340,12 +340,6 @@ func getLibcontainerConfig(containerID, rootfs string, cfg Config) (*configs.Con
 				Destination: "/dev/shm",
 				Device:      "tmpfs",
 				Data:        "mode=1777,size=65536k",
-				Flags:       defaultMountFlags,
-			},
-			{
-				Source:      "mqueue",
-				Destination: "/dev/mqueue",
-				Device:      "mqueue",
 				Flags:       defaultMountFlags,
 			},
 			// needed for dynamically provisioned/attached persistent volumes

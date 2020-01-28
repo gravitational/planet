@@ -6,6 +6,7 @@ TARGET := $(NAME)-$(FLANNEL_VER)
 TARGET_TAR := $(TARGET)-linux-$(ARCH).tar.gz
 BINARIES := $(ASSETDIR)/flanneld-$(FLANNEL_VER)
 CNI_TARBALL := $(ASSETDIR)/cni-plugins-amd64-v$(CNI_VER).tgz
+CURL ?= curl -L --retry 5
 
 all: $(BINARIES) $(CNI_TARBALL) network.mk
 	@echo "\\n---> Installing Flannel and preparing network stack for Kubernetes:\\n"
@@ -34,7 +35,7 @@ $(BINARIES):
 	rm -rf $(DIR)
 
 $(CNI_TARBALL):
-	curl -L --retry 5 \
+	$(CURL) -L --retry 5 \
 		https://github.com/containernetworking/plugins/releases/download/v$(CNI_VER)/cni-plugins-amd64-v$(CNI_VER).tgz \
 		-o $@
 

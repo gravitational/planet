@@ -48,12 +48,12 @@ func (b *Box) StartProcess(cfg ProcessConfig) error {
 	log.WithField("process", cfg).Info("Start process.")
 	defer log.WithField("process", cfg.Args).Info("Started process.")
 
-	if b.selinuxLabelGetter != nil {
-		if len(cfg.ProcessLabel) == 0 {
-			cfg.ProcessLabel = b.selinuxLabelGetter.getSELinuxLabel(cfg.Args[0])
+	if b.seLinuxLabelGetter != nil {
+		if cfg.ProcessLabel == "" {
+			cfg.ProcessLabel = b.seLinuxLabelGetter.getSELinuxLabel(cfg.Args[0])
 		}
 	} else {
-		// Empty the label if SELinux is not on
+		// Empty the label if SELinux has not been enabled
 		cfg.ProcessLabel = ""
 	}
 
