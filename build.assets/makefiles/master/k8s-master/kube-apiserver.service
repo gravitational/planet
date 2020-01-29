@@ -16,7 +16,7 @@ ExecStart=/usr/bin/kube-apiserver \
         --insecure-port=0 \
         --service-account-key-file=/var/state/apiserver.key \
         --service-account-lookup=true \
-        --admission-control=NamespaceLifecycle,LimitRanger,ServiceAccount,ResourceQuota,AlwaysPullImages,PodSecurityPolicy,NodeRestriction,DefaultStorageClass \
+        --enable-admission-plugins=PodSecurityPolicy,NodeRestriction,AlwaysPullImages \
         --authorization-mode=Node,RBAC \
         --runtime-config=api/v1,extensions/v1beta1,batch/v2alpha1,rbac.authorization.k8s.io/v1beta1,extensions/v1beta1/podsecuritypolicy,apps/v1beta1=true,apps/v1beta2=true,extensions/v1beta1/daemonsets=true,extensions/v1beta1/deployments=true,extensions/v1beta1/replicasets=true,extensions/v1beta1/networkpolicies=true,extensions/v1beta1/podsecuritypolicies=true \
         --allow-privileged=${PLANET_ALLOW_PRIVILEGED} \
