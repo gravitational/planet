@@ -356,8 +356,7 @@
   version = "v1.0.0"
 
 [[projects]]
-  branch = "bernard/timeline-testing"
-  digest = "1:4489decf2eef6d9ac17381b51063d1809049b1bf10a435cce20369b7a70266cc"
+  digest = "1:52d099add24a5a0b40f9ba07c1f22ccd7c80249266aac7ac1e72a5e8952a7fde"
   name = "github.com/gravitational/satellite"
   packages = [
     "agent",
@@ -377,7 +376,8 @@
     "utils",
   ]
   pruneopts = "UT"
-  revision = "d1a63e333a4a73bfa559c6209dd89a376a3d7053"
+  revision = "d2c1e14945c28cb5ed35f771da26cb62cf0106f2"
+  version = "7.0.5"
 
 [[projects]]
   digest = "1:418247f700939c99867b42639d985686ba229fd9f8ee9e119c7cc3ffde6e0fe3"
