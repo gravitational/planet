@@ -130,13 +130,13 @@ func run() error {
 					OverrideDefaultFromEnvar(EnvPlanetKubeletOptions).String()
 		cstartAPIServerOptions = cstart.Flag("apiserver-options", "Additional command line options to pass to API server").
 					OverrideDefaultFromEnvar(EnvPlanetAPIServerOptions).String()
-		cstartDNSListenAddrs        = List(cstart.Flag("dns-listen-addr", "Comma-separated list of addresses for CoreDNS to listen on").OverrideDefaultFromEnvar(EnvPlanetDNSListenAddr).Default(DefaultDNSListenAddr))
-		cstartDNSPort               = cstart.Flag("dns-port", "DNS port for CoreDNS").OverrideDefaultFromEnvar(EnvPlanetDNSPort).Default(strconv.Itoa(DNSPort)).Int()
-		cstartTaints                = List(cstart.Flag("taint", "Kubernetes taints to apply to the node during creation").OverrideDefaultFromEnvar(EnvPlanetTaints))
-		cstartNodeLabels            = List(cstart.Flag("node-label", "Kubernetes node label to apply upon node registration").OverrideDefaultFromEnvar(EnvPlanetNodeLabels))
-		cstartDisableFlannel        = cstart.Flag("disable-flannel", "Disable flannel within the planet container").OverrideDefaultFromEnvar(EnvDisableFlannel).Bool()
-		cstartKubeletConfig         = cstart.Flag("kubelet-config", "Kubelet configuration as base64-encoded JSON payload").OverrideDefaultFromEnvar(EnvPlanetKubeletConfig).String()
-		cstartCloudConfig           = cstart.Flag("cloud-config", "Cloud configuration as base64-encoded payload").OverrideDefaultFromEnvar(EnvPlanetCloudConfig).String()
+		cstartDNSListenAddrs = List(cstart.Flag("dns-listen-addr", "Comma-separated list of addresses for CoreDNS to listen on").OverrideDefaultFromEnvar(EnvPlanetDNSListenAddr).Default(DefaultDNSListenAddr))
+		cstartDNSPort        = cstart.Flag("dns-port", "DNS port for CoreDNS").OverrideDefaultFromEnvar(EnvPlanetDNSPort).Default(strconv.Itoa(DNSPort)).Int()
+		cstartTaints         = List(cstart.Flag("taint", "Kubernetes taints to apply to the node during creation").OverrideDefaultFromEnvar(EnvPlanetTaints))
+		cstartNodeLabels     = List(cstart.Flag("node-label", "Kubernetes node label to apply upon node registration").OverrideDefaultFromEnvar(EnvPlanetNodeLabels))
+		cstartDisableFlannel = cstart.Flag("disable-flannel", "Disable flannel within the planet container").OverrideDefaultFromEnvar(EnvDisableFlannel).Bool()
+		cstartKubeletConfig  = cstart.Flag("kubelet-config", "Kubelet configuration as base64-encoded JSON payload").OverrideDefaultFromEnvar(EnvPlanetKubeletConfig).String()
+		cstartCloudConfig    = cstart.Flag("cloud-config", "Cloud configuration as base64-encoded payload").OverrideDefaultFromEnvar(EnvPlanetCloudConfig).String()
 
 		// start the planet agent
 		cagent                 = app.Command("agent", "Start Planet Agent")
@@ -217,8 +217,9 @@ func run() error {
 
 		cetcdInit = cetcd.Command("init", "Setup etcd to run the correct version").Hidden()
 
-		cetcdBackup     = cetcd.Command("backup", "Backup the etcd datastore to a file")
-		cetcdBackupFile = cetcdBackup.Arg("file", "The file to store the backup").Required().String()
+		cetcdBackup       = cetcd.Command("backup", "Backup the etcd datastore to a file")
+		cetcdBackupFile   = cetcdBackup.Arg("file", "The file to store the backup").String()
+		cetcdBackupPrefix = cetcdBackup.Flag("prefix", "Optional etcd prefix to backup (e.g. /gravity). Can be supplied multiple times").Default(ETCDBackupPrefix).Strings()
 
 		cetcdDisable        = cetcd.Command("disable", "Disable etcd on this node")
 		cetcdDisableUpgrade = cetcdDisable.Flag("upgrade", "disable the upgrade service").Bool()
@@ -424,13 +425,13 @@ func run() error {
 				ListenAddrs: *cstartDNSListenAddrs,
 				Port:        *cstartDNSPort,
 			},
-			KubeletOptions:        *cstartKubeletOptions,
-			APIServerOptions:      *cstartAPIServerOptions,
-			Taints:                *cstartTaints,
-			NodeLabels:            *cstartNodeLabels,
-			DisableFlannel:        *cstartDisableFlannel,
-			KubeletConfig:         *cstartKubeletConfig,
-			CloudConfig:           *cstartCloudConfig,
+			KubeletOptions:   *cstartKubeletOptions,
+			APIServerOptions: *cstartAPIServerOptions,
+			Taints:           *cstartTaints,
+			NodeLabels:       *cstartNodeLabels,
+			DisableFlannel:   *cstartDisableFlannel,
+			KubeletConfig:    *cstartKubeletConfig,
+			CloudConfig:      *cstartCloudConfig,
 		}
 		if *cstartSelfTest {
 			err = selfTest(config, *cstartTestKubeRepoPath, *cstartTestSpec, extraArgs)
@@ -507,7 +508,7 @@ func run() error {
 		err = etcdInit()
 
 	case cetcdBackup.FullCommand():
-		err = etcdBackup(*cetcdBackupFile)
+		err = etcdBackup(*cetcdBackupFile, *cetcdBackupPrefix)
 
 	case cetcdEnable.FullCommand():
 		err = etcdEnable(*cetcdEnableUpgrade)

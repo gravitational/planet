@@ -425,6 +425,9 @@ const (
 	// ETCDRegistryPrefix is the etcd directory for the k8s api server data in etcd
 	ETCDRegistryPrefix = "/registry"
 
+	// ETCDBackupPrefix is the default etcd backup prefix
+	ETCDBackupPrefix = "/"
+
 	// WaitInterval is the amount of time to sleep between loops
 	WaitInterval = 100 * time.Millisecond
 
