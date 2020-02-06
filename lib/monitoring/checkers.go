@@ -197,7 +197,7 @@ func addToMaster(node agent.Agent, config *Config, etcdConfig *monitoring.ETCDCo
 
 	pingChecker, err := monitoring.NewPingChecker(
 		monitoring.PingCheckerConfig{
-			SerfRPCAddr:    node.GetConfig().SerfRPCAddr,
+			SerfRPCAddr:    node.GetConfig().SerfConfig.Addr,
 			SerfMemberName: node.GetConfig().Name,
 		})
 	if err != nil {
@@ -206,7 +206,7 @@ func addToMaster(node agent.Agent, config *Config, etcdConfig *monitoring.ETCDCo
 	node.AddChecker(pingChecker)
 
 	serfClient, err := agent.NewSerfClient(serf.Config{
-		Addr: node.GetConfig().SerfRPCAddr,
+		Addr: node.GetConfig().SerfConfig.Addr,
 	})
 	if err != nil {
 		return trace.Wrap(err)
