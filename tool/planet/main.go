@@ -218,7 +218,7 @@ func run() error {
 		cetcdInit = cetcd.Command("init", "Setup etcd to run the correct version").Hidden()
 
 		cetcdBackup       = cetcd.Command("backup", "Backup the etcd datastore to a file")
-		cetcdBackupFile   = cetcdBackup.Arg("file", "The file to store the backup").String()
+		cetcdBackupFile   = cetcdBackup.Arg("file", "The file to store the backup. If unspecified - stdout will be used.").String()
 		cetcdBackupPrefix = cetcdBackup.Flag("prefix", "Optional etcd prefix to backup (e.g. /gravity). Can be supplied multiple times").Default(ETCDBackupPrefix).Strings()
 
 		cetcdDisable        = cetcd.Command("disable", "Disable etcd on this node")
