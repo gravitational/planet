@@ -5,7 +5,6 @@ package systemd
 import (
 	"errors"
 	"fmt"
-	"io/ioutil"
 	"math"
 	"os"
 	"path/filepath"
@@ -14,6 +13,7 @@ import (
 	"time"
 
 	systemdDbus "github.com/coreos/go-systemd/dbus"
+	systemdUtil "github.com/coreos/go-systemd/util"
 	"github.com/godbus/dbus"
 	"github.com/opencontainers/runc/libcontainer/cgroups"
 	"github.com/opencontainers/runc/libcontainer/cgroups/fs"
@@ -21,7 +21,7 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
-type LegacyManager struct {
+type Manager struct {
 	mu      sync.Mutex
 	Cgroups *configs.Cgroup
 	Paths   map[string]string
@@ -49,7 +49,7 @@ func (s subsystemSet) Get(name string) (subsystem, error) {
 	return nil, errSubsystemDoesNotExist
 }
 
-var legacySubsystems = subsystemSet{
+var subsystems = subsystemSet{
 	&fs.CpusetGroup{},
 	&fs.DevicesGroup{},
 	&fs.MemoryGroup{},
@@ -71,8 +71,13 @@ const (
 )
 
 var (
-	connLock sync.Mutex
-	theConn  *systemdDbus.Conn
+	connLock                        sync.Mutex
+	theConn                         *systemdDbus.Conn
+	hasStartTransientUnit           bool
+	hasStartTransientSliceUnit      bool
+	hasTransientDefaultDependencies bool
+	hasDelegateScope                bool
+	hasDelegateSlice                bool
 )
 
 func newProp(name string, units interface{}) systemdDbus.Property {
@@ -82,23 +87,8 @@ func newProp(name string, units interface{}) systemdDbus.Property {
 	}
 }
 
-// NOTE: This function comes from package github.com/coreos/go-systemd/util
-// It was borrowed here to avoid a dependency on cgo.
-//
-// IsRunningSystemd checks whether the host was booted with systemd as its init
-// system. This functions similarly to systemd's `sd_booted(3)`: internally, it
-// checks whether /run/systemd/system/ exists and is a directory.
-// http://www.freedesktop.org/software/systemd/man/sd_booted.html
-func isRunningSystemd() bool {
-	fi, err := os.Lstat("/run/systemd/system")
-	if err != nil {
-		return false
-	}
-	return fi.IsDir()
-}
-
 func UseSystemd() bool {
-	if !isRunningSystemd() {
+	if !systemdUtil.IsRunningSystemd() {
 		return false
 	}
 
@@ -111,31 +101,118 @@ func UseSystemd() bool {
 		if err != nil {
 			return false
 		}
-	}
-	return true
-}
 
-func NewSystemdCgroupsManager() (func(config *configs.Cgroup, paths map[string]string) cgroups.Manager, error) {
-	if !isRunningSystemd() {
-		return nil, fmt.Errorf("systemd not running on this host, can't use systemd as a cgroups.Manager")
-	}
-	if cgroups.IsCgroup2UnifiedMode() {
-		return func(config *configs.Cgroup, paths map[string]string) cgroups.Manager {
-			return &UnifiedManager{
-				Cgroups: config,
-				Paths:   paths,
+		// Assume we have StartTransientUnit
+		hasStartTransientUnit = true
+
+		// But if we get UnknownMethod error we don't
+		if _, err := theConn.StartTransientUnit("test.scope", "invalid", nil, nil); err != nil {
+			if dbusError, ok := err.(dbus.Error); ok {
+				if dbusError.Name == "org.freedesktop.DBus.Error.UnknownMethod" {
+					hasStartTransientUnit = false
+					return hasStartTransientUnit
+				}
 			}
-		}, nil
-	}
-	return func(config *configs.Cgroup, paths map[string]string) cgroups.Manager {
-		return &LegacyManager{
-			Cgroups: config,
-			Paths:   paths,
 		}
-	}, nil
+
+		// Ensure the scope name we use doesn't exist. Use the Pid to
+		// avoid collisions between multiple libcontainer users on a
+		// single host.
+		scope := fmt.Sprintf("libcontainer-%d-systemd-test-default-dependencies.scope", os.Getpid())
+		testScopeExists := true
+		for i := 0; i <= testScopeWait; i++ {
+			if _, err := theConn.StopUnit(scope, "replace", nil); err != nil {
+				if dbusError, ok := err.(dbus.Error); ok {
+					if strings.Contains(dbusError.Name, "org.freedesktop.systemd1.NoSuchUnit") {
+						testScopeExists = false
+						break
+					}
+				}
+			}
+			time.Sleep(time.Millisecond)
+		}
+
+		// Bail out if we can't kill this scope without testing for DefaultDependencies
+		if testScopeExists {
+			return hasStartTransientUnit
+		}
+
+		// Assume StartTransientUnit on a scope allows DefaultDependencies
+		hasTransientDefaultDependencies = true
+		ddf := newProp("DefaultDependencies", false)
+		if _, err := theConn.StartTransientUnit(scope, "replace", []systemdDbus.Property{ddf}, nil); err != nil {
+			if dbusError, ok := err.(dbus.Error); ok {
+				if strings.Contains(dbusError.Name, "org.freedesktop.DBus.Error.PropertyReadOnly") {
+					hasTransientDefaultDependencies = false
+				}
+			}
+		}
+
+		// Not critical because of the stop unit logic above.
+		theConn.StopUnit(scope, "replace", nil)
+
+		// Assume StartTransientUnit on a scope allows Delegate
+		hasDelegateScope = true
+		dlScope := newProp("Delegate", true)
+		if _, err := theConn.StartTransientUnit(scope, "replace", []systemdDbus.Property{dlScope}, nil); err != nil {
+			if dbusError, ok := err.(dbus.Error); ok {
+				if strings.Contains(dbusError.Name, "org.freedesktop.DBus.Error.PropertyReadOnly") {
+					hasDelegateScope = false
+				}
+			}
+		}
+
+		// Assume we have the ability to start a transient unit as a slice
+		// This was broken until systemd v229, but has been back-ported on RHEL environments >= 219
+		// For details, see: https://bugzilla.redhat.com/show_bug.cgi?id=1370299
+		hasStartTransientSliceUnit = true
+
+		// To ensure simple clean-up, we create a slice off the root with no hierarchy
+		slice := fmt.Sprintf("libcontainer_%d_systemd_test_default.slice", os.Getpid())
+		if _, err := theConn.StartTransientUnit(slice, "replace", nil, nil); err != nil {
+			if _, ok := err.(dbus.Error); ok {
+				hasStartTransientSliceUnit = false
+			}
+		}
+
+		for i := 0; i <= testSliceWait; i++ {
+			if _, err := theConn.StopUnit(slice, "replace", nil); err != nil {
+				if dbusError, ok := err.(dbus.Error); ok {
+					if strings.Contains(dbusError.Name, "org.freedesktop.systemd1.NoSuchUnit") {
+						hasStartTransientSliceUnit = false
+						break
+					}
+				}
+			} else {
+				break
+			}
+			time.Sleep(time.Millisecond)
+		}
+
+		// Not critical because of the stop unit logic above.
+		theConn.StopUnit(slice, "replace", nil)
+
+		// Assume StartTransientUnit on a slice allows Delegate
+		hasDelegateSlice = true
+		dlSlice := newProp("Delegate", true)
+		if _, err := theConn.StartTransientUnit(slice, "replace", []systemdDbus.Property{dlSlice}, nil); err != nil {
+			if dbusError, ok := err.(dbus.Error); ok {
+				// Starting with systemd v237, Delegate is not even a property of slices anymore,
+				// so the D-Bus call fails with "InvalidArgs" error.
+				if strings.Contains(dbusError.Name, "org.freedesktop.DBus.Error.PropertyReadOnly") || strings.Contains(dbusError.Name, "org.freedesktop.DBus.Error.InvalidArgs") {
+					hasDelegateSlice = false
+				}
+			}
+		}
+
+		// Not critical because of the stop unit logic above.
+		theConn.StopUnit(scope, "replace", nil)
+		theConn.StopUnit(slice, "replace", nil)
+	}
+	return hasStartTransientUnit
 }
 
-func (m *LegacyManager) Apply(pid int) error {
+func (m *Manager) Apply(pid int) error {
 	var (
 		c          = m.Cgroups
 		unitName   = getUnitName(c)
@@ -168,6 +245,10 @@ func (m *LegacyManager) Apply(pid int) error {
 
 	// if we create a slice, the parent is defined via a Wants=
 	if strings.HasSuffix(unitName, ".slice") {
+		// This was broken until systemd v229, but has been back-ported on RHEL environments >= 219
+		if !hasStartTransientSliceUnit {
+			return fmt.Errorf("systemd version does not support ability to start a slice as transient unit")
+		}
 		properties = append(properties, systemdDbus.PropWants(slice))
 	} else {
 		// otherwise, we use Slice=
@@ -180,9 +261,15 @@ func (m *LegacyManager) Apply(pid int) error {
 	}
 
 	// Check if we can delegate. This is only supported on systemd versions 218 and above.
-	if !strings.HasSuffix(unitName, ".slice") {
-		// Assume scopes always support delegation.
-		properties = append(properties, newProp("Delegate", true))
+	if strings.HasSuffix(unitName, ".slice") {
+		if hasDelegateSlice {
+			// systemd 237 and above no longer allows delegation on a slice
+			properties = append(properties, newProp("Delegate", true))
+		}
+	} else {
+		if hasDelegateScope {
+			properties = append(properties, newProp("Delegate", true))
+		}
 	}
 
 	// Always enable accounting, this gets us the same behaviour as the fs implementation,
@@ -192,9 +279,10 @@ func (m *LegacyManager) Apply(pid int) error {
 		newProp("CPUAccounting", true),
 		newProp("BlockIOAccounting", true))
 
-	// Assume DefaultDependencies= will always work (the check for it was previously broken.)
-	properties = append(properties,
-		newProp("DefaultDependencies", false))
+	if hasTransientDefaultDependencies {
+		properties = append(properties,
+			newProp("DefaultDependencies", false))
+	}
 
 	if c.Resources.Memory != 0 {
 		properties = append(properties,
@@ -261,7 +349,7 @@ func (m *LegacyManager) Apply(pid int) error {
 	}
 
 	paths := make(map[string]string)
-	for _, s := range legacySubsystems {
+	for _, s := range subsystems {
 		subsystemPath, err := getSubsystemPath(m.Cgroups, s.Name())
 		if err != nil {
 			// Don't fail if a cgroup hierarchy was not found, just skip this subsystem
@@ -276,7 +364,7 @@ func (m *LegacyManager) Apply(pid int) error {
 	return nil
 }
 
-func (m *LegacyManager) Destroy() error {
+func (m *Manager) Destroy() error {
 	if m.Cgroups.Paths != nil {
 		return nil
 	}
@@ -290,7 +378,7 @@ func (m *LegacyManager) Destroy() error {
 	return nil
 }
 
-func (m *LegacyManager) GetPaths() map[string]string {
+func (m *Manager) GetPaths() map[string]string {
 	m.mu.Lock()
 	paths := m.Paths
 	m.mu.Unlock()
@@ -302,7 +390,6 @@ func join(c *configs.Cgroup, subsystem string, pid int) (string, error) {
 	if err != nil {
 		return "", err
 	}
-
 	if err := os.MkdirAll(path, 0755); err != nil {
 		return "", err
 	}
@@ -313,7 +400,7 @@ func join(c *configs.Cgroup, subsystem string, pid int) (string, error) {
 }
 
 func joinCgroups(c *configs.Cgroup, pid int) error {
-	for _, sys := range legacySubsystems {
+	for _, sys := range subsystems {
 		name := sys.Name()
 		switch name {
 		case "name=systemd":
@@ -408,14 +495,14 @@ func getSubsystemPath(c *configs.Cgroup, subsystem string) (string, error) {
 	return filepath.Join(mountpoint, initPath, slice, getUnitName(c)), nil
 }
 
-func (m *LegacyManager) Freeze(state configs.FreezerState) error {
+func (m *Manager) Freeze(state configs.FreezerState) error {
 	path, err := getSubsystemPath(m.Cgroups, "freezer")
 	if err != nil {
 		return err
 	}
 	prevState := m.Cgroups.Resources.Freezer
 	m.Cgroups.Resources.Freezer = state
-	freezer, err := legacySubsystems.Get("freezer")
+	freezer, err := subsystems.Get("freezer")
 	if err != nil {
 		return err
 	}
@@ -427,7 +514,7 @@ func (m *LegacyManager) Freeze(state configs.FreezerState) error {
 	return nil
 }
 
-func (m *LegacyManager) GetPids() ([]int, error) {
+func (m *Manager) GetPids() ([]int, error) {
 	path, err := getSubsystemPath(m.Cgroups, "devices")
 	if err != nil {
 		return nil, err
@@ -435,7 +522,7 @@ func (m *LegacyManager) GetPids() ([]int, error) {
 	return cgroups.GetPids(path)
 }
 
-func (m *LegacyManager) GetAllPids() ([]int, error) {
+func (m *Manager) GetAllPids() ([]int, error) {
 	path, err := getSubsystemPath(m.Cgroups, "devices")
 	if err != nil {
 		return nil, err
@@ -443,12 +530,12 @@ func (m *LegacyManager) GetAllPids() ([]int, error) {
 	return cgroups.GetAllPids(path)
 }
 
-func (m *LegacyManager) GetStats() (*cgroups.Stats, error) {
+func (m *Manager) GetStats() (*cgroups.Stats, error) {
 	m.mu.Lock()
 	defer m.mu.Unlock()
 	stats := cgroups.NewStats()
 	for name, path := range m.Paths {
-		sys, err := legacySubsystems.Get(name)
+		sys, err := subsystems.Get(name)
 		if err == errSubsystemDoesNotExist || !cgroups.PathExists(path) {
 			continue
 		}
@@ -460,13 +547,13 @@ func (m *LegacyManager) GetStats() (*cgroups.Stats, error) {
 	return stats, nil
 }
 
-func (m *LegacyManager) Set(container *configs.Config) error {
+func (m *Manager) Set(container *configs.Config) error {
 	// If Paths are set, then we are just joining cgroups paths
 	// and there is no need to set any values.
 	if m.Cgroups.Paths != nil {
 		return nil
 	}
-	for _, sys := range legacySubsystems {
+	for _, sys := range subsystems {
 		// Get the subsystem path, but don't error out for not found cgroups.
 		path, err := getSubsystemPath(container.Cgroups, sys.Name())
 		if err != nil && !cgroups.IsNotFound(err) {
@@ -502,15 +589,6 @@ func setKernelMemory(c *configs.Cgroup) error {
 
 	if err := os.MkdirAll(path, 0755); err != nil {
 		return err
-	}
-	// do not try to enable the kernel memory if we already have
-	// tasks in the cgroup.
-	content, err := ioutil.ReadFile(filepath.Join(path, "tasks"))
-	if err != nil {
-		return err
-	}
-	if len(content) > 0 {
-		return nil
 	}
 	return fs.EnableKernelMemoryAccounting(path)
 }

@@ -25,7 +25,7 @@ type Ci mg.Namespace
 
 func (Ci) TestEtcdUpgrade() error {
 	// The "to" version should match what etcd is built with
-	// TODO integrate this variable with the one set in the Makefile
+	// TODO(knisbet) integrate this variable with etcd versions set in Makefile
 	err := upgrade.TestUpgradeBetweenVersions("v3.3.3", "v3.4.3")
 	return trace.Wrap(err)
 }

@@ -125,14 +125,6 @@
   version = "v2.2.1"
 
 [[projects]]
-  digest = "1:b54ea408c3a0a82d6d644fbb4468d00b50b1368482abc337aec72b60a3ea7c12"
-  name = "github.com/checkpoint-restore/go-criu"
-  packages = ["rpc"]
-  pruneopts = "UT"
-  revision = "17b0214f6c48980c45dc47ecb0cfd6d9e02df723"
-  version = "v3.11"
-
-[[projects]]
   branch = "master"
   digest = "1:5aaec2559dbb1fde897fd21b4165881391d7f7e069700bef640802068c8e7988"
   name = "github.com/cloudfoundry/gosigar"
@@ -190,11 +182,13 @@
   version = "v0.3.0"
 
 [[projects]]
-  digest = "1:bfff4d89c7898c71335b98fc8f1fd2817bbf22cbb7f1a26220fed15c338845ac"
+  digest = "1:e6cb20204387062b3150efcd0cb9b6e7802e871ec78250627d5b88892fa1aac2"
   name = "github.com/coreos/go-systemd"
   packages = [
     "dbus",
-    "journal"
+    "internal/dlopen",
+    "journal",
+    "util"
   ]
   pruneopts = "UT"
   revision = "d3cd4ed1dbcf5835feba465b180436db54f20228"
@@ -720,7 +714,7 @@
   version = "v1.0.1"
 
 [[projects]]
-  digest = "1:a0a6bac15fb64d7300962814610edf5f294f39ea82e87127b0a539f9c3c9b1a4"
+  digest = "1:3a7b076f85f7786b280e7b06017cfa7f9379dfde983ac5280eb471d0f8a14baa"
   name = "github.com/opencontainers/runc"
   packages = [
     "libcontainer",
@@ -730,10 +724,10 @@
     "libcontainer/cgroups/systemd",
     "libcontainer/configs",
     "libcontainer/configs/validate",
+    "libcontainer/criurpc",
     "libcontainer/devices",
     "libcontainer/intelrdt",
     "libcontainer/keys",
-    "libcontainer/logs",
     "libcontainer/mount",
     "libcontainer/nsenter",
     "libcontainer/seccomp",
@@ -743,8 +737,8 @@
     "libcontainer/utils"
   ]
   pruneopts = "UT"
-  revision = "d736ef14f0288d6993a1845745d6756cfc9ddd5a"
-  version = "v1.0.0-rc9"
+  revision = "ccb5efd37fb7c86364786e9137e22948751de7ed"
+  version = "v1.0.0-rc6"
 
 [[projects]]
   digest = "1:7a58202c5cdf3d2c1eb0621fe369315561cea7f036ad10f0f0479ac36bcc95eb"
