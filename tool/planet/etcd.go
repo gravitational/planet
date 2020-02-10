@@ -116,6 +116,64 @@ func etcdInit() error {
 		return trace.Wrap(err)
 	}
 
+	return trace.Wrap(etcdInitMembership(context.TODO()))
+}
+
+// etcdInitMembership ensure this node is initialized as part of the existing etcd cluster
+// After an etcd upgrade, we re-create the etcd cluster, and master servers need to rejoin the cluster in a clean fashion
+func etcdInitMembership(ctx context.Context) error {
+	// if this is a proxy node, don't join the cluster
+	if os.Getenv(EnvEtcdProxy) == "on" {
+		return nil
+	}
+
+	// if this is a new cluster, we don't need to bootstrap membership, etcd will take care of this for us
+	if os.Getenv(EnvEtcdInitialClusterState) != "existing" {
+		return nil
+	}
+
+	envEndpoints := os.Getenv(EnvEtcdGatewayEndpoints)
+	endpoints := strings.Split(envEndpoints, ",")
+	if len(endpoints) == 0 {
+		return trace.BadParameter("unable to locate any endpoints").AddField(EnvEtcdGatewayEndpoints, envEndpoints)
+	}
+
+	conf := etcdconf.Config{
+		Endpoints: endpoints,
+		KeyFile:   DefaultEtcdctlKeyFile,
+		CertFile:  DefaultEtcdctlCertFile,
+		CAFile:    DefaultEtcdctlCAFile,
+	}
+	client, err := conf.NewClientV3()
+	if err != nil {
+		return trace.Wrap(err)
+	}
+
+	publicIP := os.Getenv(EnvPublicIP)
+	if len(publicIP) == 0 {
+		return trace.BadParameter("public ip env variable is empty").AddField(EnvPublicIP, publicIP)
+	}
+
+	peerUrl := fmt.Sprintf("https://%v:2380", publicIP)
+
+	resp, err := client.MemberList(ctx)
+	if err != nil {
+		return trace.Wrap(err)
+	}
+	for _, member := range resp.Members {
+		for _, url := range member.PeerURLs {
+			// we don't need to add the member if this node is already part of the cluster
+			if peerUrl == url {
+				return nil
+			}
+		}
+	}
+
+	_, err = client.MemberAdd(ctx, []string{peerUrl})
+	if err != nil {
+		return trace.Wrap(err)
+	}
+
 	return nil
 }
 
