@@ -32,13 +32,13 @@ import (
 	"strings"
 	"syscall"
 
-	"github.com/fatih/color"
-	"github.com/gravitational/configure/cstrings"
 	"github.com/gravitational/planet/lib/box"
 	"github.com/gravitational/planet/lib/monitoring"
 	"github.com/gravitational/planet/test/e2e"
 
+	"github.com/fatih/color"
 	kv "github.com/gravitational/configure"
+	"github.com/gravitational/configure/cstrings"
 	etcdconf "github.com/gravitational/coordinate/config"
 	"github.com/gravitational/satellite/agent"
 	"github.com/gravitational/satellite/agent/backend/inmemory"

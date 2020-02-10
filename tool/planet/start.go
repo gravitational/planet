@@ -295,11 +295,9 @@ func start(config *Config) (*runtimeContext, error) {
 		return nil, trace.Wrap(err)
 	}
 
-	var units []string
+	units := nodeUnits
 	if config.hasRole(RoleMaster) {
 		units = masterUnits
-	} else {
-		units = nodeUnits
 	}
 	go monitorUnits(box, units...)
 

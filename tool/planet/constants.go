@@ -258,7 +258,6 @@ const (
 	EnvPlanetSELinux = "PLANET_SELINUX"
 
 	// DefaultDNSListenAddr is the default IP address CoreDNS will listen on
-	// DefaultDNSListenAddr is the default IP address CoreDNS will listen on
 	DefaultDNSListenAddr = "127.0.0.2"
 
 	// DNSPort is the default DNS port
