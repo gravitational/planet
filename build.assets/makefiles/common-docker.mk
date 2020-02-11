@@ -6,7 +6,7 @@ TARGETDIR := /targetdir
 ASSETDIR := /assetdir
 LINKFLAGS_TAG := master
 PLANET_PKG_PATH := /gopath/src/github.com/gravitational/planet
-PLANET_BUILDFLAGS := -tags 'selinux'
+PLANET_BUILDFLAGS := -tags 'selinux sqlite_omit_load_extension'
 
 .PHONY: all
 all: common-docker.mk $(ASSETDIR)/planet $(ASSETDIR)/docker-import
@@ -21,7 +21,7 @@ all: common-docker.mk $(ASSETDIR)/planet $(ASSETDIR)/docker-import
 $(ASSETDIR)/planet: flags
 # Add to ldflags to compile a completely static version of the planet binary (w/o the glibc dependency)
 # -ldflags '-extldflags "-static"'
-	GOOS=linux GOARCH=amd64 go build -ldflags $(PLANET_LINKFLAGS) $(PLANET_BUILDFLAGS) -o $@ github.com/gravitational/planet/tool/planet
+	CGO_LDFLAGS_ALLOW=".*" GOOS=linux GOARCH=amd64 go build -ldflags $(PLANET_LINKFLAGS) $(PLANET_BUILDFLAGS) -o $@ github.com/gravitational/planet/tool/planet
 
 $(ASSETDIR)/docker-import:
 	GOOS=linux GOARCH=amd64 go build -ldflags "$(PLANET_GO_LDFLAGS)" -o $@ github.com/gravitational/planet/tool/docker-import

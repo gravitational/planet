@@ -1,5 +1,9 @@
 ARG GOVERSION=1.12.9
-FROM quay.io/gravitational/debian-venti:go${GOVERSION}-buster
+
+# TODO: currently defaulting to stretch explicitly to work around
+# a breaking change in buster (with GLIBC 2.28) w.r.t fcntl() implementation.
+# See https://forum.rebol.info/t/dynamic-linking-static-linking-and-the-march-of-progress/1231/1
+FROM quay.io/gravitational/debian-venti:go${GOVERSION}-stretch
 
 ENV PATH $PATH:$GOPATH/bin:$GOROOT/bin
 ENV GOCACHE ${GOPATH}/.gocache-${GOVERSION}
