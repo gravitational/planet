@@ -177,6 +177,11 @@ func etcdEnable(upgradeService bool, joinToMaster string) error {
 	defer cancel()
 
 	if !upgradeService {
+		err := etcdInitJoin(context.TODO(), joinToMaster)
+		if err != nil {
+			return trace.Wrap(err)
+		}
+
 		// restart the clients of the etcd service when the etcd service is brought online, which usually will be post
 		// upgrade. This will ensure clients running inside planet are restarted, which will refresh any local state
 		restartEtcdClients(ctx)
@@ -191,11 +196,6 @@ func etcdEnable(upgradeService bool, joinToMaster string) error {
 	if env.Get(EnvEtcdProxy) == EtcdProxyOn {
 		log.Info("etcd is in proxy mode, nothing to do")
 		return nil
-	}
-
-	err = etcdInitJoin(context.TODO(), joinToMaster)
-	if err != nil {
-		return trace.Wrap(err)
 	}
 
 	return trace.Wrap(enableService(ctx, ETCDUpgradeServiceName))
