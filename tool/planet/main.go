@@ -44,8 +44,10 @@ import (
 	etcdconf "github.com/gravitational/coordinate/config"
 	"github.com/gravitational/satellite/agent"
 	"github.com/gravitational/satellite/agent/backend/inmemory"
+	"github.com/gravitational/satellite/lib/history/sqlite"
 	"github.com/gravitational/trace"
 	"github.com/gravitational/version"
+	serf "github.com/hashicorp/serf/client"
 	"github.com/opencontainers/runc/libcontainer/configs"
 	log "github.com/sirupsen/logrus"
 	logsyslog "github.com/sirupsen/logrus/hooks/syslog"
@@ -166,6 +168,8 @@ func run() error {
 		cagentCloudProvider          = cagent.Flag("cloud-provider", "Which cloud provider backend the cluster is using").OverrideDefaultFromEnvar(EnvCloudProvider).String()
 		cagentHighWatermark          = cagent.Flag("high-watermark", "Usage percentage of monitored directories and devicemapper which is considered degrading").Default(strconv.Itoa(HighWatermark)).Uint64()
 		cagentHTTPTimeout            = cagent.Flag("http-timeout", "Timeout for HTTP requests, formatted as Go duration.").OverrideDefaultFromEnvar(EnvPlanetAgentHTTPTimeout).Default(constants.HTTPTimeout.String()).Duration()
+		cagentTimelineDir            = cagent.Flag("timeline-dir", "Directory to be used for timeline storage").Default("/tmp/timeline").String()
+		cagentRetention              = cagent.Flag("retention", "Window to retain timeline as a Go duration").Duration()
 
 		// stop a running container
 		cstop = app.Command("stop", "Stop planet container")
@@ -290,12 +294,16 @@ func run() error {
 		conf := &agent.Config{
 			Name:        *cagentName,
 			RPCAddrs:    *cagentRPCAddrs,
-			SerfRPCAddr: *cagentSerfRPCAddr,
+			SerfConfig:  serf.Config{Addr: *cagentSerfRPCAddr},
 			MetricsAddr: *cagentMetricsAddr,
 			Cache:       cache,
 			CAFile:      *cagentEtcdCAFile,
 			CertFile:    *cagentEtcdCertFile,
 			KeyFile:     *cagentEtcdKeyFile,
+			TimelineConfig: sqlite.Config{
+				DBPath:            *cagentTimelineDir,
+				RetentionDuration: *cagentRetention,
+			},
 		}
 		etcdConf := etcdconf.Config{
 			Endpoints: *cagentEtcdEndpoints,
