@@ -204,13 +204,18 @@ func etcdEnable(upgradeService bool, joinToMaster string) error {
 // etcdInitJoin ensure this node is already a part of a cluster, or configures the join process if uninitialized
 // After an etcd upgrade, master nodes are re-created with an empty etcd, and need to be re-joined to the first master
 func etcdInitJoin(ctx context.Context, initMaster string) error {
+	env, err := box.ReadEnvironment(ContainerEnvironmentFile)
+	if err != nil {
+		return trace.Wrap(err)
+	}
+
 	// if this is a proxy node, don't join the cluster
-	if os.Getenv(EnvEtcdProxy) == "on" {
+	if env.Get(EnvEtcdProxy) == "on" {
 		return nil
 	}
 
 	// if this is a new cluster, we don't need to bootstrap membership, etcd will take care of this for us
-	if os.Getenv(EnvEtcdInitialClusterState) != "existing" {
+	if env.Get(EnvEtcdInitialClusterState) != "existing" {
 		return nil
 	}
 
@@ -265,9 +270,9 @@ func etcdInitJoin(ctx context.Context, initMaster string) error {
 	// write initial cluster information to an environment file, when etcd starts for the first time, it will read
 	// these environment variables to join the cluster
 	initialCluster := append(peerUrls, advertisePeerUrl)
-	env := fmt.Sprintf("%v=%q", EnvEtcdInitialCluster, strings.Join(initialCluster, ","))
-	log.WithField("file", DefaultEtcdSyncedEnvFile).Info("Setting etcd initial cluster: ", env)
-	err = utils.SafeWriteFile(DefaultEtcdSyncedEnvFile, []byte(env), constants.SharedReadMask)
+	e := fmt.Sprintf("%v=%q", EnvEtcdInitialCluster, strings.Join(initialCluster, ","))
+	log.WithField("file", DefaultEtcdSyncedEnvFile).Info("Setting etcd initial cluster: ", e)
+	err = utils.SafeWriteFile(DefaultEtcdSyncedEnvFile, []byte(e), constants.SharedReadMask)
 	if err != nil {
 		return trace.Wrap(err, "failed to update etcd environment file").AddField("file", DefaultEtcdSyncedEnvFile)
 	}
