@@ -333,12 +333,12 @@
   revision = "2bc9a83f6fe22919202fb09bfa01f2ff8b7784cb"
 
 [[projects]]
-  branch = "master"
-  digest = "1:ac78536dad0ccbfd9dcec7de002b60ba1ec538880efb184ea10cb0b05e5b26af"
+  digest = "1:681bbd3ad2b3046b00f8a4985ffeb10bb04216fc5b736d1d9029494224a7c966"
   name = "github.com/gravitational/etcd-backup"
   packages = ["lib/etcd"]
   pruneopts = "UT"
-  revision = "610631b157d97a1c7d364c9b5dec1e8cb22d016d"
+  revision = "960ff557cc74d5ad63a453bc64c0803673c06dd5"
+  version = "0.0.2"
 
 [[projects]]
   branch = "master"
