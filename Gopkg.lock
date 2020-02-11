@@ -356,7 +356,6 @@
   version = "v1.0.0"
 
 [[projects]]
-  branch = "lele/update-kubernetes-to-1.17.2"
   digest = "1:52d099add24a5a0b40f9ba07c1f22ccd7c80249266aac7ac1e72a5e8952a7fde"
   name = "github.com/gravitational/satellite"
   packages = [
@@ -377,7 +376,8 @@
     "utils",
   ]
   pruneopts = "UT"
-  revision = "228bcd5ac7ae1d264c26d9b632e6ae4dff33a6b7"
+  revision = "7c283e4bbb6ee7abae6a63fb6d1e91e4c00e4064"
+  version = "7.0.6"
 
 [[projects]]
   digest = "1:418247f700939c99867b42639d985686ba229fd9f8ee9e119c7cc3ffde6e0fe3"
