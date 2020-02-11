@@ -225,8 +225,9 @@ func run() error {
 		cetcdDisableUpgrade = cetcdDisable.Flag("upgrade", "disable the upgrade service").Bool()
 		cetcdStopApiserver  = cetcdDisable.Flag("stop-api", "stops the kubernetes API service").Bool()
 
-		cetcdEnable        = cetcd.Command("enable", "Enable etcd on this node")
-		cetcdEnableUpgrade = cetcdEnable.Flag("upgrade", "enable the upgrade service").Bool()
+		cetcdEnable           = cetcd.Command("enable", "Enable etcd on this node")
+		cetcdEnableUpgrade    = cetcdEnable.Flag("upgrade", "enable the upgrade service").Bool()
+		cetcdEnableJoinMaster = cetcdEnable.Flag("join-master", "join this node to an existing master node").String()
 
 		cetcdUpgrade  = cetcd.Command("upgrade", "Upgrade etcd to the latest version")
 		cetcdRollback = cetcd.Command("rollback", "Rollback etcd to the previous release")
@@ -511,7 +512,7 @@ func run() error {
 		err = etcdBackup(*cetcdBackupFile, *cetcdBackupPrefix)
 
 	case cetcdEnable.FullCommand():
-		err = etcdEnable(*cetcdEnableUpgrade)
+		err = etcdEnable(*cetcdEnableUpgrade, *cetcdEnableJoinMaster)
 
 	case cetcdDisable.FullCommand():
 		err = etcdDisable(*cetcdDisableUpgrade, *cetcdStopApiserver)
