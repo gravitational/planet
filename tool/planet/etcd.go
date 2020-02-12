@@ -236,7 +236,7 @@ func etcdInitJoin(ctx context.Context, initMaster string) error {
 		return trace.Wrap(err)
 	}
 
-	publicIP := os.Getenv(EnvPublicIP)
+	publicIP := env.Get(EnvPublicIP)
 	if len(publicIP) == 0 {
 		return trace.BadParameter("public ip env variable is empty").AddField(EnvPublicIP, publicIP)
 	}
@@ -252,7 +252,7 @@ func etcdInitJoin(ctx context.Context, initMaster string) error {
 		if len(member.PeerURLs) == 0 {
 			continue
 		}
-		peerUrls = append(peerUrls, member.PeerURLs[0])
+		peerUrls = append(peerUrls, fmt.Sprintf("%v=%v", member.Name, member.PeerURLs[0]))
 		for _, url := range member.PeerURLs {
 			// we don't need to add the member if this node is already part of the cluster
 			if advertisePeerUrl == url {
@@ -269,7 +269,8 @@ func etcdInitJoin(ctx context.Context, initMaster string) error {
 
 	// write initial cluster information to an environment file, when etcd starts for the first time, it will read
 	// these environment variables to join the cluster
-	initialCluster := append(peerUrls, advertisePeerUrl)
+	advertisePeerConfig := fmt.Sprintf("%v=%v", env.Get(EnvEtcdMemberName), advertisePeerUrl)
+	initialCluster := append(peerUrls, advertisePeerConfig)
 	e := fmt.Sprintf("%v=%q", EnvEtcdInitialCluster, strings.Join(initialCluster, ","))
 	log.WithField("file", DefaultEtcdSyncedEnvFile).Info("Setting etcd initial cluster: ", e)
 	err = utils.SafeWriteFile(DefaultEtcdSyncedEnvFile, []byte(e), constants.SharedReadMask)
