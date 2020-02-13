@@ -105,7 +105,7 @@ ignored = ["github.com/Sirupsen/logrus", "github.com/gravitational/planet/build/
 
 [[constraint]]
   name = "github.com/opencontainers/selinux"
-  version = "=v1.3.0"
+  version = "=v1.3.1"
 
 [[constraint]]
   name = "github.com/opencontainers/runc"

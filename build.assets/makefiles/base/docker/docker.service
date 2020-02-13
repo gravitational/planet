@@ -11,6 +11,8 @@ Type=notify
 # the default is not to use systemd for cgroups because the delegate issues still
 # exists and systemd currently does not support the cgroup feature set required
 # for containers run by docker
+ExecStartPre=-/sbin/ip link set dev docker0 down
+ExecStartPre=-/sbin/brctl delbr docker0
 ExecStartPre=-/bin/rm -f /var/run/docker.pid
 # Remove any cached docker network settings
 # On new install, docker will default to using 172.17.0.0/16 for the docker bridge, which CNI will refuse to manage
