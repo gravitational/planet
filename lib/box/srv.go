@@ -314,7 +314,7 @@ func getLibcontainerConfig(containerID, rootfs string, cfg Config) (*configs.Con
 				Source:      "sysfs",
 				Destination: "/sys",
 				Device:      "sysfs",
-				Flags:       defaultMountFlags | syscall.MS_RDONLY,
+				Flags:       defaultMountFlags,
 			},
 			{
 				Source:      "devpts",
@@ -338,6 +338,23 @@ func getLibcontainerConfig(containerID, rootfs string, cfg Config) (*configs.Con
 				Device:      "bind",
 				Source:      "/dev/kmsg",
 				Destination: "/dev/kmsg",
+				Flags:       syscall.MS_BIND,
+			},
+			// /run has to be mounted explicitly as tmpfs in order to be able
+			// to mount /run/udev below
+			{
+				Source:      "tmpfs",
+				Destination: "/run",
+				Device:      "tmpfs",
+				Flags:       syscall.MS_NOSUID | syscall.MS_NODEV,
+				Data:        "mode=755",
+			},
+			// /run/udev is used by OpenEBS node device manager to detect
+			// added and removed block devices
+			{
+				Device:      "bind",
+				Source:      "/run/udev",
+				Destination: "/run/udev",
 				Flags:       syscall.MS_BIND,
 			},
 		},
@@ -373,8 +390,14 @@ func getLibcontainerConfig(containerID, rootfs string, cfg Config) (*configs.Con
 			return nil, trace.Wrap(err, "invalid glob pattern %q", mountSpec.Src)
 		}
 
-		if len(matches) == 0 && mountSpec.SkipIfMissing {
-			// Skip the non-existent mount source
+		if len(matches) == 0 {
+			if !mountSpec.SkipIfMissing {
+				return nil, trace.NotFound("mount source not found").AddFields(map[string]interface{}{
+					"src": mountSpec.Src,
+					"dst": mountSpec.Dst,
+				})
+			}
+			// Skip the non-existent mount source if SkipIfMissing is set
 			continue
 		}
 
@@ -385,10 +408,11 @@ func getLibcontainerConfig(containerID, rootfs string, cfg Config) (*configs.Con
 				targetPath = match
 			}
 			mount := &configs.Mount{
-				Device:      "bind",
-				Source:      match,
-				Destination: targetPath,
-				Flags:       syscall.MS_BIND,
+				Device:           "bind",
+				Source:           match,
+				Destination:      targetPath,
+				Flags:            syscall.MS_BIND,
+				PropagationFlags: []int{syscall.MS_SHARED},
 			}
 			if mountSpec.Readonly {
 				mount.Flags |= syscall.MS_RDONLY

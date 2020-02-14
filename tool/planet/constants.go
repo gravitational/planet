@@ -232,6 +232,12 @@ const (
 	// EnvPlanetDNSPort is the environment variable with the DNS port
 	EnvPlanetDNSPort = "PLANET_DNS_PORT"
 
+	// EnvPlanetTaints is an environment variable for Kubernetes taints to apply to the node during creation
+	EnvPlanetTaints = "PLANET_NODE_TAINTS"
+
+	// EnvPlanetNodeLabels is an environment variable for Kubernetes node labels
+	EnvPlanetNodeLabels = "PLANET_NODE_LABELS"
+
 	// EnvDisableFlannel is an environment variable to indicate whether we should disable flannel within planet
 	EnvDisableFlannel = "PLANET_DISABLE_FLANNEL"
 
@@ -407,7 +413,7 @@ const (
 	DefaultVxlanPort = 8472
 
 	// DefaultFeatureGates is the default set of component feature gates
-	DefaultFeatureGates = "AllAlpha=true,APIResponseCompression=false,BoundServiceAccountTokenVolume=false,CSIMigration=false,KubeletPodResources=false,EndpointSlice=false,IPv6DualStack=false"
+	DefaultFeatureGates = "AllAlpha=true,APIResponseCompression=false,BoundServiceAccountTokenVolume=false,CSIMigration=false,KubeletPodResources=false,EndpointSlice=false,IPv6DualStack=false,RemoveSelfLink=false"
 
 	// DefaultServiceNodePortRange defines the default IP range for services with NodePort visibility
 	DefaultServiceNodePortRange = "30000-32767"
