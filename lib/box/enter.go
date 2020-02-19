@@ -19,7 +19,9 @@ package box
 import (
 	"bytes"
 	"context"
+	"fmt"
 	"io"
+	"io/ioutil"
 	"os"
 	"path"
 	"path/filepath"
@@ -29,8 +31,11 @@ import (
 
 	"github.com/gravitational/trace"
 	"github.com/opencontainers/runc/libcontainer"
+	"github.com/opencontainers/runc/libcontainer/utils"
 	libcontainerutils "github.com/opencontainers/runc/libcontainer/utils"
+	"github.com/sirupsen/logrus"
 	log "github.com/sirupsen/logrus"
+	"golang.org/x/sys/unix"
 )
 
 func CombinedOutput(c libcontainer.Container, cfg ProcessConfig) ([]byte, error) {
@@ -209,4 +214,173 @@ func setProcessUserCgroupImpl(c libcontainer.Container, p *libcontainer.Process)
 	}
 
 	return trace.Wrap(control.Add(cgroups.Process{Pid: pid}))
+}
+
+func LocalEnter(dataDir string, cfg *ProcessConfig) error {
+	factory, err := getLibContainerFactory(dataDir)
+	if err != nil {
+		return trace.Wrap(err)
+	}
+
+	absRoot, err := filepath.Abs(dataDir)
+	if err != nil {
+		return trace.Wrap(err)
+	}
+
+	list, err := ioutil.ReadDir(absRoot)
+	if err != nil {
+		trace.Wrap(err)
+	}
+
+	if len(list) == 0 {
+		return trace.BadParameter("planet container not found").AddField("data_dir", dataDir)
+	}
+
+	var container libcontainer.Container
+	var status libcontainer.Status
+	for _, fp := range list {
+		container, err = factory.Load(fp.Name())
+		if err != nil {
+			return trace.Wrap(err)
+		}
+
+		status, err = container.Status()
+		if err != nil {
+			return trace.Wrap(err)
+		}
+
+		// There should only be a single planet container that's running, so exec within the first
+		// running container found
+		if status == libcontainer.Running {
+			break
+		}
+	}
+
+	if status == libcontainer.Stopped {
+		return trace.BadParameter("cannot exec a container that has stopped")
+	}
+
+	p := &libcontainer.Process{
+		Args: cfg.Args,
+		User: cfg.User,
+		Env:  append(cfg.Environment(), "TERM=xterm", "LC_ALL=en_US.UTF-8"),
+	}
+
+	if cfg.TTY != nil {
+		fmt.Fprintln(os.Stdout, "Console has TTY")
+		p.ConsoleHeight = uint16(cfg.TTY.H)
+		p.ConsoleWidth = uint16(cfg.TTY.W)
+	}
+
+	rootuid, err := container.Config().HostRootUID()
+	if err != nil {
+		return trace.Wrap(err)
+	}
+	rootgid, err := container.Config().HostRootGID()
+	if err != nil {
+		return trace.Wrap(err)
+	}
+
+	forwarder := NewSignalForwarder()
+	tty, err := setupIO(p, rootuid, rootgid, cfg.TTY != nil)
+	if err != nil {
+		return trace.Wrap(err)
+	}
+	defer tty.Close()
+
+	err = container.Run(p)
+	if err != nil {
+		return trace.Wrap(err)
+	}
+
+	err = tty.waitConsole()
+	if err != nil {
+		terminate(p)
+		return trace.Wrap(err)
+	}
+
+	setProcessUserCgroup(container, p)
+
+	err = tty.ClosePostStart()
+	if err != nil {
+		terminate(p)
+		return trace.Wrap(err)
+	}
+
+	s, err := forwarder.Forward(p, tty)
+	if err != nil {
+		terminate(p)
+		return trace.Wrap(err)
+	}
+
+	logrus.WithField("status", s).Info("container process exited")
+
+	return nil
+}
+
+func setupIO(process *libcontainer.Process, rootuid, rootgid int, createtty bool) (*tty, error) {
+	if createtty {
+		fmt.Fprintln(os.Stdout, "createtty")
+		t := &tty{}
+
+		parent, child, err := utils.NewSockPair("console")
+		if err != nil {
+			return nil, err
+		}
+
+		process.ConsoleSocket = child
+		t.postStart = append(t.postStart, parent, child)
+		t.consoleC = make(chan error, 1)
+
+		go func() {
+			if err := t.recvtty(process, parent); err != nil {
+				t.consoleC <- err
+			}
+			t.consoleC <- nil
+		}()
+
+		return t, nil
+	}
+
+	fmt.Fprintln(os.Stdout, "not tty")
+	// not tty access
+	i, err := process.InitializeIO(rootuid, rootgid)
+	if err != nil {
+		return nil, trace.Wrap(err)
+	}
+
+	t := &tty{
+		closers: []io.Closer{
+			i.Stdin,
+			i.Stdout,
+			i.Stderr,
+		},
+	}
+
+	// add the process's io to the post start closers if they support close
+	for _, cc := range []interface{}{
+		process.Stdin,
+		process.Stdout,
+		process.Stderr,
+	} {
+		if c, ok := cc.(io.Closer); ok {
+			t.postStart = append(t.postStart, c)
+		}
+	}
+
+	go func() {
+		written, err := io.Copy(i.Stdin, os.Stdin)
+		fmt.Fprintln(os.Stdout, "Stdin copy written: ", written, " err: ", err)
+		i.Stdin.Close()
+	}()
+	t.wg.Add(2)
+	go t.copyIO(os.Stdout, i.Stdout)
+	go t.copyIO(os.Stderr, i.Stderr)
+
+	return t, nil
+}
+
+func terminate(p *libcontainer.Process) {
+	_ = p.Signal(unix.SIGKILL)
+	_, _ = p.Wait()
 }

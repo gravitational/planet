@@ -18,12 +18,15 @@ package main
 
 import (
 	"bytes"
+	"fmt"
 	"os"
 	"path/filepath"
 
 	"github.com/docker/docker/pkg/term"
 	"github.com/gravitational/planet/lib/box"
 	"github.com/gravitational/planet/lib/constants"
+
+	//"github.com/gravitational/planet/lib/term"
 	"github.com/gravitational/trace"
 	log "github.com/sirupsen/logrus"
 )
@@ -48,7 +51,7 @@ func enterConsole(rootfs, socketPath, cmd, user string, tty bool, stdin bool, ar
 	if tty {
 		s, err := term.GetWinsize(os.Stdin.Fd())
 		if err != nil {
-			return trace.Wrap(err)
+			return trace.Wrap(err, "error retrieving windows size of tty")
 		}
 		cfg.TTY = &box.TTY{H: int(s.Height), W: int(s.Width)}
 	}
@@ -62,13 +65,22 @@ func enterConsole(rootfs, socketPath, cmd, user string, tty bool, stdin bool, ar
 // to proxy input and output
 func enter(rootfs, socketPath string, cfg *box.ProcessConfig) error {
 	log.Infof("enter: %v %#v", rootfs, cfg)
-	if cfg.TTY != nil {
-		oldState, err := term.SetRawTerminal(os.Stdin.Fd())
-		if err != nil {
-			return err
+
+	fmt.Fprintln(os.Stdout, "Running enter")
+	/*
+		if cfg.TTY != nil {
+			fmt.Fprintln(os.Stdout, "Setting Raw Terminal")
+			oldState, err := term.SetRawTerminal(os.Stdin.Fd())
+			if err != nil {
+				return err
+			}
+
+			defer func() {
+				fmt.Fprintln(os.Stdout, "Restoring old terminal")
+				term.RestoreTerminal(os.Stdin.Fd(), oldState)
+			}()
 		}
-		defer term.RestoreTerminal(os.Stdin.Fd(), oldState)
-	}
+	*/
 
 	env, err := box.ReadEnvironment(filepath.Join(rootfs, ProxyEnvironmentFile))
 	if err != nil {
@@ -86,7 +98,7 @@ func enter(rootfs, socketPath string, cfg *box.ProcessConfig) error {
 	cfg.Env.Upsert(EnvEtcdctlCAFile, DefaultEtcdctlCAFile)
 	cfg.Env.Upsert(EnvEtcdctlPeers, DefaultEtcdEndpoints)
 	cfg.Env.Upsert(EnvKubeConfig, constants.KubectlConfigPath)
-	s, err := box.Connect(&box.ClientConfig{
+	/*s, err := box.Connect(&box.ClientConfig{
 		Rootfs:     rootfs,
 		SocketPath: socketPath,
 	})
@@ -95,6 +107,9 @@ func enter(rootfs, socketPath string, cfg *box.ProcessConfig) error {
 	}
 
 	return s.Enter(*cfg)
+	*/
+	fmt.Println("using local terminal")
+	return trace.Wrap(box.LocalEnter("/var/run/planet", cfg))
 }
 
 // stop interacts with systemctl's halt feature

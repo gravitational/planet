@@ -86,14 +86,38 @@ func (b *Box) Wait() (*os.ProcessState, error) {
 	return st, err
 }
 
+func getLibContainerFactory(dataDir string) (libcontainer.Factory, error) {
+	if !systemd.UseSystemd() {
+		return nil, trace.BadParameter("unable to use systemd for container creation")
+	}
+
+	// Resolve the paths for {newuidmap,newgidmap} from the context of runc,
+	// to avoid doing a path lookup in the nsexec context.
+	// TODO: the binary names are not currently configurable.
+	newuidmap, err := exec.LookPath("newuidmap")
+	if err != nil {
+		newuidmap = ""
+	}
+	newgidmap, err := exec.LookPath("newgidmap")
+	if err != nil {
+		newgidmap = ""
+	}
+
+	factory, err := libcontainer.New(dataDir,
+		libcontainer.SystemdCgroups,
+		libcontainer.NewuidmapPath(newuidmap),
+		libcontainer.NewgidmapPath(newgidmap),
+	)
+	if err != nil {
+		return nil, trace.Wrap(err)
+	}
+	return factory, nil
+}
+
 // Starts the container described by cfg.
 // Returns a Box instance or an error.
 func Start(cfg Config) (*Box, error) {
 	log.Infof("[BOX] starting with config: %#v", cfg)
-
-	if !systemd.UseSystemd() {
-		return nil, trace.BadParameter("unable to use systemd for container creation")
-	}
 
 	rootfs, err := checkPath(cfg.Rootfs, false)
 	if err != nil {
@@ -120,23 +144,7 @@ func Start(cfg Config) (*Box, error) {
 		}
 	}
 
-	// Resolve the paths for {newuidmap,newgidmap} from the context of runc,
-	// to avoid doing a path lookup in the nsexec context.
-	// TODO: the binary names are not currently configurable.
-	newuidmap, err := exec.LookPath("newuidmap")
-	if err != nil {
-		newuidmap = ""
-	}
-	newgidmap, err := exec.LookPath("newgidmap")
-	if err != nil {
-		newgidmap = ""
-	}
-
-	root, err := libcontainer.New(cfg.DataDir,
-		libcontainer.SystemdCgroups,
-		libcontainer.NewuidmapPath(newuidmap),
-		libcontainer.NewgidmapPath(newgidmap),
-	)
+	root, err := getLibContainerFactory(cfg.DataDir)
 	if err != nil {
 		return nil, trace.Wrap(err)
 	}
