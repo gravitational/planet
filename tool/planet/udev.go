@@ -112,14 +112,16 @@ func (r *udevListener) createDevice(device *configs.Device) error {
 		return trace.Wrap(err)
 	}
 
-	return enter(r.rootfs, r.socketPath, deviceCmd("add", "--data", string(deviceJson)))
+	_, err = enter(r.rootfs, r.socketPath, deviceCmd("add", "--data", string(deviceJson)))
+	return trace.Wrap(err)
 }
 
 // removeDevice dispatches a command to remove a device in the container
 func (r *udevListener) removeDevice(node string) error {
 	log.Infof("removeDevice: %v", node)
 
-	return enter(r.rootfs, r.socketPath, deviceCmd("remove", "--node", node))
+	_, err := enter(r.rootfs, r.socketPath, deviceCmd("remove", "--node", node))
+	return trace.Wrap(err)
 }
 
 // deviceCmd creates a configuration object to invoke the device agent

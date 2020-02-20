@@ -19,7 +19,6 @@ package box
 import (
 	"bytes"
 	"context"
-	"fmt"
 	"io"
 	"io/ioutil"
 	"os"
@@ -267,7 +266,6 @@ func LocalEnter(dataDir string, cfg *ProcessConfig) (int, error) {
 	}
 
 	if cfg.TTY != nil {
-		fmt.Fprintln(os.Stdout, "Console has TTY")
 		p.ConsoleHeight = uint16(cfg.TTY.H)
 		p.ConsoleWidth = uint16(cfg.TTY.W)
 	}
@@ -320,7 +318,6 @@ func LocalEnter(dataDir string, cfg *ProcessConfig) (int, error) {
 
 func setupIO(process *libcontainer.Process, rootuid, rootgid int, createtty bool) (*tty, error) {
 	if createtty {
-		fmt.Fprintln(os.Stdout, "createtty")
 		t := &tty{}
 
 		parent, child, err := utils.NewSockPair("console")
@@ -342,7 +339,6 @@ func setupIO(process *libcontainer.Process, rootuid, rootgid int, createtty bool
 		return t, nil
 	}
 
-	fmt.Fprintln(os.Stdout, "not tty")
 	// not tty access
 	i, err := process.InitializeIO(rootuid, rootgid)
 	if err != nil {
@@ -369,8 +365,7 @@ func setupIO(process *libcontainer.Process, rootuid, rootgid int, createtty bool
 	}
 
 	go func() {
-		written, err := io.Copy(i.Stdin, os.Stdin)
-		fmt.Fprintln(os.Stdout, "Stdin copy written: ", written, " err: ", err)
+		io.Copy(i.Stdin, os.Stdin)
 		i.Stdin.Close()
 	}()
 	t.wg.Add(2)

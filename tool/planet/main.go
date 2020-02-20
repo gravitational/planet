@@ -462,8 +462,9 @@ func run() error {
 		if err != nil {
 			break
 		}
-		err = enterConsole(
+		exitCode, _ := enterConsole(
 			rootfs, *socketPath, *centerCmd, *centerUser, !*centerNoTTY, true, extraArgs)
+		os.Exit(exitCode)
 
 	// "exec" command
 	case cexec.FullCommand():
@@ -471,8 +472,9 @@ func run() error {
 		if err != nil {
 			break
 		}
-		err = enterConsole(
+		exitCode, _ := enterConsole(
 			rootfs, *socketPath, *cexecCmd, *cexecUser, *cexecTTY, *cexecStdin, *cexecArgs)
+		os.Exit(exitCode)
 
 	// "stop" command
 	case cstop.FullCommand():
@@ -480,7 +482,7 @@ func run() error {
 		if err != nil {
 			break
 		}
-		err = stop(rootfs, *socketPath)
+		_, err = stop(rootfs, *socketPath)
 
 	// "status" command
 	case cstatus.FullCommand():
@@ -680,9 +682,9 @@ func setupSignalHandlers(rootfs, socketPath string) {
 				log.Debugf("received a %s signal, ignoring...", sig)
 			default:
 				log.Infof("received a %s signal, stopping...", sig)
-				err := stop(rootfs, socketPath)
+				exitCode, err := stop(rootfs, socketPath)
 				if err != nil {
-					log.Errorf("error: %v", err)
+					log.WithField("exit_code", exitCode).Errorf("error: %v", err)
 				}
 				return
 			}
