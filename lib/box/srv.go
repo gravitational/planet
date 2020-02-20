@@ -407,12 +407,11 @@ func getLibcontainerConfig(containerID, rootfs string, cfg Config) (*configs.Con
 				PidsLimit:        -1,  // override systemd defaults and set planet scope to unlimited pids
 			},
 		},
-
-		Devices:    append(configs.DefaultAutoCreatedDevices, append(loopDevices, disks...)...),
-		Hostname:   hostname,
-		MountLabel: defaults.ContainerFileLabel,
+		Devices:  append(configs.DefaultAutoCreatedDevices, append(loopDevices, disks...)...),
+		Hostname: hostname,
 	}
 	if cfg.SELinux {
+		config.MountLabel = defaults.ContainerFileLabel
 		config.ProcessLabel = cfg.ProcessLabel
 		config.Mounts = append(config.Mounts, []*configs.Mount{
 			{
