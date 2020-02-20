@@ -20,6 +20,7 @@ import (
 	"bufio"
 	"context"
 	"fmt"
+	"math"
 	"net/url"
 	"os"
 	"os/exec"
@@ -177,7 +178,9 @@ func etcdEnable(upgradeService bool, joinToMaster string) error {
 	defer cancel()
 
 	if !upgradeService {
-		err := etcdInitJoin(context.TODO(), joinToMaster)
+		ctx, cancel := context.WithTimeout(context.Background(), 120*time.Minute)
+		defer cancel()
+		err := etcdInitJoin(ctx, joinToMaster)
 		if err != nil {
 			return trace.Wrap(err)
 		}
@@ -225,60 +228,67 @@ func etcdInitJoin(ctx context.Context, initMaster string) error {
 
 	log.WithField("master", initMaster).Info("Joining etcd to existing cluster")
 
-	conf := etcdconf.Config{
-		Endpoints: []string{initMaster},
-		KeyFile:   DefaultEtcdctlKeyFile,
-		CertFile:  DefaultEtcdctlCertFile,
-		CAFile:    DefaultEtcdctlCAFile,
-	}
-	client, err := conf.NewClientV3()
-	if err != nil {
-		return trace.Wrap(err)
-	}
+	return trace.Wrap(utils.Retry(ctx, math.MaxInt64, 1*time.Second, func() error {
 
-	publicIP := env.Get(EnvPublicIP)
-	if len(publicIP) == 0 {
-		return trace.BadParameter("public ip env variable is empty").AddField(EnvPublicIP, publicIP)
-	}
-
-	advertisePeerUrl := fmt.Sprintf("https://%v:2380", publicIP)
-
-	resp, err := client.MemberList(ctx)
-	if err != nil {
-		return trace.Wrap(err)
-	}
-	peerUrls := []string{}
-	for _, member := range resp.Members {
-		if len(member.PeerURLs) == 0 {
-			continue
+		conf := etcdconf.Config{
+			Endpoints: []string{initMaster},
+			KeyFile:   DefaultEtcdctlKeyFile,
+			CertFile:  DefaultEtcdctlCertFile,
+			CAFile:    DefaultEtcdctlCAFile,
 		}
-		peerUrls = append(peerUrls, fmt.Sprintf("%v=%v", member.Name, member.PeerURLs[0]))
-		for _, url := range member.PeerURLs {
-			// we don't need to add the member if this node is already part of the cluster
-			if advertisePeerUrl == url {
-				log.WithField("master", initMaster).Info("Node is already member of cluster")
-				return nil
+		client, err := conf.NewClientV3()
+		if err != nil {
+			return trace.Wrap(err)
+		}
+
+		publicIP := env.Get(EnvPublicIP)
+		if len(publicIP) == 0 {
+			return trace.BadParameter("public ip env variable is empty").AddField(EnvPublicIP, publicIP)
+		}
+
+		advertisePeerUrl := fmt.Sprintf("https://%v:2380", publicIP)
+
+		resp, err := client.MemberList(ctx)
+		if err != nil {
+			return trace.Wrap(err)
+		}
+		peerUrls := []string{}
+
+		isMember := false
+		for _, member := range resp.Members {
+			if len(member.PeerURLs) == 0 {
+				continue
+			}
+			peerUrls = append(peerUrls, fmt.Sprintf("%v=%v", member.Name, member.PeerURLs[0]))
+			for _, url := range member.PeerURLs {
+				// we don't need to add the member if this node is already part of the cluster
+				if advertisePeerUrl == url {
+					log.WithField("master", initMaster).Info("Node is already member of cluster")
+					isMember = true
+				}
 			}
 		}
-	}
 
-	_, err = client.MemberAdd(ctx, []string{advertisePeerUrl})
-	if err != nil {
-		return trace.Wrap(err)
-	}
+		if !isMember {
+			_, err = client.MemberAdd(ctx, []string{advertisePeerUrl})
+			if err != nil {
+				return trace.Wrap(err)
+			}
 
-	// write initial cluster information to an environment file, when etcd starts for the first time, it will read
-	// these environment variables to join the cluster
-	advertisePeerConfig := fmt.Sprintf("%v=%v", env.Get(EnvEtcdMemberName), advertisePeerUrl)
-	initialCluster := append(peerUrls, advertisePeerConfig)
-	e := fmt.Sprintf("%v=%q", EnvEtcdInitialCluster, strings.Join(initialCluster, ","))
-	log.WithField("file", DefaultEtcdSyncedEnvFile).Info("Setting etcd initial cluster: ", e)
-	err = utils.SafeWriteFile(DefaultEtcdSyncedEnvFile, []byte(e), constants.SharedReadMask)
-	if err != nil {
-		return trace.Wrap(err, "failed to update etcd environment file").AddField("file", DefaultEtcdSyncedEnvFile)
-	}
+			// The node that we're adding as name=https://<addr>:<port>
+			peerUrls = append(peerUrls, fmt.Sprintf("%v=%v", env.Get(EnvEtcdMemberName), advertisePeerUrl))
+		}
 
-	return nil
+		// etcd is fairly strict about the initial cluster state matching the state of the cluster the node is joining
+		// to. So we need to overwrite the planet config packages etcd configuration, to match what etcd expects.
+		// format: ETCD_INITIAL_CLUSTER=member1=https://1.0.0.1:2380,member2=https://1.0.0.2:2380
+		etcdInitialClusterEnv := fmt.Sprintf("%v=%q", EnvEtcdInitialCluster, strings.Join(peerUrls, ","))
+		err = utils.SafeWriteFile(DefaultEtcdSyncedEnvFile, []byte(etcdInitialClusterEnv), constants.SharedReadMask)
+		if err != nil {
+			return trace.Wrap(err, "failed to update etcd environment file").AddField("file", DefaultEtcdSyncedEnvFile)
+		}
+		return nil
+	}))
 }
 
 // etcdUpgrade upgrades / rollbacks the etcd upgrade
