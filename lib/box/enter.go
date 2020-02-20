@@ -314,6 +314,7 @@ func LocalEnter(dataDir string, cfg *ProcessConfig) error {
 	}
 
 	logrus.WithField("status", s).Info("container process exited")
+	os.Exit(s)
 
 	return nil
 }
