@@ -14,6 +14,7 @@ all: $(ROOTFS)/bin/bash build planet-image
 
 $(ASSETDIR):
 	@mkdir -p $(ASSETDIR)
+	@touch $(BUILDDIR)/go.mod
 
 .PHONY: build
 build: | $(ASSETDIR)
@@ -23,7 +24,7 @@ build: | $(ASSETDIR)
 		--volume=$(ROOTFS):/rootfs \
 		--volume=$(TARGETDIR):/targetdir \
 		--volume=$(ASSETDIR):/assetdir \
-		--volume=$(PWD):/gopath/src/github.com/gravitational/planet \
+		--volume=$(PWD):/src/github.com/gravitational/planet \
 		--env="ASSETS=/assets" \
 		--env="ROOTFS=/rootfs" \
 		--env="TARGETDIR=/targetdir" \
@@ -64,7 +65,7 @@ enter-buildbox:
 		--volume=$(ROOTFS):/rootfs \
 		--volume=$(TARGETDIR):/targetdir \
 		--volume=$(ASSETDIR):/assetdir \
-		--volume=$(PWD):/gopath/src/github.com/gravitational/planet \
+		--volume=$(PWD):/src/github.com/gravitational/planet \
 		--env="ASSETS=/assets" \
 		--env="ROOTFS=/rootfs" \
 		--env="TARGETDIR=/targetdir" \
