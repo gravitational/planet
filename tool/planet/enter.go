@@ -18,7 +18,6 @@ package main
 
 import (
 	"bytes"
-	"fmt"
 	"os"
 	"path/filepath"
 
@@ -64,9 +63,9 @@ func enterConsole(rootfs, socketPath, cmd, user string, tty bool, stdin bool, ar
 // managed by the planet master process and mantains websocket connection
 // to proxy input and output
 func enter(rootfs, socketPath string, cfg *box.ProcessConfig) error {
-	log.Infof("enter: %v %#v", rootfs, cfg)
+	//log.Infof("enter: %v %#v", rootfs, cfg)
 
-	fmt.Fprintln(os.Stdout, "Running enter")
+	//fmt.Fprintln(os.Stdout, "Running enter")
 	/*
 		if cfg.TTY != nil {
 			fmt.Fprintln(os.Stdout, "Setting Raw Terminal")
@@ -108,8 +107,13 @@ func enter(rootfs, socketPath string, cfg *box.ProcessConfig) error {
 
 	return s.Enter(*cfg)
 	*/
-	fmt.Println("using local terminal")
-	return trace.Wrap(box.LocalEnter("/var/run/planet", cfg))
+	//fmt.Println("using local terminal")
+	exitCode, err := box.LocalEnter("/var/run/planet", cfg)
+	if err != nil {
+		return trace.Wrap(err)
+	}
+	os.Exit(exitCode)
+	return nil
 }
 
 // stop interacts with systemctl's halt feature

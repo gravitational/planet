@@ -216,24 +216,24 @@ func setProcessUserCgroupImpl(c libcontainer.Container, p *libcontainer.Process)
 	return trace.Wrap(control.Add(cgroups.Process{Pid: pid}))
 }
 
-func LocalEnter(dataDir string, cfg *ProcessConfig) error {
+func LocalEnter(dataDir string, cfg *ProcessConfig) (int, error) {
 	factory, err := getLibContainerFactory(dataDir)
 	if err != nil {
-		return trace.Wrap(err)
+		return -1, trace.Wrap(err)
 	}
 
 	absRoot, err := filepath.Abs(dataDir)
 	if err != nil {
-		return trace.Wrap(err)
+		return -1, trace.Wrap(err)
 	}
 
 	list, err := ioutil.ReadDir(absRoot)
 	if err != nil {
-		trace.Wrap(err)
+		return -1, trace.Wrap(err)
 	}
 
 	if len(list) == 0 {
-		return trace.BadParameter("planet container not found").AddField("data_dir", dataDir)
+		return -1, trace.BadParameter("planet container not found").AddField("data_dir", dataDir)
 	}
 
 	var container libcontainer.Container
@@ -241,12 +241,12 @@ func LocalEnter(dataDir string, cfg *ProcessConfig) error {
 	for _, fp := range list {
 		container, err = factory.Load(fp.Name())
 		if err != nil {
-			return trace.Wrap(err)
+			return -1, trace.Wrap(err)
 		}
 
 		status, err = container.Status()
 		if err != nil {
-			return trace.Wrap(err)
+			return -1, trace.Wrap(err)
 		}
 
 		// There should only be a single planet container that's running, so exec within the first
@@ -257,7 +257,7 @@ func LocalEnter(dataDir string, cfg *ProcessConfig) error {
 	}
 
 	if status == libcontainer.Stopped {
-		return trace.BadParameter("cannot exec a container that has stopped")
+		return -1, trace.BadParameter("cannot exec a container that has stopped")
 	}
 
 	p := &libcontainer.Process{
@@ -274,29 +274,29 @@ func LocalEnter(dataDir string, cfg *ProcessConfig) error {
 
 	rootuid, err := container.Config().HostRootUID()
 	if err != nil {
-		return trace.Wrap(err)
+		return -1, trace.Wrap(err)
 	}
 	rootgid, err := container.Config().HostRootGID()
 	if err != nil {
-		return trace.Wrap(err)
+		return -1, trace.Wrap(err)
 	}
 
 	forwarder := NewSignalForwarder()
 	tty, err := setupIO(p, rootuid, rootgid, cfg.TTY != nil)
 	if err != nil {
-		return trace.Wrap(err)
+		return -1, trace.Wrap(err)
 	}
 	defer tty.Close()
 
 	err = container.Run(p)
 	if err != nil {
-		return trace.Wrap(err)
+		return -1, trace.Wrap(err)
 	}
 
 	err = tty.waitConsole()
 	if err != nil {
 		terminate(p)
-		return trace.Wrap(err)
+		return -1, trace.Wrap(err)
 	}
 
 	setProcessUserCgroup(container, p)
@@ -304,19 +304,18 @@ func LocalEnter(dataDir string, cfg *ProcessConfig) error {
 	err = tty.ClosePostStart()
 	if err != nil {
 		terminate(p)
-		return trace.Wrap(err)
+		return -1, trace.Wrap(err)
 	}
 
 	s, err := forwarder.Forward(p, tty)
 	if err != nil {
 		terminate(p)
-		return trace.Wrap(err)
+		return -1, trace.Wrap(err)
 	}
 
 	logrus.WithField("status", s).Info("container process exited")
-	os.Exit(s)
 
-	return nil
+	return s, nil
 }
 
 func setupIO(process *libcontainer.Process, rootuid, rootgid int, createtty bool) (*tty, error) {
