@@ -197,15 +197,14 @@
   version = "v1.1.1"
 
 [[projects]]
-  digest = "1:a30d2758be5d1088a185e3c86266b0592d555a9781fd8e26453ad5e48b500b8a"
+  digest = "1:0a5fa93b3e08b6da0b1ac686a37d9c922c1dad983e08e6d3638fb02a54eae357"
   name = "github.com/docker/docker"
   packages = [
     "pkg/term",
     "pkg/term/windows",
   ]
   pruneopts = "UT"
-  revision = "a34a1d598c6096ed8b5ce5219e77d68e5cd85462"
-  version = "v1.9.1"
+  revision = "be7ac8be2ae072032a4005e8f232be3fc57e4127"
 
 [[projects]]
   digest = "1:6f82cacd0af5921e99bf3f46748705239b36489464f4529a1589bc895764fb18"

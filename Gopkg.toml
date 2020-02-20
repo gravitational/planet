@@ -20,7 +20,7 @@
 #  name = "github.com/x/y"
 #  version = "2.4.0"
 
-ignored = ["github.com/Sirupsen/logrus", "github.com/gravitational/planet/build/*"]
+ignored = ["github.com/gravitational/planet/build/*"]
 
 [prune]
   go-tests = true
@@ -72,7 +72,7 @@ ignored = ["github.com/Sirupsen/logrus", "github.com/gravitational/planet/build/
 
 [[constraint]]
   name = "github.com/docker/docker"
-  version = "=1.9.1"
+  revision = "be7ac8be2ae072032a4005e8f232be3fc57e4127"
 
 [[constraint]]
   branch = "master"
