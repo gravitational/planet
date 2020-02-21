@@ -75,7 +75,7 @@ ignored = ["github.com/Sirupsen/logrus", "github.com/gravitational/planet/build/
 [[constraint]]
   name = "github.com/docker/docker"
   source = "github.com/docker/engine"
-  version = "=v1.9.1"
+  version = "=v19.03.6"
 
 [[constraint]]
   branch = "master"
