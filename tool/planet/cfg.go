@@ -40,8 +40,6 @@ type Config struct {
 	Roles list
 	// Rootfs is the path to container's rootfs directory
 	Rootfs string
-	// SocketPath is the path to the container's communication socket
-	SocketPath string
 	// PublicIP is the public IP address of this node
 	PublicIP string
 	// MasterIP is the IP addess of the leader

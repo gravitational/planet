@@ -19,7 +19,6 @@ package main
 import (
 	"bytes"
 	"os"
-	"path/filepath"
 
 	"github.com/docker/docker/pkg/term"
 	"github.com/gravitational/planet/lib/box"
@@ -30,7 +29,7 @@ import (
 	log "github.com/sirupsen/logrus"
 )
 
-func enterConsole(rootfs, socketPath, cmd, user string, tty bool, stdin bool, args []string) (int, error) {
+func enterConsole(cmd, user string, tty bool, stdin bool, args []string) (int, error) {
 	cfg := &box.ProcessConfig{
 		Out:  os.Stdout,
 		Args: append([]string{cmd}, args...),
@@ -55,22 +54,14 @@ func enterConsole(rootfs, socketPath, cmd, user string, tty bool, stdin bool, ar
 		cfg.TTY = &box.TTY{H: int(s.Height), W: int(s.Width)}
 	}
 
-	exitCode, err := enter(rootfs, socketPath, cfg)
+	exitCode, err := enter(cfg)
 	return exitCode, trace.Wrap(err)
 }
 
 // enter initiates the process in the namespaces of the container
 // managed by the planet master process and mantains websocket connection
 // to proxy input and output
-func enter(rootfs, socketPath string, cfg *box.ProcessConfig) (int, error) {
-	env, err := box.ReadEnvironment(filepath.Join(rootfs, ProxyEnvironmentFile))
-	if err != nil {
-		return -1, trace.Wrap(err)
-	}
-	for _, e := range env {
-		cfg.Env.Upsert(e.Name, e.Val)
-	}
-
+func enter(cfg *box.ProcessConfig) (int, error) {
 	// tell bash to use environment we've created
 	cfg.Env.Upsert("ENV", ContainerEnvironmentFile)
 	cfg.Env.Upsert("BASH_ENV", ContainerEnvironmentFile)
@@ -88,8 +79,8 @@ func enter(rootfs, socketPath string, cfg *box.ProcessConfig) (int, error) {
 }
 
 // stop interacts with systemctl's halt feature
-func stop(rootfs, socketPath string) (int, error) {
-	log.Infof("stop: %v", rootfs)
+func stop() (int, error) {
+	log.Infof("stop planet container")
 	cfg := &box.ProcessConfig{
 		User: "root",
 		Args: []string{"/bin/systemctl", "halt"},
@@ -97,14 +88,14 @@ func stop(rootfs, socketPath string) (int, error) {
 		Out:  os.Stdout,
 	}
 
-	exitCode, err := enter(rootfs, socketPath, cfg)
+	exitCode, err := enter(cfg)
 	return exitCode, trace.Wrap(err)
 }
 
 // enterCommand is a helper function that runs a command as root
 // in the namespace of planet's container. It returns error
 // if command failed, or command standard output otherwise
-func enterCommand(rootfs, socketPath string, args []string) ([]byte, int, error) {
+func enterCommand(args []string) ([]byte, int, error) {
 	buf := &bytes.Buffer{}
 	cfg := &box.ProcessConfig{
 		User: "root",
@@ -112,6 +103,6 @@ func enterCommand(rootfs, socketPath string, args []string) ([]byte, int, error)
 		In:   os.Stdin,
 		Out:  buf,
 	}
-	exitCode, err := enter(rootfs, socketPath, cfg)
+	exitCode, err := enter(cfg)
 	return buf.Bytes(), exitCode, trace.Wrap(err)
 }

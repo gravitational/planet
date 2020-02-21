@@ -23,7 +23,6 @@ import (
 	"io"
 	"io/ioutil"
 	"net"
-	"net/http"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -182,23 +181,6 @@ func Start(cfg Config) (*Box, error) {
 		}
 	}()
 
-	// start the API server
-	socketPath := serverSockPath(cfg.Rootfs, cfg.SocketPath)
-	listener, err := net.Listen("unix", socketPath)
-	if err != nil {
-		return nil, trace.Wrap(err)
-	}
-	defer func() {
-		if err != nil {
-			listener.Close()
-		}
-	}()
-
-	err = startWebServer(listener, container)
-	if err != nil {
-		return nil, trace.Wrap(err)
-	}
-
 	process := &libcontainer.Process{
 		Args:   cfg.InitArgs,
 		Env:    cfg.InitEnv,
@@ -224,7 +206,6 @@ func Start(cfg Config) (*Box, error) {
 	return &Box{
 		Process:   process,
 		Container: container,
-		listener:  listener,
 	}, nil
 }
 
@@ -600,31 +581,4 @@ func writeConfig(target, source string) error {
 		return trace.Wrap(ioutil.WriteFile(target, bytes, 0644))
 	}
 	return nil
-}
-
-// startWebServer starts a web server to serve remote process control on the given listener
-// in the specified container.
-// This function leaves a running goroutine behind.
-func startWebServer(listener net.Listener, c libcontainer.Container) error {
-	srv := &http.Server{
-		Handler: NewWebServer(c),
-	}
-	go func() {
-		defer func() {
-			if err := listener.Close(); err != nil {
-				log.Warnf("Failed to remove socket file: %v.", err)
-			}
-		}()
-		if err := srv.Serve(listener); err != nil {
-			log.Warnf("Server finished with %v.", err)
-		}
-	}()
-	return nil
-}
-
-func serverSockPath(rootfs, socketPath string) string {
-	if filepath.IsAbs(socketPath) {
-		return socketPath
-	}
-	return filepath.Join(rootfs, socketPath)
 }

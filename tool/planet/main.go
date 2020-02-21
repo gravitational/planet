@@ -64,9 +64,7 @@ func main() {
 	if err = run(); err == nil {
 		return
 	}
-	if errExit, ok := trace.Unwrap(err).(*box.ExitError); ok {
-		os.Exit(errExit.Code)
-	}
+
 	die(err)
 }
 
@@ -74,7 +72,6 @@ func run() error {
 	var (
 		app             = kingpin.New("planet", "Planet is a Kubernetes delivered as RunC container")
 		debug           = app.Flag("debug", "Enable debug mode").Bool()
-		socketPath      = app.Flag("socket-path", "Path to the socket file").Default("/var/run/planet.socket").String()
 		profileEndpoint = app.Flag("httpprofile", "enable profiling endpoint on specified host/port i.e. localhost:7070").Hidden().String()
 
 		// commands
@@ -391,14 +388,13 @@ func run() error {
 		if err != nil {
 			break
 		}
-		setupSignalHandlers(rootfs, *socketPath)
+		setupSignalHandlers()
 		initialCluster := *cstartEtcdInitialCluster
 		if initialCluster == nil {
 			initialCluster = *cstartInitialCluster
 		}
 		config := &Config{
 			Rootfs:               rootfs,
-			SocketPath:           *socketPath,
 			Env:                  *cstartEnv,
 			Mounts:               *cstartMounts,
 			Devices:              *cstartDevices,
@@ -463,7 +459,7 @@ func run() error {
 			break
 		}
 		exitCode, _ := enterConsole(
-			rootfs, *socketPath, *centerCmd, *centerUser, !*centerNoTTY, true, extraArgs)
+			*centerCmd, *centerUser, !*centerNoTTY, true, extraArgs)
 		os.Exit(exitCode)
 
 	// "exec" command
@@ -473,7 +469,7 @@ func run() error {
 			break
 		}
 		exitCode, _ := enterConsole(
-			rootfs, *socketPath, *cexecCmd, *cexecUser, *cexecTTY, *cexecStdin, *cexecArgs)
+			*cexecCmd, *cexecUser, *cexecTTY, *cexecStdin, *cexecArgs)
 		os.Exit(exitCode)
 
 	// "stop" command
@@ -482,7 +478,7 @@ func run() error {
 		if err != nil {
 			break
 		}
-		_, err = stop(rootfs, *socketPath)
+		_, err = stop()
 
 	// "status" command
 	case cstatus.FullCommand():
@@ -580,7 +576,7 @@ func selfTest(config *Config, repoDir, spec string, extraArgs []string) error {
 		case <-time.After(idleTimeout):
 			err = trace.Errorf("timed out waiting for units to come up")
 		}
-		stop(config.Rootfs, config.SocketPath)
+		stop()
 		ctx.Close()
 	}
 
@@ -662,7 +658,7 @@ func findRootfs() (string, error) {
 // Some signals are handled to avoid the default handling which might be termination (SIGPIPE, SIGHUP, etc)
 // The rest are considered as termination signals and the handler initiates shutdown upon receiving
 // such a signal.
-func setupSignalHandlers(rootfs, socketPath string) {
+func setupSignalHandlers() {
 	oneOf := func(list []os.Signal, sig os.Signal) bool {
 		for _, signal := range list {
 			if signal == sig {
@@ -682,7 +678,7 @@ func setupSignalHandlers(rootfs, socketPath string) {
 				log.Debugf("received a %s signal, ignoring...", sig)
 			default:
 				log.Infof("received a %s signal, stopping...", sig)
-				exitCode, err := stop(rootfs, socketPath)
+				exitCode, err := stop()
 				if err != nil {
 					log.WithField("exit_code", exitCode).Errorf("error: %v", err)
 				}

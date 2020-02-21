@@ -28,6 +28,7 @@ import (
 
 	"github.com/containerd/cgroups"
 
+	"github.com/gravitational/planet/lib/constants"
 	"github.com/gravitational/trace"
 	"github.com/opencontainers/runc/libcontainer"
 	"github.com/opencontainers/runc/libcontainer/utils"
@@ -257,6 +258,17 @@ func LocalEnter(dataDir string, cfg *ProcessConfig) (int, error) {
 
 	if status == libcontainer.Stopped {
 		return -1, trace.BadParameter("cannot exec a container that has stopped")
+	}
+
+	// Ensure programs running within the container inheret any proxy settings
+	env, err := ReadEnvironment(filepath.Join(container.Config().Rootfs, constants.ProxyEnvironmentFile))
+	if err != nil {
+		return -1, trace.Wrap(err)
+	}
+	for _, e := range env {
+		if t := cfg.Env.Get(e.Name); t == "" {
+			cfg.Env.Upsert(e.Name, e.Val)
+		}
 	}
 
 	p := &libcontainer.Process{

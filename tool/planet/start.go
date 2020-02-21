@@ -258,15 +258,14 @@ func start(config *Config, monitorc chan<- bool) (*runtimeContext, error) {
 	}
 
 	cfg := box.Config{
-		Rootfs:     config.Rootfs,
-		SocketPath: config.SocketPath,
+		Rootfs: config.Rootfs,
 		EnvFiles: []box.EnvFile{
 			{
 				Path: ContainerEnvironmentFile,
 				Env:  config.Env,
 			},
 			{
-				Path: ProxyEnvironmentFile,
+				Path: constants.ProxyEnvironmentFile,
 				Env:  config.ProxyEnv,
 			},
 		},
@@ -281,7 +280,7 @@ func start(config *Config, monitorc chan<- bool) (*runtimeContext, error) {
 	}
 	defer log.Infof("start() is done!")
 
-	listener, err := newUdevListener(config.Rootfs, config.SocketPath)
+	listener, err := newUdevListener()
 	if err != nil {
 		return nil, trace.Wrap(err)
 	}
@@ -893,10 +892,6 @@ const (
 	DockerWorkDir            = "/ext/docker"
 	RegistryWorkDir          = "/ext/registry"
 	ContainerEnvironmentFile = "/etc/container-environment"
-	// ProxyEnvironmentFile is an environment file with outbound proxy options
-	// Note: these settings are separate from container-environent because not all processes should load the proxy
-	// settings
-	ProxyEnvironmentFile = "/etc/proxy-environment"
 )
 
 func checkRequiredMounts(cfg *Config) error {

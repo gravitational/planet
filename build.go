@@ -21,9 +21,9 @@ import (
 	"github.com/magefile/mage/mg"
 )
 
-type Ci mg.Namespace
+type Test mg.Namespace
 
-func (Ci) TestEtcdUpgrade() error {
+func (Test) TestEtcdUpgrade() error {
 	// The "to" version should match what etcd is built with
 	// TODO(knisbet) integrate this variable with etcd versions set in Makefile
 	err := upgrade.TestUpgradeBetweenVersions("v3.3.3", "v3.4.3")
