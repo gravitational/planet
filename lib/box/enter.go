@@ -216,7 +216,7 @@ func setProcessUserCgroupImpl(c libcontainer.Container, p *libcontainer.Process)
 	return trace.Wrap(control.Add(cgroups.Process{Pid: pid}))
 }
 
-func LocalEnter(dataDir string, cfg *ProcessConfig) (int, error) {
+func Enter(dataDir string, cfg *ProcessConfig) (int, error) {
 	factory, err := getLibContainerFactory(dataDir)
 	if err != nil {
 		return -1, trace.Wrap(err)

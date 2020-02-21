@@ -71,7 +71,7 @@ func enter(cfg *box.ProcessConfig) (int, error) {
 	cfg.Env.Upsert(EnvEtcdctlPeers, DefaultEtcdEndpoints)
 	cfg.Env.Upsert(EnvKubeConfig, constants.KubectlConfigPath)
 
-	exitCode, err := box.LocalEnter("/var/run/planet", cfg)
+	exitCode, err := box.Enter("/var/run/planet", cfg)
 	if err != nil {
 		return -1, trace.Wrap(err)
 	}
