@@ -29,7 +29,7 @@ import (
 	log "github.com/sirupsen/logrus"
 )
 
-func enterConsole(cmd, user string, tty bool, stdin bool, args []string) (int, error) {
+func enterConsole(cmd, user string, tty bool, stdin bool, args []string) error {
 	cfg := &box.ProcessConfig{
 		Out:  os.Stdout,
 		Args: append([]string{cmd}, args...),
@@ -49,19 +49,18 @@ func enterConsole(cmd, user string, tty bool, stdin bool, args []string) (int, e
 	if tty {
 		s, err := term.GetWinsize(os.Stdin.Fd())
 		if err != nil {
-			return -1, trace.Wrap(err, "error retrieving windows size of tty")
+			return trace.Wrap(err, "error retrieving windows size of tty")
 		}
 		cfg.TTY = &box.TTY{H: int(s.Height), W: int(s.Width)}
 	}
 
-	exitCode, err := enter(cfg)
-	return exitCode, trace.Wrap(err)
+	return trace.Wrap(enter(cfg))
 }
 
 // enter initiates the process in the namespaces of the container
 // managed by the planet master process and mantains websocket connection
 // to proxy input and output
-func enter(cfg *box.ProcessConfig) (int, error) {
+func enter(cfg *box.ProcessConfig) error {
 	// tell bash to use environment we've created
 	cfg.Env.Upsert("ENV", ContainerEnvironmentFile)
 	cfg.Env.Upsert("BASH_ENV", ContainerEnvironmentFile)
@@ -71,15 +70,11 @@ func enter(cfg *box.ProcessConfig) (int, error) {
 	cfg.Env.Upsert(EnvEtcdctlPeers, DefaultEtcdEndpoints)
 	cfg.Env.Upsert(EnvKubeConfig, constants.KubectlConfigPath)
 
-	exitCode, err := box.Enter("/var/run/planet", cfg)
-	if err != nil {
-		return -1, trace.Wrap(err)
-	}
-	return exitCode, nil
+	return trace.Wrap(box.Enter("/var/run/planet", cfg))
 }
 
 // stop interacts with systemctl's halt feature
-func stop() (int, error) {
+func stop() error {
 	log.Infof("stop planet container")
 	cfg := &box.ProcessConfig{
 		User: "root",
@@ -88,14 +83,13 @@ func stop() (int, error) {
 		Out:  os.Stdout,
 	}
 
-	exitCode, err := enter(cfg)
-	return exitCode, trace.Wrap(err)
+	return trace.Wrap(enter(cfg))
 }
 
 // enterCommand is a helper function that runs a command as root
 // in the namespace of planet's container. It returns error
 // if command failed, or command standard output otherwise
-func enterCommand(args []string) ([]byte, int, error) {
+func enterCommand(args []string) ([]byte, error) {
 	buf := &bytes.Buffer{}
 	cfg := &box.ProcessConfig{
 		User: "root",
@@ -103,6 +97,5 @@ func enterCommand(args []string) ([]byte, int, error) {
 		In:   os.Stdin,
 		Out:  buf,
 	}
-	exitCode, err := enter(cfg)
-	return buf.Bytes(), exitCode, trace.Wrap(err)
+	return buf.Bytes(), trace.Wrap(enter(cfg))
 }

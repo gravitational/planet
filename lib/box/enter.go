@@ -18,12 +18,12 @@ package box
 
 import (
 	"bytes"
-	"context"
 	"io"
 	"io/ioutil"
 	"os"
 	"path"
 	"path/filepath"
+	"strconv"
 	"strings"
 
 	"github.com/containerd/cgroups"
@@ -32,138 +32,29 @@ import (
 	"github.com/gravitational/trace"
 	"github.com/opencontainers/runc/libcontainer"
 	"github.com/opencontainers/runc/libcontainer/utils"
-	libcontainerutils "github.com/opencontainers/runc/libcontainer/utils"
 	"github.com/sirupsen/logrus"
 	log "github.com/sirupsen/logrus"
 	"golang.org/x/sys/unix"
 )
 
-func CombinedOutput(c libcontainer.Container, cfg ProcessConfig) ([]byte, error) {
+// ExitError is an error that describes the event of a process exiting with a non-zero value.
+type ExitError struct {
+	Code int
+}
+
+// Error string
+func (err ExitError) Error() string {
+	return "exit status " + strconv.FormatInt(int64(err.Code), 10)
+}
+
+func CombinedOutput(dataDir string, cfg *ProcessConfig) ([]byte, error) {
 	var b bytes.Buffer
 	cfg.Out = &b
-	err := StartProcess(c, cfg)
+	err := Enter(dataDir, cfg)
 	if err != nil {
 		return b.Bytes(), err
 	}
 	return b.Bytes(), nil
-}
-
-func StartProcess(c libcontainer.Container, cfg ProcessConfig) error {
-	log.Infof("StartProcess(%v)", cfg)
-	defer log.Infof("StartProcess(%v) is done!", cfg)
-
-	if cfg.TTY != nil {
-		return StartProcessTTY(c, cfg)
-	} else {
-		return StartProcessStdout(c, cfg)
-	}
-}
-
-func StartProcessTTY(c libcontainer.Container, cfg ProcessConfig) error {
-	p := &libcontainer.Process{
-		Args:          cfg.Args,
-		User:          cfg.User,
-		Env:           append(cfg.Environment(), "TERM=xterm", "LC_ALL=en_US.UTF-8"),
-		ConsoleHeight: uint16(cfg.TTY.H),
-		ConsoleWidth:  uint16(cfg.TTY.W),
-	}
-
-	parentConsole, childConsole, err := libcontainerutils.NewSockPair("console")
-	if err != nil {
-		return trace.Wrap(err, "failed to create a console socket pair")
-	}
-	p.ConsoleSocket = childConsole
-
-	// this will cause libcontainer to exec this binary again
-	// with "init" command line argument.  (this is the default setting)
-	// then our init() function comes into play
-	if err := c.Run(p); err != nil {
-		return trace.Wrap(err)
-	}
-	log.Debugf("Process %#v started.", p)
-
-	setProcessUserCgroup(c, p)
-
-	containerConsole, err := getContainerConsole(context.TODO(), parentConsole)
-	if err != nil {
-		return trace.Wrap(err, "failed to create container console")
-	}
-	defer containerConsole.Close()
-
-	// start copying output from the process of the container's console
-	// into the caller's output:
-	if cfg.Out != nil {
-		exitC := make(chan error)
-
-		go func() {
-			_, err := io.Copy(cfg.Out, containerConsole)
-			exitC <- err
-		}()
-		defer func() {
-			<-exitC
-		}()
-	}
-
-	// start copying caller's input into container's console:
-	if cfg.In != nil {
-		go io.Copy(containerConsole, cfg.In)
-	}
-
-	// wait for the process to finish.
-	_, err = p.Wait()
-	if err != nil {
-		return trace.Wrap(err)
-	}
-
-	return nil
-}
-
-func StartProcessStdout(c libcontainer.Container, cfg ProcessConfig) error {
-	var in io.Reader
-	if cfg.In != nil {
-		// we have to pass real pipe to libcontainer.Process because:
-		// Libcontainer uses exec.Cmd for entering the master process namespace.
-		// In case if standard exec.Cmd gets not a os.File as a parameter
-		// to it's Stdin property, it will wait until the read operation
-		// will finish in it's Wait method.
-		// As long as our web socket never closes on the client side right now
-		// this never happens, so this fixes the problem for now
-		r, w, err := os.Pipe()
-		if err != nil {
-			return trace.Wrap(err)
-		}
-		in = r
-		go func() {
-			io.Copy(w, cfg.In)
-			w.Close()
-		}()
-	}
-	p := &libcontainer.Process{
-		Args:   cfg.Args,
-		User:   cfg.User,
-		Stdout: cfg.Out,
-		Stdin:  in,
-		Stderr: cfg.Out,
-		Env:    append(cfg.Environment(), "TERM=xterm", "LC_ALL=en_US.UTF-8"),
-	}
-
-	// this will cause libcontainer to exec this binary again
-	// with "init" command line argument.  (this is the default setting)
-	// then our init() function comes into play
-	if err := c.Start(p); err != nil {
-		return trace.Wrap(err)
-	}
-
-	setProcessUserCgroup(c, p)
-
-	// wait for the process to finish
-	log.Infof("Waiting for StartProcessStdout(%v)...", cfg.Args)
-	defer log.Infof("StartProcessStdout(%v) completed", cfg.Args)
-	_, err := p.Wait()
-	if err != nil {
-		return trace.Wrap(err)
-	}
-	return nil
 }
 
 // setProcessUserCgroup sets the provided libcontainer process into the /user cgroup inside the container
@@ -216,24 +107,25 @@ func setProcessUserCgroupImpl(c libcontainer.Container, p *libcontainer.Process)
 	return trace.Wrap(control.Add(cgroups.Process{Pid: pid}))
 }
 
-func Enter(dataDir string, cfg *ProcessConfig) (int, error) {
+// Enter is used to exec a process within the running container
+func Enter(dataDir string, cfg *ProcessConfig) error {
 	factory, err := getLibContainerFactory(dataDir)
 	if err != nil {
-		return -1, trace.Wrap(err)
+		return trace.Wrap(err)
 	}
 
 	absRoot, err := filepath.Abs(dataDir)
 	if err != nil {
-		return -1, trace.Wrap(err)
+		return trace.Wrap(err)
 	}
 
 	list, err := ioutil.ReadDir(absRoot)
 	if err != nil {
-		return -1, trace.Wrap(err)
+		return trace.Wrap(err)
 	}
 
 	if len(list) == 0 {
-		return -1, trace.BadParameter("planet container not found").AddField("data_dir", dataDir)
+		return trace.BadParameter("planet container not found").AddField("data_dir", dataDir)
 	}
 
 	var container libcontainer.Container
@@ -241,12 +133,12 @@ func Enter(dataDir string, cfg *ProcessConfig) (int, error) {
 	for _, fp := range list {
 		container, err = factory.Load(fp.Name())
 		if err != nil {
-			return -1, trace.Wrap(err)
+			return trace.Wrap(err)
 		}
 
 		status, err = container.Status()
 		if err != nil {
-			return -1, trace.Wrap(err)
+			return trace.Wrap(err)
 		}
 
 		// There should only be a single planet container that's running, so exec within the first
@@ -257,13 +149,13 @@ func Enter(dataDir string, cfg *ProcessConfig) (int, error) {
 	}
 
 	if status == libcontainer.Stopped {
-		return -1, trace.BadParameter("cannot exec a container that has stopped")
+		return trace.BadParameter("cannot exec a container that has stopped")
 	}
 
 	// Ensure programs running within the container inheret any proxy settings
 	env, err := ReadEnvironment(filepath.Join(container.Config().Rootfs, constants.ProxyEnvironmentFile))
 	if err != nil {
-		return -1, trace.Wrap(err)
+		return trace.Wrap(err)
 	}
 	for _, e := range env {
 		if t := cfg.Env.Get(e.Name); t == "" {
@@ -284,29 +176,29 @@ func Enter(dataDir string, cfg *ProcessConfig) (int, error) {
 
 	rootuid, err := container.Config().HostRootUID()
 	if err != nil {
-		return -1, trace.Wrap(err)
+		return trace.Wrap(err)
 	}
 	rootgid, err := container.Config().HostRootGID()
 	if err != nil {
-		return -1, trace.Wrap(err)
+		return trace.Wrap(err)
 	}
 
 	forwarder := NewSignalForwarder()
 	tty, err := setupIO(p, rootuid, rootgid, cfg.TTY != nil)
 	if err != nil {
-		return -1, trace.Wrap(err)
+		return trace.Wrap(err)
 	}
 	defer tty.Close()
 
 	err = container.Run(p)
 	if err != nil {
-		return -1, trace.Wrap(err)
+		return trace.Wrap(err)
 	}
 
 	err = tty.waitConsole()
 	if err != nil {
 		terminate(p)
-		return -1, trace.Wrap(err)
+		return trace.Wrap(err)
 	}
 
 	setProcessUserCgroup(container, p)
@@ -314,18 +206,21 @@ func Enter(dataDir string, cfg *ProcessConfig) (int, error) {
 	err = tty.ClosePostStart()
 	if err != nil {
 		terminate(p)
-		return -1, trace.Wrap(err)
+		return trace.Wrap(err)
 	}
 
 	s, err := forwarder.Forward(p, tty)
 	if err != nil {
 		terminate(p)
-		return -1, trace.Wrap(err)
+		return trace.Wrap(err)
 	}
 
 	logrus.WithField("status", s).Info("container process exited")
 
-	return s, nil
+	if s != 0 {
+		return trace.Wrap(&ExitError{Code: s})
+	}
+	return nil
 }
 
 func setupIO(process *libcontainer.Process, rootuid, rootgid int, createtty bool) (*tty, error) {
@@ -377,7 +272,7 @@ func setupIO(process *libcontainer.Process, rootuid, rootgid int, createtty bool
 	}
 
 	go func() {
-		io.Copy(i.Stdin, os.Stdin)
+		_, _ = io.Copy(i.Stdin, os.Stdin)
 		i.Stdin.Close()
 	}()
 	t.wg.Add(2)

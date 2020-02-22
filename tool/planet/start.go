@@ -41,7 +41,6 @@ import (
 	"github.com/ghodss/yaml"
 	"github.com/gravitational/trace"
 	"github.com/imdario/mergo"
-	"github.com/opencontainers/runc/libcontainer"
 	log "github.com/sirupsen/logrus"
 	kubeletconfig "k8s.io/kubelet/config/v1beta1"
 )
@@ -299,7 +298,7 @@ func start(config *Config, monitorc chan<- bool) (*runtimeContext, error) {
 		units = appendUnique(units, nodeUnits)
 	}
 
-	go monitorUnits(box.Container, units, monitorc)
+	go monitorUnits(cfg.DataDir, units, monitorc)
 
 	return &runtimeContext{
 		process:  box,
@@ -990,7 +989,7 @@ func appendUnique(a, b []string) []string {
 	return a
 }
 
-func monitorUnits(c libcontainer.Container, units []string, monitorc chan<- bool) {
+func monitorUnits(dataDir string, units []string, monitorc chan<- bool) {
 	if monitorc != nil {
 		defer close(monitorc)
 	}
@@ -1003,7 +1002,7 @@ func monitorUnits(c libcontainer.Container, units []string, monitorc chan<- bool
 	var inactiveUnits []string
 	for i := 0; i < 30; i++ {
 		for _, unit := range units {
-			status, err := getStatus(c, unit)
+			status, err := getStatus(dataDir, unit)
 			if err != nil {
 				log.Infof("error getting status: %v", err)
 			}
@@ -1011,7 +1010,7 @@ func monitorUnits(c libcontainer.Container, units []string, monitorc chan<- bool
 		}
 
 		out := &bytes.Buffer{}
-		fmt.Fprintf(out, "%v", time.Now().Sub(start))
+		fmt.Fprintf(out, "%v", time.Since(start))
 		for _, unit := range units {
 			if unitState[unit] != "" {
 				fmt.Fprintf(out, " %v \x1b[32m[OK]\x1b[0m", unit)
@@ -1052,9 +1051,9 @@ func unitNames(units map[string]string) []string {
 	return out
 }
 
-func getStatus(c libcontainer.Container, unit string) (string, error) {
+func getStatus(dataDir string, unit string) (string, error) {
 	out, err := box.CombinedOutput(
-		c, box.ProcessConfig{
+		dataDir, &box.ProcessConfig{
 			User: "root",
 			Args: []string{
 				"/bin/systemctl", "is-active",

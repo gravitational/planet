@@ -177,7 +177,10 @@ func Start(cfg Config) (*Box, error) {
 	}
 	defer func() {
 		if err != nil {
-			container.Destroy()
+			err := container.Destroy()
+			if err != nil {
+				log.WithError(err).Info("error in deferred container destroy")
+			}
 		}
 	}()
 
@@ -468,14 +471,6 @@ func getDeviceInfo(devicePath string) (*configs.Device, error) {
 	}, nil
 }
 
-func getEnvironment(env EnvVars) []string {
-	out := make([]string, len(env))
-	for i, v := range env {
-		out[i] = fmt.Sprintf("%v=%v\n", v.Name, v.Val)
-	}
-	return out
-}
-
 func writeFile(path string, fi File) error {
 	if err := os.MkdirAll(filepath.Dir(path), 0755); err != nil {
 		return trace.Wrap(err)
@@ -567,18 +562,3 @@ func checkPath(path string, executable bool) (absPath string, err error) {
 }
 
 const defaultMountFlags = syscall.MS_NOEXEC | syscall.MS_NOSUID | syscall.MS_NODEV
-
-func writeConfig(target, source string) error {
-	bytes := []byte{}
-	var err error
-	if source != "" {
-		bytes, err = ioutil.ReadFile(source)
-		if err != nil {
-			return err
-		}
-	}
-	if err != nil {
-		return trace.Wrap(ioutil.WriteFile(target, bytes, 0644))
-	}
-	return nil
-}

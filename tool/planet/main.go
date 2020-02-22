@@ -64,7 +64,9 @@ func main() {
 	if err = run(); err == nil {
 		return
 	}
-
+	if errExit, ok := trace.Unwrap(err).(*box.ExitError); ok {
+		os.Exit(errExit.Code)
+	}
 	die(err)
 }
 
@@ -454,31 +456,17 @@ func run() error {
 
 	// "enter" command
 	case center.FullCommand():
-		rootfs, err = findRootfs()
-		if err != nil {
-			break
-		}
-		exitCode, _ := enterConsole(
+		err = enterConsole(
 			*centerCmd, *centerUser, !*centerNoTTY, true, extraArgs)
-		os.Exit(exitCode)
 
 	// "exec" command
 	case cexec.FullCommand():
-		rootfs, err = findRootfs()
-		if err != nil {
-			break
-		}
-		exitCode, _ := enterConsole(
+		err = enterConsole(
 			*cexecCmd, *cexecUser, *cexecTTY, *cexecStdin, *cexecArgs)
-		os.Exit(exitCode)
 
 	// "stop" command
 	case cstop.FullCommand():
-		rootfs, err = findRootfs()
-		if err != nil {
-			break
-		}
-		_, err = stop()
+		err = stop()
 
 	// "status" command
 	case cstatus.FullCommand():
@@ -544,7 +532,7 @@ func run() error {
 		err = trace.Errorf("unsupported command: %v", cmd)
 	}
 
-	return err
+	return trace.Wrap(err)
 }
 
 const monitoringDbFile = "monitoring.db"
@@ -576,7 +564,8 @@ func selfTest(config *Config, repoDir, spec string, extraArgs []string) error {
 		case <-time.After(idleTimeout):
 			err = trace.Errorf("timed out waiting for units to come up")
 		}
-		stop()
+		_ = stop()
+
 		ctx.Close()
 	}
 
@@ -678,9 +667,9 @@ func setupSignalHandlers() {
 				log.Debugf("received a %s signal, ignoring...", sig)
 			default:
 				log.Infof("received a %s signal, stopping...", sig)
-				exitCode, err := stop()
+				err := stop()
 				if err != nil {
-					log.WithField("exit_code", exitCode).Errorf("error: %v", err)
+					log.Errorf("error: %v", err)
 				}
 				return
 			}

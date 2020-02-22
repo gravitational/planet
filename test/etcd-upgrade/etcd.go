@@ -256,7 +256,10 @@ func startEtcd(c config) error {
 		return trace.Wrap(err)
 	}
 
-	cli.ContainerStart(context.TODO(), cont.ID, types.ContainerStartOptions{})
+	err = cli.ContainerStart(context.TODO(), cont.ID, types.ContainerStartOptions{})
+	if err != nil {
+		return trace.Wrap(err)
+	}
 	logrus.Printf("Container %s (%s) is started\n", etcdTestContainerName, cont.ID)
 
 	return nil

@@ -108,7 +108,7 @@ func (r *udevListener) createDevice(device *configs.Device) error {
 		return trace.Wrap(err)
 	}
 
-	_, err = enter(deviceCmd("add", "--data", string(deviceJson)))
+	err = enter(deviceCmd("add", "--data", string(deviceJson)))
 	return trace.Wrap(err)
 }
 
@@ -116,7 +116,7 @@ func (r *udevListener) createDevice(device *configs.Device) error {
 func (r *udevListener) removeDevice(node string) error {
 	log.Infof("removeDevice: %v", node)
 
-	_, err := enter(deviceCmd("remove", "--node", node))
+	err := enter(deviceCmd("remove", "--node", node))
 	return trace.Wrap(err)
 }
 

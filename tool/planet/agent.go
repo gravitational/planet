@@ -109,8 +109,7 @@ func startLeaderClient(conf *LeaderConfig, errorC chan error) (leaderClient io.C
 	}
 
 	if conf.Role == RoleMaster {
-		var etcdapi etcd.KeysAPI
-		etcdapi = etcd.NewKeysAPI(etcdClient)
+		etcdapi := etcd.NewKeysAPI(etcdClient)
 		// Set initial value of election participation mode
 		_, err = etcdapi.Set(context.TODO(), conf.ElectionKey,
 			strconv.FormatBool(conf.ElectionEnabled),

@@ -14,18 +14,18 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-// Source: https://github.com/opencontainers/runc/blob/master/tty.go
+// Based on: https://github.com/opencontainers/runc/blob/master/tty.go
 
 package box
 
 import (
-	"fmt"
 	"io"
 	"os"
 	"os/signal"
 	"sync"
 
 	"github.com/containerd/console"
+	"github.com/gravitational/trace"
 	"github.com/opencontainers/runc/libcontainer"
 	"github.com/opencontainers/runc/libcontainer/utils"
 )
@@ -43,20 +43,23 @@ type tty struct {
 func (t *tty) recvtty(process *libcontainer.Process, socket *os.File) (Err error) {
 	f, err := utils.RecvFd(socket)
 	if err != nil {
-		return err
+		return trace.Wrap(err)
 	}
 	cons, err := console.ConsoleFromFile(f)
 	if err != nil {
-		return err
+		return trace.Wrap(err)
 	}
-	console.ClearONLCR(cons.Fd())
+	err = console.ClearONLCR(cons.Fd())
+	if err != nil {
+		return trace.Wrap(err)
+	}
 	epoller, err := console.NewEpoller()
 	if err != nil {
-		return err
+		return trace.Wrap(err)
 	}
 	epollConsole, err := epoller.Add(cons)
 	if err != nil {
-		return err
+		return trace.Wrap(err)
 	}
 	defer func() {
 		if Err != nil {
@@ -71,10 +74,10 @@ func (t *tty) recvtty(process *libcontainer.Process, socket *os.File) (Err error
 	// set raw mode to stdin and also handle interrupt
 	stdin, err := console.ConsoleFromFile(os.Stdin)
 	if err != nil {
-		return err
+		return trace.Wrap(err)
 	}
 	if err := stdin.SetRaw(); err != nil {
-		return fmt.Errorf("failed to set the terminal from the stdin: %v", err)
+		return trace.Wrap(err, "failed to set the terminal from the stdin")
 	}
 	go handleInterrupt(stdin)
 
@@ -89,7 +92,7 @@ func handleInterrupt(c console.Console) {
 	sigchan := make(chan os.Signal, 1)
 	signal.Notify(sigchan, os.Interrupt)
 	<-sigchan
-	c.Reset()
+	_ = c.Reset()
 	os.Exit(0)
 }
 

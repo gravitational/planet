@@ -167,9 +167,8 @@ func (vars *EnvVars) Set(v string) error {
 	if err != nil {
 		return trace.Wrap(err)
 	}
-	for _, v := range result {
-		*vars = append(*vars, v)
-	}
+	*vars = append(*vars, result...)
+
 	return nil
 }
 

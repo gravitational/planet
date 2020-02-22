@@ -141,10 +141,11 @@ func (r *passwdFile) WriteTo(w io.Writer) (n int64, err error) {
 	for _, user := range r.users {
 		n += int64(b.WriteLine(user.String()))
 	}
-	if b.err == nil {
-		err = b.Flush()
+	if b.err != nil {
+		return n, trace.Wrap(b.err)
 	}
-	return n, trace.Wrap(b.err)
+
+	return n, trace.Wrap(b.Flush())
 }
 
 // textLineBuffer simplifies the process of streaming lines of text into an io.Writer
@@ -237,10 +238,11 @@ func (r *groupFile) WriteTo(w io.Writer) (n int64, err error) {
 	for _, group := range r.groups {
 		n += int64(b.WriteLine(group.String()))
 	}
-	if b.err == nil {
-		err = b.Flush()
+	if b.err != nil {
+		return n, trace.Wrap(b.err)
 	}
-	return n, trace.Wrap(b.err)
+
+	return n, trace.Wrap(b.Flush())
 }
 
 // passPlaceholder is the password field placeholder user in passwd/group files

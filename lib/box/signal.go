@@ -71,7 +71,7 @@ func (s *signalForwarder) Forward(process *libcontainer.Process, tty *tty) (int,
 					// call Wait() on the process even though we already have the exit
 					// status because we must ensure that any of the go specific process
 					// fun such as flushing pipes are complete before we return.
-					process.Wait()
+					_, _ = process.Wait()
 					return e.status, nil
 				}
 			}

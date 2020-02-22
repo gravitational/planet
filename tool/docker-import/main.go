@@ -134,8 +134,6 @@ func importImageFromTarball(input io.Reader, path, registryAddr string) error {
 			}
 		}
 	}
-
-	return nil
 }
 
 // importWithRepo imports the actual container image into the docker registry specified
@@ -179,7 +177,7 @@ type Version map[string]string
 func (r Repo) ImageURL() string {
 	for imagePath, details := range r {
 		repoURL, imageName := filepath.Split(imagePath)
-		for version, _ := range details {
+		for version := range details {
 			return filepath.Join(repoURL, imageTag(imageName, version))
 		}
 	}
