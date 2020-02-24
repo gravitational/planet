@@ -19,3 +19,4 @@ $(OUTPUTS):
 	mkdir -p $(OUTPUTDIR)
 	curl $(CURL_OPTS) -o $@ $(DOWNLOAD_URL)/$(notdir $@)
 	chmod +x $@
+	sleep 2 # downloads on gcloud seem to fail if hitting the server too quickly
