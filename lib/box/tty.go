@@ -28,6 +28,7 @@ import (
 	"github.com/gravitational/trace"
 	"github.com/opencontainers/runc/libcontainer"
 	"github.com/opencontainers/runc/libcontainer/utils"
+	"golang.org/x/sys/unix"
 )
 
 type tty struct {
@@ -145,4 +146,19 @@ func (t *tty) ClosePostStart() error {
 		c.Close()
 	}
 	return nil
+}
+
+// Winsize represents the size of the terminal window.
+type Winsize struct {
+	Height uint16
+	Width  uint16
+	x      uint16
+	y      uint16
+}
+
+// GetWinsize returns the window size based on the specified file descriptor.
+func GetWinsize(fd uintptr) (*Winsize, error) {
+	uws, err := unix.IoctlGetWinsize(int(fd), unix.TIOCGWINSZ)
+	ws := &Winsize{Height: uws.Row, Width: uws.Col, x: uws.Xpixel, y: uws.Ypixel}
+	return ws, err
 }

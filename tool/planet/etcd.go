@@ -204,8 +204,8 @@ func etcdEnable(upgradeService bool, joinToMaster string) error {
 	return trace.Wrap(enableService(ctx, ETCDUpgradeServiceName))
 }
 
-// etcdInitJoin ensure this node is already a part of a cluster, or configures the join process if uninitialized
-// After an etcd upgrade, master nodes are re-created with an empty etcd, and need to be re-joined to the first master
+// etcdInitJoin ensures this particular node is part of an etcd cluster.
+// Because the etcd cluster is re-created during an upgrade, this particular node may not be part of the new cluster.
 func etcdInitJoin(ctx context.Context, initMaster string) error {
 	env, err := box.ReadEnvironment(ContainerEnvironmentFile)
 	if err != nil {
@@ -222,6 +222,7 @@ func etcdInitJoin(ctx context.Context, initMaster string) error {
 		return nil
 	}
 
+	// Gravity will give us a hint about which master to join
 	if initMaster == "" {
 		return nil
 	}
@@ -229,7 +230,6 @@ func etcdInitJoin(ctx context.Context, initMaster string) error {
 	log.WithField("master", initMaster).Info("Joining etcd to existing cluster")
 
 	return trace.Wrap(utils.Retry(ctx, math.MaxInt64, 1*time.Second, func() error {
-
 		conf := etcdconf.Config{
 			Endpoints: []string{initMaster},
 			KeyFile:   DefaultEtcdctlKeyFile,
@@ -275,7 +275,7 @@ func etcdInitJoin(ctx context.Context, initMaster string) error {
 				return trace.Wrap(err)
 			}
 
-			// The node that we're adding as name=https://<addr>:<port>
+			// Add ourselves to the peer list name=https://<addr>:<port>
 			peerUrls = append(peerUrls, fmt.Sprintf("%v=%v", env.Get(EnvEtcdMemberName), advertisePeerUrl))
 		}
 
@@ -523,19 +523,18 @@ func etcdRestore(file string) error {
 
 	// wait for the temporary etcd instance to complete startup
 	log.Info("Waiting for etcd initialization to complete")
-	err = waitEtcdHealthyTimeout(context.TODO(), 1*time.Minute, client)
+	err = waitEtcdHealthyTimeout(context.TODO(), 2*time.Minute, client)
 	if err != nil {
 		return trace.Wrap(err)
 	}
 
-	// stop etcd now that it's DB is initialized but empty, to run offline backups
+	// stop etcd now that it's DB is initialized but empty, to run offline restore to the empty database
 	log.Info("Etcd initialization complete, stopping")
 	err = etcdDisable(true, false)
 	if err != nil {
 		return trace.Wrap(err)
 	}
 
-	// run offline restoration steps
 	restoreConf := backup.RestoreConfig{
 		Prefix: []string{""}, // Restore all etcd data
 		File:   file,
@@ -554,26 +553,25 @@ func etcdRestore(file string) error {
 		return trace.Wrap(err)
 	}
 
-	// start etcd for running online restoration steps
+	// start etcd for running online restoration of v2 database
 	log.Info("Starting temporary etcd cluster for online restoration")
 	err = etcdEnable(true, "")
 	if err != nil {
 		return trace.Wrap(err)
 	}
 
-	log.Info("Waiting for etcd ")
+	log.Info("Waiting for temporary etcd service to start")
 	err = waitEtcdHealthyTimeout(context.TODO(), 1*time.Minute, client)
 	if err != nil {
 		return trace.Wrap(err)
 	}
 
-	log.Info("Restoring backup to temporary etcd")
 	restoreConf = backup.RestoreConfig{
 		EtcdConfig:    etcdConf,
 		Prefix:        []string{"/"},                // Restore all etcd data
 		MigratePrefix: []string{ETCDRegistryPrefix}, // migrate kubernetes data to etcd3 datastore
 		File:          file,
-		SkipV3:        true,
+		SkipV3:        true, // do not restore v3 data, as it was restored in the offline restore
 	}
 	log.Info("Online RestoreConfig: ", spew.Sdump(restoreConf))
 	restoreConf.Log = log.StandardLogger()

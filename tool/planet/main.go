@@ -522,7 +522,6 @@ func run() error {
 		err = etcdUpgrade(true)
 
 	case cetcdRestore.FullCommand():
-
 		err = etcdRestore(*cetcdRestoreFile)
 
 	case cetcdWipe.FullCommand():

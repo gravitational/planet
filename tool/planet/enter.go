@@ -20,11 +20,9 @@ import (
 	"bytes"
 	"os"
 
-	"github.com/docker/docker/pkg/term"
 	"github.com/gravitational/planet/lib/box"
 	"github.com/gravitational/planet/lib/constants"
 
-	//"github.com/gravitational/planet/lib/term"
 	"github.com/gravitational/trace"
 	log "github.com/sirupsen/logrus"
 )
@@ -47,7 +45,7 @@ func enterConsole(cmd, user string, tty bool, stdin bool, args []string) error {
 	}
 
 	if tty {
-		s, err := term.GetWinsize(os.Stdin.Fd())
+		s, err := box.GetWinsize(os.Stdin.Fd())
 		if err != nil {
 			return trace.Wrap(err, "error retrieving windows size of tty")
 		}
