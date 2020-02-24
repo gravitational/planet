@@ -102,8 +102,6 @@
         "Restart": "always",
         "KillMode": "mixed",
         "KillSignal": "SIGRTMIN+13",
-        "StartPreCommand": "-/bin/rm /var/run/planet.socket",
-        "StopPostCommand": "-/bin/rm /var/run/planet.socket",
         "StopCommand": "stop",
         "TimeoutStopSec": "5min",
         "Dependencies": {
