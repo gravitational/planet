@@ -58,8 +58,6 @@ github.com/codahale/hdrhistogram
 github.com/containerd/cgroups
 # github.com/containerd/console v0.0.0-20180307192801-cb7008ab3d83
 github.com/containerd/console
-# github.com/coreos/etcd v3.3.18+incompatible => go.etcd.io/etcd v0.5.0-alpha.5.0.20191023171146-3cf2f69b5738
-github.com/coreos/etcd/pkg/transport
 # github.com/coreos/go-semver v0.2.0
 github.com/coreos/go-semver/semver
 # github.com/coreos/go-systemd v0.0.0-20180511133405-39ca1b05acc7
@@ -134,7 +132,7 @@ github.com/googleapis/gnostic/extensions
 # github.com/gravitational/configure v0.0.0-20180808141939-c3428bd84c23
 github.com/gravitational/configure
 github.com/gravitational/configure/cstrings
-# github.com/gravitational/coordinate v0.0.0-20180225144834-2bc9a83f6fe2 => github.com/gravitational/coordinate v0.0.0-20200113193410-54f38649a528
+# github.com/gravitational/coordinate v0.0.0-20180225144834-2bc9a83f6fe2 => github.com/gravitational/coordinate v0.0.0-20200224195027-0301100a600c
 github.com/gravitational/coordinate/config
 github.com/gravitational/coordinate/leader
 # github.com/gravitational/etcd-backup v0.0.0-20190726150728-960ff557cc74 => github.com/gravitational/etcd-backup v0.0.0-20200121222015-6b1480066504
@@ -321,6 +319,7 @@ go.etcd.io/etcd/pkg/srv
 go.etcd.io/etcd/pkg/systemd
 go.etcd.io/etcd/pkg/tlsutil
 go.etcd.io/etcd/pkg/traceutil
+go.etcd.io/etcd/pkg/transport
 go.etcd.io/etcd/pkg/types
 go.etcd.io/etcd/raft
 go.etcd.io/etcd/raft/confchange

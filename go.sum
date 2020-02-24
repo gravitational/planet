@@ -205,6 +205,8 @@ github.com/gravitational/coordinate v0.0.0-20180225144834-2bc9a83f6fe2 h1:iXc8Y/
 github.com/gravitational/coordinate v0.0.0-20180225144834-2bc9a83f6fe2/go.mod h1:mABBEOWYqtaFKUHW7LRNhJHPBzAZJlUE4HxSEU23aMQ=
 github.com/gravitational/coordinate v0.0.0-20200113193410-54f38649a528 h1:Qilzm+8ayy1ikblzXu/4hZeSuIJ8DFZA3U29KmKfV7A=
 github.com/gravitational/coordinate v0.0.0-20200113193410-54f38649a528/go.mod h1:mABBEOWYqtaFKUHW7LRNhJHPBzAZJlUE4HxSEU23aMQ=
+github.com/gravitational/coordinate v0.0.0-20200224195027-0301100a600c h1:af+RtdfKryqL2tElD4fiARLzjoeZM0hb2v65ezoo1HU=
+github.com/gravitational/coordinate v0.0.0-20200224195027-0301100a600c/go.mod h1:mABBEOWYqtaFKUHW7LRNhJHPBzAZJlUE4HxSEU23aMQ=
 github.com/gravitational/etcd-backup v0.0.0-20190726150728-960ff557cc74 h1:7Dfv5cPU+lTP77Th/KFslw2jwObqYFgTZndIwDF5Jo8=
 github.com/gravitational/etcd-backup v0.0.0-20190726150728-960ff557cc74/go.mod h1:/FbWLtYnq6PNp0P8GRdywxg4j08/OSKGOcXhGTxLBdQ=
 github.com/gravitational/etcd-backup v0.0.0-20200121222015-6b1480066504 h1:Ozxei4KrZd+ZycClixsRedhtitksRBxAvbnfLsKkcJk=

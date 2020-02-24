@@ -21,9 +21,9 @@ import (
 
 	"github.com/gravitational/trace"
 
-	"github.com/coreos/etcd/pkg/transport"
 	etcd "go.etcd.io/etcd/client"
 	etcdv3 "go.etcd.io/etcd/clientv3"
+	"go.etcd.io/etcd/pkg/transport"
 )
 
 const (

@@ -14,7 +14,6 @@ require (
 	github.com/containerd/cgroups v0.0.0-20181219155423-39b18af02c41
 	github.com/containerd/console v0.0.0-20180307192801-cb7008ab3d83
 	github.com/coreos/bbolt v1.3.3 // indirect
-	github.com/coreos/etcd v3.3.18+incompatible // indirect
 	github.com/coreos/go-systemd v0.0.0-20180511133405-39ca1b05acc7
 	github.com/coreos/pkg v0.0.0-20180108230652-97fdf19511ea // indirect
 	github.com/cyphar/filepath-securejoin v0.2.2 // indirect
@@ -93,12 +92,12 @@ require (
 )
 
 replace (
-	github.com/coreos/etcd => go.etcd.io/etcd v0.5.0-alpha.5.0.20191023171146-3cf2f69b5738
 	github.com/sirupsen/logrus => github.com/gravitational/logrus v0.10.1-0.20180402202453-dcdb95d728db
+	go.etcd.io/etcd => go.etcd.io/etcd v0.5.0-alpha.5.0.20191023171146-3cf2f69b5738 // 3.4.3
 	gopkg.in/alecthomas/kingpin.v2 => github.com/gravitational/kingpin v2.1.11-0.20180808090833-85085db9f49b+incompatible
 	k8s.io/client-go => k8s.io/client-go v0.17.2
 )
 
-replace github.com/gravitational/coordinate => github.com/gravitational/coordinate v0.0.0-20200113193410-54f38649a528
+replace github.com/gravitational/coordinate => github.com/gravitational/coordinate v0.0.0-20200224195027-0301100a600c
 
 replace github.com/gravitational/etcd-backup => github.com/gravitational/etcd-backup v0.0.0-20200121222015-6b1480066504
