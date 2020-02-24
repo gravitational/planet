@@ -22,11 +22,11 @@ import (
 	"io"
 	"os"
 
-	etcdv2 "github.com/coreos/etcd/client"
-	etcdv3 "github.com/coreos/etcd/clientv3"
 	etcdconf "github.com/gravitational/coordinate/config"
 	"github.com/gravitational/trace"
 	log "github.com/sirupsen/logrus"
+	etcdv2 "go.etcd.io/etcd/client"
+	etcdv3 "go.etcd.io/etcd/clientv3"
 )
 
 // BackupConfig are the settings to use for running a backup of the etcd database

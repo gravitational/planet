@@ -13,11 +13,9 @@ require (
 	github.com/codahale/hdrhistogram v0.0.0-20161010025455-3a0bb77429bd // indirect
 	github.com/containerd/cgroups v0.0.0-20181219155423-39b18af02c41
 	github.com/containerd/console v0.0.0-20180307192801-cb7008ab3d83
-	github.com/containerd/containerd v1.3.3 // indirect
 	github.com/coreos/bbolt v1.3.3 // indirect
 	github.com/coreos/etcd v3.3.18+incompatible // indirect
-	github.com/coreos/go-semver v0.2.0 // indirect
-	github.com/coreos/go-systemd v0.0.0-20180202092358-40e2722dffea
+	github.com/coreos/go-systemd v0.0.0-20180511133405-39ca1b05acc7
 	github.com/coreos/pkg v0.0.0-20180108230652-97fdf19511ea // indirect
 	github.com/cyphar/filepath-securejoin v0.2.2 // indirect
 	github.com/davecgh/go-spew v1.1.1
@@ -42,7 +40,6 @@ require (
 	github.com/gravitational/ttlmap v0.0.0-20171116003245-91fd36b9004c // indirect
 	github.com/gravitational/version v0.0.0-20170324200323-95d33ece5ce1
 	github.com/grpc-ecosystem/go-grpc-middleware v1.2.0 // indirect
-	github.com/grpc-ecosystem/go-grpc-prometheus v1.2.0 // indirect
 	github.com/grpc-ecosystem/grpc-gateway v1.13.0 // indirect
 	github.com/hashicorp/go-immutable-radix v1.1.0 // indirect
 	github.com/hashicorp/go-msgpack v0.5.5 // indirect
@@ -51,7 +48,7 @@ require (
 	github.com/hashicorp/serf v0.8.5
 	github.com/imdario/mergo v0.3.6
 	github.com/jmoiron/sqlx v1.2.0 // indirect
-	github.com/jonboulle/clockwork v0.0.0-20190114141812-62fb9bc030d1 // indirect
+	github.com/jonboulle/clockwork v0.1.1-0.20190114141812-62fb9bc030d1 // indirect
 	github.com/kr/pretty v0.2.0 // indirect
 	github.com/kylelemons/godebug v0.0.0-20170820004349-d65d576e9348
 	github.com/magefile/mage v1.9.0
@@ -71,19 +68,17 @@ require (
 	github.com/prometheus/procfs v0.0.5 // indirect
 	github.com/seccomp/libseccomp-golang v0.9.0 // indirect
 	github.com/sirupsen/logrus v1.4.2
-	github.com/soheilhy/cmux v0.1.4 // indirect
 	github.com/stretchr/testify v1.4.0
 	github.com/syndtr/gocapability v0.0.0-20180223013746-33e07d32887e
 	github.com/tmc/grpc-websocket-proxy v0.0.0-20200122045848-3419fae592fc // indirect
 	github.com/ugorji/go v1.1.1 // indirect
 	github.com/vishvananda/netlink v1.0.0 // indirect
 	github.com/vishvananda/netns v0.0.0-20180720170159-13995c7128cc // indirect
-	github.com/xiang90/probing v0.0.0-20190116061207-43a291ad63a2 // indirect
-	go.etcd.io/bbolt v1.3.3 // indirect
-	go.etcd.io/etcd v3.3.18+incompatible
+	go.etcd.io/etcd v0.5.0-alpha.5.0.20191023171146-3cf2f69b5738
 	go.uber.org/zap v1.14.0 // indirect
 	golang.org/x/crypto v0.0.0-20191106202628-ed6320f186d4 // indirect
 	golang.org/x/sys v0.0.0-20200124204421-9fbb57f87de9
+	google.golang.org/grpc v1.26.0 // indirect
 	gopkg.in/airbrake/gobrake.v2 v2.0.9 // indirect
 	gopkg.in/alecthomas/kingpin.v2 v2.2.6
 	gopkg.in/check.v1 v1.0.0-20190902080502-41f04d3bba15
@@ -98,8 +93,12 @@ require (
 )
 
 replace (
-	github.com/docker/docker => github.com/docker/engine v1.4.2-0.20191113042239-ea84732a7725
+	github.com/coreos/etcd => go.etcd.io/etcd v0.5.0-alpha.5.0.20191023171146-3cf2f69b5738
 	github.com/sirupsen/logrus => github.com/gravitational/logrus v0.10.1-0.20180402202453-dcdb95d728db
 	gopkg.in/alecthomas/kingpin.v2 => github.com/gravitational/kingpin v2.1.11-0.20180808090833-85085db9f49b+incompatible
 	k8s.io/client-go => k8s.io/client-go v0.17.2
 )
+
+replace github.com/gravitational/coordinate => github.com/gravitational/coordinate v0.0.0-20200113193410-54f38649a528
+
+replace github.com/gravitational/etcd-backup => github.com/gravitational/etcd-backup v0.0.0-20200121222015-6b1480066504

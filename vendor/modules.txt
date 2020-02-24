@@ -58,33 +58,11 @@ github.com/codahale/hdrhistogram
 github.com/containerd/cgroups
 # github.com/containerd/console v0.0.0-20180307192801-cb7008ab3d83
 github.com/containerd/console
-# github.com/containerd/containerd v1.3.3
-github.com/containerd/containerd/errdefs
-# github.com/coreos/etcd v3.3.18+incompatible
-github.com/coreos/etcd/auth/authpb
-github.com/coreos/etcd/client
-github.com/coreos/etcd/clientv3
-github.com/coreos/etcd/clientv3/balancer
-github.com/coreos/etcd/clientv3/balancer/connectivity
-github.com/coreos/etcd/clientv3/balancer/picker
-github.com/coreos/etcd/clientv3/balancer/resolver/endpoint
-github.com/coreos/etcd/clientv3/credentials
-github.com/coreos/etcd/etcdserver/api/v3rpc/rpctypes
-github.com/coreos/etcd/etcdserver/etcdserverpb
-github.com/coreos/etcd/mvcc/mvccpb
-github.com/coreos/etcd/pkg/logutil
-github.com/coreos/etcd/pkg/pathutil
-github.com/coreos/etcd/pkg/srv
-github.com/coreos/etcd/pkg/systemd
-github.com/coreos/etcd/pkg/tlsutil
+# github.com/coreos/etcd v3.3.18+incompatible => go.etcd.io/etcd v0.5.0-alpha.5.0.20191023171146-3cf2f69b5738
 github.com/coreos/etcd/pkg/transport
-github.com/coreos/etcd/pkg/types
-github.com/coreos/etcd/raft
-github.com/coreos/etcd/raft/raftpb
-github.com/coreos/etcd/version
 # github.com/coreos/go-semver v0.2.0
 github.com/coreos/go-semver/semver
-# github.com/coreos/go-systemd v0.0.0-20180202092358-40e2722dffea
+# github.com/coreos/go-systemd v0.0.0-20180511133405-39ca1b05acc7
 github.com/coreos/go-systemd/dbus
 github.com/coreos/go-systemd/journal
 github.com/coreos/go-systemd/util
@@ -99,7 +77,7 @@ github.com/davecgh/go-spew/spew
 github.com/docker/distribution/digestset
 github.com/docker/distribution/reference
 github.com/docker/distribution/registry/api/errcode
-# github.com/docker/docker v0.0.0-20190327010347-be7ac8be2ae0 => github.com/docker/engine v1.4.2-0.20191113042239-ea84732a7725
+# github.com/docker/docker v0.0.0-20190327010347-be7ac8be2ae0
 github.com/docker/docker/api
 github.com/docker/docker/api/types
 github.com/docker/docker/api/types/blkiodev
@@ -139,7 +117,6 @@ github.com/gogo/protobuf/protoc-gen-gogo/descriptor
 github.com/gogo/protobuf/sortkeys
 # github.com/golang/protobuf v1.3.2
 github.com/golang/protobuf/proto
-github.com/golang/protobuf/protoc-gen-go/descriptor
 github.com/golang/protobuf/ptypes
 github.com/golang/protobuf/ptypes/any
 github.com/golang/protobuf/ptypes/duration
@@ -157,10 +134,10 @@ github.com/googleapis/gnostic/extensions
 # github.com/gravitational/configure v0.0.0-20180808141939-c3428bd84c23
 github.com/gravitational/configure
 github.com/gravitational/configure/cstrings
-# github.com/gravitational/coordinate v0.0.0-20180225144834-2bc9a83f6fe2
+# github.com/gravitational/coordinate v0.0.0-20180225144834-2bc9a83f6fe2 => github.com/gravitational/coordinate v0.0.0-20200113193410-54f38649a528
 github.com/gravitational/coordinate/config
 github.com/gravitational/coordinate/leader
-# github.com/gravitational/etcd-backup v0.0.0-20190726150728-960ff557cc74
+# github.com/gravitational/etcd-backup v0.0.0-20190726150728-960ff557cc74 => github.com/gravitational/etcd-backup v0.0.0-20200121222015-6b1480066504
 github.com/gravitational/etcd-backup/lib/etcd
 # github.com/gravitational/go-udev v0.0.0-20160615210516-4cc8baba3689
 github.com/gravitational/go-udev
@@ -215,7 +192,7 @@ github.com/jmespath/go-jmespath
 # github.com/jmoiron/sqlx v1.2.0
 github.com/jmoiron/sqlx
 github.com/jmoiron/sqlx/reflectx
-# github.com/jonboulle/clockwork v0.0.0-20190114141812-62fb9bc030d1
+# github.com/jonboulle/clockwork v0.1.1-0.20190114141812-62fb9bc030d1
 github.com/jonboulle/clockwork
 # github.com/json-iterator/go v1.1.8
 github.com/json-iterator/go
@@ -290,7 +267,7 @@ github.com/pmezard/go-difflib/difflib
 github.com/prometheus/client_golang/prometheus
 github.com/prometheus/client_golang/prometheus/internal
 github.com/prometheus/client_golang/prometheus/promhttp
-# github.com/prometheus/client_model v0.0.0-20190129233127-fd36f4220a90
+# github.com/prometheus/client_model v0.0.0-20190812154241-14fe0d1b01d4
 github.com/prometheus/client_model/go
 # github.com/prometheus/common v0.6.0
 github.com/prometheus/common/expfmt
@@ -318,9 +295,39 @@ github.com/vishvananda/netlink
 github.com/vishvananda/netlink/nl
 # github.com/vishvananda/netns v0.0.0-20180720170159-13995c7128cc
 github.com/vishvananda/netns
-# go.etcd.io/etcd v3.3.18+incompatible
+# go.etcd.io/bbolt v1.3.3
+go.etcd.io/bbolt
+# go.etcd.io/etcd v0.5.0-alpha.5.0.20191023171146-3cf2f69b5738
+go.etcd.io/etcd/auth/authpb
 go.etcd.io/etcd/client
 go.etcd.io/etcd/clientv3
+go.etcd.io/etcd/clientv3/balancer
+go.etcd.io/etcd/clientv3/balancer/connectivity
+go.etcd.io/etcd/clientv3/balancer/picker
+go.etcd.io/etcd/clientv3/balancer/resolver/endpoint
+go.etcd.io/etcd/clientv3/credentials
+go.etcd.io/etcd/etcdserver/api/v3rpc/rpctypes
+go.etcd.io/etcd/etcdserver/etcdserverpb
+go.etcd.io/etcd/lease
+go.etcd.io/etcd/lease/leasepb
+go.etcd.io/etcd/mvcc
+go.etcd.io/etcd/mvcc/backend
+go.etcd.io/etcd/mvcc/mvccpb
+go.etcd.io/etcd/pkg/adt
+go.etcd.io/etcd/pkg/logutil
+go.etcd.io/etcd/pkg/pathutil
+go.etcd.io/etcd/pkg/schedule
+go.etcd.io/etcd/pkg/srv
+go.etcd.io/etcd/pkg/systemd
+go.etcd.io/etcd/pkg/tlsutil
+go.etcd.io/etcd/pkg/traceutil
+go.etcd.io/etcd/pkg/types
+go.etcd.io/etcd/raft
+go.etcd.io/etcd/raft/confchange
+go.etcd.io/etcd/raft/quorum
+go.etcd.io/etcd/raft/raftpb
+go.etcd.io/etcd/raft/tracker
+go.etcd.io/etcd/version
 # go.uber.org/atomic v1.5.0
 go.uber.org/atomic
 # go.uber.org/multierr v1.3.0
@@ -395,10 +402,11 @@ google.golang.org/appengine/internal/remote_api
 google.golang.org/appengine/internal/urlfetch
 google.golang.org/appengine/urlfetch
 # google.golang.org/genproto v0.0.0-20190927181202-20e1ac93f88c
-google.golang.org/genproto/googleapis/api/annotations
 google.golang.org/genproto/googleapis/rpc/status
-# google.golang.org/grpc v1.24.0
+# google.golang.org/grpc v1.26.0
 google.golang.org/grpc
+google.golang.org/grpc/attributes
+google.golang.org/grpc/backoff
 google.golang.org/grpc/balancer
 google.golang.org/grpc/balancer/base
 google.golang.org/grpc/balancer/roundrobin
@@ -414,10 +422,13 @@ google.golang.org/grpc/internal
 google.golang.org/grpc/internal/backoff
 google.golang.org/grpc/internal/balancerload
 google.golang.org/grpc/internal/binarylog
+google.golang.org/grpc/internal/buffer
 google.golang.org/grpc/internal/channelz
 google.golang.org/grpc/internal/envconfig
 google.golang.org/grpc/internal/grpcrand
 google.golang.org/grpc/internal/grpcsync
+google.golang.org/grpc/internal/resolver/dns
+google.golang.org/grpc/internal/resolver/passthrough
 google.golang.org/grpc/internal/syscall
 google.golang.org/grpc/internal/transport
 google.golang.org/grpc/keepalive
