@@ -117,13 +117,13 @@ func (c *Conn) TryRestartUnit(name string, mode string, ch chan<- string) (int, 
 	return c.startJob(ch, "org.freedesktop.systemd1.Manager.TryRestartUnit", name, mode)
 }
 
-// ReloadOrRestartUnit attempts a reload if the unit supports it and use a restart
+// ReloadOrRestart attempts a reload if the unit supports it and use a restart
 // otherwise.
 func (c *Conn) ReloadOrRestartUnit(name string, mode string, ch chan<- string) (int, error) {
 	return c.startJob(ch, "org.freedesktop.systemd1.Manager.ReloadOrRestartUnit", name, mode)
 }
 
-// ReloadOrTryRestartUnit attempts a reload if the unit supports it and use a "Try"
+// ReloadOrTryRestart attempts a reload if the unit supports it and use a "Try"
 // flavored restart otherwise.
 func (c *Conn) ReloadOrTryRestartUnit(name string, mode string, ch chan<- string) (int, error) {
 	return c.startJob(ch, "org.freedesktop.systemd1.Manager.ReloadOrTryRestartUnit", name, mode)
@@ -192,15 +192,9 @@ func (c *Conn) GetUnitProperties(unit string) (map[string]interface{}, error) {
 	return c.getProperties(path, "org.freedesktop.systemd1.Unit")
 }
 
-// GetUnitPathProperties takes the (escaped) unit path and returns all of its dbus object properties.
+// GetUnitProperties takes the (escaped) unit path and returns all of its dbus object properties.
 func (c *Conn) GetUnitPathProperties(path dbus.ObjectPath) (map[string]interface{}, error) {
 	return c.getProperties(path, "org.freedesktop.systemd1.Unit")
-}
-
-// GetAllProperties takes the (unescaped) unit name and returns all of its dbus object properties.
-func (c *Conn) GetAllProperties(unit string) (map[string]interface{}, error) {
-	path := unitPath(unit)
-	return c.getProperties(path, "")
 }
 
 func (c *Conn) getProperty(unit string, dbusInterface string, propertyName string) (*Property, error) {
@@ -297,8 +291,6 @@ func (c *Conn) listUnitsInternal(f storeFunc) ([]UnitStatus, error) {
 // ListUnits returns an array with all currently loaded units. Note that
 // units may be known by multiple names at the same time, and hence there might
 // be more unit names loaded than actual units behind them.
-// Also note that a unit is only loaded if it is active and/or enabled.
-// Units that are both disabled and inactive will thus not be returned.
 func (c *Conn) ListUnits() ([]UnitStatus, error) {
 	return c.listUnitsInternal(c.sysobj.Call("org.freedesktop.systemd1.Manager.ListUnits", 0).Store)
 }
@@ -321,7 +313,6 @@ func (c *Conn) ListUnitsByPatterns(states []string, patterns []string) ([]UnitSt
 // names and returns an UnitStatus array. Comparing to ListUnitsByPatterns
 // method, this method returns statuses even for inactive or non-existing
 // units. Input array should contain exact unit names, but not patterns.
-// Note: Requires systemd v230 or higher
 func (c *Conn) ListUnitsByNames(units []string) ([]UnitStatus, error) {
 	return c.listUnitsInternal(c.sysobj.Call("org.freedesktop.systemd1.Manager.ListUnitsByNames", 0, units).Store)
 }

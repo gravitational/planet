@@ -21,9 +21,9 @@ import (
 
 	"github.com/gravitational/trace"
 
+	etcd "github.com/coreos/etcd/client"
+	etcdv3 "github.com/coreos/etcd/clientv3"
 	"github.com/coreos/etcd/pkg/transport"
-	etcd "go.etcd.io/etcd/client"
-	etcdv3 "go.etcd.io/etcd/clientv3"
 )
 
 const (
@@ -69,9 +69,9 @@ func (r *Config) CheckAndSetDefaults() error {
 // NewClient creates a new instance of an etcd client
 func (r *Config) NewClient() (etcd.Client, error) {
 	info := transport.TLSInfo{
-		CertFile:      r.CertFile,
-		KeyFile:       r.KeyFile,
-		TrustedCAFile: r.CAFile,
+		CertFile: r.CertFile,
+		KeyFile:  r.KeyFile,
+		CAFile:   r.CAFile,
 	}
 	transport, err := transport.NewTransport(info, 30*time.Second)
 	if err != nil {
@@ -93,9 +93,9 @@ func (r *Config) NewClient() (etcd.Client, error) {
 // NewClientV3 creates a new instance of an etcdv3 client
 func (r *Config) NewClientV3() (*etcdv3.Client, error) {
 	info := transport.TLSInfo{
-		CertFile:      r.CertFile,
-		KeyFile:       r.KeyFile,
-		TrustedCAFile: r.CAFile,
+		CertFile: r.CertFile,
+		KeyFile:  r.KeyFile,
+		CAFile:   r.CAFile,
 	}
 
 	tlsConfig, err := info.ClientConfig()

@@ -58,7 +58,7 @@ import (
 	"syscall"
 	"unsafe"
 
-	"github.com/coreos/go-systemd/internal/dlopen"
+	"github.com/coreos/pkg/dlopen"
 )
 
 var libsystemdNames = []string{

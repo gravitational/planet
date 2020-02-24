@@ -20,11 +20,11 @@ import (
 	"context"
 	"time"
 
+	etcdv2 "github.com/coreos/etcd/client"
+	etcdv3 "github.com/coreos/etcd/clientv3"
 	"github.com/coreos/go-semver/semver"
 	etcdconf "github.com/gravitational/coordinate/config"
 	"github.com/gravitational/trace"
-	etcdv2 "go.etcd.io/etcd/client"
-	etcdv3 "go.etcd.io/etcd/clientv3"
 )
 
 func getClients(config etcdconf.Config) (etcdv2.KeysAPI, *etcdv3.Client, error) {
@@ -89,5 +89,5 @@ type KeyValue struct {
 	Lease int64 `protobuf:"varint,6,opt,name=lease,proto3" json:"lease,omitempty"`
 	// TTL (not from etcd datastructure)
 	// This is the TTL of the key, which we look up during the backup, because etcd3 stores these separatly from the key
-	TTL int64 `json:"ttl,omitempty"`
+	TTL int64 `json:ttl,omitempty`
 }

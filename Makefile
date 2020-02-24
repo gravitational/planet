@@ -86,7 +86,7 @@ build: $(BUILD_ASSETS)/planet $(BUILDDIR)/planet.tar.gz
 
 .PHONY: planet-bin
 planet-bin:
-	go build -o $(BUILDDIR)/planet github.com/gravitational/planet/tool/planet
+	go build -mod=vendor -o $(BUILDDIR)/planet github.com/gravitational/planet/tool/planet
 
 # Deploys the build artifacts to Amazon S3
 .PHONY: dev-deploy
@@ -219,10 +219,6 @@ clean-images: clean-containers
 	if [ ! -z "$$DEADIMAGES" ] ; then \
 		docker rmi -f $$DEADIMAGES ;\
 	fi
-
-.PHONY: fix-logrus
-fix-logrus:
-	find vendor -type f -print0 | xargs -0 sed -i 's/Sirupsen/sirupsen/g'
 
 .PHONY: get-version
 get-version:

@@ -51,9 +51,6 @@ const (
 	// loading configuration from the config files if another profile name
 	// is not provided.
 	DefaultSharedConfigProfile = `default`
-
-	// S3 ARN Region Usage
-	s3UseARNRegionKey = "s3_use_arn_region"
 )
 
 // sharedConfig represents the configuration fields of the SDK config files.
@@ -92,7 +89,6 @@ type sharedConfig struct {
 	//
 	//	endpoint_discovery_enabled = true
 	EnableEndpointDiscovery *bool
-
 	// CSM Options
 	CSMEnabled  *bool
 	CSMHost     string
@@ -110,12 +106,6 @@ type sharedConfig struct {
 	// s3_us_east_1_regional_endpoint = regional
 	// This can take value as `LegacyS3UsEast1Endpoint` or `RegionalS3UsEast1Endpoint`
 	S3UsEast1RegionalEndpoint endpoints.S3UsEast1RegionalEndpoint
-
-	// Specifies if the S3 service should allow ARNs to direct the region
-	// the client's requests are sent to.
-	//
-	// s3_use_arn_region=true
-	S3UseARNRegion bool
 }
 
 type sharedConfigFile struct {
@@ -316,8 +306,6 @@ func (cfg *sharedConfig) setFromIniFile(profile string, file sharedConfigFile, e
 	updateString(&cfg.CSMPort, section, csmPortKey)
 	updateString(&cfg.CSMClientID, section, csmClientIDKey)
 
-	updateBool(&cfg.S3UseARNRegion, section, s3UseARNRegionKey)
-
 	return nil
 }
 
@@ -408,15 +396,6 @@ func updateString(dst *string, section ini.Section, key string) {
 		return
 	}
 	*dst = section.String(key)
-}
-
-// updateBool will only update the dst with the value in the section key, key
-// is present in the section.
-func updateBool(dst *bool, section ini.Section, key string) {
-	if !section.Has(key) {
-		return
-	}
-	*dst = section.Bool(key)
 }
 
 // updateBoolPtr will only update the dst with the value in the section key,
