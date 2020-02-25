@@ -204,7 +204,8 @@
     "pkg/term/windows",
   ]
   pruneopts = "UT"
-  revision = "be7ac8be2ae072032a4005e8f232be3fc57e4127"
+  revision = "2adf434ca69614dfc897dd0acf29018e5590a732"
+  source = "github.com/gravitational/moby"
 
 [[projects]]
   digest = "1:6f82cacd0af5921e99bf3f46748705239b36489464f4529a1589bc895764fb18"
