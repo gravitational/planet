@@ -3,15 +3,14 @@ package client
 import (
 	"bufio"
 	"fmt"
+	"github.com/hashicorp/go-msgpack/codec"
+	"github.com/hashicorp/logutils"
+	"github.com/hashicorp/serf/coordinate"
 	"log"
 	"net"
 	"sync"
 	"sync/atomic"
 	"time"
-
-	"github.com/hashicorp/go-msgpack/codec"
-	"github.com/hashicorp/logutils"
-	"github.com/hashicorp/serf/coordinate"
 )
 
 const (
@@ -193,22 +192,7 @@ func (c *RPCClient) ForceLeave(node string) error {
 		Seq:     c.getSeq(),
 	}
 	req := forceLeaveRequest{
-		Node:  node,
-		Prune: false,
-	}
-	return c.genericRPC(&header, &req, nil)
-}
-
-//ForceLeavePrune uses ForceLeave but is used to reap the
-//node entirely
-func (c *RPCClient) ForceLeavePrune(node string) error {
-	header := requestHeader{
-		Command: forceLeaveCommand,
-		Seq:     c.getSeq(),
-	}
-	req := forceLeaveRequest{
-		Node:  node,
-		Prune: true,
+		Node: node,
 	}
 	return c.genericRPC(&header, &req, nil)
 }
@@ -637,7 +621,6 @@ type QueryParam struct {
 	FilterNodes []string            // A list of node names to restrict query to
 	FilterTags  map[string]string   // A map of tag name to regex to filter on
 	RequestAck  bool                // Should nodes ack the query receipt
-	RelayFactor uint8               // Duplicate response count to be relayed back to sender for redundancy.
 	Timeout     time.Duration       // Maximum query duration. Optional, will be set automatically.
 	Name        string              // Opaque query name
 	Payload     []byte              // Opaque query payload
@@ -660,7 +643,6 @@ func (c *RPCClient) Query(params *QueryParam) error {
 		FilterNodes: params.FilterNodes,
 		FilterTags:  params.FilterTags,
 		RequestAck:  params.RequestAck,
-		RelayFactor: params.RelayFactor,
 		Timeout:     params.Timeout,
 		Name:        params.Name,
 		Payload:     params.Payload,
