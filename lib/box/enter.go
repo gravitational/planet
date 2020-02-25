@@ -149,7 +149,7 @@ func Enter(dataDir string, cfg *ProcessConfig) error {
 	}
 
 	if status == libcontainer.Stopped {
-		return trace.BadParameter("cannot exec a container that has stopped")
+		return trace.BadParameter("cannot exec into stopped container").AddField("container", container.ID())
 	}
 
 	// Ensure programs running within the container inheret any proxy settings

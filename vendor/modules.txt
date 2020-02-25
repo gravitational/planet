@@ -295,7 +295,7 @@ github.com/vishvananda/netlink/nl
 github.com/vishvananda/netns
 # go.etcd.io/bbolt v1.3.3
 go.etcd.io/bbolt
-# go.etcd.io/etcd v0.5.0-alpha.5.0.20191023171146-3cf2f69b5738
+# go.etcd.io/etcd v0.5.0-alpha.5.0.20191023171146-3cf2f69b5738 => go.etcd.io/etcd v0.5.0-alpha.5.0.20191023171146-3cf2f69b5738
 go.etcd.io/etcd/auth/authpb
 go.etcd.io/etcd/client
 go.etcd.io/etcd/clientv3

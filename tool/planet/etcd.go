@@ -505,6 +505,18 @@ func getBaseEtcdDir(version string) string {
 
 func etcdRestore(file string) error {
 	log.Info("Initializing new etcd database")
+
+	datadir, err := getEtcdDataDir()
+	if err != nil {
+		return trace.Wrap(err)
+	}
+
+	// For the restore operation to be re-entrant, delete the data directory so it's re-initialized from scratch
+	err = os.RemoveAll(datadir)
+	if err != nil {
+		return trace.Wrap(err)
+	}
+
 	err := etcdEnable(true, "")
 	if err != nil {
 		return trace.Wrap(err)
@@ -541,11 +553,6 @@ func etcdRestore(file string) error {
 	}
 	log.Info("Offline RestoreConfig: ", spew.Sdump(restoreConf))
 	restoreConf.Log = log.StandardLogger()
-
-	datadir, err := getEtcdDataDir()
-	if err != nil {
-		return trace.Wrap(err)
-	}
 
 	log.Info("Starting offline etcd restoration")
 	err = backup.OfflineRestore(context.TODO(), restoreConf, datadir)
