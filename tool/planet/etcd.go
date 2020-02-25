@@ -517,7 +517,7 @@ func etcdRestore(file string) error {
 		return trace.Wrap(err)
 	}
 
-	err := etcdEnable(true, "")
+	err = etcdEnable(true, "")
 	if err != nil {
 		return trace.Wrap(err)
 	}

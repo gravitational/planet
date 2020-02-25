@@ -27,6 +27,7 @@ require (
 	github.com/ghodss/yaml v1.0.0
 	github.com/godbus/dbus v4.1.0+incompatible
 	github.com/googleapis/gnostic v0.2.0 // indirect
+	github.com/gorilla/mux v1.7.4 // indirect
 	github.com/gorilla/websocket v1.4.1 // indirect
 	github.com/gravitational/configure v0.0.0-20180808141939-c3428bd84c23
 	github.com/gravitational/coordinate v0.0.0-20180225144834-2bc9a83f6fe2
@@ -56,6 +57,7 @@ require (
 	github.com/mattn/go-sqlite3 v1.13.0 // indirect
 	github.com/miekg/dns v1.1.26 // indirect
 	github.com/mitchellh/go-ps v0.0.0-20170309133038-4fdf99ab2936
+	github.com/morikuni/aec v1.0.0 // indirect
 	github.com/mrunalp/fileutils v0.0.0-20171103030105-7d4729fb3618 // indirect
 	github.com/opencontainers/go-digest v1.0.0-rc1 // indirect
 	github.com/opencontainers/image-spec v1.0.1 // indirect
