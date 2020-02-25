@@ -7,5 +7,5 @@
 # https://github.com/etcd-io/etcd/blob/master/Makefile#L54
 #
 
-ETCDCTL_API=2 HTTP_PROXY="" HTTPS_PROXY="" http_proxy="" https_proxy="" \
+ETCDCTL_API=2 HTTP_PROXY="" HTTPS_PROXY="" http_proxy="" https_proxy="" ETCDCTL_PEERS=https://127.0.0.1:2379 \
 /usr/bin/etcdctl-cmd --key-file /var/state/etcd.key --cert-file /var/state/etcd.cert --ca-file /var/state/root.cert "$@"
