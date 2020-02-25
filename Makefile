@@ -210,10 +210,6 @@ clean-images: clean-containers
 		docker rmi -f $$DEADIMAGES ;\
 	fi
 
-.PHONY: fix-logrus
-fix-logrus:
-	find vendor -type f -print0 | xargs -0 sed -i 's/Sirupsen/sirupsen/g'
-
 .PHONY: get-version
 get-version:
 	@echo $(PLANET_BUILD_TAG)
