@@ -31,19 +31,17 @@ import (
 )
 
 type Config struct {
-	//InitArgs list of arguments to exec as an init process
+	// InitArgs lists the command to execute and any arguments
 	InitArgs []string
-	// InitEnv list of env variables to pass to executable
+	// InitEnv lists the environment variables to pass to the process
 	InitEnv []string
 	// InitUser is a user running the init process
 	InitUser string
-
 	// EnvFiles has a list of files that will generated when process starts
 	EnvFiles []EnvFile
 	// Files is an optional list of files that will be placed
 	// in the container when started
 	Files []File
-
 	// Rootfs is a root filesystem of the container
 	Rootfs string
 
@@ -55,6 +53,10 @@ type Config struct {
 	Capabilities []string
 	// DataDir is a directory where libcontainer stores the container state
 	DataDir string
+	// ProcessLabel specifies the SELinux process label
+	ProcessLabel string
+	// SELinux turns on SELinux support
+	SELinux bool
 }
 
 // File is a file that will be placed in the container before start
@@ -85,12 +87,25 @@ type TTY struct {
 // ProcessConfig is a configuration passed to the process started
 // in the namespace of the container
 type ProcessConfig struct {
-	In   io.Reader `json:"-"`
-	Out  io.Writer `json:"-"`
-	TTY  *TTY      `json:"tty"`
-	Args []string  `json:"args"`
-	User string    `json:"user"`
-	Env  EnvVars   `json:"env"`
+	In           io.Reader `json:"-"`
+	Out          io.Writer `json:"-"`
+	TTY          *TTY      `json:"tty,omitempty"`
+	Args         []string  `json:"args"`
+	User         string    `json:"user"`
+	Env          EnvVars   `json:"env,omitempty"`
+	ProcessLabel string    `json:"process_label,omitempty"`
+}
+
+// String returns human-readable description of this configuration
+func (e *ProcessConfig) String() string {
+	var buf bytes.Buffer
+	fmt.Fprint(&buf, "ProcessConfig(")
+	fmt.Fprintf(&buf, "args=%q,user=%q,env=%v", e.Args, e.User, e.Env)
+	if e.ProcessLabel != "" {
+		fmt.Fprintf(&buf, ",selinux_domain=%q", e.ProcessLabel)
+	}
+	fmt.Fprint(&buf, ")")
+	return buf.String()
 }
 
 // Environment returns a slice of environment variables in key=value
@@ -139,7 +154,8 @@ func (vars *EnvVars) Delete(v string) string {
 }
 
 // Append adds a new environment variable given with k, v and delimiter delim
-func (vars *EnvVars) Append(k, v, delim string) {
+func (vars *EnvVars) Append(k, v string) {
+	const delim = " "
 	if existing := vars.Get(k); existing != "" {
 		vars.Upsert(k, strings.Join([]string{existing, v}, delim))
 	} else {

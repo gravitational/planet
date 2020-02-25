@@ -31,8 +31,12 @@ build: | $(ASSETDIR)
 		planet/buildbox:latest \
 		dumb-init make -e \
 			KUBE_VER=$(KUBE_VER) \
+			HELM_VER=$(HELM_VER) \
+			COREDNS_VER=$(COREDNS_VER) \
+			CNI_VER=$(CNI_VER) \
 			FLANNEL_VER=$(FLANNEL_VER) \
 			NODE_PROBLEM_DETECTOR_VER=$(NODE_PROBLEM_DETECTOR_VER) \
+			DOCKER_VER=$(DOCKER_VER) \
 			ETCD_VER="$(ETCD_VER)" \
 			ETCD_LATEST_VER=$(ETCD_LATEST_VER) \
 			-C /assets/makefiles -f planet.mk
@@ -54,6 +58,8 @@ planet-image:
 	cd $(TARGETDIR) && fakeroot -- sh -c ' \
 		chown -R 1000:1000 . ; \
 		chown -R root:root rootfs/sbin/mount.* ; \
+		chown -R root:1000 rootfs/etc/ ; \
+		chmod -R g+rw rootfs/etc ; \
 		tar -czf $(TARBALL) orbit.manifest.json rootfs'
 	@echo -e "\nDone --> $(TARBALL)"
 

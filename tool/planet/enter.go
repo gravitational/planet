@@ -17,7 +17,6 @@ limitations under the License.
 package main
 
 import (
-	"bytes"
 	"os"
 
 	"github.com/gravitational/planet/lib/box"
@@ -69,12 +68,13 @@ func enter(cfg *box.ProcessConfig) error {
 
 // stop interacts with systemctl's halt feature
 func stop() error {
-	log.Info("stop planet container")
+	log.Info("Stop container.")
 	cfg := &box.ProcessConfig{
-		User: "root",
-		Args: []string{"/bin/systemctl", "halt"},
-		In:   os.Stdin,
-		Out:  os.Stdout,
+		User:         "root",
+		Args:         []string{"/bin/systemctl", "halt"},
+		In:           os.Stdin,
+		Out:          os.Stdout,
+		ProcessLabel: constants.ContainerInitProcessLabel,
 	}
 
 	return trace.Wrap(enter(cfg))

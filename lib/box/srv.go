@@ -30,15 +30,16 @@ import (
 	"strings"
 	"syscall"
 
-	udev "github.com/gravitational/go-udev"
+	"github.com/gravitational/planet/lib/constants"
+	"github.com/gravitational/planet/lib/defaults"
+
+	"github.com/gravitational/go-udev"
 	"github.com/gravitational/trace"
-
-	log "github.com/sirupsen/logrus"
-
 	"github.com/opencontainers/runc/libcontainer"
 	"github.com/opencontainers/runc/libcontainer/cgroups/systemd"
 	"github.com/opencontainers/runc/libcontainer/configs"
 	"github.com/pborman/uuid"
+	log "github.com/sirupsen/logrus"
 )
 
 type ContainerServer interface {
@@ -51,27 +52,27 @@ type ContainerServer interface {
 // and an API server that exposes a unix socket endpoint.
 // Once started, the box can be shut down with Close.
 type Box struct {
-	Process   *libcontainer.Process
-	Container libcontainer.Container
-	listener  net.Listener
+	*libcontainer.Process
+	libcontainer.Container
+	listener net.Listener
+	seLinuxLabelGetter
 }
 
 // Close shuts down the box. It is written to be safe to call multiple
 // times in a row for extra robustness.
 func (b *Box) Close() error {
-	var err error
-
+	var errors []error
 	if b.Container != nil {
-		if err = b.Container.Destroy(); err != nil {
-			log.Errorf("box.Close() :%v", err)
+		if err := b.Container.Destroy(); err != nil {
+			errors = append(errors, err)
 		}
 	}
 	if b.listener != nil {
-		if err = b.listener.Close(); err != nil {
-			log.Warningf("box.Close(): %v", err)
+		if err := b.listener.Close(); err != nil {
+			errors = append(errors, err)
 		}
 	}
-	return err
+	return trace.NewAggregate(errors...)
 }
 
 // Wait blocks waiting the init process to finish.
@@ -204,12 +205,19 @@ func Start(cfg Config) (*Box, error) {
 	if err != nil {
 		return nil, trace.Wrap(err)
 	}
-	log.Infof("Container status: %v (err=%v).", status, err)
+	log.WithFields(log.Fields{
+		log.ErrorKey: err,
+		"status":     status,
+	}).Info("Start container.")
 
-	return &Box{
+	box := &Box{
 		Process:   process,
 		Container: container,
 	}, nil
+	if cfg.SELinux {
+		box.seLinuxLabelGetter = getSELinuxProcLabel(config.Rootfs)
+	}
+	return box, nil
 }
 
 func getLibcontainerConfig(containerID, rootfs string, cfg Config) (*configs.Config, error) {
@@ -243,8 +251,8 @@ func getLibcontainerConfig(containerID, rootfs string, cfg Config) (*configs.Con
 				Path:        device.Devnode(),
 				Major:       int64(devnum.Major()),
 				Minor:       int64(devnum.Minor()),
-				Permissions: "rwm",
-				FileMode:    0660,
+				Permissions: constants.DeviceReadWritePerms,
+				FileMode:    constants.GroupReadWriteMask,
 			})
 		}
 	}
@@ -258,8 +266,8 @@ func getLibcontainerConfig(containerID, rootfs string, cfg Config) (*configs.Con
 			Minor:       int64(i),
 			Uid:         0,
 			Gid:         0,
-			Permissions: "rwm",
-			FileMode:    0660,
+			Permissions: constants.DeviceReadWritePerms,
+			FileMode:    constants.GroupReadWriteMask,
 		}
 	}
 
@@ -283,16 +291,16 @@ func getLibcontainerConfig(containerID, rootfs string, cfg Config) (*configs.Con
 		}),
 		Mounts: []*configs.Mount{
 			{
-				Source:      "/proc",
+				Source:      "proc",
 				Destination: "/proc",
 				Device:      "proc",
 				Flags:       defaultMountFlags,
 			},
 			// this is needed for flanneld that does modprobe
 			{
-				Device:      "bind",
 				Source:      "/lib/modules",
 				Destination: "/lib/modules",
+				Device:      "bind",
 				Flags:       defaultMountFlags | syscall.MS_BIND,
 			},
 			{
@@ -315,6 +323,13 @@ func getLibcontainerConfig(containerID, rootfs string, cfg Config) (*configs.Con
 				Flags:       syscall.MS_NOSUID | syscall.MS_NOEXEC,
 				Data:        "newinstance,ptmxmode=0666,mode=0620,gid=5",
 			},
+			{
+				Source:      "shm",
+				Destination: "/dev/shm",
+				Device:      "tmpfs",
+				Data:        "mode=1777,size=65536k",
+				Flags:       defaultMountFlags,
+			},
 			// needed for dynamically provisioned/attached persistent volumes
 			// to work on some cloud providers (e.g. GCE) which use symlinks
 			// in /dev/disk/by-uuid to refer to provisioned devices
@@ -330,7 +345,19 @@ func getLibcontainerConfig(containerID, rootfs string, cfg Config) (*configs.Con
 				Device:      "bind",
 				Source:      "/dev/kmsg",
 				Destination: "/dev/kmsg",
-				Flags:       syscall.MS_BIND,
+				Flags:       syscall.MS_BIND | syscall.MS_RDONLY,
+			},
+			{
+				Source:      "tmpfs",
+				Destination: "/run",
+				Device:      "tmpfs",
+				Flags:       defaultMountFlags,
+			},
+			{
+				Source:      "tmpfs",
+				Destination: "/run/lock",
+				Device:      "tmpfs",
+				Flags:       defaultMountFlags,
 			},
 			// /run has to be mounted explicitly as tmpfs in order to be able
 			// to mount /run/udev below
@@ -359,9 +386,26 @@ func getLibcontainerConfig(containerID, rootfs string, cfg Config) (*configs.Con
 				CpuShares:        2,   // set planet to minimum cpu shares relative to host services
 			},
 		},
-
 		Devices:  append(configs.DefaultAutoCreatedDevices, append(loopDevices, disks...)...),
 		Hostname: hostname,
+	}
+	if cfg.SELinux {
+		config.MountLabel = defaults.ContainerFileLabel
+		config.ProcessLabel = cfg.ProcessLabel
+		config.Mounts = append(config.Mounts, []*configs.Mount{
+			{
+				Destination: "/sys/fs/selinux",
+				Source:      "/sys/fs/selinux",
+				Device:      "bind",
+				Flags:       syscall.MS_BIND | syscall.MS_RELATIME,
+			},
+			{
+				Device:      "bind",
+				Source:      "/etc/selinux",
+				Destination: "/etc/selinux",
+				Flags:       defaultMountFlags | syscall.MS_BIND | syscall.MS_RDONLY,
+			},
+		}...)
 	}
 
 	// Cgroup namespaces aren't currently available in redhat/centos based kernels
@@ -373,6 +417,19 @@ func getLibcontainerConfig(containerID, rootfs string, cfg Config) (*configs.Con
 	if cgroupsEnabled {
 		config.Namespaces = append(config.Namespaces, configs.Namespace{
 			Type: configs.NEWCGROUP,
+		})
+		config.Mounts = append(config.Mounts, &configs.Mount{
+			Source:      "cgroup",
+			Destination: "/sys/fs/cgroup",
+			Device:      "cgroup",
+			Flags:       syscall.MS_PRIVATE,
+		})
+	} else {
+		config.Mounts = append(config.Mounts, &configs.Mount{
+			Source:      "/sys/fs/cgroup",
+			Destination: "/sys/fs/cgroup",
+			Device:      "bind",
+			Flags:       syscall.MS_PRIVATE | syscall.MS_BIND,
 		})
 	}
 

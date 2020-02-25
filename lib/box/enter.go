@@ -113,6 +113,15 @@ func setProcessUserCgroupImpl(c libcontainer.Container, p *libcontainer.Process)
 
 // Enter is used to exec a process within the running container
 func Enter(dataDir string, cfg *ProcessConfig) error {
+	if b.seLinuxLabelGetter != nil {
+		if cfg.ProcessLabel == "" {
+			cfg.ProcessLabel = b.seLinuxLabelGetter.getSELinuxLabel(cfg.Args[0])
+		}
+	} else {
+		// Empty the label if SELinux has not been enabled
+		cfg.ProcessLabel = ""
+	}
+
 	factory, err := getLibContainerFactory(dataDir)
 	if err != nil {
 		return trace.Wrap(err)
@@ -170,7 +179,8 @@ func Enter(dataDir string, cfg *ProcessConfig) error {
 	p := &libcontainer.Process{
 		Args: cfg.Args,
 		User: cfg.User,
-		Env:  append(cfg.Environment(), "TERM=xterm", "LC_ALL=en_US.UTF-8"),
+		Env:  append(cfg.Environment(), defaultProcessEnviron()...),
+		Label:         cfg.ProcessLabel,
 	}
 
 	if cfg.TTY != nil {
@@ -289,4 +299,10 @@ func setupIO(process *libcontainer.Process, rootuid, rootgid int, createtty bool
 func terminate(p *libcontainer.Process) {
 	_ = p.Signal(unix.SIGKILL)
 	_, _ = p.Wait()
+}
+
+func defaultProcessEnviron() []string {
+	return []string{
+		"TERM=xterm", "LC_ALL=en_US.UTF-8",
+	}
 }

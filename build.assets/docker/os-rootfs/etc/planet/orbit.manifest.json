@@ -448,6 +448,14 @@
                 }
             },
             {
+                "type": "Bool",
+                "name": "selinux",
+                "env": "PLANET_SELINUX",
+                "cli": {
+                    "name": "selinux"
+                }
+            },
+            {
                 "type": "String",
                 "name": "service-node-portrange",
                 "env": "PLANET_SERVICE_NODE_PORT_RANGE",

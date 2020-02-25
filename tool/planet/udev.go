@@ -20,10 +20,11 @@ import (
 	"encoding/json"
 	"os"
 
-	"github.com/gravitational/go-udev"
 	"github.com/gravitational/planet/lib/box"
-	"github.com/gravitational/trace"
+	"github.com/gravitational/planet/lib/constants"
 
+	"github.com/gravitational/go-udev"
+	"github.com/gravitational/trace"
 	"github.com/opencontainers/runc/libcontainer/configs"
 	"github.com/opencontainers/runc/libcontainer/devices"
 	log "github.com/sirupsen/logrus"
@@ -34,6 +35,9 @@ import (
 func newUdevListener() (*udevListener, error) {
 	udev := udev.Udev{}
 	monitor := udev.NewMonitorFromNetlink("udev")
+	if monitor == nil {
+		return nil, trace.BadParameter("failed to create udev monitor")
+	}
 	doneC := make(chan struct{})
 
 	monitor.FilterAddMatchSubsystemDevtype("block", "disk")
@@ -125,10 +129,11 @@ func (r *udevListener) removeDevice(node string) error {
 func deviceCmd(args ...string) *box.ProcessConfig {
 	const cmd = "/usr/bin/planet"
 	config := &box.ProcessConfig{
-		User: "root",
-		Args: []string{cmd, "--debug", "device"},
-		In:   os.Stdin,
-		Out:  os.Stdout,
+		User:         "root",
+		Args:         []string{cmd, "--debug", "device"},
+		In:           os.Stdin,
+		Out:          os.Stdout,
+		ProcessLabel: constants.ContainerRuntimeProcessLabel,
 	}
 
 	config.Args = append(config.Args, args...)

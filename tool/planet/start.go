@@ -35,6 +35,7 @@ import (
 	"github.com/gravitational/planet/lib/box"
 	"github.com/gravitational/planet/lib/check"
 	"github.com/gravitational/planet/lib/constants"
+	"github.com/gravitational/planet/lib/defaults"
 	"github.com/gravitational/planet/lib/user"
 	"github.com/gravitational/planet/lib/utils"
 
@@ -64,7 +65,7 @@ func startAndWait(config *Config) error {
 		return trace.Wrap(err)
 	}
 
-	ctx, err := start(config, nil)
+	ctx, err := start(config)
 	if err != nil {
 		return trace.Wrap(err)
 	}
@@ -79,11 +80,11 @@ func startAndWait(config *Config) error {
 	return nil
 }
 
-func start(config *Config, monitorc chan<- bool) (*runtimeContext, error) {
-	log.Infof("starting with config: %#v", config)
+func start(config *Config) (*runtimeContext, error) {
+	log.Infof("Starting with config: %#v.", config)
 
-	if !isRoot() {
-		return nil, trace.Errorf("must be run as root")
+	if !config.SELinux && !isRoot() {
+		return nil, trace.CompareFailed("must be run as root")
 	}
 
 	var err error
@@ -93,14 +94,14 @@ func start(config *Config, monitorc chan<- bool) (*runtimeContext, error) {
 	if err != nil {
 		return nil, trace.Wrap(err)
 	}
-	log.Infof("kernel: %v\n", v)
+	log.Infof("Kernel: %v.", v)
 	if v < MinKernelVersion {
 		err := trace.Errorf(
 			"current minimum supported kernel version is %0.2f. Upgrade kernel before moving on.", MinKernelVersion/100.0)
 		if !config.IgnoreChecks {
 			return nil, trace.Wrap(err)
 		}
-		log.Infof("warning: %v", err)
+		log.WithError(err).Warn("Ignore kernel supported version check.")
 	}
 
 	// check & mount cgroups:
@@ -234,8 +235,10 @@ func start(config *Config, monitorc chan<- bool) (*runtimeContext, error) {
 		return nil, trace.Wrap(err)
 	}
 
-	if err = setKubeConfigOwnership(config); err != nil {
-		return nil, trace.Wrap(err)
+	if !config.SELinux {
+		if err = setKubeConfigOwnership(config); err != nil {
+			return nil, trace.Wrap(err)
+		}
 	}
 	mountSecrets(config)
 
@@ -271,13 +274,14 @@ func start(config *Config, monitorc chan<- bool) (*runtimeContext, error) {
 		Files:        config.Files,
 		Mounts:       config.Mounts,
 		Devices:      config.Devices,
-		DataDir:      constants.RuncDataDir,
-		InitUser:     "root",
-		InitArgs:     []string{"/bin/systemd"},
-		InitEnv:      []string{"container=docker", "LC_ALL=en_US.UTF-8"},
+		DataDir:      defaults.RuncDataDir,
+		InitUser:     defaults.InitUser,
+		InitArgs:     defaults.InitArgs,
+		InitEnv:      []string{"container=container-other", "LC_ALL=en_US.UTF-8"},
 		Capabilities: allCaps,
+		ProcessLabel: constants.ContainerInitProcessLabel,
+		SELinux:      config.SELinux,
 	}
-	defer log.Infof("start() is done!")
 
 	listener, err := newUdevListener()
 	if err != nil {
@@ -290,15 +294,11 @@ func start(config *Config, monitorc chan<- bool) (*runtimeContext, error) {
 		return nil, trace.Wrap(err)
 	}
 
-	units := []string{}
+	units := nodeUnits
 	if config.hasRole(RoleMaster) {
-		units = append(units, masterUnits...)
+		units = masterUnits
 	}
-	if config.hasRole(RoleNode) {
-		units = appendUnique(units, nodeUnits)
-	}
-
-	go monitorUnits(cfg.DataDir, units, monitorc)
+	go monitorUnits(box, units...)
 
 	return &runtimeContext{
 		process:  box,
@@ -466,16 +466,19 @@ func pickDockerStorageBackend() (dockerBackend string, err error) {
 func addDockerOptions(config *Config) error {
 	// add supported storage backend
 	config.Env.Append(EnvDockerOptions,
-		fmt.Sprintf("--storage-driver=%s", config.DockerBackend), " ")
+		fmt.Sprintf("--storage-driver=%s", config.DockerBackend))
 
 	// use cgroups native driver, because of this:
 	// https://github.com/docker/docker/issues/16256
-	config.Env.Append(EnvDockerOptions, "--exec-opt native.cgroupdriver=cgroupfs", " ")
+	config.Env.Append(EnvDockerOptions, "--exec-opt native.cgroupdriver=cgroupfs")
 	// Add sensible size limits to logging driver
-	config.Env.Append(EnvDockerOptions, "--log-opt max-size=50m", " ")
-	config.Env.Append(EnvDockerOptions, "--log-opt max-file=9", " ")
+	config.Env.Append(EnvDockerOptions, "--log-opt max-size=50m")
+	config.Env.Append(EnvDockerOptions, "--log-opt max-file=9")
 	if config.DockerOptions != "" {
-		config.Env.Append(EnvDockerOptions, config.DockerOptions, " ")
+		config.Env.Append(EnvDockerOptions, config.DockerOptions)
+	}
+	if config.SELinux {
+		config.Env.Append(EnvDockerOptions, "--selinux-enabled")
 	}
 
 	return nil
@@ -484,7 +487,7 @@ func addDockerOptions(config *Config) error {
 // addEtcdOptions sets extra etcd command line arguments in environment
 func addEtcdOptions(config *Config) {
 	if config.EtcdOptions != "" {
-		config.Env.Append(EnvEtcdOptions, config.EtcdOptions, " ")
+		config.Env.Append(EnvEtcdOptions, config.EtcdOptions)
 	}
 }
 
@@ -524,18 +527,18 @@ func addComponentOptions(config *Config) error {
 		return trace.Wrap(err)
 	}
 	if config.APIServerOptions != "" {
-		config.Env.Append(EnvAPIServerOptions, config.APIServerOptions, " ")
+		config.Env.Append(EnvAPIServerOptions, config.APIServerOptions)
 	}
 	if config.ServiceNodePortRange != "" {
 		config.Env.Append(EnvAPIServerOptions,
-			fmt.Sprintf("--service-node-port-range=%v", config.ServiceNodePortRange), " ")
+			fmt.Sprintf("--service-node-port-range=%v", config.ServiceNodePortRange))
 	}
 	if config.ProxyPortRange != "" {
 		config.Env.Append(EnvKubeProxyOptions,
-			fmt.Sprintf("--proxy-port-range=%v", config.ProxyPortRange), " ")
+			fmt.Sprintf("--proxy-port-range=%v", config.ProxyPortRange))
 	}
 	if config.FeatureGates != "" {
-		config.Env.Append(EnvKubeComponentFlags, fmt.Sprintf("--feature-gates=%v", config.FeatureGates), " ")
+		config.Env.Append(EnvKubeComponentFlags, fmt.Sprintf("--feature-gates=%v", config.FeatureGates))
 	}
 	return nil
 }
@@ -543,7 +546,7 @@ func addComponentOptions(config *Config) error {
 // addKubeletOptions sets extra kubelet command line arguments in environment
 func addKubeletOptions(config *Config) error {
 	if config.KubeletOptions != "" {
-		config.Env.Append(EnvKubeletOptions, config.KubeletOptions, " ")
+		config.Env.Append(EnvKubeletOptions, config.KubeletOptions)
 	}
 	kubeletConfig := KubeletConfig
 	if config.KubeletConfig != "" {
@@ -959,41 +962,7 @@ multizone=true
 `))
 )
 
-var masterUnits = []string{
-	"etcd",
-	"flanneld",
-	"docker",
-	"kube-apiserver",
-	"kube-controller-manager",
-	"kube-scheduler",
-}
-
-var nodeUnits = []string{
-	"flanneld",
-	"docker",
-	"kube-proxy",
-	"kube-kubelet",
-	"etcd",
-}
-
-func appendUnique(a, b []string) []string {
-	as := make(map[string]bool, len(a))
-	for _, i := range a {
-		as[i] = true
-	}
-	for _, i := range b {
-		if _, ok := as[i]; !ok {
-			a = append(a, i)
-		}
-	}
-	return a
-}
-
-func monitorUnits(dataDir string, units []string, monitorc chan<- bool) {
-	if monitorc != nil {
-		defer close(monitorc)
-	}
-
+func monitorUnits(box *box.Box, units ...string) {
 	unitState := make(map[string]string, len(units))
 	for _, unit := range units {
 		unitState[unit] = ""
@@ -1002,9 +971,12 @@ func monitorUnits(dataDir string, units []string, monitorc chan<- bool) {
 	var inactiveUnits []string
 	for i := 0; i < 30; i++ {
 		for _, unit := range units {
-			status, err := getStatus(dataDir, unit)
-			if err != nil {
-				log.Infof("error getting status: %v", err)
+			status, err := getStatus(box, unit)
+			if err != nil && !isProgramNotRunningError(err) {
+				log.WithFields(log.Fields{
+					log.ErrorKey: err,
+					"service":    unit,
+				}).Warn("Failed to query service status.")
 			}
 			unitState[unit] = status
 		}
@@ -1012,30 +984,28 @@ func monitorUnits(dataDir string, units []string, monitorc chan<- bool) {
 		out := &bytes.Buffer{}
 		fmt.Fprintf(out, "%v", time.Since(start))
 		for _, unit := range units {
-			if unitState[unit] != "" {
+			if state, _ := unitState[unit]; state == serviceActive {
 				fmt.Fprintf(out, " %v \x1b[32m[OK]\x1b[0m", unit)
 			} else {
-				fmt.Fprintf(out, " %v[  ]", unit)
+				fmt.Fprintf(out, " %v [%v]", unit, state)
 			}
 		}
-		fmt.Printf("\r %v", out.String())
+		fmt.Println("\n", out.String())
 		inactiveUnits = getInactiveUnits(unitState)
 		if len(inactiveUnits) == 0 {
-			if monitorc != nil {
-				monitorc <- true
-			}
-			fmt.Printf("\nall units are up\n")
+			fmt.Println("All units are up.")
 			return
 		}
 		time.Sleep(time.Second)
 	}
 
-	fmt.Printf("\nsome units have not started: %q.\n Run `planet enter` and check journalctl for details\n", inactiveUnits)
+	fmt.Println("Some units have not started:", inactiveUnits)
+	fmt.Println("Run `planet enter` and check journalctl for details.")
 }
 
 func getInactiveUnits(units map[string]string) (inactive []string) {
 	for name, state := range units {
-		if state == "" {
+		if state != serviceActive {
 			inactive = append(inactive, name)
 		}
 	}
@@ -1051,20 +1021,52 @@ func unitNames(units map[string]string) []string {
 	return out
 }
 
-func getStatus(dataDir string, unit string) (string, error) {
-	out, err := box.CombinedOutput(
-		dataDir, &box.ProcessConfig{
+func getStatus(b *box.Box, unit string) (status string, err error) {
+	out, err := b.CombinedOutput(
+		box.ProcessConfig{
 			User: "root",
 			Args: []string{
 				"/bin/systemctl", "is-active",
 				fmt.Sprintf("%v.service", unit),
-			}})
-	if err != nil {
-		return "", err
+			},
+		})
+	if err == nil {
+		return serviceActive, nil
 	}
-	return strings.TrimSpace(string(out)), nil
+	return strings.TrimSpace(string(out)), trace.Wrap(err)
 }
 
 func isRoot() bool {
 	return os.Geteuid() == 0
 }
+
+var masterUnits = []string{
+	"etcd",
+	"flanneld",
+	"docker",
+	"kube-apiserver",
+	"kube-controller-manager",
+	"kube-scheduler",
+	"kube-proxy",
+	"kube-kubelet",
+}
+
+var nodeUnits = []string{
+	"flanneld",
+	"docker",
+	"kube-proxy",
+	"kube-kubelet",
+	"etcd",
+}
+
+func isProgramNotRunningError(err error) bool {
+	// See: http://refspecs.linuxbase.org/LSB_3.0.0/LSB-PDA/LSB-PDA/iniscrptact.html
+	// LSB 3: program not running
+	const exitProgramNotRunning = 3
+	if status := utils.ExitStatusFromError(err); status != nil {
+		return *status == exitProgramNotRunning
+	}
+	return false
+}
+
+const serviceActive = "active"

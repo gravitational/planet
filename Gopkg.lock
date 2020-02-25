@@ -100,6 +100,28 @@
   version = "v2.0.0"
 
 [[projects]]
+  digest = "1:b54ea408c3a0a82d6d644fbb4468d00b50b1368482abc337aec72b60a3ea7c12"
+  name = "github.com/checkpoint-restore/go-criu"
+  packages = ["rpc"]
+  pruneopts = "UT"
+  revision = "17b0214f6c48980c45dc47ecb0cfd6d9e02df723"
+  version = "v3.11"
+
+[[projects]]
+  branch = "master"
+  digest = "1:d7628070bf9efd402249533897eac50524240b0fdf1d4a122b1b2530f6dcfe4b"
+  name = "github.com/cilium/ebpf"
+  packages = [
+    ".",
+    "asm",
+    "internal",
+    "internal/btf",
+    "internal/unix",
+  ]
+  pruneopts = "UT"
+  revision = "0b019ed01187648cccc659136be86809ad251af7"
+
+[[projects]]
   branch = "master"
   digest = "1:5aaec2559dbb1fde897fd21b4165881391d7f7e069700bef640802068c8e7988"
   name = "github.com/cloudfoundry/gosigar"
@@ -428,12 +450,11 @@
   version = "7.0.7"
 
 [[projects]]
-  digest = "1:418247f700939c99867b42639d985686ba229fd9f8ee9e119c7cc3ffde6e0fe3"
+  digest = "1:7b65e71a43314399db406911332bd338da7021b11e8f9ca9b02e5ab7eb750135"
   name = "github.com/gravitational/trace"
   packages = ["."]
   pruneopts = "UT"
-  revision = "a535a178675fb4a11ba74818491754a8c5575dd6"
-  version = "1.1.8"
+  revision = "f1826cb7433410e4bc7990258a62b0b4468341e0"
 
 [[projects]]
   digest = "1:01cb46669ee737a700ca9a0968ffe2aa820f262e5f49e1e54f8bfc441650ea8e"
@@ -558,6 +579,14 @@
   pruneopts = "UT"
   revision = "1624edc4454b8682399def8740d46db5e4362ba4"
   version = "v1.1.5"
+
+[[projects]]
+  digest = "1:f97285a3b0a496dcf8801072622230d513f69175665d94de60eb042d03387f6c"
+  name = "github.com/julienschmidt/httprouter"
+  packages = ["."]
+  pruneopts = "UT"
+  revision = "348b672cd90d8190f8240323e372ecd1e66b59dc"
+  version = "v1.2.0"
 
 [[projects]]
   digest = "1:31e761d97c76151dde79e9d28964a812c46efc5baee4085b86f68f0c654450de"
@@ -705,20 +734,24 @@
   version = "v1.0.1"
 
 [[projects]]
-  digest = "1:3a7b076f85f7786b280e7b06017cfa7f9379dfde983ac5280eb471d0f8a14baa"
+  digest = "1:4159b851c4878ce551077c9978e0c726fd527bba045f6a9915abb786e74bf0ae"
   name = "github.com/opencontainers/runc"
   packages = [
     "libcontainer",
     "libcontainer/apparmor",
     "libcontainer/cgroups",
+    "libcontainer/cgroups/ebpf",
+    "libcontainer/cgroups/ebpf/devicefilter",
     "libcontainer/cgroups/fs",
+    "libcontainer/cgroups/fs2",
+    "libcontainer/cgroups/fscommon",
     "libcontainer/cgroups/systemd",
     "libcontainer/configs",
     "libcontainer/configs/validate",
-    "libcontainer/criurpc",
     "libcontainer/devices",
     "libcontainer/intelrdt",
     "libcontainer/keys",
+    "libcontainer/logs",
     "libcontainer/mount",
     "libcontainer/nsenter",
     "libcontainer/seccomp",
@@ -726,10 +759,11 @@
     "libcontainer/system",
     "libcontainer/user",
     "libcontainer/utils",
+    "types",
   ]
   pruneopts = "UT"
-  revision = "ccb5efd37fb7c86364786e9137e22948751de7ed"
-  version = "v1.0.0-rc6"
+  revision = "dc9208a3303feef5b3839f4323d9beb36df0a9dd"
+  version = "v1.0.0-rc10"
 
 [[projects]]
   digest = "1:7a58202c5cdf3d2c1eb0621fe369315561cea7f036ad10f0f0479ac36bcc95eb"
@@ -739,15 +773,15 @@
   revision = "29686dbc5559d93fb1ef402eeda3e35c38d75af4"
 
 [[projects]]
-  digest = "1:5c65c485fa22fdfd6937db07aaf879904a4745770ee416d8d1f2a1434dc2d8ce"
+  digest = "1:6748659a7722ee8e719726fb0102a98f3c80103d643ed45f0b6cbb2c82463ceb"
   name = "github.com/opencontainers/selinux"
   packages = [
     "go-selinux",
     "go-selinux/label",
   ]
   pruneopts = "UT"
-  revision = "ba1aefe8057f1d0cfb8e88d0ec1dc85925ef987d"
-  version = "v1.0.0-rc1"
+  revision = "9400b9f1346111e4e265efd9563cd3b4a8ed8ad7"
+  version = "v1.3.2"
 
 [[projects]]
   digest = "1:e5d0bd87abc2781d14e274807a470acd180f0499f8bf5bb18606e9ec22ad9de9"
@@ -766,12 +800,12 @@
   revision = "33fb24c13b99c46c93183c291836c573ac382536"
 
 [[projects]]
-  digest = "1:40e195917a951a8bf867cd05de2a46aaf1806c50cf92eebf4c16f78cd196f747"
+  digest = "1:9e1d37b58d17113ec3cb5608ac0382313c5b59470b94ed97d0976e69c7022314"
   name = "github.com/pkg/errors"
   packages = ["."]
   pruneopts = "UT"
-  revision = "645ef00459ed84a119197bfb8d8205042c6df63d"
-  version = "v0.8.0"
+  revision = "614d223910a179a466c1767a985424175c39b465"
+  version = "v0.9.1"
 
 [[projects]]
   digest = "1:0028cb19b2e4c3112225cd871870f2d9cf49b9b4276531f03438a88e94be86fe"
@@ -1032,14 +1066,14 @@
   revision = "9dcd33a902f40452422c2367fefcb95b54f9f8f8"
 
 [[projects]]
-  digest = "1:a8b6f3b4dc60e2fa266203e846ae58bde7fd2a737201080827375e21455b0d2e"
+  digest = "1:689d11c3e6d3df8a1e2d2ad5a494ea99659d09faf706472bdd64cac7ac5f6887"
   name = "golang.org/x/sys"
   packages = [
     "unix",
     "windows",
   ]
   pruneopts = "UT"
-  revision = "78d5f264b493f125018180c204871ecf58a2dce1"
+  revision = "9eafafc0a87e0fd0aeeba439a4573537970c44c7"
 
 [[projects]]
   digest = "1:a2ab62866c75542dd18d2b069fec854577a20211d7c0ea6ae746072a1dccdd18"
@@ -1436,6 +1470,7 @@
     "github.com/opencontainers/runc/libcontainer/user",
     "github.com/opencontainers/runc/libcontainer/utils",
     "github.com/opencontainers/runtime-spec/specs-go",
+    "github.com/opencontainers/selinux/go-selinux",
     "github.com/pborman/uuid",
     "github.com/prometheus/client_golang/prometheus",
     "github.com/sirupsen/logrus",
