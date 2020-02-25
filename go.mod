@@ -14,6 +14,7 @@ require (
 	github.com/containerd/cgroups v0.0.0-20181219155423-39b18af02c41
 	github.com/containerd/console v0.0.0-20180307192801-cb7008ab3d83
 	github.com/coreos/bbolt v1.3.3 // indirect
+	github.com/coreos/go-semver v0.2.0
 	github.com/coreos/go-systemd v0.0.0-20180511133405-39ca1b05acc7
 	github.com/coreos/pkg v0.0.0-20180108230652-97fdf19511ea // indirect
 	github.com/cyphar/filepath-securejoin v0.2.2 // indirect

@@ -511,6 +511,12 @@ func etcdRestore(file string) error {
 		return trace.Wrap(err)
 	}
 
+	// To be re-entrant, shutdown the etcd server if it's already running
+	err = etcdDisable(true, false)
+	if err != nil {
+		return trace.Wrap(err)
+	}
+
 	// For the restore operation to be re-entrant, delete the data directory so it's re-initialized from scratch
 	err = os.RemoveAll(datadir)
 	if err != nil {
