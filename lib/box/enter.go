@@ -47,6 +47,7 @@ func (err ExitError) Error() string {
 	return "exit status " + strconv.FormatInt(int64(err.Code), 10)
 }
 
+// CombinedOutput runs a process within planet, returning the output as a byte buffer
 func CombinedOutput(dataDir string, cfg *ProcessConfig) ([]byte, error) {
 	var b bytes.Buffer
 	cfg.Out = &b

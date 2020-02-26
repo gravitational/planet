@@ -34,6 +34,7 @@ type signalForwarder struct {
 	signalC chan os.Signal
 }
 
+// NewsignalForwarder creates a default signalForwarder
 func NewSignalForwarder() signalForwarder {
 	s := make(chan os.Signal, 128)
 	signal.Notify(s)
@@ -42,6 +43,8 @@ func NewSignalForwarder() signalForwarder {
 	}
 }
 
+// Forward sets up signal handling from the current process and forwarding to the child process running inside the
+// container
 func (s *signalForwarder) Forward(process *libcontainer.Process, tty *tty) (int, error) {
 	pid, err := process.Pid()
 	if err != nil {

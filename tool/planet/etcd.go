@@ -222,7 +222,7 @@ func etcdInitJoin(ctx context.Context, initMaster string) error {
 		return nil
 	}
 
-	// Gravity will give us a hint about which master to join
+	// Gravity will give us a hint about which master to join if we need to run init
 	if initMaster == "" {
 		return nil
 	}
@@ -275,7 +275,7 @@ func etcdInitJoin(ctx context.Context, initMaster string) error {
 				return trace.Wrap(err)
 			}
 
-			// Add ourselves to the peer list name=https://<addr>:<port>
+			// Add ourselves to the peer list <name>=https://<addr>:<port>
 			peerUrls = append(peerUrls, fmt.Sprintf("%v=%v", env.Get(EnvEtcdMemberName), advertisePeerUrl))
 		}
 
@@ -517,7 +517,7 @@ func etcdRestore(file string) error {
 		return trace.Wrap(err)
 	}
 
-	// For the restore operation to be re-entrant, delete the data directory so it's re-initialized from scratch
+	// For the restore operation to be re-entrant, delete the data directory in-case the step is being re-run
 	err = os.RemoveAll(datadir)
 	if err != nil {
 		return trace.Wrap(err)
