@@ -20,7 +20,7 @@
 #  name = "github.com/x/y"
 #  version = "2.4.0"
 
-ignored = ["github.com/Sirupsen/logrus", "github.com/gravitational/planet/build/*"]
+ignored = ["github.com/gravitational/planet/build/*"]
 
 [prune]
   go-tests = true
@@ -55,10 +55,6 @@ ignored = ["github.com/Sirupsen/logrus", "github.com/gravitational/planet/build/
   revision = "33e07d32887e1e06b7c025f27ce52f62c7990bc0"
 
 [[constraint]]
-  name = "github.com/jonboulle/clockwork"
-  revision = "62fb9bc030d14f92c58df3c1601e50a0e445edef"
-
-[[constraint]]
   name = "github.com/containerd/console"
   revision = "cb7008ab3d8359b78c5f464cb7cf160107ad5925"
 
@@ -72,7 +68,10 @@ ignored = ["github.com/Sirupsen/logrus", "github.com/gravitational/planet/build/
 
 [[constraint]]
   name = "github.com/docker/docker"
-  version = "=1.9.1"
+  source = "github.com/gravitational/moby"
+  # TODO(dmitri): update to release once the bugfix is tagged.
+  # See: https://github.com/moby/moby/issues/39859
+  revision = "2adf434ca69614dfc897dd0acf29018e5590a732"
 
 [[constraint]]
   branch = "master"
