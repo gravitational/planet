@@ -361,7 +361,6 @@
   revision = "c3428bd84c23f0cfcc759f2ef12632be5ff5d95d"
 
 [[projects]]
-  branch = "kevin/master/update-etcd-imports"
   digest = "1:e9719f92f471356932fc96793ac03b3a09f92584d564fb5a9905d7c76eceb56d"
   name = "github.com/gravitational/coordinate"
   packages = [
@@ -369,15 +368,16 @@
     "leader"
   ]
   pruneopts = "UT"
-  revision = "0301100a600cfa7dbd61a3185d9e4d5744d7dc9b"
+  revision = "12af3c0f95932fb6be66ca4e104c0701b256717a"
+  version = "2.0.0"
 
 [[projects]]
-  branch = "kevin/master/preserve-revisions"
-  digest = "1:9b8221e33da8475c836d9878437c04c2e8aaa1819dab0e267203d644c258addf"
+  digest = "1:c260afdfe9e996804d4f70844de6337332cd28df672aa2c5cda4db41af181725"
   name = "github.com/gravitational/etcd-backup"
   packages = ["lib/etcd"]
   pruneopts = "UT"
-  revision = "6b14800665043e1f68d7bf6c27fba5dcede578c9"
+  revision = "5751e027911a2121d4d79439002d6d69d4a54770"
+  version = "0.0.3"
 
 [[projects]]
   branch = "master"

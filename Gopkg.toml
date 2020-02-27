@@ -80,14 +80,12 @@ ignored = ["github.com/Sirupsen/logrus", "github.com/gravitational/planet/build/
   name = "github.com/gravitational/configure"
 
 [[constraint]]
-  #branch = "master"
-  branch = "kevin/master/update-etcd-imports"
   name = "github.com/gravitational/coordinate"
+  version = "=2.0.0"
 
 [[constraint]]
-  #version = "=0.0.2"
+  version = "=0.0.3"
   name = "github.com/gravitational/etcd-backup"
-  branch = "kevin/master/preserve-revisions"
 
 [[constraint]]
   branch = "master"

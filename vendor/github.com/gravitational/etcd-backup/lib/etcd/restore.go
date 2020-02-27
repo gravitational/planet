@@ -89,7 +89,7 @@ func Restore(ctx context.Context, conf RestoreConfig) error {
 		return trace.Wrap(err)
 	}
 	if version.Version != FileVersion {
-		return trace.BadParameter("Unsupported backup version %v. ", version.Version)
+		return trace.BadParameter("Unsupported backup version %v.", version.Version)
 	}
 
 	for {
@@ -133,6 +133,7 @@ func OfflineRestore(ctx context.Context, conf RestoreConfig, dir string) error {
 	if err != nil {
 		return trace.Wrap(err)
 	}
+	defer file.Close()
 
 	decoder := json.NewDecoder(file)
 
@@ -143,7 +144,7 @@ func OfflineRestore(ctx context.Context, conf RestoreConfig, dir string) error {
 		return trace.Wrap(err)
 	}
 	if version.Version != FileVersion {
-		return trace.BadParameter("Unsupported backup version %v. ", version.Version)
+		return trace.BadParameter("Unsupported backup version %v.", version.Version)
 	}
 
 	// Open the etcd database directly
