@@ -565,7 +565,7 @@ func etcdRestore(file string) error {
 		return trace.Wrap(err)
 	}
 
-	// stop etcd now that it's DB is initialized but empty, to run offline restore to the empty database
+	// stop etcd now that its DB is initialized but empty, to run offline restore to the empty database
 	log.Info("Etcd initialization complete, stopping")
 	err = etcdDisable(etcdUpgradeService, stopApiserverFalse)
 	if err != nil {
