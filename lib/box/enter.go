@@ -42,7 +42,7 @@ type ExitError struct {
 	Code int
 }
 
-// Error string
+// Error formats the ExitError as a string with the status code
 func (err ExitError) Error() string {
 	return "exit status " + strconv.FormatInt(int64(err.Code), 10)
 }
@@ -63,11 +63,11 @@ func CombinedOutput(dataDir string, cfg *ProcessConfig) ([]byte, error) {
 func setProcessUserCgroup(c libcontainer.Container, p *libcontainer.Process) {
 	err := setProcessUserCgroupImpl(c, p)
 	if err != nil {
-		log.Warn("Error setting process into user cgroup: ", trace.DebugReport(err))
+		log.WithError(err).Warn("Error setting process into user cgroup")
 	}
 }
 
-// setProcessUserCgroupImpl tries and moves the spawned pid into the cgroup hierarchy for user controlled processes
+// setProcessUserCgroupImpl attempts to move the spawned pid into the cgroup hierarchy for user controlled processes
 // the current implementation has a bit of a race condition, if the launched process spawns children before the process
 // is moved into the cgroup, the children won't get moved to the correct group.
 // TODO(knisbet) does runc support a better way of running a process in a separate cgroup from the container itself
@@ -153,7 +153,7 @@ func Enter(dataDir string, cfg *ProcessConfig) error {
 		return trace.BadParameter("cannot exec into stopped container").AddField("container", container.ID())
 	}
 
-	// Ensure programs running within the container inheret any proxy settings
+	// Ensure programs running within the container inherit any proxy settings
 	env, err := ReadEnvironment(filepath.Join(container.Config().Rootfs, constants.ProxyEnvironmentFile))
 	if err != nil {
 		return trace.Wrap(err)
@@ -216,7 +216,7 @@ func Enter(dataDir string, cfg *ProcessConfig) error {
 		return trace.Wrap(err)
 	}
 
-	logrus.WithField("status", s).Info("container process exited")
+	logrus.WithField("status", s).Info("Container process exited")
 
 	if s != 0 {
 		return trace.Wrap(&ExitError{Code: s})

@@ -43,9 +43,17 @@ import (
 	backup "github.com/gravitational/etcd-backup/lib/etcd"
 	"github.com/gravitational/trace"
 	ps "github.com/mitchellh/go-ps"
+	"github.com/sirupsen/logrus"
 	log "github.com/sirupsen/logrus"
 	etcd "go.etcd.io/etcd/client"
 	etcdv3 "go.etcd.io/etcd/clientv3"
+)
+
+var (
+	etcdUpgradeService = true
+	etcdService        = false
+	stopApiserverTrue  = true
+	stopApiserverFalse = false
 )
 
 // etcdInit detects which version of etcd should be running, and sets symlinks to point
@@ -230,65 +238,76 @@ func etcdInitJoin(ctx context.Context, initMaster string) error {
 	log.WithField("master", initMaster).Info("Joining etcd to existing cluster")
 
 	return trace.Wrap(utils.Retry(ctx, math.MaxInt64, 1*time.Second, func() error {
-		conf := etcdconf.Config{
-			Endpoints: []string{initMaster},
-			KeyFile:   DefaultEtcdctlKeyFile,
-			CertFile:  DefaultEtcdctlCertFile,
-			CAFile:    DefaultEtcdctlCAFile,
-		}
-		client, err := conf.NewClientV3()
-		if err != nil {
-			return trace.Wrap(err)
-		}
-
-		publicIP := env.Get(EnvPublicIP)
-		if len(publicIP) == 0 {
-			return trace.BadParameter("public ip env variable is empty").AddField(EnvPublicIP, publicIP)
-		}
-
-		advertisePeerUrl := fmt.Sprintf("https://%v:2380", publicIP)
-
-		resp, err := client.MemberList(ctx)
-		if err != nil {
-			return trace.Wrap(err)
-		}
-		peerUrls := []string{}
-
-		isMember := false
-		for _, member := range resp.Members {
-			if len(member.PeerURLs) == 0 {
-				continue
-			}
-			peerUrls = append(peerUrls, fmt.Sprintf("%v=%v", member.Name, member.PeerURLs[0]))
-			for _, url := range member.PeerURLs {
-				// we don't need to add the member if this node is already part of the cluster
-				if advertisePeerUrl == url {
-					log.WithField("master", initMaster).Info("Node is already member of cluster")
-					isMember = true
-				}
-			}
-		}
-
-		if !isMember {
-			_, err = client.MemberAdd(ctx, []string{advertisePeerUrl})
-			if err != nil {
-				return trace.Wrap(err)
-			}
-
-			// Add ourselves to the peer list <name>=https://<addr>:<port>
-			peerUrls = append(peerUrls, fmt.Sprintf("%v=%v", env.Get(EnvEtcdMemberName), advertisePeerUrl))
-		}
-
-		// etcd is fairly strict about the initial cluster state matching the state of the cluster the node is joining
-		// to. So we need to overwrite the planet config packages etcd configuration, to match what etcd expects.
-		// format: ETCD_INITIAL_CLUSTER=member1=https://1.0.0.1:2380,member2=https://1.0.0.2:2380
-		etcdInitialClusterEnv := fmt.Sprintf("%v=%q", EnvEtcdInitialCluster, strings.Join(peerUrls, ","))
-		err = utils.SafeWriteFile(DefaultEtcdSyncedEnvFile, []byte(etcdInitialClusterEnv), constants.SharedReadMask)
-		if err != nil {
-			return trace.Wrap(err, "failed to update etcd environment file").AddField("file", DefaultEtcdSyncedEnvFile)
-		}
-		return nil
+		return trace.Wrap(etcdInitJoinImpl(ctx, initMaster, env))
 	}))
+}
+
+func etcdInitJoinImpl(ctx context.Context, initMaster string, env box.EnvVars) error {
+	conf := etcdconf.Config{
+		Endpoints: []string{initMaster},
+		KeyFile:   DefaultEtcdctlKeyFile,
+		CertFile:  DefaultEtcdctlCertFile,
+		CAFile:    DefaultEtcdctlCAFile,
+	}
+	client, err := conf.NewClientV3()
+	if err != nil {
+		return trace.Wrap(err)
+	}
+
+	publicIP := env.Get(EnvPublicIP)
+	if len(publicIP) == 0 {
+		return trace.BadParameter("public ip env variable is empty").AddField(EnvPublicIP, publicIP)
+	}
+
+	advertisePeerURL := fmt.Sprintf("https://%v:2380", publicIP)
+	isMember, peerURLs, err := etcdMemberPeerList(ctx, client, advertisePeerURL)
+	if err != nil {
+		return trace.Wrap(err)
+	}
+
+	if !isMember {
+		_, err = client.MemberAdd(ctx, []string{advertisePeerURL})
+		if err != nil {
+			return trace.Wrap(err)
+		}
+
+		// Add ourselves to the peer list <name>=https://<addr>:<port>
+		peerURLs = append(peerURLs, fmt.Sprintf("%v=%v", env.Get(EnvEtcdMemberName), advertisePeerURL))
+	}
+
+	// etcd is fairly strict about the initial cluster state matching the state of the cluster the node is joining
+	// to. So we need to overwrite the planet config packages etcd configuration, to match what etcd expects.
+	// format: ETCD_INITIAL_CLUSTER=member1=https://1.0.0.1:2380,member2=https://1.0.0.2:2380
+	etcdInitialClusterEnv := fmt.Sprintf("%v=%q", EnvEtcdInitialCluster, strings.Join(peerURLs, ","))
+	err = utils.SafeWriteFile(DefaultEtcdSyncedEnvFile, []byte(etcdInitialClusterEnv), constants.SharedReadMask)
+	if err != nil {
+		return trace.Wrap(err, "failed to update etcd environment file").AddField("file", DefaultEtcdSyncedEnvFile)
+	}
+	return nil
+}
+
+func etcdMemberPeerList(ctx context.Context, client *etcdv3.Client, advertisePeerURL string) (isMember bool, peerURLs []string, err error) {
+	resp, err := client.MemberList(ctx)
+	if err != nil {
+		return false, nil, trace.Wrap(err)
+	}
+
+	for _, member := range resp.Members {
+		if len(member.PeerURLs) == 0 {
+			continue
+		}
+		peerURLs = append(peerURLs, fmt.Sprintf("%v=%v", member.Name, member.PeerURLs[0]))
+		for _, url := range member.PeerURLs {
+			// we don't need to add the member if this node is already part of the cluster
+			if advertisePeerURL == url {
+				log.WithFields(logrus.Fields{
+					"advertise_peer_url": advertisePeerURL,
+				}).Info("This node is already member of cluster")
+				isMember = true
+			}
+		}
+	}
+	return
 }
 
 // etcdUpgrade upgrades / rollbacks the etcd upgrade
@@ -511,8 +530,8 @@ func etcdRestore(file string) error {
 		return trace.Wrap(err)
 	}
 
-	// To be re-entrant, shutdown the etcd server if it's already running
-	err = etcdDisable(true, false)
+	// To be re-entrant, shutdown the etcd server if its already running
+	err = etcdDisable(etcdUpgradeService, stopApiserverFalse)
 	if err != nil {
 		return trace.Wrap(err)
 	}
@@ -523,7 +542,7 @@ func etcdRestore(file string) error {
 		return trace.Wrap(err)
 	}
 
-	err = etcdEnable(true, "")
+	err = etcdEnable(etcdUpgradeService, "")
 	if err != nil {
 		return trace.Wrap(err)
 	}
@@ -548,7 +567,7 @@ func etcdRestore(file string) error {
 
 	// stop etcd now that it's DB is initialized but empty, to run offline restore to the empty database
 	log.Info("Etcd initialization complete, stopping")
-	err = etcdDisable(true, false)
+	err = etcdDisable(etcdUpgradeService, stopApiserverFalse)
 	if err != nil {
 		return trace.Wrap(err)
 	}
@@ -568,7 +587,7 @@ func etcdRestore(file string) error {
 
 	// start etcd for running online restoration of v2 database
 	log.Info("Starting temporary etcd cluster for online restoration")
-	err = etcdEnable(true, "")
+	err = etcdEnable(etcdUpgradeService, "")
 	if err != nil {
 		return trace.Wrap(err)
 	}
@@ -597,7 +616,7 @@ func etcdRestore(file string) error {
 
 	// stop etcd now that the restoration is completed, gravity will coordinate the restart of the cluster
 	log.Info("Stopping temporary etcd cluster")
-	err = etcdDisable(true, false)
+	err = etcdDisable(etcdUpgradeService, stopApiserverFalse)
 	if err != nil {
 		return trace.Wrap(err)
 	}

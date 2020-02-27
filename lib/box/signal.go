@@ -63,7 +63,7 @@ func (s *signalForwarder) Forward(process *libcontainer.Process, tty *tty) (int,
 		case unix.SIGCHLD:
 			exits, err := s.reap()
 			if err != nil {
-				logrus.WithError(err).Error("error repeating child")
+				logrus.WithError(err).Error("error reaping child")
 			}
 			for _, e := range exits {
 				logrus.WithFields(logrus.Fields{
@@ -112,7 +112,7 @@ func (h *signalForwarder) reap() (exits []exit, err error) {
 			if err == unix.ECHILD {
 				return exits, nil
 			}
-			return nil, err
+			return nil, trace.Wrap(err)
 		}
 		if pid <= 0 {
 			return exits, nil

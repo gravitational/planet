@@ -47,7 +47,7 @@ func enterConsole(cmd, user string, tty bool, stdin bool, args []string) error {
 	if tty {
 		s, err := box.GetWinsize(os.Stdin.Fd())
 		if err != nil {
-			return trace.Wrap(err, "error retrieving windows size of tty")
+			return trace.Wrap(err, "error retrieving window size of tty")
 		}
 		cfg.TTY = &box.TTY{H: int(s.Height), W: int(s.Width)}
 	}
@@ -64,7 +64,7 @@ func enter(cfg *box.ProcessConfig) error {
 	cfg.Env.Upsert("BASH_ENV", ContainerEnvironmentFile)
 	cfg.Env.Upsert(EnvKubeConfig, constants.KubectlConfigPath)
 
-	return trace.Wrap(box.Enter("/var/run/planet", cfg))
+	return trace.Wrap(box.Enter(constants.RuncDataDir, cfg))
 }
 
 // stop interacts with systemctl's halt feature

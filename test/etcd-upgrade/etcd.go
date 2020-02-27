@@ -27,8 +27,6 @@ import (
 	"path/filepath"
 	"time"
 
-	"github.com/sirupsen/logrus"
-
 	"github.com/docker/docker/api/types"
 	"github.com/docker/docker/api/types/container"
 	"github.com/docker/docker/api/types/mount"
@@ -38,6 +36,7 @@ import (
 	etcdconf "github.com/gravitational/coordinate/config"
 	backup "github.com/gravitational/etcd-backup/lib/etcd"
 	"github.com/gravitational/trace"
+	"github.com/sirupsen/logrus"
 	clientv2 "go.etcd.io/etcd/client"
 	"go.etcd.io/etcd/clientv3"
 )
@@ -49,14 +48,14 @@ const etcdUpgradePort = "22380"
 
 // TestUpgradeBetweenVersions runs a mock-up of the etcd upgrade process used by planet and triggered by gravity on
 // a multi-node cluster. The overall upgrade process is described by gravity here:
-// https://github.com/gravitational/gravity/blob/master/lib/update/cluster/phases/etcd.go
+// https://github.com/gravitational/gravity/blob/ddcf66dbb599138cc79fc1b9be427d706c6c8fb8/lib/update/cluster/phases/etcd.go
 //
 // The specific items this test is meant to validate are:
 // - Watches - watches rely on the revision for tracking changes, so the upgrade process needs to preserve the revision
 // - Internals - To maintain the revision, we have to internally change the etcd database, so test for stability
 //
 // Note - Only watches against etcd v3 are being fixed, etcd v2 clients need to be restarted when doing an upgrade
-// as in the future, all etcd clients will be upgrades to v3, or we'll use the v2 API emulation with the v3 datastore
+// as in the future, all etcd clients will be upgraded to v3, or we'll use the v2 API emulation with the v3 datastore
 // which as of Jan 2020 is experimental.
 func TestUpgradeBetweenVersions(from, to string) error {
 	etcdDir, err := ioutil.TempDir("", "etcd")
@@ -233,7 +232,6 @@ func startEtcd(c config) error {
 			Cmd:   cmd,
 		},
 		&container.HostConfig{
-			//AutoRemove: true,
 			PortBindings: nat.PortMap{
 				etcdClientPort: []nat.PortBinding{
 					nat.PortBinding{
