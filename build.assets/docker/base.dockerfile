@@ -1,6 +1,8 @@
 FROM planet/os
 
 ARG SECCOMP_VER
+ARG PLANET_UID
+ARG PLANET_GID
 
 # FIXME: allowing downgrades and pinning the version of libip4tc0 for iptables
 # as the package has a dependency on the older version as the one available.
@@ -52,8 +54,8 @@ RUN export DEBIAN_FRONTEND=noninteractive && set -ex && \
         && rm -rf /var/lib/apt/lists/*;
 
 RUN set -ex && \
-    groupadd --system --non-unique --gid 1000 planet && \
-    useradd --system --non-unique --no-create-home -g 1000 -u 1000 planet && \
+    groupadd --system --non-unique --gid ${PLANET_GID} planet && \
+    useradd --system --non-unique --no-create-home -g ${PLANET_GID} -u ${PLANET_UID} planet && \
     groupadd --system docker && \
     usermod -a -G planet root && \
     usermod -a -G docker planet;

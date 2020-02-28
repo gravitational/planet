@@ -8,9 +8,6 @@ FROM quay.io/gravitational/debian-venti:go${GOVERSION}-stretch
 ENV PATH $PATH:$GOPATH/bin:$GOROOT/bin
 ENV GOCACHE ${GOPATH}/.gocache-${GOVERSION}
 
-# Have our own /etc/passwd with users populated from 990 to 1000
-COPY passwd /etc/passwd
-
 RUN apt-get update && apt-get install -y libc6-dev libudev-dev
 
 RUN mkdir -p $GOPATH/src $GOPATH/bin ${GOCACHE};go get github.com/tools/godep

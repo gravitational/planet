@@ -45,6 +45,11 @@ COREDNS_VER := 1.3.1
 NODE_PROBLEM_DETECTOR_VER := v0.6.4
 CNI_VER := 0.7.5
 
+# planet user to use inside the rootfs tarball. This serves as a placeholder
+# and the files will be owned by the actual planet user after extraction
+PLANET_UID ?= 980665
+PLANET_GID ?= 980665
+
 # ETCD Versions to include in the release
 # This list needs to include every version of etcd that we can upgrade from + latest
 # Version log
@@ -171,7 +176,7 @@ os:
 base: os
 	@echo -e "\n---> Making Planet/Base Docker image based on Planet/OS...\n"
 	$(MAKE) -e BUILDIMAGE=$(PLANET_IMAGE) DOCKERFILE=base.dockerfile \
-		EXTRA_ARGS="--build-arg SECCOMP_VER=$(SECCOMP_VER)" \
+		EXTRA_ARGS="--build-arg SECCOMP_VER=$(SECCOMP_VER) --build-arg PLANET_UID=$(PLANET_UID) --build-arg PLANET_GID=$(PLANET_GID)" \
 		make-docker-image
 
 # Build a container used for building the planet image
