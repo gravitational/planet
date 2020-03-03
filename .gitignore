@@ -34,3 +34,4 @@ enter.sh
 make.sh
 
 *.swp
+.vscode
