@@ -327,16 +327,31 @@ func runAgent(conf *agent.Config, monitoringConf *monitoring.Config, leaderConf 
 
 	go runSystemdCgroupCleaner(ctx)
 
-	signalc := make(chan os.Signal, 2)
-	signal.Notify(signalc, os.Interrupt, syscall.SIGTERM)
+	doneC := make(chan struct{})
+	go watchSignals(doneC)
 
 	select {
-	case <-signalc:
+	case <-doneC:
 	case err := <-errorC:
 		return trace.Wrap(err)
 	}
 
 	return nil
+}
+
+func watchSignals(doneC chan<- struct{}) {
+	signalC := make(chan os.Signal, 1)
+	signal.Notify(signalC, os.Interrupt, syscall.SIGTERM, syscall.SIGUSR1)
+
+	for sig := range signalC {
+		if sig == syscall.SIGUSR1 {
+			switchLoggingToDebug()
+			continue
+		}
+		log.WithField("signal", sig).Debug("Received termination signal, will exit.")
+		break
+	}
+	close(doneC)
 }
 
 func leaderPause(publicIP, electionKey string, etcd *etcdconf.Config) error {
