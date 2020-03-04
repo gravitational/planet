@@ -98,6 +98,9 @@ func setProcessUserCgroupImpl(c libcontainer.Container, p *libcontainer.Process)
 	// we want to split off the /sys/fs/cgroup/cpu,cpuacct/ part, so we have just the cgroup structure
 	// (system.slice/-planet-cee2b8a0-c470-44a6-b7cc-1eefbc1cc88c.scope)
 	dirs := strings.Split(cgroupPath, "/")
+	if len(dirs) < 6 {
+		return trace.BadParameter("cgroup path expected to have atleast 6 directory separators '/'").AddField("cgroup_path", cgroupPath)
+	}
 	userPath := filepath.Join("/", path.Join(dirs[5:]...), "user")
 
 	control, err := cgroups.Load(cgroups.V1, cgroups.StaticPath(userPath))

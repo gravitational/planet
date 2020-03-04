@@ -69,7 +69,7 @@ func enter(cfg *box.ProcessConfig) error {
 
 // stop interacts with systemctl's halt feature
 func stop() error {
-	log.Infof("stop planet container")
+	log.Info("stop planet container")
 	cfg := &box.ProcessConfig{
 		User: "root",
 		Args: []string{"/bin/systemctl", "halt"},

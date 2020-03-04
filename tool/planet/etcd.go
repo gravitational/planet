@@ -638,12 +638,15 @@ func waitEtcdHealthy(ctx context.Context, client etcd.Client) error {
 
 	ticker := time.NewTicker(1 * time.Second)
 	defer ticker.Stop()
+
+	var lastError error
 	for {
 		select {
 		case <-ctx.Done():
-			return trace.Wrap(ctx.Err())
+			return trace.Wrap(ctx.Err()).AddField("last_error", trace.Wrap(lastError))
 		case <-ticker.C:
-			leader, _ := mapi.Leader(ctx)
+			var leader *etcd.Member
+			leader, lastError = mapi.Leader(ctx)
 			if leader != nil {
 				return nil
 			}
