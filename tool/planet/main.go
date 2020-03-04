@@ -192,7 +192,7 @@ func run() error {
 		cstatus            = app.Command("status", "Query the planet cluster status")
 		cstatusLocal       = cstatus.Flag("local", "Query the status of the local node").Bool()
 		cstatusRPCPort     = cstatus.Flag("rpc-port", "Local agent RPC port.").Default("7575").Int()
-		cstatusPrettyPrint = cstatus.Flag("pretty", "Pretty-print the output").Default("false").Bool()
+		cstatusPrettyPrint = cstatus.Flag("pretty", "Pretty-print the output").Default("true").Bool()
 		cstatusTimeout     = cstatus.Flag("timeout", "Status timeout").Default(AgentStatusTimeout.String()).Duration()
 		cstatusCAFile      = cstatus.Flag("ca-file", "CA to authenticate server").
 					Default(ClientRPCCAPath).OverrideDefaultFromEnvar(EnvPlanetAgentCAFile).String()
@@ -665,19 +665,23 @@ func setupSignalHandlers(rootfs, socketPath string) {
 		return false
 	}
 
-	var ignores = []os.Signal{syscall.SIGPIPE, syscall.SIGHUP, syscall.SIGUSR1, syscall.SIGUSR2, syscall.SIGALRM}
+	var ignores = []os.Signal{syscall.SIGPIPE, syscall.SIGHUP, syscall.SIGUSR2, syscall.SIGALRM}
 	var terminals = []os.Signal{os.Interrupt, syscall.SIGTERM, syscall.SIGQUIT}
 	c := make(chan os.Signal, 1)
 	go func() {
 		for sig := range c {
 			switch {
+			case sig == syscall.SIGUSR1:
+				// Switch logging to debug
+				log.SetLevel(log.DebugLevel)
+				trace.SetDebug(true)
 			case oneOf(ignores, sig):
-				log.Debugf("received a %s signal, ignoring...", sig)
+				log.Debugf("Received a %s signal, ignoring...", sig)
 			default:
-				log.Infof("received a %s signal, stopping...", sig)
+				log.Infof("Received a %s signal, stopping...", sig)
 				err := stop(rootfs, socketPath)
 				if err != nil {
-					log.Errorf("error: %v", err)
+					log.WithError(err).Error("Failed to stop.")
 				}
 				return
 			}
