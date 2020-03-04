@@ -664,7 +664,6 @@ func setupSignalHandlers(rootfs, socketPath string) {
 		}
 		return false
 	}
-
 	var ignores = []os.Signal{syscall.SIGPIPE, syscall.SIGHUP, syscall.SIGUSR2, syscall.SIGALRM}
 	var terminals = []os.Signal{os.Interrupt, syscall.SIGTERM, syscall.SIGQUIT}
 	c := make(chan os.Signal, 1)
@@ -672,9 +671,7 @@ func setupSignalHandlers(rootfs, socketPath string) {
 		for sig := range c {
 			switch {
 			case sig == syscall.SIGUSR1:
-				// Switch logging to debug
-				log.SetLevel(log.DebugLevel)
-				trace.SetDebug(true)
+				switchLoggingToDebug()
 			case oneOf(ignores, sig):
 				log.Debugf("Received a %s signal, ignoring...", sig)
 			default:
@@ -743,6 +740,11 @@ func initLogging(debug bool) {
 	}
 	log.AddHook(hook)
 	log.SetOutput(ioutil.Discard)
+}
+
+func switchLoggingToDebug() {
+	log.SetLevel(log.DebugLevel)
+	trace.SetDebug(true)
 }
 
 // die prints the error message in red to the console and exits with a non-zero exit code
