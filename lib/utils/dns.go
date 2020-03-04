@@ -72,14 +72,8 @@ func (d *DNSConfig) String() string {
 	if d.Domain != "" {
 		fmt.Fprintf(buf, "%v %v\n", domainParam, d.Domain)
 	}
-	search := []string{}
-	for _, domain := range d.Search {
-		if domain != d.Domain {
-			search = append(search, domain)
-		}
-	}
-	if len(search) != 0 {
-		fmt.Fprintf(buf, "%v %v\n", searchParam, strings.Join(search, " "))
+	if len(d.Search) != 0 {
+		fmt.Fprintf(buf, "%v %v\n", searchParam, strings.Join(d.Search, " "))
 	}
 	for _, server := range d.Servers {
 		fmt.Fprintf(buf, "%v %v\n", nameserverParam, server)
@@ -100,6 +94,7 @@ func DNSReadConfig(rdr io.Reader) (*DNSConfig, error) {
 		Ndots:    1,
 		Timeout:  5,
 		Attempts: 2,
+		Search:   []string{},
 	}
 
 	scanner := bufio.NewScanner(rdr)
@@ -124,7 +119,6 @@ func DNSReadConfig(rdr io.Reader) (*DNSConfig, error) {
 		case domainParam: // set search path to just this domain
 			if len(f) > 1 {
 				conf.Domain = f[1]
-				conf.Search = []string{f[1]}
 			}
 
 		case searchParam: // set search path to given servers

@@ -85,7 +85,7 @@ options ndots:5 timeout:10 attempts:3 rotate
 `,
 			want: &DNSConfig{
 				Servers:    []string{"8.8.8.8", "2001:4860:4860::8888", "fe80::1%lo0"},
-				Search:     []string{"localdomain"},
+				Search:     []string{},
 				Domain:     "localdomain",
 				Ndots:      5,
 				Timeout:    10,
@@ -102,12 +102,13 @@ domain localdomain
 nameserver 8.8.8.8
 `,
 			output: `domain localdomain
+search test invalid
 nameserver 8.8.8.8
 options ndots:1 timeout:5 attempts:2
 `,
 			want: &DNSConfig{
 				Servers:  []string{"8.8.8.8"},
-				Search:   []string{"localdomain"},
+				Search:   []string{"test", "invalid"},
 				Domain:   "localdomain",
 				Ndots:    1,
 				Timeout:  5,
@@ -147,6 +148,7 @@ options ndots:1 timeout:5 attempts:2
 				Ndots:    1,
 				Timeout:  5,
 				Attempts: 2,
+				Search:   []string{},
 			},
 		},
 		{
