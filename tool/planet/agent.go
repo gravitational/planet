@@ -345,7 +345,9 @@ func watchSignals(doneC chan<- struct{}) {
 
 	for sig := range signalC {
 		if sig == syscall.SIGUSR1 {
-			switchLoggingToDebug()
+			debug = !debug
+			switchLoggingToDebug(debug)
+			agent.DebugRPC(debug)
 			continue
 		}
 		log.WithField("signal", sig).Debug("Received termination signal, will exit.")

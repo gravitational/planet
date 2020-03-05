@@ -671,7 +671,8 @@ func setupSignalHandlers(rootfs, socketPath string) {
 		for sig := range c {
 			switch {
 			case sig == syscall.SIGUSR1:
-				switchLoggingToDebug()
+				debug = !debug
+				switchLoggingToDebug(debug)
 			case oneOf(ignores, sig):
 				log.Debugf("Received a %s signal, ignoring...", sig)
 			default:
@@ -742,10 +743,17 @@ func initLogging(debug bool) {
 	log.SetOutput(ioutil.Discard)
 }
 
-func switchLoggingToDebug() {
-	log.SetLevel(log.DebugLevel)
-	trace.SetDebug(true)
+func switchLoggingToDebug(debug bool) {
+	level := log.DebugLevel
+	if !debug {
+		level = log.WarnLevel
+	}
+	log.SetLevel(level)
+	trace.SetDebug(debug)
 }
+
+// debug controls whether the process is running in debug mode
+var debug bool
 
 // die prints the error message in red to the console and exits with a non-zero exit code
 func die(err error) {
