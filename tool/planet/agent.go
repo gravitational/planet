@@ -33,13 +33,13 @@ import (
 	"github.com/gravitational/planet/lib/monitoring"
 	"github.com/gravitational/satellite/lib/rpc/client"
 
-	etcd "github.com/coreos/etcd/client"
 	etcdconf "github.com/gravitational/coordinate/config"
 	"github.com/gravitational/coordinate/leader"
 	"github.com/gravitational/satellite/agent"
 	pb "github.com/gravitational/satellite/agent/proto/agentpb"
 	"github.com/gravitational/trace"
 	log "github.com/sirupsen/logrus"
+	etcd "go.etcd.io/etcd/client"
 )
 
 // LeaderConfig represents configuration for the master election task
@@ -109,8 +109,7 @@ func startLeaderClient(conf *LeaderConfig, errorC chan error) (leaderClient io.C
 	}
 
 	if conf.Role == RoleMaster {
-		var etcdapi etcd.KeysAPI
-		etcdapi = etcd.NewKeysAPI(etcdClient)
+		etcdapi := etcd.NewKeysAPI(etcdClient)
 		// Set initial value of election participation mode
 		_, err = etcdapi.Set(context.TODO(), conf.ElectionKey,
 			strconv.FormatBool(conf.ElectionEnabled),

@@ -76,6 +76,14 @@ const (
 
 	// HTTPTimeout specifies the default HTTP timeout for checks
 	HTTPTimeout = 10 * time.Second
+
+	// ProxyEnvironmentFile is an environment file with outbound proxy options
+	// Note: these settings are separate from container-environment because not all processes should load the proxy
+	// settings
+	ProxyEnvironmentFile = "/etc/proxy-environment"
+
+	// RuncDataDir is the directory used to store runc runtime data within planet
+	RuncDataDir = "/var/run/planet"
 )
 
 var (

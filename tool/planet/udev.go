@@ -31,7 +31,7 @@ import (
 
 // newUdevListener creates a new udev event listener listening
 // for events on block devices of type `disk`
-func newUdevListener(rootfs, socketPath string) (*udevListener, error) {
+func newUdevListener() (*udevListener, error) {
 	udev := udev.Udev{}
 	monitor := udev.NewMonitorFromNetlink("udev")
 	doneC := make(chan struct{})
@@ -46,11 +46,9 @@ func newUdevListener(rootfs, socketPath string) (*udevListener, error) {
 	}
 
 	listener := &udevListener{
-		rootfs:     rootfs,
-		socketPath: socketPath,
-		monitor:    monitor,
-		doneC:      doneC,
-		recvC:      recvC,
+		monitor: monitor,
+		doneC:   doneC,
+		recvC:   recvC,
 	}
 	go listener.loop()
 
@@ -71,11 +69,9 @@ func (r *udevListener) Close() error {
 // udevListener defines the task of listening to udev events
 // and dispatching corresponding device commands into the planet container
 type udevListener struct {
-	rootfs     string
-	socketPath string
-	monitor    *udev.Monitor
-	doneC      chan struct{}
-	recvC      <-chan *udev.Device
+	monitor *udev.Monitor
+	doneC   chan struct{}
+	recvC   <-chan *udev.Device
 }
 
 // loop runs the actual udev event loop
@@ -112,14 +108,16 @@ func (r *udevListener) createDevice(device *configs.Device) error {
 		return trace.Wrap(err)
 	}
 
-	return enter(r.rootfs, r.socketPath, deviceCmd("add", "--data", string(deviceJson)))
+	err = enter(deviceCmd("add", "--data", string(deviceJson)))
+	return trace.Wrap(err)
 }
 
 // removeDevice dispatches a command to remove a device in the container
 func (r *udevListener) removeDevice(node string) error {
 	log.Infof("removeDevice: %v", node)
 
-	return enter(r.rootfs, r.socketPath, deviceCmd("remove", "--node", node))
+	err := enter(deviceCmd("remove", "--node", node))
+	return trace.Wrap(err)
 }
 
 // deviceCmd creates a configuration object to invoke the device agent

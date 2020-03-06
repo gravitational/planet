@@ -54,6 +54,10 @@ ignored = ["github.com/gravitational/planet/build/*"]
   name = "github.com/syndtr/gocapability"
   revision = "33e07d32887e1e06b7c025f27ce52f62c7990bc0"
 
+[[override]]
+  name = "github.com/jonboulle/clockwork"
+  revision = "62fb9bc030d14f92c58df3c1601e50a0e445edef"
+
 [[constraint]]
   name = "github.com/containerd/console"
   revision = "cb7008ab3d8359b78c5f464cb7cf160107ad5925"
@@ -62,27 +66,25 @@ ignored = ["github.com/gravitational/planet/build/*"]
   name = "github.com/cenkalti/backoff"
   version = "2.0.0"
 
-[[constraint]]
-  name = "github.com/coreos/etcd"
-  version = "3.3.3"
+[[override]]
+  name = "github.com/etcd-io/etcd"
+  version = "3.4.3"
 
 [[constraint]]
   name = "github.com/docker/docker"
-  source = "github.com/gravitational/moby"
-  # TODO(dmitri): update to release once the bugfix is tagged.
-  # See: https://github.com/moby/moby/issues/39859
-  revision = "2adf434ca69614dfc897dd0acf29018e5590a732"
+  version = "=v19.03.6"
+  source = "github.com/docker/engine"
 
 [[constraint]]
   branch = "master"
   name = "github.com/gravitational/configure"
 
 [[constraint]]
-  branch = "master"
   name = "github.com/gravitational/coordinate"
+  version = "=2.0.0"
 
 [[constraint]]
-  version = "=0.0.2"
+  version = "=0.0.3"
   name = "github.com/gravitational/etcd-backup"
 
 [[constraint]]
@@ -167,3 +169,7 @@ ignored = ["github.com/gravitational/planet/build/*"]
 [[override]]
   name = "github.com/opencontainers/runtime-spec"
   revision = "29686dbc5559d93fb1ef402eeda3e35c38d75af4"
+
+[[override]]
+  name = "google.golang.org/grpc"
+  version = "=v1.26.0"

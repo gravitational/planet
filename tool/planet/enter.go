@@ -19,16 +19,15 @@ package main
 import (
 	"bytes"
 	"os"
-	"path/filepath"
 
-	"github.com/docker/docker/pkg/term"
 	"github.com/gravitational/planet/lib/box"
 	"github.com/gravitational/planet/lib/constants"
+
 	"github.com/gravitational/trace"
 	log "github.com/sirupsen/logrus"
 )
 
-func enterConsole(rootfs, socketPath, cmd, user string, tty bool, stdin bool, args []string) (err error) {
+func enterConsole(cmd, user string, tty bool, stdin bool, args []string) error {
 	cfg := &box.ProcessConfig{
 		Out:  os.Stdout,
 		Args: append([]string{cmd}, args...),
@@ -46,60 +45,31 @@ func enterConsole(rootfs, socketPath, cmd, user string, tty bool, stdin bool, ar
 	}
 
 	if tty {
-		s, err := term.GetWinsize(os.Stdin.Fd())
+		s, err := box.GetWinsize(os.Stdin.Fd())
 		if err != nil {
-			return trace.Wrap(err)
+			return trace.Wrap(err, "error retrieving window size of tty")
 		}
 		cfg.TTY = &box.TTY{H: int(s.Height), W: int(s.Width)}
 	}
 
-	err = enter(rootfs, socketPath, cfg)
-	return err
+	return trace.Wrap(enter(cfg))
 }
 
 // enter initiates the process in the namespaces of the container
 // managed by the planet master process and mantains websocket connection
 // to proxy input and output
-func enter(rootfs, socketPath string, cfg *box.ProcessConfig) error {
-	log.Infof("enter: %v %#v", rootfs, cfg)
-	if cfg.TTY != nil {
-		oldState, err := term.SetRawTerminal(os.Stdin.Fd())
-		if err != nil {
-			return err
-		}
-		defer term.RestoreTerminal(os.Stdin.Fd(), oldState)
-	}
-
-	env, err := box.ReadEnvironment(filepath.Join(rootfs, ProxyEnvironmentFile))
-	if err != nil {
-		return trace.Wrap(err)
-	}
-	for _, e := range env {
-		cfg.Env.Upsert(e.Name, e.Val)
-	}
-
+func enter(cfg *box.ProcessConfig) error {
 	// tell bash to use environment we've created
 	cfg.Env.Upsert("ENV", ContainerEnvironmentFile)
 	cfg.Env.Upsert("BASH_ENV", ContainerEnvironmentFile)
-	cfg.Env.Upsert(EnvEtcdctlCertFile, DefaultEtcdctlCertFile)
-	cfg.Env.Upsert(EnvEtcdctlKeyFile, DefaultEtcdctlKeyFile)
-	cfg.Env.Upsert(EnvEtcdctlCAFile, DefaultEtcdctlCAFile)
-	cfg.Env.Upsert(EnvEtcdctlPeers, DefaultEtcdEndpoints)
 	cfg.Env.Upsert(EnvKubeConfig, constants.KubectlConfigPath)
-	s, err := box.Connect(&box.ClientConfig{
-		Rootfs:     rootfs,
-		SocketPath: socketPath,
-	})
-	if err != nil {
-		return err
-	}
 
-	return s.Enter(*cfg)
+	return trace.Wrap(box.Enter(constants.RuncDataDir, cfg))
 }
 
 // stop interacts with systemctl's halt feature
-func stop(rootfs, socketPath string) error {
-	log.Infof("stop: %v", rootfs)
+func stop() error {
+	log.Info("stop planet container")
 	cfg := &box.ProcessConfig{
 		User: "root",
 		Args: []string{"/bin/systemctl", "halt"},
@@ -107,13 +77,13 @@ func stop(rootfs, socketPath string) error {
 		Out:  os.Stdout,
 	}
 
-	return enter(rootfs, socketPath, cfg)
+	return trace.Wrap(enter(cfg))
 }
 
 // enterCommand is a helper function that runs a command as root
 // in the namespace of planet's container. It returns error
 // if command failed, or command standard output otherwise
-func enterCommand(rootfs, socketPath string, args []string) ([]byte, error) {
+func enterCommand(args []string) ([]byte, error) {
 	buf := &bytes.Buffer{}
 	cfg := &box.ProcessConfig{
 		User: "root",
@@ -121,9 +91,5 @@ func enterCommand(rootfs, socketPath string, args []string) ([]byte, error) {
 		In:   os.Stdin,
 		Out:  buf,
 	}
-	err := enter(rootfs, socketPath, cfg)
-	if err != nil {
-		err = trace.Wrap(err)
-	}
-	return buf.Bytes(), err
+	return buf.Bytes(), trace.Wrap(enter(cfg))
 }

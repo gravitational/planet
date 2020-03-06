@@ -74,7 +74,6 @@ func run() error {
 	var (
 		app             = kingpin.New("planet", "Planet is a Kubernetes delivered as RunC container")
 		debug           = app.Flag("debug", "Enable debug mode").Bool()
-		socketPath      = app.Flag("socket-path", "Path to the socket file").Default("/var/run/planet.socket").String()
 		profileEndpoint = app.Flag("httpprofile", "enable profiling endpoint on specified host/port i.e. localhost:7070").Hidden().String()
 
 		// commands
@@ -231,8 +230,9 @@ func run() error {
 		cetcdDisableUpgrade = cetcdDisable.Flag("upgrade", "disable the upgrade service").Bool()
 		cetcdStopApiserver  = cetcdDisable.Flag("stop-api", "stops the kubernetes API service").Bool()
 
-		cetcdEnable        = cetcd.Command("enable", "Enable etcd on this node")
-		cetcdEnableUpgrade = cetcdEnable.Flag("upgrade", "enable the upgrade service").Bool()
+		cetcdEnable           = cetcd.Command("enable", "Enable etcd on this node")
+		cetcdEnableUpgrade    = cetcdEnable.Flag("upgrade", "enable the upgrade service").Bool()
+		cetcdEnableJoinMaster = cetcdEnable.Flag("join-master", "join this node to an existing master node").String()
 
 		cetcdUpgrade  = cetcd.Command("upgrade", "Upgrade etcd to the latest version")
 		cetcdRollback = cetcd.Command("rollback", "Rollback etcd to the previous release")
@@ -390,14 +390,13 @@ func run() error {
 		if err != nil {
 			break
 		}
-		setupSignalHandlers(rootfs, *socketPath)
+		setupSignalHandlers()
 		initialCluster := *cstartEtcdInitialCluster
 		if initialCluster == nil {
 			initialCluster = *cstartInitialCluster
 		}
 		config := &Config{
 			Rootfs:               rootfs,
-			SocketPath:           *socketPath,
 			Env:                  *cstartEnv,
 			Mounts:               *cstartMounts,
 			Devices:              *cstartDevices,
@@ -457,29 +456,17 @@ func run() error {
 
 	// "enter" command
 	case center.FullCommand():
-		rootfs, err = findRootfs()
-		if err != nil {
-			break
-		}
 		err = enterConsole(
-			rootfs, *socketPath, *centerCmd, *centerUser, !*centerNoTTY, true, extraArgs)
+			*centerCmd, *centerUser, !*centerNoTTY, true, extraArgs)
 
 	// "exec" command
 	case cexec.FullCommand():
-		rootfs, err = findRootfs()
-		if err != nil {
-			break
-		}
 		err = enterConsole(
-			rootfs, *socketPath, *cexecCmd, *cexecUser, *cexecTTY, *cexecStdin, *cexecArgs)
+			*cexecCmd, *cexecUser, *cexecTTY, *cexecStdin, *cexecArgs)
 
 	// "stop" command
 	case cstop.FullCommand():
-		rootfs, err = findRootfs()
-		if err != nil {
-			break
-		}
-		err = stop(rootfs, *socketPath)
+		err = stop()
 
 	// "status" command
 	case cstatus.FullCommand():
@@ -523,7 +510,7 @@ func run() error {
 		err = etcdBackup(*cetcdBackupFile, *cetcdBackupPrefix)
 
 	case cetcdEnable.FullCommand():
-		err = etcdEnable(*cetcdEnableUpgrade)
+		err = etcdEnable(*cetcdEnableUpgrade, *cetcdEnableJoinMaster)
 
 	case cetcdDisable.FullCommand():
 		err = etcdDisable(*cetcdDisableUpgrade, *cetcdStopApiserver)
@@ -544,7 +531,7 @@ func run() error {
 		err = trace.Errorf("unsupported command: %v", cmd)
 	}
 
-	return err
+	return trace.Wrap(err)
 }
 
 const monitoringDbFile = "monitoring.db"
@@ -576,7 +563,8 @@ func selfTest(config *Config, repoDir, spec string, extraArgs []string) error {
 		case <-time.After(idleTimeout):
 			err = trace.Errorf("timed out waiting for units to come up")
 		}
-		stop(config.Rootfs, config.SocketPath)
+		_ = stop()
+
 		ctx.Close()
 	}
 
@@ -658,7 +646,7 @@ func findRootfs() (string, error) {
 // Some signals are handled to avoid the default handling which might be termination (SIGPIPE, SIGHUP, etc)
 // The rest are considered as termination signals and the handler initiates shutdown upon receiving
 // such a signal.
-func setupSignalHandlers(rootfs, socketPath string) {
+func setupSignalHandlers() {
 	oneOf := func(list []os.Signal, sig os.Signal) bool {
 		for _, signal := range list {
 			if signal == sig {
@@ -678,7 +666,7 @@ func setupSignalHandlers(rootfs, socketPath string) {
 				log.Debugf("received a %s signal, ignoring...", sig)
 			default:
 				log.Infof("received a %s signal, stopping...", sig)
-				err := stop(rootfs, socketPath)
+				err := stop()
 				if err != nil {
 					log.Errorf("error: %v", err)
 				}

@@ -3,6 +3,5 @@
 # This is a helper script, to make it easier to access the etcd3 datastore
 #
 
-ETCDCTL_API=3 ETCDCTL_CERT_FILE="" ETCDCTL_KEY_FILE="" ETCDCTL_CA_FILE="" ETCDCTL_PEERS="" \
-HTTP_PROXY="" HTTPS_PROXY="" http_proxy="" https_proxy="" \
+ETCDCTL_API=3 HTTP_PROXY="" HTTPS_PROXY="" http_proxy="" https_proxy="" \
 /usr/bin/etcdctl-cmd --key /var/state/etcd.key --cert /var/state/etcd.cert --cacert /var/state/root.cert "$@"

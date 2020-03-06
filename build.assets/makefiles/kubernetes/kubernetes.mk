@@ -1,6 +1,6 @@
 .PHONY: all
 
-CURL_OPTS := -s
+CURL_OPTS := --retry 100 --retry-delay 0 --connect-timeout 10 --max-time 300 --tlsv1.2 --silent --show-error
 DOWNLOAD_URL := https://storage.googleapis.com/kubernetes-release/release/$(KUBE_VER)/bin/linux/amd64
 REPODIR := $(GOPATH)/src/github.com/kubernetes/kubernetes
 OUTPUTDIR := $(ASSETDIR)/k8s-$(KUBE_VER)

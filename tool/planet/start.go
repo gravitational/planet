@@ -41,7 +41,6 @@ import (
 	"github.com/ghodss/yaml"
 	"github.com/gravitational/trace"
 	"github.com/imdario/mergo"
-	"github.com/opencontainers/runc/libcontainer"
 	log "github.com/sirupsen/logrus"
 	kubeletconfig "k8s.io/kubelet/config/v1beta1"
 )
@@ -258,22 +257,21 @@ func start(config *Config, monitorc chan<- bool) (*runtimeContext, error) {
 	}
 
 	cfg := box.Config{
-		Rootfs:     config.Rootfs,
-		SocketPath: config.SocketPath,
+		Rootfs: config.Rootfs,
 		EnvFiles: []box.EnvFile{
 			{
 				Path: ContainerEnvironmentFile,
 				Env:  config.Env,
 			},
 			{
-				Path: ProxyEnvironmentFile,
+				Path: constants.ProxyEnvironmentFile,
 				Env:  config.ProxyEnv,
 			},
 		},
 		Files:        config.Files,
 		Mounts:       config.Mounts,
 		Devices:      config.Devices,
-		DataDir:      "/var/run/planet",
+		DataDir:      constants.RuncDataDir,
 		InitUser:     "root",
 		InitArgs:     []string{"/bin/systemd"},
 		InitEnv:      []string{"container=docker", "LC_ALL=en_US.UTF-8"},
@@ -281,7 +279,7 @@ func start(config *Config, monitorc chan<- bool) (*runtimeContext, error) {
 	}
 	defer log.Infof("start() is done!")
 
-	listener, err := newUdevListener(config.Rootfs, config.SocketPath)
+	listener, err := newUdevListener()
 	if err != nil {
 		return nil, trace.Wrap(err)
 	}
@@ -300,7 +298,7 @@ func start(config *Config, monitorc chan<- bool) (*runtimeContext, error) {
 		units = appendUnique(units, nodeUnits)
 	}
 
-	go monitorUnits(box.Container, units, monitorc)
+	go monitorUnits(cfg.DataDir, units, monitorc)
 
 	return &runtimeContext{
 		process:  box,
@@ -893,10 +891,6 @@ const (
 	DockerWorkDir            = "/ext/docker"
 	RegistryWorkDir          = "/ext/registry"
 	ContainerEnvironmentFile = "/etc/container-environment"
-	// ProxyEnvironmentFile is an environment file with outbound proxy options
-	// Note: these settings are separate from container-environent because not all processes should load the proxy
-	// settings
-	ProxyEnvironmentFile = "/etc/proxy-environment"
 )
 
 func checkRequiredMounts(cfg *Config) error {
@@ -995,7 +989,7 @@ func appendUnique(a, b []string) []string {
 	return a
 }
 
-func monitorUnits(c libcontainer.Container, units []string, monitorc chan<- bool) {
+func monitorUnits(dataDir string, units []string, monitorc chan<- bool) {
 	if monitorc != nil {
 		defer close(monitorc)
 	}
@@ -1008,7 +1002,7 @@ func monitorUnits(c libcontainer.Container, units []string, monitorc chan<- bool
 	var inactiveUnits []string
 	for i := 0; i < 30; i++ {
 		for _, unit := range units {
-			status, err := getStatus(c, unit)
+			status, err := getStatus(dataDir, unit)
 			if err != nil {
 				log.Infof("error getting status: %v", err)
 			}
@@ -1016,7 +1010,7 @@ func monitorUnits(c libcontainer.Container, units []string, monitorc chan<- bool
 		}
 
 		out := &bytes.Buffer{}
-		fmt.Fprintf(out, "%v", time.Now().Sub(start))
+		fmt.Fprintf(out, "%v", time.Since(start))
 		for _, unit := range units {
 			if unitState[unit] != "" {
 				fmt.Fprintf(out, " %v \x1b[32m[OK]\x1b[0m", unit)
@@ -1057,9 +1051,9 @@ func unitNames(units map[string]string) []string {
 	return out
 }
 
-func getStatus(c libcontainer.Container, unit string) (string, error) {
+func getStatus(dataDir string, unit string) (string, error) {
 	out, err := box.CombinedOutput(
-		c, box.ProcessConfig{
+		dataDir, &box.ProcessConfig{
 			User: "root",
 			Args: []string{
 				"/bin/systemctl", "is-active",

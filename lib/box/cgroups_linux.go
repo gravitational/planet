@@ -67,7 +67,7 @@ func MountCgroups(root string) error {
 		return err
 	}
 	// make sure they're all enabled in kernel:
-	for group, _ := range requiredSet {
+	for group := range requiredSet {
 		if !foundCgroups[group] {
 			return trace.Errorf("cgroup '%v' is requred, but not found in /proc/cgroups", group)
 		}

@@ -23,7 +23,6 @@ import (
 	"io"
 	"io/ioutil"
 	"net"
-	"net/http"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -86,14 +85,38 @@ func (b *Box) Wait() (*os.ProcessState, error) {
 	return st, err
 }
 
+func getLibContainerFactory(dataDir string) (libcontainer.Factory, error) {
+	if !systemd.UseSystemd() {
+		return nil, trace.BadParameter("unable to use systemd for container creation")
+	}
+
+	// Resolve the paths for {newuidmap,newgidmap} from the context of runc,
+	// to avoid doing a path lookup in the nsexec context.
+	// TODO: the binary names are not currently configurable.
+	newuidmap, err := exec.LookPath("newuidmap")
+	if err != nil {
+		newuidmap = ""
+	}
+	newgidmap, err := exec.LookPath("newgidmap")
+	if err != nil {
+		newgidmap = ""
+	}
+
+	factory, err := libcontainer.New(dataDir,
+		libcontainer.SystemdCgroups,
+		libcontainer.NewuidmapPath(newuidmap),
+		libcontainer.NewgidmapPath(newgidmap),
+	)
+	if err != nil {
+		return nil, trace.Wrap(err)
+	}
+	return factory, nil
+}
+
 // Starts the container described by cfg.
 // Returns a Box instance or an error.
 func Start(cfg Config) (*Box, error) {
 	log.Infof("[BOX] starting with config: %#v", cfg)
-
-	if !systemd.UseSystemd() {
-		return nil, trace.BadParameter("unable to use systemd for container creation")
-	}
 
 	rootfs, err := checkPath(cfg.Rootfs, false)
 	if err != nil {
@@ -120,23 +143,7 @@ func Start(cfg Config) (*Box, error) {
 		}
 	}
 
-	// Resolve the paths for {newuidmap,newgidmap} from the context of runc,
-	// to avoid doing a path lookup in the nsexec context.
-	// TODO: the binary names are not currently configurable.
-	newuidmap, err := exec.LookPath("newuidmap")
-	if err != nil {
-		newuidmap = ""
-	}
-	newgidmap, err := exec.LookPath("newgidmap")
-	if err != nil {
-		newgidmap = ""
-	}
-
-	root, err := libcontainer.New(cfg.DataDir,
-		libcontainer.SystemdCgroups,
-		libcontainer.NewuidmapPath(newuidmap),
-		libcontainer.NewgidmapPath(newgidmap),
-	)
+	root, err := getLibContainerFactory(cfg.DataDir)
 	if err != nil {
 		return nil, trace.Wrap(err)
 	}
@@ -170,26 +177,12 @@ func Start(cfg Config) (*Box, error) {
 	}
 	defer func() {
 		if err != nil {
-			container.Destroy()
+			err := container.Destroy()
+			if err != nil {
+				log.WithError(err).Info("error in deferred container destroy")
+			}
 		}
 	}()
-
-	// start the API server
-	socketPath := serverSockPath(cfg.Rootfs, cfg.SocketPath)
-	listener, err := net.Listen("unix", socketPath)
-	if err != nil {
-		return nil, trace.Wrap(err)
-	}
-	defer func() {
-		if err != nil {
-			listener.Close()
-		}
-	}()
-
-	err = startWebServer(listener, container)
-	if err != nil {
-		return nil, trace.Wrap(err)
-	}
 
 	process := &libcontainer.Process{
 		Args:   cfg.InitArgs,
@@ -216,7 +209,6 @@ func Start(cfg Config) (*Box, error) {
 	return &Box{
 		Process:   process,
 		Container: container,
-		listener:  listener,
 	}, nil
 }
 
@@ -479,14 +471,6 @@ func getDeviceInfo(devicePath string) (*configs.Device, error) {
 	}, nil
 }
 
-func getEnvironment(env EnvVars) []string {
-	out := make([]string, len(env))
-	for i, v := range env {
-		out[i] = fmt.Sprintf("%v=%v\n", v.Name, v.Val)
-	}
-	return out
-}
-
 func writeFile(path string, fi File) error {
 	if err := os.MkdirAll(filepath.Dir(path), 0755); err != nil {
 		return trace.Wrap(err)
@@ -578,45 +562,3 @@ func checkPath(path string, executable bool) (absPath string, err error) {
 }
 
 const defaultMountFlags = syscall.MS_NOEXEC | syscall.MS_NOSUID | syscall.MS_NODEV
-
-func writeConfig(target, source string) error {
-	bytes := []byte{}
-	var err error
-	if source != "" {
-		bytes, err = ioutil.ReadFile(source)
-		if err != nil {
-			return err
-		}
-	}
-	if err != nil {
-		return trace.Wrap(ioutil.WriteFile(target, bytes, 0644))
-	}
-	return nil
-}
-
-// startWebServer starts a web server to serve remote process control on the given listener
-// in the specified container.
-// This function leaves a running goroutine behind.
-func startWebServer(listener net.Listener, c libcontainer.Container) error {
-	srv := &http.Server{
-		Handler: NewWebServer(c),
-	}
-	go func() {
-		defer func() {
-			if err := listener.Close(); err != nil {
-				log.Warnf("Failed to remove socket file: %v.", err)
-			}
-		}()
-		if err := srv.Serve(listener); err != nil {
-			log.Warnf("Server finished with %v.", err)
-		}
-	}()
-	return nil
-}
-
-func serverSockPath(rootfs, socketPath string) string {
-	if filepath.IsAbs(socketPath) {
-		return socketPath
-	}
-	return filepath.Join(rootfs, socketPath)
-}

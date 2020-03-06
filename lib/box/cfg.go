@@ -47,10 +47,6 @@ type Config struct {
 	// Rootfs is a root filesystem of the container
 	Rootfs string
 
-	// SocketPath is a path to the socket file for remote command control.
-	// Ignored with systemd socket-activation.
-	SocketPath string
-
 	// Mounts is a list of device/directory/file mounts passed to the server
 	Mounts Mounts
 	// Devices is a list of devices to create inside the container
@@ -59,12 +55,6 @@ type Config struct {
 	Capabilities []string
 	// DataDir is a directory where libcontainer stores the container state
 	DataDir string
-}
-
-// ClientConfig defines a configuration to connect to a running box.
-type ClientConfig struct {
-	Rootfs     string
-	SocketPath string
 }
 
 // File is a file that will be placed in the container before start
@@ -177,9 +167,8 @@ func (vars *EnvVars) Set(v string) error {
 	if err != nil {
 		return trace.Wrap(err)
 	}
-	for _, v := range result {
-		*vars = append(*vars, v)
-	}
+	*vars = append(*vars, result...)
+
 	return nil
 }
 
