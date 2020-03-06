@@ -171,24 +171,20 @@
   version = "v0.2.0"
 
 [[projects]]
-  digest = "1:535e93bf23e41f2cf50a6d7a86a39375565f3c3c980df7ae45d38884c979faff"
+  digest = "1:9cfbf780a6640fe56f95ac3f66adc545f3081791c95ef89d729d98a6f0eefd6b"
   name = "github.com/coreos/go-systemd"
   packages = [
     "dbus",
     "journal",
-    "util",
   ]
   pruneopts = "UT"
   revision = "40e2722dffead74698ca12a750f64ef313ddce05"
   version = "v16"
 
 [[projects]]
-  digest = "1:129a158ba1ebf652f53b189d61dcf9fbfca8ac70b36bcb48a501200a21fb6086"
+  digest = "1:39ff4d4d6baca1ac63c6a03404b761d664be14a71bb5a4aca8fef643d0f66fef"
   name = "github.com/coreos/pkg"
-  packages = [
-    "capnslog",
-    "dlopen",
-  ]
+  packages = ["capnslog"]
   pruneopts = "UT"
   revision = "97fdf19511ea361ae1c100dd393cc47f8dcfa1e1"
   version = "v4"
@@ -426,7 +422,7 @@
   version = "v1.0.0"
 
 [[projects]]
-  digest = "1:4fb9614c81affc3a6f950acc6bbb04d2b4e1a8340360f19f76b06176f50e9f7d"
+  digest = "1:4cced34de45b82081116565e6db47b1883aa4246750b135c936beb2c060dab24"
   name = "github.com/gravitational/satellite"
   packages = [
     "agent",
@@ -446,8 +442,8 @@
     "utils",
   ]
   pruneopts = "UT"
-  revision = "21f725a2ae80506e1fbd54fc9cd7750a38462bf7"
-  version = "7.0.7"
+  revision = "5bb05cd0c683afed2977ac3fe90c25e815f97aae"
+  version = "7.0.8"
 
 [[projects]]
   digest = "1:7b65e71a43314399db406911332bd338da7021b11e8f9ca9b02e5ab7eb750135"
@@ -579,14 +575,6 @@
   pruneopts = "UT"
   revision = "1624edc4454b8682399def8740d46db5e4362ba4"
   version = "v1.1.5"
-
-[[projects]]
-  digest = "1:f97285a3b0a496dcf8801072622230d513f69175665d94de60eb042d03387f6c"
-  name = "github.com/julienschmidt/httprouter"
-  packages = ["."]
-  pruneopts = "UT"
-  revision = "348b672cd90d8190f8240323e372ecd1e66b59dc"
-  version = "v1.2.0"
 
 [[projects]]
   digest = "1:31e761d97c76151dde79e9d28964a812c46efc5baee4085b86f68f0c654450de"
@@ -1118,6 +1106,17 @@
   ]
   pruneopts = "UT"
   revision = "807dcd883420cac3466af9424a593f57de8033eb"
+
+[[projects]]
+  branch = "master"
+  digest = "1:918a46e4a2fb83df33f668f5a6bd51b2996775d073fce1800d3ec01b0a5ddd2b"
+  name = "golang.org/x/xerrors"
+  packages = [
+    ".",
+    "internal",
+  ]
+  pruneopts = "UT"
+  revision = "9bdfabe68543c54f90421aeb9a60ef8061b5b544"
 
 [[projects]]
   digest = "1:6247f76e55a1e1a5c19a81e2d4b4dff6730461eeb5bbb0a16dd4a8ec8637ee93"
