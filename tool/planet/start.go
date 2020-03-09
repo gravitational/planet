@@ -283,7 +283,7 @@ func start(config *Config) (*runtimeContext, error) {
 		SELinux:      config.SELinux,
 	}
 
-	listener, err := newUdevListener()
+	listener, err := newUdevListener(config.SELinux)
 	if err != nil {
 		return nil, trace.Wrap(err)
 	}
@@ -1022,14 +1022,13 @@ func unitNames(units map[string]string) []string {
 }
 
 func getStatus(b *box.Box, unit string) (status string, err error) {
-	out, err := b.CombinedOutput(
-		box.ProcessConfig{
-			User: "root",
-			Args: []string{
-				"/bin/systemctl", "is-active",
-				fmt.Sprintf("%v.service", unit),
-			},
-		})
+	out, err := b.CombinedOutput(box.ProcessConfig{
+		User: "root",
+		Args: []string{
+			"/bin/systemctl", "is-active",
+			unit,
+		},
+	})
 	if err == nil {
 		return serviceActive, nil
 	}

@@ -28,24 +28,20 @@ import (
 	log "github.com/sirupsen/logrus"
 )
 
-// getSELinuxProcLabel returns a new function to compute SELinux labels.
-//
-// The returned function will compute the appropriate SELinux domain for the
+// getSELinuxProcLabel computes the appropriate SELinux domain for the
 // command specified with cmd and fall back to defaults.ContainerProcessLabel
 // if the domain cannot be determined.
 // Assumes SELinux support is on
-func getSELinuxProcLabel(rootfs string) selinuxLabelGetterFunc {
-	return func(cmd string) (label string) {
-		label, err := getProcLabel(filepath.Join(rootfs, cmd))
-		if err != nil {
-			log.WithFields(log.Fields{
-				log.ErrorKey: err,
-				"path":       cmd,
-			}).Warn("Failed to compute process label.")
-			label = defaults.ContainerProcessLabel
-		}
-		return label
+func getSELinuxProcLabel(rootfs, cmd string) (label string) {
+	label, err := getProcLabel(filepath.Join(rootfs, cmd))
+	if err != nil {
+		log.WithFields(log.Fields{
+			log.ErrorKey: err,
+			"path":       cmd,
+		}).Warn("Failed to compute process label.")
+		label = defaults.ContainerProcessLabel
 	}
+	return label
 }
 
 // getProcLabel computes the label for the new process initiating from the file
@@ -58,13 +54,3 @@ func getProcLabel(path string) (label string, err error) {
 	}
 	return string(bytes.TrimSpace(out)), nil
 }
-
-type seLinuxLabelGetter interface {
-	getSELinuxLabel(cmd string) (label string)
-}
-
-func (r selinuxLabelGetterFunc) getSELinuxLabel(cmd string) (label string) {
-	return r(cmd)
-}
-
-type selinuxLabelGetterFunc func(cmd string) (label string)

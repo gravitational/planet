@@ -31,7 +31,6 @@ import (
 	"strconv"
 	"strings"
 	"syscall"
-	"time"
 
 	"github.com/gravitational/planet/lib/box"
 	"github.com/gravitational/planet/lib/constants"
@@ -172,21 +171,24 @@ func run() error {
 		cagentRetention              = cagent.Flag("retention", "Window to retain timeline as a Go duration").Duration()
 
 		// stop a running container
-		cstop = app.Command("stop", "Stop planet container")
+		cstop        = app.Command("stop", "Stop planet container")
+		cstopSELinux = cstop.Flag("selinux", "Turn on SELinux support").Envar(EnvPlanetSELinux).Bool()
 
 		// enter a running container, deprecated, so hide it
-		center      = app.Command("enter", "[DEPRECATED] Enter running planet container").Hidden().Interspersed(false)
-		centerNoTTY = center.Flag("notty", "Do not attach TTY to this process").Bool()
-		centerUser  = center.Flag("user", "User to execute the command").Default("root").String()
-		centerCmd   = center.Arg("cmd", "Command to execute").Default("/bin/bash").String()
+		center        = app.Command("enter", "[DEPRECATED] Enter running planet container").Hidden().Interspersed(false)
+		centerNoTTY   = center.Flag("notty", "Do not attach TTY to this process").Bool()
+		centerUser    = center.Flag("user", "User to execute the command").Default("root").String()
+		centerSELinux = center.Flag("selinux", "Turn on SELinux support").Envar(EnvPlanetSELinux).Bool()
+		centerCmd     = center.Arg("cmd", "Command to execute").Default("/bin/bash").String()
 
 		// exec into running container
-		cexec      = app.Command("exec", "Run a command in a running container").Interspersed(false)
-		cexecTTY   = cexec.Flag("tty", "Allocate a pseudo-TTY").Short('t').Bool()
-		cexecStdin = cexec.Flag("interactive", "Keep stdin open").Short('i').Bool()
-		cexecUser  = cexec.Flag("user", "User to execute the command with").String()
-		cexecCmd   = cexec.Arg("command", "Command to execute").Required().String()
-		cexecArgs  = cexec.Arg("arg", "Additional arguments to command").Strings()
+		cexec        = app.Command("exec", "Run a command in a running container").Interspersed(false)
+		cexecTTY     = cexec.Flag("tty", "Allocate a pseudo-TTY").Short('t').Bool()
+		cexecStdin   = cexec.Flag("interactive", "Keep stdin open").Short('i').Bool()
+		cexecUser    = cexec.Flag("user", "User to execute the command with").String()
+		cexecSELinux = cexec.Flag("selinux", "Turn on SELinux support").Envar(EnvPlanetSELinux).Bool()
+		cexecCmd     = cexec.Arg("command", "Command to execute").Required().String()
+		cexecArgs    = cexec.Arg("arg", "Additional arguments to command").Strings()
 
 		// report status of the cluster
 		cstatus            = app.Command("status", "Query the planet cluster status")
@@ -392,7 +394,7 @@ func run() error {
 		if err != nil {
 			break
 		}
-		setupSignalHandlers()
+		setupSignalHandlers(*cstartSELinux)
 		initialCluster := *cstartEtcdInitialCluster
 		if initialCluster == nil {
 			initialCluster = *cstartInitialCluster
@@ -455,17 +457,29 @@ func run() error {
 
 	// "enter" command
 	case center.FullCommand():
-		err = enterConsole(
-			*centerCmd, *centerUser, !*centerNoTTY, true, extraArgs)
+		err = enterConsole(enterConfig{
+			cmd:     *centerCmd,
+			user:    *centerUser,
+			tty:     !*centerNoTTY,
+			stdin:   true,
+			args:    extraArgs,
+			seLinux: *centerSELinux,
+		})
 
 	// "exec" command
 	case cexec.FullCommand():
-		err = enterConsole(
-			*cexecCmd, *cexecUser, *cexecTTY, *cexecStdin, *cexecArgs)
+		err = enterConsole(enterConfig{
+			cmd:     *cexecCmd,
+			user:    *cexecUser,
+			tty:     *cexecTTY,
+			stdin:   *cexecStdin,
+			args:    *cexecArgs,
+			seLinux: *cexecSELinux,
+		})
 
 	// "stop" command
 	case cstop.FullCommand():
-		err = stop()
+		err = stop(*cstopSELinux)
 
 	// "status" command
 	case cstatus.FullCommand():
@@ -610,7 +624,7 @@ func findRootfs() (string, error) {
 // Some signals are handled to avoid the default handling which might be termination (SIGPIPE, SIGHUP, etc)
 // The rest are considered as termination signals and the handler initiates shutdown upon receiving
 // such a signal.
-func setupSignalHandlers() {
+func setupSignalHandlers(seLinux bool) {
 	oneOf := func(list []os.Signal, sig os.Signal) bool {
 		for _, signal := range list {
 			if signal == sig {
@@ -630,7 +644,7 @@ func setupSignalHandlers() {
 				log.Debugf("received a %s signal, ignoring...", sig)
 			default:
 				log.Infof("received a %s signal, stopping...", sig)
-				err := stop()
+				err := stop(seLinux)
 				if err != nil {
 					log.Errorf("error: %v", err)
 				}

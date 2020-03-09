@@ -29,6 +29,9 @@ const (
 	// InitUser specifies the user for the init process
 	InitUser = "root"
 
+	// RuncDataDir is the directory used to store runc runtime data within planet
+	RuncDataDir = "/var/run/planet"
+
 	// ContainerBaseUID specifies the initial user ID for the host-container
 	// mapping
 	ContainerBaseUID = 1000

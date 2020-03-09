@@ -55,7 +55,9 @@ type Box struct {
 	*libcontainer.Process
 	libcontainer.Container
 	listener net.Listener
-	seLinuxLabelGetter
+	config   Config
+	// dataDir specifies the runc-specific data location on host
+	dataDir string
 }
 
 // Close shuts down the box. It is written to be safe to call multiple
@@ -78,12 +80,12 @@ func (b *Box) Close() error {
 // Wait blocks waiting the init process to finish.
 // Returns the state of the init process.
 func (b *Box) Wait() (*os.ProcessState, error) {
-	log.Infof("box.Wait() is called")
-	st, err := b.Process.Wait()
-	if e, ok := err.(*exec.ExitError); ok {
-		return e.ProcessState, nil
+	b.config.Info("Wait.")
+	state, err := b.Process.Wait()
+	if err, ok := err.(*exec.ExitError); ok {
+		return err.ProcessState, nil
 	}
-	return st, err
+	return state, err
 }
 
 func getLibContainerFactory(dataDir string) (libcontainer.Factory, error) {
@@ -117,29 +119,32 @@ func getLibContainerFactory(dataDir string) (libcontainer.Factory, error) {
 // Starts the container described by cfg.
 // Returns a Box instance or an error.
 func Start(cfg Config) (*Box, error) {
-	log.Infof("[BOX] starting with config: %#v", cfg)
+	if err := cfg.checkAndSetDefaults(); err != nil {
+		return nil, trace.Wrap(err)
+	}
+
+	cfg.WithField("config", fmt.Sprintf("%#v", cfg)).Info("Start.")
 
 	rootfs, err := checkPath(cfg.Rootfs, false)
 	if err != nil {
-		return nil, err
+		return nil, trace.Wrap(err)
 	}
-
-	log.Infof("starting container process in '%v'", rootfs)
 
 	if len(cfg.EnvFiles) != 0 {
 		for _, ef := range cfg.EnvFiles {
-			log.Infof("writing environment file: %v", ef.Env)
+			cfg.WithField("env-file", ef.Env).Infof("Write environment file.")
 			if err := WriteEnvironment(filepath.Join(rootfs, ef.Path), ef.Env); err != nil {
-				return nil, err
+				return nil, trace.Wrap(err)
 			}
 		}
 	}
 
 	if len(cfg.Files) != 0 {
 		for _, f := range cfg.Files {
-			log.Infof("writing file to: %v", filepath.Join(rootfs, f.Path))
-			if err := writeFile(filepath.Join(rootfs, f.Path), f); err != nil {
-				return nil, err
+			path := filepath.Join(rootfs, f.Path)
+			cfg.WithField("file", path).Infof("Write file.")
+			if err := writeFile(path, f); err != nil {
+				return nil, trace.Wrap(err)
 			}
 		}
 	}
@@ -180,7 +185,7 @@ func Start(cfg Config) (*Box, error) {
 		if err != nil {
 			err := container.Destroy()
 			if err != nil {
-				log.WithError(err).Info("error in deferred container destroy")
+				cfg.WithError(err).Warn("Failed to destroy container.")
 			}
 		}
 	}()
@@ -205,7 +210,7 @@ func Start(cfg Config) (*Box, error) {
 	if err != nil {
 		return nil, trace.Wrap(err)
 	}
-	log.WithFields(log.Fields{
+	cfg.WithFields(log.Fields{
 		log.ErrorKey: err,
 		"status":     status,
 	}).Info("Start container.")
@@ -213,9 +218,7 @@ func Start(cfg Config) (*Box, error) {
 	box := &Box{
 		Process:   process,
 		Container: container,
-	}, nil
-	if cfg.SELinux {
-		box.seLinuxLabelGetter = getSELinuxProcLabel(config.Rootfs)
+		config:    cfg,
 	}
 	return box, nil
 }

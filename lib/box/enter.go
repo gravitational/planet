@@ -26,19 +26,21 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/containerd/cgroups"
-
 	"github.com/gravitational/planet/lib/constants"
+	"github.com/gravitational/planet/lib/defaults"
+
+	"github.com/containerd/cgroups"
 	"github.com/gravitational/trace"
 	"github.com/opencontainers/runc/libcontainer"
 	"github.com/opencontainers/runc/libcontainer/utils"
-	"github.com/sirupsen/logrus"
+	"github.com/opencontainers/selinux/go-selinux"
 	log "github.com/sirupsen/logrus"
 	"golang.org/x/sys/unix"
 )
 
 // ExitError is an error that describes the event of a process exiting with a non-zero value.
 type ExitError struct {
+	// Code specifies the process exit code
 	Code int
 }
 
@@ -48,14 +50,25 @@ func (err ExitError) Error() string {
 }
 
 // CombinedOutput runs a process within planet, returning the output as a byte buffer
-func CombinedOutput(dataDir string, cfg *ProcessConfig) ([]byte, error) {
-	var b bytes.Buffer
-	cfg.Out = &b
-	err := Enter(dataDir, cfg)
+func CombinedOutput(config EnterConfig) ([]byte, error) {
+	var buf bytes.Buffer
+	config.Process.Out = &buf
+	err := Enter(config)
 	if err != nil {
-		return b.Bytes(), err
+		return buf.Bytes(), err
 	}
-	return b.Bytes(), nil
+	return buf.Bytes(), nil
+}
+
+// CombinedOutput runs a process within planet, returning the output as a byte buffer
+func (b *Box) CombinedOutput(config ProcessConfig) ([]byte, error) {
+	var buf bytes.Buffer
+	config.Out = &buf
+	err := enter(b.dataDir, b.Container, config)
+	if err != nil {
+		return buf.Bytes(), err
+	}
+	return buf.Bytes(), nil
 }
 
 // setProcessUserCgroup sets the provided libcontainer process into the /user cgroup inside the container
@@ -112,80 +125,40 @@ func setProcessUserCgroupImpl(c libcontainer.Container, p *libcontainer.Process)
 }
 
 // Enter is used to exec a process within the running container
-func Enter(dataDir string, cfg *ProcessConfig) error {
-	if b.seLinuxLabelGetter != nil {
-		if cfg.ProcessLabel == "" {
-			cfg.ProcessLabel = b.seLinuxLabelGetter.getSELinuxLabel(cfg.Args[0])
-		}
-	} else {
-		// Empty the label if SELinux has not been enabled
-		cfg.ProcessLabel = ""
+func Enter(config EnterConfig) error {
+	if err := config.checkAndSetDefaults(); err != nil {
+		return trace.Wrap(err)
 	}
-
-	factory, err := getLibContainerFactory(dataDir)
+	container, err := getContainer(config.DataDir)
 	if err != nil {
 		return trace.Wrap(err)
 	}
+	config.Process.ProcessLabel = config.seLinuxProcessLabel(container.Config().Rootfs)
+	return enter(config.DataDir, container, config.Process)
+}
 
-	absRoot, err := filepath.Abs(dataDir)
-	if err != nil {
-		return trace.Wrap(err)
-	}
-
-	list, err := ioutil.ReadDir(absRoot)
-	if err != nil {
-		return trace.Wrap(err)
-	}
-
-	if len(list) == 0 {
-		return trace.BadParameter("planet container not found").AddField("data_dir", dataDir)
-	}
-
-	var container libcontainer.Container
-	var status libcontainer.Status
-	for _, fp := range list {
-		container, err = factory.Load(fp.Name())
-		if err != nil {
-			return trace.Wrap(err)
-		}
-
-		status, err = container.Status()
-		if err != nil {
-			return trace.Wrap(err)
-		}
-
-		// There should only be a single planet container that's running, so exec within the first
-		// running container found
-		if status == libcontainer.Running {
-			break
-		}
-	}
-
-	if status == libcontainer.Stopped {
-		return trace.BadParameter("cannot exec into stopped container").AddField("container", container.ID())
-	}
-
+func enter(dataDir string, container libcontainer.Container, config ProcessConfig) error {
 	// Ensure programs running within the container inherit any proxy settings
 	env, err := ReadEnvironment(filepath.Join(container.Config().Rootfs, constants.ProxyEnvironmentFile))
 	if err != nil {
 		return trace.Wrap(err)
 	}
 	for _, e := range env {
-		if t := cfg.Env.Get(e.Name); t == "" {
-			cfg.Env.Upsert(e.Name, e.Val)
+		if t := config.Env.Get(e.Name); t == "" {
+			config.Env.Upsert(e.Name, e.Val)
 		}
 	}
 
 	p := &libcontainer.Process{
-		Args: cfg.Args,
-		User: cfg.User,
-		Env:  append(cfg.Environment(), defaultProcessEnviron()...),
-		Label:         cfg.ProcessLabel,
+		Args:  config.Args,
+		User:  config.User,
+		Env:   append(config.Environment(), defaultProcessEnviron()...),
+		Label: config.ProcessLabel,
 	}
 
-	if cfg.TTY != nil {
-		p.ConsoleHeight = uint16(cfg.TTY.H)
-		p.ConsoleWidth = uint16(cfg.TTY.W)
+	if config.TTY != nil {
+		p.ConsoleHeight = uint16(config.TTY.H)
+		p.ConsoleWidth = uint16(config.TTY.W)
 	}
 
 	rootuid, err := container.Config().HostRootUID()
@@ -198,7 +171,12 @@ func Enter(dataDir string, cfg *ProcessConfig) error {
 	}
 
 	forwarder := NewSignalForwarder()
-	tty, err := setupIO(p, rootuid, rootgid, cfg.TTY != nil)
+	var tty *tty
+	if config.TTY != nil {
+		tty, err = setupTTYIO(p, rootuid, rootgid)
+	} else {
+		tty, err = setupIO(p, rootuid, rootgid)
+	}
 	if err != nil {
 		return trace.Wrap(err)
 	}
@@ -229,7 +207,7 @@ func Enter(dataDir string, cfg *ProcessConfig) error {
 		return trace.Wrap(err)
 	}
 
-	logrus.WithField("status", s).Info("Container process exited")
+	log.WithField("status", s).Info("Container process exited.")
 
 	if s != 0 {
 		return trace.Wrap(&ExitError{Code: s})
@@ -237,30 +215,99 @@ func Enter(dataDir string, cfg *ProcessConfig) error {
 	return nil
 }
 
-func setupIO(process *libcontainer.Process, rootuid, rootgid int, createtty bool) (*tty, error) {
-	if createtty {
-		t := &tty{}
+// EnterConfig specifies the configuration to execute a command inside the container
+type EnterConfig struct {
+	// Process specifies the process configuration to execute
+	Process ProcessConfig
+	// DataDir specifies the runc-specific data directory
+	DataDir string
+	// SELinux specifies whether SELinux support is on
+	SELinux bool
+}
 
-		parent, child, err := utils.NewSockPair("console")
+func (r *EnterConfig) checkAndSetDefaults() error {
+	if r.DataDir == "" {
+		r.DataDir = defaults.RuncDataDir
+	}
+	return nil
+}
+
+func (r *EnterConfig) seLinuxProcessLabel(rootfs string) (label string) {
+	if !selinux.GetEnabled() || !r.SELinux {
+		// Empty the label if SELinux has not been enabled
+		return ""
+	}
+	if r.Process.ProcessLabel == "" {
+		return getSELinuxProcLabel(rootfs, r.Process.Args[0])
+	}
+	// Use existing label if specified
+	return r.Process.ProcessLabel
+}
+
+func getContainer(dataDir string) (libcontainer.Container, error) {
+	factory, err := getLibContainerFactory(dataDir)
+	if err != nil {
+		return nil, trace.Wrap(err)
+	}
+	absRoot, err := filepath.Abs(dataDir)
+	if err != nil {
+		return nil, trace.Wrap(err)
+	}
+	files, err := ioutil.ReadDir(absRoot)
+	if err != nil {
+		return nil, trace.Wrap(err)
+	}
+	if len(files) == 0 {
+		return nil, trace.NotFound("planet container not found").AddField("data_dir", dataDir)
+	}
+	var container libcontainer.Container
+	var status libcontainer.Status
+	for _, file := range files {
+		container, err = factory.Load(file.Name())
 		if err != nil {
-			return nil, err
+			return nil, trace.Wrap(err)
 		}
 
-		process.ConsoleSocket = child
-		t.postStart = append(t.postStart, parent, child)
-		t.consoleC = make(chan error, 1)
+		status, err = container.Status()
+		if err != nil {
+			return nil, trace.Wrap(err)
+		}
 
-		go func() {
-			if err := t.recvtty(process, parent); err != nil {
-				t.consoleC <- err
-			}
-			t.consoleC <- nil
-		}()
+		// There should only be a single planet container that's running, so exec within the first
+		// running container found
+		if status == libcontainer.Running {
+			break
+		}
+	}
+	if status == libcontainer.Stopped {
+		return nil, trace.BadParameter("cannot exec into stopped container").AddField("container", container.ID())
+	}
+	return container, nil
+}
 
-		return t, nil
+func setupTTYIO(process *libcontainer.Process, rootuid, rootgid int) (*tty, error) {
+	t := &tty{}
+
+	parent, child, err := utils.NewSockPair("console")
+	if err != nil {
+		return nil, err
 	}
 
-	// not tty access
+	process.ConsoleSocket = child
+	t.postStart = append(t.postStart, parent, child)
+	t.consoleC = make(chan error, 1)
+
+	go func() {
+		if err := t.recvtty(process, parent); err != nil {
+			t.consoleC <- err
+		}
+		t.consoleC <- nil
+	}()
+
+	return t, nil
+}
+
+func setupIO(process *libcontainer.Process, rootuid, rootgid int) (*tty, error) {
 	i, err := process.InitializeIO(rootuid, rootgid)
 	if err != nil {
 		return nil, trace.Wrap(err)

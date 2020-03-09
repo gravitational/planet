@@ -27,9 +27,12 @@ import (
 	"unicode"
 
 	"github.com/gravitational/configure/cstrings"
+	"github.com/gravitational/planet/lib/defaults"
 	"github.com/gravitational/trace"
+	log "github.com/sirupsen/logrus"
 )
 
+// Config defines the configuration of the planet container
 type Config struct {
 	// InitArgs lists the command to execute and any arguments
 	InitArgs []string
@@ -44,7 +47,6 @@ type Config struct {
 	Files []File
 	// Rootfs is a root filesystem of the container
 	Rootfs string
-
 	// Mounts is a list of device/directory/file mounts passed to the server
 	Mounts Mounts
 	// Devices is a list of devices to create inside the container
@@ -57,6 +59,24 @@ type Config struct {
 	ProcessLabel string
 	// SELinux turns on SELinux support
 	SELinux bool
+	// FieldLogger specifies the logger
+	log.FieldLogger
+}
+
+func (r *Config) checkAndSetDefaults() error {
+	if len(r.InitArgs) == 0 {
+		return trace.BadParameter("command cannot be empty")
+	}
+	if r.DataDir == "" {
+		r.DataDir = defaults.RuncDataDir
+	}
+	if r.InitUser == "" {
+		r.InitUser = defaults.InitUser
+	}
+	if r.FieldLogger == nil {
+		r.FieldLogger = log.WithField(trace.Component, "box")
+	}
+	return nil
 }
 
 // File is a file that will be placed in the container before start
