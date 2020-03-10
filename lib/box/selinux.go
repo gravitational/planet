@@ -29,7 +29,7 @@ import (
 )
 
 // getSELinuxProcLabel computes the appropriate SELinux domain for the
-// command specified with cmd and fall back to defaults.ContainerProcessLabel
+// command specified with cmd and falls back to defaults.ContainerProcessLabel
 // if the domain cannot be determined.
 // Assumes SELinux support is on
 func getSELinuxProcLabel(rootfs, cmd string) (label string) {

@@ -114,7 +114,7 @@ func (r *udevListener) createDevice(device *configs.Device) error {
 		return trace.Wrap(err)
 	}
 
-	err = enter(deviceCmd(r.seLinux, "add", "--data", string(deviceJson)))
+	err = enter(r.deviceCmd("add", "--data", string(deviceJson)))
 	return trace.Wrap(err)
 }
 
@@ -122,13 +122,13 @@ func (r *udevListener) createDevice(device *configs.Device) error {
 func (r *udevListener) removeDevice(node string) error {
 	log.Infof("removeDevice: %v", node)
 
-	err := enter(deviceCmd(r.seLinux, "remove", "--node", node))
+	err := enter(r.deviceCmd("remove", "--node", node))
 	return trace.Wrap(err)
 }
 
 // deviceCmd creates a configuration object to invoke the device agent
 // with the specified arguments
-func deviceCmd(seLinux bool, args ...string) box.EnterConfig {
+func (r *udevListener) deviceCmd(args ...string) box.EnterConfig {
 	const cmd = "/usr/bin/planet"
 	return box.EnterConfig{
 		Process: box.ProcessConfig{
@@ -138,6 +138,6 @@ func deviceCmd(seLinux bool, args ...string) box.EnterConfig {
 			Out:          os.Stdout,
 			ProcessLabel: constants.ContainerRuntimeProcessLabel,
 		},
-		SELinux: seLinux,
+		SELinux: r.seLinux,
 	}
 }

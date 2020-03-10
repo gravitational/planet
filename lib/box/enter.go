@@ -55,7 +55,7 @@ func CombinedOutput(config EnterConfig) ([]byte, error) {
 	config.Process.Out = &buf
 	err := Enter(config)
 	if err != nil {
-		return buf.Bytes(), err
+		return buf.Bytes(), trace.Wrap(err)
 	}
 	return buf.Bytes(), nil
 }
@@ -66,7 +66,7 @@ func (b *Box) CombinedOutput(config ProcessConfig) ([]byte, error) {
 	config.Out = &buf
 	err := enter(b.dataDir, b.Container, config)
 	if err != nil {
-		return buf.Bytes(), err
+		return buf.Bytes(), trace.Wrap(err)
 	}
 	return buf.Bytes(), nil
 }
@@ -258,7 +258,7 @@ func getContainer(dataDir string) (libcontainer.Container, error) {
 		return nil, trace.Wrap(err)
 	}
 	if len(files) == 0 {
-		return nil, trace.NotFound("planet container not found").AddField("data_dir", dataDir)
+		return nil, trace.NotFound("planet container not found").AddField("data-dir", dataDir)
 	}
 	var container libcontainer.Container
 	var status libcontainer.Status
@@ -276,11 +276,12 @@ func getContainer(dataDir string) (libcontainer.Container, error) {
 		// There should only be a single planet container that's running, so exec within the first
 		// running container found
 		if status == libcontainer.Running {
+			log.WithField("container", container.ID()).Debug("Found running container.")
 			break
 		}
 	}
 	if status == libcontainer.Stopped {
-		return nil, trace.BadParameter("cannot exec into stopped container").AddField("container", container.ID())
+		return nil, trace.BadParameter(errStoppedContainer).AddField("container", container.ID())
 	}
 	return container, nil
 }
@@ -353,3 +354,5 @@ func defaultProcessEnviron() []string {
 		"TERM=xterm", "LC_ALL=en_US.UTF-8",
 	}
 }
+
+const errStoppedContainer = "cannot exec into stopped container. Please start container with `gravity system service start planet` and try again."
