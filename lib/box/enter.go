@@ -253,18 +253,22 @@ func getContainer(dataDir string) (libcontainer.Container, error) {
 	if err != nil {
 		return nil, trace.Wrap(err)
 	}
-	files, err := ioutil.ReadDir(absRoot)
+	dirs, err := ioutil.ReadDir(absRoot)
 	if err != nil {
 		return nil, trace.Wrap(err)
 	}
-	if len(files) == 0 {
+	if len(dirs) == 0 {
 		return nil, trace.NotFound("planet container not found").AddField("data-dir", dataDir)
 	}
 	var container libcontainer.Container
 	var status libcontainer.Status
-	for _, file := range files {
-		container, err = factory.Load(file.Name())
+	for _, dir := range dirs {
+		container, err = factory.Load(dir.Name())
 		if err != nil {
+			if isErrorContainerNotFound(err) {
+				log.WithError(err).WithField("dir", dir.Name()).Warn("Container state directory is empty - will skip.")
+				continue
+			}
 			return nil, trace.Wrap(err)
 		}
 
@@ -280,10 +284,21 @@ func getContainer(dataDir string) (libcontainer.Container, error) {
 			break
 		}
 	}
+	if container == nil {
+		return nil, trace.NotFound("planet container not found")
+	}
 	if status == libcontainer.Stopped {
 		return nil, trace.BadParameter(errStoppedContainer).AddField("container", container.ID())
 	}
 	return container, nil
+}
+
+func isErrorContainerNotFound(err error) bool {
+	errLibc, ok := err.(libcontainer.Error)
+	if !ok {
+		return false
+	}
+	return errLibc.Code() == libcontainer.ContainerNotExists
 }
 
 func setupTTYIO(process *libcontainer.Process, rootuid, rootgid int) (*tty, error) {
