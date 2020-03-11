@@ -345,7 +345,10 @@ func runSystemdCgroupCleaner(ctx context.Context) {
 	for {
 		select {
 		case <-ticker.C:
-			cleanSystemdScopes()
+			err := cleanSystemdScopes()
+			if err != nil {
+				logrus.WithError(err).Warn("Failed to clean systemd scopes that don't contain processes")
+			}
 		case <-ctx.Done():
 			return
 		}
@@ -387,7 +390,7 @@ func cleanSystemdScopes() error {
 
 	for _, path := range paths {
 		unitName := filepath.Base(path)
-		log = log.WithFields(logrus.Fields{
+		log := log.WithFields(logrus.Fields{
 			"path": path,
 			"unit": unitName,
 		})
