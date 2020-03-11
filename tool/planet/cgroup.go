@@ -421,7 +421,7 @@ func cleanSystemdScopes() error {
 		log.WithFields(logrus.Fields{
 			"path": procsPath,
 			"unit": unitName,
-		}).Warn("Stopped systemd scope unit with no pids.")
+		}).Info("Stopped systemd scope unit with no pids.")
 	}
 
 	return nil
