@@ -202,7 +202,8 @@ func Start(cfg Config) (*Box, error) {
 	}
 
 	// Run the container by starting the init process.
-	if err := container.Run(process); err != nil {
+	err = container.Run(process)
+	if err != nil {
 		return nil, trace.Wrap(err)
 	}
 
