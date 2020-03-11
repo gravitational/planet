@@ -340,6 +340,7 @@ func i64(n int64) *int64 {
 // old, and then have systemd remove scopes that do not hold any processes / where all processes have exited.
 func runSystemdCgroupCleaner(ctx context.Context) {
 	ticker := time.NewTicker(15 * time.Minute)
+	defer ticker.Stop()
 
 	for {
 		select {
@@ -352,7 +353,7 @@ func runSystemdCgroupCleaner(ctx context.Context) {
 }
 
 func cleanSystemdScopes() error {
-	log := logrus.WithField(trace.Component, "clean-cgroup")
+	log := logrus.WithField(trace.Component, "cgroup-cleaner")
 
 	conn, err := systemdDbus.New()
 	if err != nil {
@@ -367,7 +368,7 @@ func cleanSystemdScopes() error {
 	root := "/sys/fs/cgroup/systemd/"
 	err = filepath.Walk(root, func(path string, info os.FileInfo, err error) error {
 		if err != nil {
-			return trace.Wrap(err)
+			return trace.ConvertSystemError(err)
 		}
 
 		// A run scope will have a directory name that looks something like run-r2343e8b13fd44b1297e241421fc1f6e3.scope
@@ -385,6 +386,12 @@ func cleanSystemdScopes() error {
 	}
 
 	for _, path := range paths {
+		unitName := filepath.Base(path)
+		log = log.WithFields(logrus.Fields{
+			"path": path,
+			"unit": unitName,
+		})
+
 		// the cgroup virtual filesystem does not report file sizes, so we need to read the cgroup.procs file
 		// to see if there are any contents (any processes listed)
 		// http://man7.org/linux/man-pages/man7/cgroups.7.html
@@ -393,14 +400,12 @@ func cleanSystemdScopes() error {
 		// anteed to be in order.  Nor is it guaranteed to be free of dupli‐
 		// cates.  (For example, a PID may be recycled while reading from the
 		// list.)
-
 		procsPath := filepath.Join(path, "cgroup.procs")
 		pids, err := ioutil.ReadFile(procsPath)
-		if err != nil && !trace.IsNotFound(err) {
-			log.WithFields(logrus.Fields{
-				logrus.ErrorKey: err,
-				"path":          procsPath,
-			}).Warn("Failed to read process list belonging to cgroup.")
+		if err != nil {
+			if !trace.IsNotFound(trace.ConvertSystemError(err)) {
+				log.WithError(err).Warn("Failed to read process list belonging to cgroup.")
+			}
 			continue
 		}
 
@@ -408,20 +413,13 @@ func cleanSystemdScopes() error {
 			continue
 		}
 
-		unitName := filepath.Base(path)
 		_, err = conn.StopUnit(unitName, "replace", nil)
 		if err != nil {
-			log.WithFields(logrus.Fields{
-				logrus.ErrorKey: err,
-				"path":          procsPath,
-				"unit":          unitName,
-			}).Warn("Failed to stop systemd unit.")
+			log.WithError(err).Warn("Failed to stop systemd unit.")
+			continue
 		}
 
-		log.WithFields(logrus.Fields{
-			"path": procsPath,
-			"unit": unitName,
-		}).Info("Stopped systemd scope unit with no pids.")
+		log.Info("Stopped systemd scope unit with no pids.")
 	}
 
 	return nil

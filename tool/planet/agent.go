@@ -314,8 +314,6 @@ func runAgent(conf *agent.Config, monitoringConf *monitoring.Config, leaderConf 
 		}
 	}
 
-	ctx, cancel := context.WithCancel(context.Background())
-	defer cancel()
 	go runSystemdCgroupCleaner(ctx)
 
 	signalc := make(chan os.Signal, 2)
