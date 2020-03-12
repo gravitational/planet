@@ -40,10 +40,10 @@ const (
 
 // Timeout values
 const (
-	// lastSeenTTL specifies the time to live for the stored lastSeen values.
+	// lastSeenTTLSeconds specifies the time to live for the stored lastSeen values.
 	// This ensures agents do not hold on to unused information when a member
 	// leaves the cluster.
-	lastSeenTTL = 3 * time.Minute
+	lastSeenTTLSeconds = 180 // 3 minutes
 
 	// lastSeenCapacity specifies the max number of values that can be stored in
 	// the ttl map.
@@ -51,7 +51,7 @@ const (
 
 	// timelineInitTimeout specifies the amount of time to wait for the
 	// timeline to initialize.
-	timelineInitTimeout = 5 * time.Second
+	timelineInitTimeout = time.Minute
 
 	// updateTimelineTimeout specifies the amount of time to wait for events
 	// to be stored into the timeline.

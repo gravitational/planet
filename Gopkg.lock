@@ -6,7 +6,7 @@
   name = "github.com/Microsoft/go-winio"
   packages = [
     ".",
-    "pkg/guid"
+    "pkg/guid",
   ]
   pruneopts = "UT"
   revision = "6c72808b55902eae4c5943626030429ff20f3b63"
@@ -18,7 +18,7 @@
   name = "github.com/alecthomas/template"
   packages = [
     ".",
-    "parse"
+    "parse",
   ]
   pruneopts = "UT"
   revision = "a0175ee3bccc567396460bf5acd36800cb10c49c"
@@ -69,7 +69,7 @@
     "private/protocol/query/queryutil",
     "private/protocol/rest",
     "private/protocol/xml/xmlutil",
-    "service/sts"
+    "service/sts",
   ]
   pruneopts = "UT"
   revision = "66832f7f150914a46ffbfc03210f3b9cb0e4c005"
@@ -105,7 +105,7 @@
   name = "github.com/cloudfoundry/gosigar"
   packages = [
     ".",
-    "sys/windows"
+    "sys/windows",
   ]
   pruneopts = "UT"
   revision = "50ddd08d81d770b1e0ce2c969a46e46c73580e2a"
@@ -154,7 +154,7 @@
   packages = [
     "dbus",
     "journal",
-    "util"
+    "util",
   ]
   pruneopts = "UT"
   revision = "40e2722dffead74698ca12a750f64ef313ddce05"
@@ -165,7 +165,7 @@
   name = "github.com/coreos/pkg"
   packages = [
     "capnslog",
-    "dlopen"
+    "dlopen",
   ]
   pruneopts = "UT"
   revision = "97fdf19511ea361ae1c100dd393cc47f8dcfa1e1"
@@ -193,7 +193,7 @@
   packages = [
     "digestset",
     "reference",
-    "registry/api/errcode"
+    "registry/api/errcode",
   ]
   pruneopts = "UT"
   revision = "2461543d988979529609e8cb6fca9ca190dc48da"
@@ -220,7 +220,7 @@
     "api/types/versions",
     "api/types/volume",
     "client",
-    "errdefs"
+    "errdefs",
   ]
   pruneopts = "UT"
   revision = "5f6d6f3f220355e6db7167ba82bc2def47a013d0"
@@ -233,7 +233,7 @@
   packages = [
     "nat",
     "sockets",
-    "tlsconfig"
+    "tlsconfig",
   ]
   pruneopts = "UT"
   revision = "7395e3f8aa162843a74ed6d48e79627d9792ac55"
@@ -262,6 +262,14 @@
   pruneopts = "UT"
   revision = "5b77d2a35fb0ede96d138fc9a99f5c9b6aef11b4"
   version = "v1.7.0"
+
+[[projects]]
+  digest = "1:af43bdaaf86655a2343f113e9b293bbc16b12099eaeb223982bbe4d4c22ba14d"
+  name = "github.com/fatih/structs"
+  packages = ["."]
+  pruneopts = "UT"
+  revision = "4966fc68f5b7593aafa6cbbba2d65ec6e1416047"
+  version = "v1.1.0"
 
 [[projects]]
   digest = "1:c45cef8e0074ea2f8176a051df38553ba997a3616f1ec2d35222b1cf9864881e"
@@ -293,7 +301,7 @@
     "gogoproto",
     "proto",
     "protoc-gen-gogo/descriptor",
-    "sortkeys"
+    "sortkeys",
   ]
   pruneopts = "UT"
   revision = "636bf0302bc95575d69441b25a2603156ffdddf1"
@@ -307,7 +315,7 @@
     "ptypes",
     "ptypes/any",
     "ptypes/duration",
-    "ptypes/timestamp"
+    "ptypes/timestamp",
   ]
   pruneopts = "UT"
   revision = "aa810b61a9c79d51363740d207bb46cf8e620ed5"
@@ -343,7 +351,7 @@
   packages = [
     "OpenAPIv2",
     "compiler",
-    "extensions"
+    "extensions",
   ]
   pruneopts = "UT"
   revision = "7c663266750e7d82587642f65e60bc4083f1f84e"
@@ -355,7 +363,7 @@
   name = "github.com/gravitational/configure"
   packages = [
     ".",
-    "cstrings"
+    "cstrings",
   ]
   pruneopts = "UT"
   revision = "c3428bd84c23f0cfcc759f2ef12632be5ff5d95d"
@@ -365,7 +373,7 @@
   name = "github.com/gravitational/coordinate"
   packages = [
     "config",
-    "leader"
+    "leader",
   ]
   pruneopts = "UT"
   revision = "12af3c0f95932fb6be66ca4e104c0701b256717a"
@@ -396,7 +404,7 @@
   version = "v1.0.0"
 
 [[projects]]
-  digest = "1:52d099add24a5a0b40f9ba07c1f22ccd7c80249266aac7ac1e72a5e8952a7fde"
+  digest = "1:4fb9614c81affc3a6f950acc6bbb04d2b4e1a8340360f19f76b06176f50e9f7d"
   name = "github.com/gravitational/satellite"
   packages = [
     "agent",
@@ -413,11 +421,11 @@
     "lib/rpc/client",
     "monitoring",
     "monitoring/collector",
-    "utils"
+    "utils",
   ]
   pruneopts = "UT"
-  revision = "7c283e4bbb6ee7abae6a63fb6d1e91e4c00e4064"
-  version = "7.0.6"
+  revision = "21f725a2ae80506e1fbd54fc9cd7750a38462bf7"
+  version = "7.0.7"
 
 [[projects]]
   digest = "1:418247f700939c99867b42639d985686ba229fd9f8ee9e119c7cc3ffde6e0fe3"
@@ -426,14 +434,6 @@
   pruneopts = "UT"
   revision = "a535a178675fb4a11ba74818491754a8c5575dd6"
   version = "1.1.8"
-
-[[projects]]
-  digest = "1:841d5835e94129658adabece66a4cc54d2cec9a40fa8b51743ea35d0519dd6c2"
-  name = "github.com/gravitational/ttlmap"
-  packages = ["."]
-  pruneopts = "UT"
-  revision = "91fd36b9004c1ee5a778739752ea1aba5638c03a"
-  version = "0.0.1"
 
 [[projects]]
   digest = "1:01cb46669ee737a700ca9a0968ffe2aa820f262e5f49e1e54f8bfc441650ea8e"
@@ -513,7 +513,7 @@
   packages = [
     "client",
     "coordinate",
-    "serf"
+    "serf",
   ]
   pruneopts = "UT"
   revision = "11bb88abf7b17f0b794b51416a9107d781e95f35"
@@ -538,7 +538,7 @@
   name = "github.com/jmoiron/sqlx"
   packages = [
     ".",
-    "reflectx"
+    "reflectx",
   ]
   pruneopts = "UT"
   revision = "d161d7a76b5661016ad0b085869f77fd410f3e6a"
@@ -558,6 +558,14 @@
   pruneopts = "UT"
   revision = "1624edc4454b8682399def8740d46db5e4362ba4"
   version = "v1.1.5"
+
+[[projects]]
+  digest = "1:31e761d97c76151dde79e9d28964a812c46efc5baee4085b86f68f0c654450de"
+  name = "github.com/konsorten/go-windows-terminal-sequences"
+  packages = ["."]
+  pruneopts = "UT"
+  revision = "f55edac94c9bbba5d6182a4be46d86a2c9b5b50e"
+  version = "v1.0.2"
 
 [[projects]]
   digest = "1:ca955a9cd5b50b0f43d2cc3aeb35c951473eeca41b34eb67507f1dbcc0542394"
@@ -591,19 +599,19 @@
     "mage",
     "mg",
     "parse",
-    "sh"
+    "sh",
   ]
   pruneopts = "UT"
   revision = "1c36bf78a98209d91af71354deb001cca75e11fc"
   version = "v1.9.0"
 
 [[projects]]
-  branch = "master"
-  digest = "1:1f97d3c252bf9bda0869c228d0ec84a440f1590d6e33e83221c0dff185caad1f"
-  name = "github.com/mailgun/minheap"
+  digest = "1:b787518ff1745b6710250b526c50cb32fa3322127d144bebc3602a606cbe332a"
+  name = "github.com/mailgun/holster"
   packages = ["."]
   pruneopts = "UT"
-  revision = "3dbe6c6bf55f94c5efcf460dc7f86830c21a90b2"
+  revision = "2296d2fb30b143ac13780cb07dd5e75b22d044b1"
+  version = "v3.8.0"
 
 [[projects]]
   digest = "1:c658e84ad3916da105a761660dcaeb01e63416c8ec7bc62256a9b411a05fcd67"
@@ -690,7 +698,7 @@
   name = "github.com/opencontainers/image-spec"
   packages = [
     "specs-go",
-    "specs-go/v1"
+    "specs-go/v1",
   ]
   pruneopts = "UT"
   revision = "d60099175f88c47cd379c4738d158884749ed235"
@@ -717,7 +725,7 @@
     "libcontainer/stacktrace",
     "libcontainer/system",
     "libcontainer/user",
-    "libcontainer/utils"
+    "libcontainer/utils",
   ]
   pruneopts = "UT"
   revision = "ccb5efd37fb7c86364786e9137e22948751de7ed"
@@ -735,7 +743,7 @@
   name = "github.com/opencontainers/selinux"
   packages = [
     "go-selinux",
-    "go-selinux/label"
+    "go-selinux/label",
   ]
   pruneopts = "UT"
   revision = "ba1aefe8057f1d0cfb8e88d0ec1dc85925ef987d"
@@ -779,7 +787,7 @@
   packages = [
     "prometheus",
     "prometheus/internal",
-    "prometheus/promhttp"
+    "prometheus/promhttp",
   ]
   pruneopts = "UT"
   revision = "170205fb58decfd011f1550d4cfb737230d7ae4f"
@@ -800,7 +808,7 @@
   packages = [
     "expfmt",
     "internal/bitbucket.org/ww/goautoneg",
-    "model"
+    "model",
   ]
   pruneopts = "UT"
   revision = "bcb74de08d37a417cb6789eec1d6c810040f0470"
@@ -811,7 +819,7 @@
   packages = [
     ".",
     "internal/fs",
-    "internal/util"
+    "internal/util",
   ]
   pruneopts = "UT"
   revision = "499c85531f756d1129edd26485a5f73871eeb308"
@@ -834,16 +842,16 @@
   version = "v0.9.0"
 
 [[projects]]
-  digest = "1:2dc4fddf37503f952699873c7433efc11b569253ecd90d3ad4d8081431df100f"
+  digest = "1:7eb9685a010202bad7133819945fdae3773630398b7211defb3c1b81d3ec8233"
   name = "github.com/sirupsen/logrus"
   packages = [
     ".",
-    "hooks/syslog"
+    "hooks/syslog",
   ]
   pruneopts = "UT"
-  revision = "dcdb95d728dbb6fe4b9fbe6b3b9d1fb268e68036"
+  revision = "9ebd8dcf727178553227307b785304594abef057"
   source = "github.com/gravitational/logrus"
-  version = "1.0.6"
+  version = "v1.4.3"
 
 [[projects]]
   digest = "1:c1b1102241e7f645bc8e0c22ae352e8f0dc6484b6cb4d132fa9f24174e0119e2"
@@ -873,7 +881,7 @@
   name = "github.com/vishvananda/netlink"
   packages = [
     ".",
-    "nl"
+    "nl",
   ]
   pruneopts = "UT"
   revision = "a2ad57a690f3caf3015351d2d6e1c0b95c349752"
@@ -929,7 +937,7 @@
     "raft/quorum",
     "raft/raftpb",
     "raft/tracker",
-    "version"
+    "version",
   ]
   pruneopts = "UT"
   revision = "c65a9e2dd1fd500ca4191b1f22ddfe5e019b3ca1"
@@ -960,7 +968,7 @@
     "internal/bufferpool",
     "internal/color",
     "internal/exit",
-    "zapcore"
+    "zapcore",
   ]
   pruneopts = "UT"
   revision = "c89bd3c833f56cad3bc6dfa104b9c6d144526145"
@@ -973,7 +981,7 @@
   packages = [
     "ed25519",
     "ed25519/internal/edwards25519",
-    "ssh/terminal"
+    "ssh/terminal",
   ]
   pruneopts = "UT"
   revision = "0c41d7ab0a0ee717d4590a44bcb987dfd9e183eb"
@@ -984,7 +992,7 @@
   name = "golang.org/x/lint"
   packages = [
     ".",
-    "golint"
+    "golint",
   ]
   pruneopts = "UT"
   revision = "910be7a94367618fd0fd25eaabbee4fdc0ac7092"
@@ -1007,7 +1015,7 @@
     "ipv6",
     "lex/httplex",
     "proxy",
-    "trace"
+    "trace",
   ]
   pruneopts = "UT"
   revision = "44b7c21cbf19450f38b337eb6b6fe4f6496fb5b3"
@@ -1018,7 +1026,7 @@
   name = "golang.org/x/oauth2"
   packages = [
     ".",
-    "internal"
+    "internal",
   ]
   pruneopts = "UT"
   revision = "9dcd33a902f40452422c2367fefcb95b54f9f8f8"
@@ -1028,7 +1036,7 @@
   name = "golang.org/x/sys"
   packages = [
     "unix",
-    "windows"
+    "windows",
   ]
   pruneopts = "UT"
   revision = "78d5f264b493f125018180c204871ecf58a2dce1"
@@ -1050,7 +1058,7 @@
     "unicode/bidi",
     "unicode/cldr",
     "unicode/norm",
-    "unicode/rangetable"
+    "unicode/rangetable",
   ]
   pruneopts = "UT"
   revision = "f21a4dfb5e38f5895301dc265a8def02365cc3d0"
@@ -1072,7 +1080,7 @@
     "go/ast/astutil",
     "go/gcexportdata",
     "go/internal/gcimporter",
-    "go/types/typeutil"
+    "go/types/typeutil",
   ]
   pruneopts = "UT"
   revision = "807dcd883420cac3466af9424a593f57de8033eb"
@@ -1087,7 +1095,7 @@
     "internal/log",
     "internal/remote_api",
     "internal/urlfetch",
-    "urlfetch"
+    "urlfetch",
   ]
   pruneopts = "UT"
   revision = "ae0ab99deb4dc413a2b4bd6c8bdd0eb67f1e4d06"
@@ -1142,7 +1150,7 @@
     "serviceconfig",
     "stats",
     "status",
-    "tap"
+    "tap",
   ]
   pruneopts = "UT"
   revision = "f5b0812e6fe574d90da76b205e9eb51f6ddb1919"
@@ -1224,11 +1232,11 @@
     "settings/v1alpha1",
     "storage/v1",
     "storage/v1alpha1",
-    "storage/v1beta1"
+    "storage/v1beta1",
   ]
   pruneopts = "UT"
-  revision = "7ea599edc7fd1198238be103353ca78eef24ae63"
-  version = "kubernetes-1.17.2"
+  revision = "ef0cd3ac5f239dcd07b58dc7f6f0698d7aa74efd"
+  version = "kubernetes-1.17.3"
 
 [[projects]]
   digest = "1:0f033c96b4760c8e854bedf5fb5592a87753e83bdb638aa5eedf75f0b990340c"
@@ -1269,11 +1277,11 @@
     "pkg/util/yaml",
     "pkg/version",
     "pkg/watch",
-    "third_party/forked/golang/reflect"
+    "third_party/forked/golang/reflect",
   ]
   pruneopts = "UT"
-  revision = "79c2a76c473a20cdc4ce59cae4b72529b5d9d16b"
-  version = "kubernetes-1.17.2"
+  revision = "731dcecc205498f52a21b12e311af095efb4b188"
+  version = "kubernetes-1.17.3"
 
 [[projects]]
   digest = "1:17f6827bfb5193011ad024e1a85148a4d6692fce70dfe6ca41a21dc5cf0dbbd6"
@@ -1341,11 +1349,11 @@
     "util/connrotation",
     "util/flowcontrol",
     "util/homedir",
-    "util/keyutil"
+    "util/keyutil",
   ]
   pruneopts = "UT"
-  revision = "bdedab45d4f6c8f8ffacb8e269c89e9bb736320f"
-  version = "kubernetes-1.17.2"
+  revision = "ae93ed28af1516427c76ef4e784b9ba231664e0f"
+  version = "kubernetes-1.17.3"
 
 [[projects]]
   digest = "1:e2999bf1bb6eddc2a6aa03fe5e6629120a53088926520ca3b4765f77d7ff7eab"
@@ -1360,8 +1368,8 @@
   name = "k8s.io/kubelet"
   packages = ["config/v1beta1"]
   pruneopts = "UT"
-  revision = "3d0d0a3a4b4425943a61f8843bbcf9483ef4845a"
-  version = "kubernetes-1.17.2"
+  revision = "d73154502cda9441b37c07b01c8f116ee25d1845"
+  version = "kubernetes-1.17.3"
 
 [[projects]]
   branch = "master"
@@ -1447,7 +1455,7 @@
     "k8s.io/apimachinery/pkg/util/intstr",
     "k8s.io/client-go/kubernetes",
     "k8s.io/client-go/tools/clientcmd",
-    "k8s.io/kubelet/config/v1beta1"
+    "k8s.io/kubelet/config/v1beta1",
   ]
   solver-name = "gps-cdcl"
   solver-version = 1
