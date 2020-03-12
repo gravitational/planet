@@ -356,7 +356,7 @@
   version = "v1.0.0"
 
 [[projects]]
-  digest = "1:211a27fc9d83221977b0a1ca431f5658cc2e5bf7724ce25568777b1c510ded01"
+  digest = "1:48e179285053231c3c586f94cd23f431b1e026da802a596125d3648045f74ce4"
   name = "github.com/gravitational/satellite"
   packages = [
     "agent",
@@ -376,8 +376,8 @@
     "utils",
   ]
   pruneopts = "UT"
-  revision = "9a1e3888bbf7f5f655772794afc630a84893b519"
-  version = "6.1.3"
+  revision = "b7e4e27b51cc50982c51bf109d29d840ee24e5ca"
+  version = "6.1.5"
 
 [[projects]]
   digest = "1:3afdc8c5bad39bda75ede9cd18bf590c385ff9a28c742f7330e3d3e19c685c47"
@@ -527,6 +527,14 @@
   pruneopts = "UT"
   revision = "348b672cd90d8190f8240323e372ecd1e66b59dc"
   version = "v1.2.0"
+
+[[projects]]
+  digest = "1:31e761d97c76151dde79e9d28964a812c46efc5baee4085b86f68f0c654450de"
+  name = "github.com/konsorten/go-windows-terminal-sequences"
+  packages = ["."]
+  pruneopts = "UT"
+  revision = "f55edac94c9bbba5d6182a4be46d86a2c9b5b50e"
+  version = "v1.0.2"
 
 [[projects]]
   digest = "1:ca955a9cd5b50b0f43d2cc3aeb35c951473eeca41b34eb67507f1dbcc0542394"
@@ -763,16 +771,16 @@
   version = "v0.9.0"
 
 [[projects]]
-  digest = "1:2dc4fddf37503f952699873c7433efc11b569253ecd90d3ad4d8081431df100f"
+  digest = "1:7eb9685a010202bad7133819945fdae3773630398b7211defb3c1b81d3ec8233"
   name = "github.com/sirupsen/logrus"
   packages = [
     ".",
     "hooks/syslog",
   ]
   pruneopts = "UT"
-  revision = "dcdb95d728dbb6fe4b9fbe6b3b9d1fb268e68036"
+  revision = "9ebd8dcf727178553227307b785304594abef057"
   source = "github.com/gravitational/logrus"
-  version = "1.0.6"
+  version = "v1.4.3"
 
 [[projects]]
   digest = "1:c1b1102241e7f645bc8e0c22ae352e8f0dc6484b6cb4d132fa9f24174e0119e2"
