@@ -25,7 +25,6 @@ import (
 	"os"
 	"os/signal"
 	"strconv"
-	"sync"
 	"syscall"
 	"time"
 
@@ -147,13 +146,17 @@ func startLeaderClient(ctx context.Context, conf *LeaderConfig, agent agent.Agen
 	// Add a callback to watch for changes to the leader key.
 	// If this node becomes the leader, start a number of additional
 	// services as a master
-	client.AddWatchCallback(conf.LeaderKey, conf.Term/3, func(key, prevVal, newVal string) {
-		logger.WithField("leader-addr", newVal).Info("New leader.")
-		if newVal == conf.PublicIP {
+	client.AddWatchCallback(conf.LeaderKey, conf.Term/3, func(key, prevVal, newLeaderIP string) {
+		logger.WithField("leader-addr", newLeaderIP).Info("New leader.")
+		if newLeaderIP == conf.PublicIP {
+			logger.Info("Start control plane units.")
 			mon.start(ctx)
 			return
 		}
-		mon.stop(ctx)
+		logger.Info("Shut down services.")
+		if err := mon.stop(ctx); err != nil {
+			logger.WithError(err).Warn("Failed to stop control plane units.")
+		}
 	})
 
 	var cancelVoter context.CancelFunc
@@ -169,7 +172,9 @@ func startLeaderClient(ctx context.Context, conf *LeaderConfig, agent agent.Agen
 			}
 		case false:
 			logger.Info("Shut down services until election has been re-enabled.")
-			mon.stop(ctx)
+			if err := mon.stop(ctx); err != nil {
+				logger.WithError(err).Warn("Failed to stop control plane units.")
+			}
 		}
 	}
 	// watch the election mode status and start/stop participation
@@ -183,7 +188,7 @@ func startLeaderClient(ctx context.Context, conf *LeaderConfig, agent agent.Agen
 				logger.Info("Voter is already active.")
 				return
 			}
-			// start election participation
+			logger.Info("Start election participation.")
 			voterCtx, voterCancel = context.WithCancel(context.TODO())
 			if err = client.AddVoter(voterCtx, conf.LeaderKey, conf.PublicIP, conf.Term); err != nil {
 				voterCancel()
@@ -195,7 +200,7 @@ func startLeaderClient(ctx context.Context, conf *LeaderConfig, agent agent.Agen
 				log.Info("No voter active.")
 				return
 			}
-			// stop election participation
+			logger.Info("Stop election participation.")
 			voterCancel()
 			voterCancel = nil
 		}
@@ -276,61 +281,60 @@ func (r *unitMonitor) close() {
 
 func (r *unitMonitor) start(ctx context.Context) {
 	stopC := make(chan string, len(r.units))
-	var wg sync.WaitGroup
-	wg.Add(len(r.units) + 1)
+	// Number of successfully started start jobs
+	var numStarted int
 	for _, unit := range r.units {
-		go func(unit string) {
-			defer wg.Done()
-			if _, err := r.conn.StartUnit(unit, "replace", stopC); err != nil {
-				log.WithError(err).WithField("unit", unit).Warn("Failed to start unit.")
-			}
-		}(unit)
+		logger := log.WithField("unit", unit)
+		logger.Info("Start service.")
+		if _, err := r.conn.StartUnit(unit, "replace", stopC); err != nil {
+			logger.WithError(err).Warn("Failed to start unit.")
+			continue
+		}
+		numStarted += 1
 	}
-	go func() {
-		r.waitForJobs(ctx, stopC)
-		wg.Done()
-
-	}()
-	wg.Wait()
+	if numStarted == 0 {
+		return
+	}
+	r.waitForJobs(ctx, stopC, numStarted)
 }
 
-func (r *unitMonitor) stop(ctx context.Context) {
+func (r *unitMonitor) stop(ctx context.Context) error {
 	stopC := make(chan string, len(r.units))
-	var wg sync.WaitGroup
-	wg.Add(len(r.units) + 1)
+	// Number of successfully started stop jobs
+	var numStopped int
 	for _, unit := range r.units {
-		go func(unit string) {
-			defer wg.Done()
-			if _, err := r.conn.StopUnit(unit, "replace", stopC); err != nil {
-				log.WithError(err).WithField("unit", unit).Warn("Failed to stop unit.")
-			}
-		}(unit)
+		logger := log.WithField("unit", unit)
+		logger.Info("Shut down service.")
+		if _, err := r.conn.StopUnit(unit, "replace", stopC); err != nil {
+			log.WithError(err).WithField("unit", unit).Warn("Failed to stop unit.")
+			continue
+		}
+		numStopped += 1
 	}
-	go func() {
-		defer wg.Done()
-		r.waitForJobs(ctx, stopC)
-		failedUnits, err := r.conn.ListUnitsByPatterns([]string{"failed"}, r.units)
-		if err != nil {
-			log.WithError(err).Warn("Failed to list units by name.")
-			return
+	if numStopped != 0 {
+		r.waitForJobs(ctx, stopC, numStopped)
+	}
+	// NB: ListUnitsByPatterns is not supported on systemd 219
+	failedUnits, err := r.conn.ListUnitsFiltered([]string{"failed"})
+	if err != nil {
+		return trace.Wrap(err)
+	}
+	for _, unit := range failedUnits {
+		if err := r.conn.ResetFailedUnit(unit.Name); err != nil {
+			log.WithError(err).WithField("unit", unit.Name).Warn("Failed to reset failed unit.")
 		}
-		for _, unit := range failedUnits {
-			if err := r.conn.ResetFailedUnit(unit.Name); err != nil {
-				log.WithError(err).WithField("unit", unit.Name).Warn("Failed to reset failed unit.")
-			}
-		}
-	}()
-	wg.Wait()
+	}
+	return nil
 }
 
-func (r *unitMonitor) waitForJobs(ctx context.Context, stopC <-chan string) {
+func (r *unitMonitor) waitForJobs(ctx context.Context, stopC <-chan string, services int) {
+	var done int
 	for {
-		var done int
 		select {
 		case result := <-stopC:
 			log.WithField("result", result).Info("Job done.")
 			done += 1
-			if done >= len(r.units) {
+			if done >= services {
 				return
 			}
 		case <-ctx.Done():
