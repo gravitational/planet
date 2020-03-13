@@ -17,7 +17,6 @@ limitations under the License.
 package main
 
 import (
-	"bytes"
 	"os"
 
 	"github.com/gravitational/planet/lib/box"
@@ -27,29 +26,41 @@ import (
 	log "github.com/sirupsen/logrus"
 )
 
-func enterConsole(cmd, user string, tty bool, stdin bool, args []string) error {
-	cfg := &box.ProcessConfig{
-		Out:  os.Stdout,
-		Args: append([]string{cmd}, args...),
-		Env: box.EnvVars{
-			box.EnvPair{
-				Name: EnvPath,
-				Val:  DefaultEnvPath,
+type enterConfig struct {
+	cmd     string
+	user    string
+	tty     bool
+	stdin   bool
+	args    []string
+	seLinux bool
+}
+
+func enterConsole(config enterConfig) error {
+	cfg := box.EnterConfig{
+		Process: box.ProcessConfig{
+			Out:  os.Stdout,
+			Args: append([]string{config.cmd}, config.args...),
+			Env: box.EnvVars{
+				box.EnvPair{
+					Name: EnvPath,
+					Val:  DefaultEnvPath,
+				},
 			},
 		},
+		SELinux: config.seLinux,
 	}
 
 	// tty allocation implies stdin
-	if stdin || tty {
-		cfg.In = os.Stdin
+	if config.stdin || config.tty {
+		cfg.Process.In = os.Stdin
 	}
 
-	if tty {
+	if config.tty {
 		s, err := box.GetWinsize(os.Stdin.Fd())
 		if err != nil {
 			return trace.Wrap(err, "error retrieving window size of tty")
 		}
-		cfg.TTY = &box.TTY{H: int(s.Height), W: int(s.Width)}
+		cfg.Process.TTY = &box.TTY{H: int(s.Height), W: int(s.Width)}
 	}
 
 	return trace.Wrap(enter(cfg))
@@ -58,38 +69,27 @@ func enterConsole(cmd, user string, tty bool, stdin bool, args []string) error {
 // enter initiates the process in the namespaces of the container
 // managed by the planet master process and mantains websocket connection
 // to proxy input and output
-func enter(cfg *box.ProcessConfig) error {
+func enter(cfg box.EnterConfig) error {
 	// tell bash to use environment we've created
-	cfg.Env.Upsert("ENV", ContainerEnvironmentFile)
-	cfg.Env.Upsert("BASH_ENV", ContainerEnvironmentFile)
-	cfg.Env.Upsert(EnvKubeConfig, constants.KubectlConfigPath)
+	cfg.Process.Env.Upsert("ENV", ContainerEnvironmentFile)
+	cfg.Process.Env.Upsert("BASH_ENV", ContainerEnvironmentFile)
+	cfg.Process.Env.Upsert(EnvKubeConfig, constants.KubectlConfigPath)
 
-	return trace.Wrap(box.Enter(constants.RuncDataDir, cfg))
+	return trace.Wrap(box.Enter(cfg))
 }
 
 // stop interacts with systemctl's halt feature
-func stop() error {
-	log.Info("stop planet container")
-	cfg := &box.ProcessConfig{
-		User: "root",
-		Args: []string{"/bin/systemctl", "halt"},
-		In:   os.Stdin,
-		Out:  os.Stdout,
+func stop(seLinux bool) error {
+	log.Info("Stop container.")
+	cfg := box.EnterConfig{
+		Process: box.ProcessConfig{
+			User:         "root",
+			Args:         []string{"/bin/systemctl", "halt"},
+			In:           os.Stdin,
+			Out:          os.Stdout,
+			ProcessLabel: constants.ContainerInitProcessLabel,
+		},
+		SELinux: seLinux,
 	}
-
 	return trace.Wrap(enter(cfg))
-}
-
-// enterCommand is a helper function that runs a command as root
-// in the namespace of planet's container. It returns error
-// if command failed, or command standard output otherwise
-func enterCommand(args []string) ([]byte, error) {
-	buf := &bytes.Buffer{}
-	cfg := &box.ProcessConfig{
-		User: "root",
-		Args: args,
-		In:   os.Stdin,
-		Out:  buf,
-	}
-	return buf.Bytes(), trace.Wrap(enter(cfg))
 }

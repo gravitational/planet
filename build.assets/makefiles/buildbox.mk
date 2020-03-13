@@ -31,10 +31,16 @@ build: | $(ASSETDIR)
 		planet/buildbox:latest \
 		dumb-init make -e \
 			KUBE_VER=$(KUBE_VER) \
+			HELM_VER=$(HELM_VER) \
+			COREDNS_VER=$(COREDNS_VER) \
+			CNI_VER=$(CNI_VER) \
 			FLANNEL_VER=$(FLANNEL_VER) \
 			NODE_PROBLEM_DETECTOR_VER=$(NODE_PROBLEM_DETECTOR_VER) \
+			DOCKER_VER=$(DOCKER_VER) \
 			ETCD_VER="$(ETCD_VER)" \
 			ETCD_LATEST_VER=$(ETCD_LATEST_VER) \
+			PLANET_UID=$(PLANET_UID) \
+			PLANET_GID=$(PLANET_GID) \
 			-C /assets/makefiles -f planet.mk
 	$(MAKE) -C $(ASSETS)/makefiles/master/k8s-master -e -f containers.mk
 
@@ -52,8 +58,10 @@ planet-image:
 	sed -i "s/REPLACE_NODE_PROBLEM_DETECTOR_LATEST_VERSION/$(NODE_PROBLEM_DETECTOR_VER)/g" $(TARGETDIR)/orbit.manifest.json
 	@echo -e "\n---> Creating Planet image...\n"
 	cd $(TARGETDIR) && fakeroot -- sh -c ' \
-		chown -R 1000:1000 . ; \
+		chown -R $(PLANET_UID):$(PLANET_GID) . ; \
 		chown -R root:root rootfs/sbin/mount.* ; \
+		chown -R root:$(PLANET_GID) rootfs/etc/ ; \
+		chmod -R g+rw rootfs/etc ; \
 		tar -czf $(TARBALL) orbit.manifest.json rootfs'
 	@echo -e "\nDone --> $(TARBALL)"
 

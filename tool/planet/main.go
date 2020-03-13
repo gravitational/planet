@@ -31,7 +31,6 @@ import (
 	"strconv"
 	"strings"
 	"syscall"
-	"time"
 
 	"github.com/gravitational/planet/lib/box"
 	"github.com/gravitational/planet/lib/constants"
@@ -49,6 +48,7 @@ import (
 	"github.com/gravitational/version"
 	serf "github.com/hashicorp/serf/client"
 	"github.com/opencontainers/runc/libcontainer/configs"
+	"github.com/opencontainers/selinux/go-selinux"
 	log "github.com/sirupsen/logrus"
 	logsyslog "github.com/sirupsen/logrus/hooks/syslog"
 	"gopkg.in/alecthomas/kingpin.v2"
@@ -110,9 +110,6 @@ func run() error {
 					String()
 		cstartVxlanPort               = cstart.Flag("vxlan-port", "overlay network port").Default(strconv.Itoa(DefaultVxlanPort)).OverrideDefaultFromEnvar(EnvVxlanPort).Int()
 		cstartServiceUID              = cstart.Flag("service-uid", "service user ID. Service user is used for services that do not require elevated permissions").OverrideDefaultFromEnvar(EnvServiceUID).String()
-		cstartSelfTest                = cstart.Flag("self-test", "Run end-to-end tests on the started cluster").Bool()
-		cstartTestSpec                = cstart.Flag("test-spec", "Regexp of the test specs to run (self-test mode only)").Default("Networking|Pods").String()
-		cstartTestKubeRepoPath        = cstart.Flag("repo-path", "Path to either a k8s repository or a directory with test configuration files (self-test mode only)").String()
 		cstartEtcdProxy               = cstart.Flag("etcd-proxy", "Etcd proxy mode: 'off', 'on' or 'readonly'").OverrideDefaultFromEnvar("PLANET_ETCD_PROXY").String()
 		cstartEtcdMemberName          = cstart.Flag("etcd-member-name", "Etcd member name").OverrideDefaultFromEnvar("PLANET_ETCD_MEMBER_NAME").String()
 		cstartEtcdInitialCluster      = KeyValueList(cstart.Flag("etcd-initial-cluster", "Initial etcd cluster configuration (list of peers)").OverrideDefaultFromEnvar("PLANET_ETCD_INITIAL_CLUSTER"))
@@ -139,6 +136,7 @@ func run() error {
 		cstartKubeletConfig   = cstart.Flag("kubelet-config", "Kubelet configuration as base64-encoded JSON payload").OverrideDefaultFromEnvar(EnvPlanetKubeletConfig).String()
 		cstartCloudConfig     = cstart.Flag("cloud-config", "Cloud configuration as base64-encoded payload").OverrideDefaultFromEnvar(EnvPlanetCloudConfig).String()
 		cstartAllowPrivileged = cstart.Flag("allow-privileged", "Allow privileged containers").OverrideDefaultFromEnvar(EnvPlanetAllowPrivileged).Bool()
+		cstartSELinux         = cstart.Flag("selinux", "Run with SELinux support").Envar(EnvPlanetSELinux).Bool()
 
 		// start the planet agent
 		cagent                 = app.Command("agent", "Start Planet Agent")
@@ -173,21 +171,24 @@ func run() error {
 		cagentRetention              = cagent.Flag("retention", "Window to retain timeline as a Go duration").Duration()
 
 		// stop a running container
-		cstop = app.Command("stop", "Stop planet container")
+		cstop        = app.Command("stop", "Stop planet container")
+		cstopSELinux = cstop.Flag("selinux", "Turn on SELinux support").Envar(EnvPlanetSELinux).Bool()
 
 		// enter a running container, deprecated, so hide it
-		center      = app.Command("enter", "[DEPRECATED] Enter running planet container").Hidden().Interspersed(false)
-		centerNoTTY = center.Flag("notty", "Do not attach TTY to this process").Bool()
-		centerUser  = center.Flag("user", "User to execute the command").Default("root").String()
-		centerCmd   = center.Arg("cmd", "Command to execute").Default("/bin/bash").String()
+		center        = app.Command("enter", "[DEPRECATED] Enter running planet container").Hidden().Interspersed(false)
+		centerNoTTY   = center.Flag("notty", "Do not attach TTY to this process").Bool()
+		centerUser    = center.Flag("user", "User to execute the command").Default("root").String()
+		centerSELinux = center.Flag("selinux", "Turn on SELinux support").Envar(EnvPlanetSELinux).Bool()
+		centerCmd     = center.Arg("cmd", "Command to execute").Default("/bin/bash").String()
 
 		// exec into running container
-		cexec      = app.Command("exec", "Run a command in a running container").Interspersed(false)
-		cexecTTY   = cexec.Flag("tty", "Allocate a pseudo-TTY").Short('t').Bool()
-		cexecStdin = cexec.Flag("interactive", "Keep stdin open").Short('i').Bool()
-		cexecUser  = cexec.Flag("user", "User to execute the command with").String()
-		cexecCmd   = cexec.Arg("command", "Command to execute").Required().String()
-		cexecArgs  = cexec.Arg("arg", "Additional arguments to command").Strings()
+		cexec        = app.Command("exec", "Run a command in a running container").Interspersed(false)
+		cexecTTY     = cexec.Flag("tty", "Allocate a pseudo-TTY").Short('t').Bool()
+		cexecStdin   = cexec.Flag("interactive", "Keep stdin open").Short('i').Bool()
+		cexecUser    = cexec.Flag("user", "User to execute the command with").String()
+		cexecSELinux = cexec.Flag("selinux", "Turn on SELinux support").Envar(EnvPlanetSELinux).Bool()
+		cexecCmd     = cexec.Arg("command", "Command to execute").Required().String()
+		cexecArgs    = cexec.Arg("arg", "Additional arguments to command").Strings()
 
 		// report status of the cluster
 		cstatus            = app.Command("status", "Query the planet cluster status")
@@ -386,11 +387,14 @@ func run() error {
 			err = trace.Errorf("public-ip is not set")
 			break
 		}
+		if *cstartSELinux && !selinux.GetEnabled() {
+			return trace.BadParameter("SELinux support requested but SELinux is not enabled on host")
+		}
 		rootfs, err = findRootfs()
 		if err != nil {
 			break
 		}
-		setupSignalHandlers()
+		setupSignalHandlers(*cstartSELinux)
 		initialCluster := *cstartEtcdInitialCluster
 		if initialCluster == nil {
 			initialCluster = *cstartInitialCluster
@@ -443,12 +447,9 @@ func run() error {
 			KubeletConfig:    *cstartKubeletConfig,
 			CloudConfig:      *cstartCloudConfig,
 			AllowPrivileged:  *cstartAllowPrivileged,
+			SELinux:          *cstartSELinux,
 		}
-		if *cstartSelfTest {
-			err = selfTest(config, *cstartTestKubeRepoPath, *cstartTestSpec, extraArgs)
-		} else {
-			err = startAndWait(config)
-		}
+		err = startAndWait(config)
 
 	// "init" command
 	case cinit.FullCommand():
@@ -456,17 +457,29 @@ func run() error {
 
 	// "enter" command
 	case center.FullCommand():
-		err = enterConsole(
-			*centerCmd, *centerUser, !*centerNoTTY, true, extraArgs)
+		err = enterConsole(enterConfig{
+			cmd:     *centerCmd,
+			user:    *centerUser,
+			tty:     !*centerNoTTY,
+			stdin:   true,
+			args:    extraArgs,
+			seLinux: *centerSELinux,
+		})
 
 	// "exec" command
 	case cexec.FullCommand():
-		err = enterConsole(
-			*cexecCmd, *cexecUser, *cexecTTY, *cexecStdin, *cexecArgs)
+		err = enterConsole(enterConfig{
+			cmd:     *cexecCmd,
+			user:    *cexecUser,
+			tty:     *cexecTTY,
+			stdin:   *cexecStdin,
+			args:    *cexecArgs,
+			seLinux: *cexecSELinux,
+		})
 
 	// "stop" command
 	case cstop.FullCommand():
-		err = stop()
+		err = stop(*cstopSELinux)
 
 	// "status" command
 	case cstatus.FullCommand():
@@ -535,41 +548,6 @@ func run() error {
 }
 
 const monitoringDbFile = "monitoring.db"
-
-func selfTest(config *Config, repoDir, spec string, extraArgs []string) error {
-	var ctx *runtimeContext
-	var err error
-	const idleTimeout = 30 * time.Second
-
-	testConfig := &e2e.Config{
-		KubeMasterAddr: config.MasterIP + ":8080", // FIXME: get from configuration
-		KubeRepoPath:   repoDir,
-	}
-
-	monitorc := make(chan bool, 1)
-	ctx, err = start(config, monitorc)
-	if err == nil {
-		select {
-		case clusterUp := <-monitorc:
-			if clusterUp {
-				if spec != "" {
-					log.Infof("Testing: %s", spec)
-					extraArgs = append(extraArgs, fmt.Sprintf("-focus=%s", spec))
-				}
-				err = e2e.RunTests(testConfig, extraArgs)
-			} else {
-				err = trace.Errorf("cannot start testing: cluster not running")
-			}
-		case <-time.After(idleTimeout):
-			err = trace.Errorf("timed out waiting for units to come up")
-		}
-		_ = stop()
-
-		ctx.Close()
-	}
-
-	return err
-}
 
 func EnvVars(s kingpin.Settings) *box.EnvVars {
 	vars := new(box.EnvVars)
@@ -646,7 +624,7 @@ func findRootfs() (string, error) {
 // Some signals are handled to avoid the default handling which might be termination (SIGPIPE, SIGHUP, etc)
 // The rest are considered as termination signals and the handler initiates shutdown upon receiving
 // such a signal.
-func setupSignalHandlers() {
+func setupSignalHandlers(seLinux bool) {
 	oneOf := func(list []os.Signal, sig os.Signal) bool {
 		for _, signal := range list {
 			if signal == sig {
@@ -666,7 +644,7 @@ func setupSignalHandlers() {
 				log.Debugf("received a %s signal, ignoring...", sig)
 			default:
 				log.Infof("received a %s signal, stopping...", sig)
-				err := stop()
+				err := stop(seLinux)
 				if err != nil {
 					log.Errorf("error: %v", err)
 				}

@@ -30,15 +30,16 @@ import (
 	"strings"
 	"syscall"
 
-	udev "github.com/gravitational/go-udev"
+	"github.com/gravitational/planet/lib/constants"
+	"github.com/gravitational/planet/lib/defaults"
+
+	"github.com/gravitational/go-udev"
 	"github.com/gravitational/trace"
-
-	log "github.com/sirupsen/logrus"
-
 	"github.com/opencontainers/runc/libcontainer"
 	"github.com/opencontainers/runc/libcontainer/cgroups/systemd"
 	"github.com/opencontainers/runc/libcontainer/configs"
 	"github.com/pborman/uuid"
+	log "github.com/sirupsen/logrus"
 )
 
 type ContainerServer interface {
@@ -51,38 +52,40 @@ type ContainerServer interface {
 // and an API server that exposes a unix socket endpoint.
 // Once started, the box can be shut down with Close.
 type Box struct {
-	Process   *libcontainer.Process
-	Container libcontainer.Container
-	listener  net.Listener
+	*libcontainer.Process
+	libcontainer.Container
+	listener net.Listener
+	config   Config
+	// dataDir specifies the runc-specific data location on host
+	dataDir string
 }
 
 // Close shuts down the box. It is written to be safe to call multiple
 // times in a row for extra robustness.
 func (b *Box) Close() error {
-	var err error
-
+	var errors []error
 	if b.Container != nil {
-		if err = b.Container.Destroy(); err != nil {
-			log.Errorf("box.Close() :%v", err)
+		if err := b.Container.Destroy(); err != nil {
+			errors = append(errors, err)
 		}
 	}
 	if b.listener != nil {
-		if err = b.listener.Close(); err != nil {
-			log.Warningf("box.Close(): %v", err)
+		if err := b.listener.Close(); err != nil {
+			errors = append(errors, err)
 		}
 	}
-	return err
+	return trace.NewAggregate(errors...)
 }
 
 // Wait blocks waiting the init process to finish.
 // Returns the state of the init process.
 func (b *Box) Wait() (*os.ProcessState, error) {
-	log.Infof("box.Wait() is called")
-	st, err := b.Process.Wait()
-	if e, ok := err.(*exec.ExitError); ok {
-		return e.ProcessState, nil
+	b.config.Info("Wait.")
+	state, err := b.Process.Wait()
+	if err, ok := err.(*exec.ExitError); ok {
+		return err.ProcessState, nil
 	}
-	return st, err
+	return state, err
 }
 
 func getLibContainerFactory(dataDir string) (libcontainer.Factory, error) {
@@ -116,29 +119,32 @@ func getLibContainerFactory(dataDir string) (libcontainer.Factory, error) {
 // Starts the container described by cfg.
 // Returns a Box instance or an error.
 func Start(cfg Config) (*Box, error) {
-	log.Infof("[BOX] starting with config: %#v", cfg)
+	if err := cfg.checkAndSetDefaults(); err != nil {
+		return nil, trace.Wrap(err)
+	}
+
+	cfg.WithField("config", fmt.Sprintf("%#v", cfg)).Info("Start.")
 
 	rootfs, err := checkPath(cfg.Rootfs, false)
 	if err != nil {
-		return nil, err
+		return nil, trace.Wrap(err)
 	}
-
-	log.Infof("starting container process in '%v'", rootfs)
 
 	if len(cfg.EnvFiles) != 0 {
 		for _, ef := range cfg.EnvFiles {
-			log.Infof("writing environment file: %v", ef.Env)
+			cfg.WithField("env-file", ef.Env).Infof("Write environment file.")
 			if err := WriteEnvironment(filepath.Join(rootfs, ef.Path), ef.Env); err != nil {
-				return nil, err
+				return nil, trace.Wrap(err)
 			}
 		}
 	}
 
 	if len(cfg.Files) != 0 {
 		for _, f := range cfg.Files {
-			log.Infof("writing file to: %v", filepath.Join(rootfs, f.Path))
-			if err := writeFile(filepath.Join(rootfs, f.Path), f); err != nil {
-				return nil, err
+			path := filepath.Join(rootfs, f.Path)
+			cfg.WithField("file", path).Infof("Write file.")
+			if err := writeFile(path, f); err != nil {
+				return nil, trace.Wrap(err)
 			}
 		}
 	}
@@ -179,7 +185,7 @@ func Start(cfg Config) (*Box, error) {
 		if err != nil {
 			err := container.Destroy()
 			if err != nil {
-				log.WithError(err).Info("error in deferred container destroy")
+				cfg.WithError(err).Warn("Failed to destroy container.")
 			}
 		}
 	}()
@@ -196,7 +202,8 @@ func Start(cfg Config) (*Box, error) {
 	}
 
 	// Run the container by starting the init process.
-	if err := container.Run(process); err != nil {
+	err = container.Run(process)
+	if err != nil {
 		return nil, trace.Wrap(err)
 	}
 
@@ -204,12 +211,17 @@ func Start(cfg Config) (*Box, error) {
 	if err != nil {
 		return nil, trace.Wrap(err)
 	}
-	log.Infof("Container status: %v (err=%v).", status, err)
+	cfg.WithFields(log.Fields{
+		log.ErrorKey: err,
+		"status":     status,
+	}).Info("Start container.")
 
-	return &Box{
+	box := &Box{
 		Process:   process,
 		Container: container,
-	}, nil
+		config:    cfg,
+	}
+	return box, nil
 }
 
 func getLibcontainerConfig(containerID, rootfs string, cfg Config) (*configs.Config, error) {
@@ -243,8 +255,8 @@ func getLibcontainerConfig(containerID, rootfs string, cfg Config) (*configs.Con
 				Path:        device.Devnode(),
 				Major:       int64(devnum.Major()),
 				Minor:       int64(devnum.Minor()),
-				Permissions: "rwm",
-				FileMode:    0660,
+				Permissions: constants.DeviceReadWritePerms,
+				FileMode:    constants.GroupReadWriteMask,
 			})
 		}
 	}
@@ -258,8 +270,8 @@ func getLibcontainerConfig(containerID, rootfs string, cfg Config) (*configs.Con
 			Minor:       int64(i),
 			Uid:         0,
 			Gid:         0,
-			Permissions: "rwm",
-			FileMode:    0660,
+			Permissions: constants.DeviceReadWritePerms,
+			FileMode:    constants.GroupReadWriteMask,
 		}
 	}
 
@@ -283,16 +295,16 @@ func getLibcontainerConfig(containerID, rootfs string, cfg Config) (*configs.Con
 		}),
 		Mounts: []*configs.Mount{
 			{
-				Source:      "/proc",
+				Source:      "proc",
 				Destination: "/proc",
 				Device:      "proc",
 				Flags:       defaultMountFlags,
 			},
 			// this is needed for flanneld that does modprobe
 			{
-				Device:      "bind",
 				Source:      "/lib/modules",
 				Destination: "/lib/modules",
+				Device:      "bind",
 				Flags:       defaultMountFlags | syscall.MS_BIND,
 			},
 			{
@@ -315,6 +327,13 @@ func getLibcontainerConfig(containerID, rootfs string, cfg Config) (*configs.Con
 				Flags:       syscall.MS_NOSUID | syscall.MS_NOEXEC,
 				Data:        "newinstance,ptmxmode=0666,mode=0620,gid=5",
 			},
+			{
+				Source:      "shm",
+				Destination: "/dev/shm",
+				Device:      "tmpfs",
+				Data:        "mode=1777,size=65536k",
+				Flags:       defaultMountFlags,
+			},
 			// needed for dynamically provisioned/attached persistent volumes
 			// to work on some cloud providers (e.g. GCE) which use symlinks
 			// in /dev/disk/by-uuid to refer to provisioned devices
@@ -330,7 +349,19 @@ func getLibcontainerConfig(containerID, rootfs string, cfg Config) (*configs.Con
 				Device:      "bind",
 				Source:      "/dev/kmsg",
 				Destination: "/dev/kmsg",
-				Flags:       syscall.MS_BIND,
+				Flags:       syscall.MS_BIND | syscall.MS_RDONLY,
+			},
+			{
+				Source:      "tmpfs",
+				Destination: "/run",
+				Device:      "tmpfs",
+				Flags:       defaultMountFlags,
+			},
+			{
+				Source:      "tmpfs",
+				Destination: "/run/lock",
+				Device:      "tmpfs",
+				Flags:       defaultMountFlags,
 			},
 			// /run has to be mounted explicitly as tmpfs in order to be able
 			// to mount /run/udev below
@@ -359,9 +390,26 @@ func getLibcontainerConfig(containerID, rootfs string, cfg Config) (*configs.Con
 				CpuShares:        2,   // set planet to minimum cpu shares relative to host services
 			},
 		},
-
 		Devices:  append(configs.DefaultAutoCreatedDevices, append(loopDevices, disks...)...),
 		Hostname: hostname,
+	}
+	if cfg.SELinux {
+		config.MountLabel = defaults.ContainerFileLabel
+		config.ProcessLabel = cfg.ProcessLabel
+		config.Mounts = append(config.Mounts, []*configs.Mount{
+			{
+				Destination: "/sys/fs/selinux",
+				Source:      "/sys/fs/selinux",
+				Device:      "bind",
+				Flags:       syscall.MS_BIND | syscall.MS_RELATIME,
+			},
+			{
+				Device:      "bind",
+				Source:      "/etc/selinux",
+				Destination: "/etc/selinux",
+				Flags:       defaultMountFlags | syscall.MS_BIND | syscall.MS_RDONLY,
+			},
+		}...)
 	}
 
 	// Cgroup namespaces aren't currently available in redhat/centos based kernels
@@ -373,6 +421,19 @@ func getLibcontainerConfig(containerID, rootfs string, cfg Config) (*configs.Con
 	if cgroupsEnabled {
 		config.Namespaces = append(config.Namespaces, configs.Namespace{
 			Type: configs.NEWCGROUP,
+		})
+		config.Mounts = append(config.Mounts, &configs.Mount{
+			Source:      "cgroup",
+			Destination: "/sys/fs/cgroup",
+			Device:      "cgroup",
+			Flags:       syscall.MS_PRIVATE,
+		})
+	} else {
+		config.Mounts = append(config.Mounts, &configs.Mount{
+			Source:      "/sys/fs/cgroup",
+			Destination: "/sys/fs/cgroup",
+			Device:      "bind",
+			Flags:       syscall.MS_PRIVATE | syscall.MS_BIND,
 		})
 	}
 

@@ -91,7 +91,13 @@ func etcdInit() error {
 	// binary is actually etcdctl-cmd
 	for _, path := range []string{"/usr/bin/etcd", "/usr/bin/etcdctl-cmd"} {
 		// ignore the error from os.Remove, since we don't care if it fails
-		_ = os.Remove(path)
+		err = os.Remove(path)
+		if err != nil {
+			log.WithFields(log.Fields{
+				log.ErrorKey: err,
+				"path":       path,
+			}).Warn("Failed to remove.")
+		}
 		err = os.Symlink(
 			fmt.Sprint(path, "-", currentVersion),
 			path,

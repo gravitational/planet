@@ -49,6 +49,12 @@ const (
 	// SharedDirMask is a mask for shared directories
 	SharedDirMask = 0755
 
+	// GroupReadWriteMask is a file mask for owder/group read/write
+	GroupReadWriteMask = 0660
+
+	// DeviceReadWritePerms specifies the read/write permissions for a device
+	DeviceReadWritePerms = "rwm"
+
 	// SystemdUnitPath specifies the path for user systemd units
 	SystemdUnitPath = "/etc/systemd/system"
 
@@ -82,8 +88,11 @@ const (
 	// settings
 	ProxyEnvironmentFile = "/etc/proxy-environment"
 
-	// RuncDataDir is the directory used to store runc runtime data within planet
-	RuncDataDir = "/var/run/planet"
+	// ContainerRuntimeProcessLabel specifies the SELinux label for the planet process
+	ContainerRuntimeProcessLabel = "system_u:system_r:gravity_container_runtime_t:s0"
+
+	// ContainerInitProcessLabel specifies the SELinux label for the init process
+	ContainerInitProcessLabel = "system_u:system_r:gravity_container_init_t:s0"
 )
 
 var (

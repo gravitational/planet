@@ -40,9 +40,15 @@ SECCOMP_VER ?= 2.3.1-2.1+deb9u1
 DOCKER_VER ?= 18.09.9
 # we currently use our own flannel fork: gravitational/flannel
 FLANNEL_VER := v0.10.1-gravitational
-HELM_VER := v2.15.0
+HELM_VER := 2.15.0
 COREDNS_VER := 1.3.1
 NODE_PROBLEM_DETECTOR_VER := v0.6.4
+CNI_VER := 0.7.5
+
+# planet user to use inside the rootfs tarball. This serves as a placeholder
+# and the files will be owned by the actual planet user after extraction
+PLANET_UID ?= 980665
+PLANET_GID ?= 980665
 
 # ETCD Versions to include in the release
 # This list needs to include every version of etcd that we can upgrade from + latest
@@ -170,7 +176,7 @@ os:
 base: os
 	@echo -e "\n---> Making Planet/Base Docker image based on Planet/OS...\n"
 	$(MAKE) -e BUILDIMAGE=$(PLANET_IMAGE) DOCKERFILE=base.dockerfile \
-		EXTRA_ARGS="--build-arg SECCOMP_VER=$(SECCOMP_VER) --build-arg DOCKER_VER=$(DOCKER_VER) --build-arg HELM_VER=$(HELM_VER) --build-arg COREDNS_VER=$(COREDNS_VER)" \
+		EXTRA_ARGS="--build-arg SECCOMP_VER=$(SECCOMP_VER) --build-arg PLANET_UID=$(PLANET_UID) --build-arg PLANET_GID=$(PLANET_GID)" \
 		make-docker-image
 
 # Build a container used for building the planet image
@@ -186,7 +192,7 @@ buildbox: base
 .PHONY: clean
 clean:
 	$(MAKE) -C $(ASSETS)/makefiles -f buildbox.mk clean
-	rm -rf $(BUILDDIR)
+	rm -rf $(BUILDDIR)/planet
 
 # internal use:
 .PHONY: make-docker-image

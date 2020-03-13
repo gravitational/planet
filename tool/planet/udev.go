@@ -20,10 +20,11 @@ import (
 	"encoding/json"
 	"os"
 
-	"github.com/gravitational/go-udev"
 	"github.com/gravitational/planet/lib/box"
-	"github.com/gravitational/trace"
+	"github.com/gravitational/planet/lib/constants"
 
+	"github.com/gravitational/go-udev"
+	"github.com/gravitational/trace"
 	"github.com/opencontainers/runc/libcontainer/configs"
 	"github.com/opencontainers/runc/libcontainer/devices"
 	log "github.com/sirupsen/logrus"
@@ -31,9 +32,12 @@ import (
 
 // newUdevListener creates a new udev event listener listening
 // for events on block devices of type `disk`
-func newUdevListener() (*udevListener, error) {
+func newUdevListener(seLinux bool) (*udevListener, error) {
 	udev := udev.Udev{}
 	monitor := udev.NewMonitorFromNetlink("udev")
+	if monitor == nil {
+		return nil, trace.BadParameter("failed to create udev monitor")
+	}
 	doneC := make(chan struct{})
 
 	monitor.FilterAddMatchSubsystemDevtype("block", "disk")
@@ -49,6 +53,7 @@ func newUdevListener() (*udevListener, error) {
 		monitor: monitor,
 		doneC:   doneC,
 		recvC:   recvC,
+		seLinux: seLinux,
 	}
 	go listener.loop()
 
@@ -72,6 +77,7 @@ type udevListener struct {
 	monitor *udev.Monitor
 	doneC   chan struct{}
 	recvC   <-chan *udev.Device
+	seLinux bool
 }
 
 // loop runs the actual udev event loop
@@ -108,7 +114,7 @@ func (r *udevListener) createDevice(device *configs.Device) error {
 		return trace.Wrap(err)
 	}
 
-	err = enter(deviceCmd("add", "--data", string(deviceJson)))
+	err = enter(r.deviceCmd("add", "--data", string(deviceJson)))
 	return trace.Wrap(err)
 }
 
@@ -116,21 +122,22 @@ func (r *udevListener) createDevice(device *configs.Device) error {
 func (r *udevListener) removeDevice(node string) error {
 	log.Infof("removeDevice: %v", node)
 
-	err := enter(deviceCmd("remove", "--node", node))
+	err := enter(r.deviceCmd("remove", "--node", node))
 	return trace.Wrap(err)
 }
 
 // deviceCmd creates a configuration object to invoke the device agent
 // with the specified arguments
-func deviceCmd(args ...string) *box.ProcessConfig {
+func (r *udevListener) deviceCmd(args ...string) box.EnterConfig {
 	const cmd = "/usr/bin/planet"
-	config := &box.ProcessConfig{
-		User: "root",
-		Args: []string{cmd, "--debug", "device"},
-		In:   os.Stdin,
-		Out:  os.Stdout,
+	return box.EnterConfig{
+		Process: box.ProcessConfig{
+			User:         "root",
+			Args:         append([]string{cmd, "--debug", "device"}, args...),
+			In:           os.Stdin,
+			Out:          os.Stdout,
+			ProcessLabel: constants.ContainerRuntimeProcessLabel,
+		},
+		SELinux: r.seLinux,
 	}
-
-	config.Args = append(config.Args, args...)
-	return config
 }

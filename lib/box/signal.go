@@ -69,7 +69,7 @@ func (s *signalForwarder) Forward(process *libcontainer.Process, tty *tty) (int,
 				logrus.WithFields(logrus.Fields{
 					"pid":    e.pid,
 					"status": e.status,
-				}).Debug("process exited")
+				}).Debug("Process exited.")
 				if e.pid == pid {
 					// call Wait() on the process even though we already have the exit
 					// status because we must ensure that any of the go specific process
@@ -82,7 +82,7 @@ func (s *signalForwarder) Forward(process *libcontainer.Process, tty *tty) (int,
 			logrus.WithFields(logrus.Fields{
 				"pid":    pid,
 				"signal": signal,
-			}).Debug("sending signal to process")
+			}).Debug("Send signal to process.")
 			if err := unix.Kill(pid, signal.(syscall.Signal)); err != nil {
 				logrus.Error(err)
 			}
