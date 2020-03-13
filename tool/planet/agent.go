@@ -126,7 +126,11 @@ func startLeaderClient(ctx context.Context, conf *LeaderConfig, agent agent.Agen
 	if err != nil {
 		return nil, trace.Wrap(err)
 	}
-	defer mon.close()
+	defer func() {
+		if err != nil {
+			mon.close()
+		}
+	}()
 
 	client, err := leader.NewClient(leader.Config{Client: etcdClient})
 	if err != nil {
@@ -134,7 +138,6 @@ func startLeaderClient(ctx context.Context, conf *LeaderConfig, agent agent.Agen
 	}
 	defer func() {
 		if err != nil {
-			log.Infof("closing client: %v", err)
 			client.Close()
 		}
 	}()
@@ -204,7 +207,10 @@ func startLeaderClient(ctx context.Context, conf *LeaderConfig, agent agent.Agen
 		}
 	})
 
-	return client, nil
+	return &clientState{
+		mon:    mon,
+		client: client,
+	}, nil
 }
 
 func writeLocalLeader(target string, masterIP string) error {
@@ -219,6 +225,18 @@ func writeLocalLeader(target string, masterIP string) error {
 		SharedFileMask,
 	)
 	return trace.Wrap(err)
+}
+
+type clientState struct {
+	mon    *unitMonitor
+	client *leader.Client
+}
+
+// Close closes the client resources.
+// Implements io.Closer
+func (r *clientState) Close() error {
+	r.mon.close()
+	return r.client.Close()
 }
 
 func updateDNS(conf *LeaderConfig, newMasterIP string) error {

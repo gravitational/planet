@@ -96,8 +96,8 @@ build: $(BUILD_ASSETS)/planet $(BUILDDIR)/planet.tar.gz
 	cp -f $< $(OUTPUTDIR)/rootfs/usr/bin/
 
 .PHONY: planet-bin
-planet-bin:
-	go build -o $(BUILDDIR)/planet github.com/gravitational/planet/tool/planet
+planet-bin: | $(OUTPUTDIR)
+	go build -o $(OUTPUTDIR)/planet github.com/gravitational/planet/tool/planet
 
 # Deploys the build artifacts to Amazon S3
 .PHONY: dev-deploy
@@ -234,3 +234,6 @@ clean-images: clean-containers
 .PHONY: get-version
 get-version:
 	@echo $(PLANET_BUILD_TAG)
+
+$(OUTPUTDIR):
+	mkdir -p $@
