@@ -82,7 +82,7 @@ func (conf LeaderConfig) String() string {
 // Otherwise, the services are stopped to avoid interfering with the active master instance.
 // Also, every time a new master is elected, the node modifies its /etc/hosts file
 // to reflect the change of the kubernetes API server.
-func startLeaderClient(conf *LeaderConfig, errorC chan error) (leaderClient io.Closer, err error) {
+func startLeaderClient(conf *LeaderConfig, agent agent.Agent, errorC chan error) (leaderClient io.Closer, err error) {
 	log.Infof("%v start", conf)
 	var hostname string
 	hostname, err = os.Hostname()
@@ -146,6 +146,26 @@ func startLeaderClient(conf *LeaderConfig, errorC chan error) (leaderClient io.C
 		if err := unitsCommand("stop"); err != nil {
 			log.Infof("failed to stop units: %v", err)
 		}
+	})
+
+	// Add a callback to watch for changes to the leader key.
+	// If this node becomes the leader, record a LeaderElected event to the
+	// local timeline.
+	client.AddWatchCallback(conf.LeaderKey, conf.Term/3, func(key, prevVal, newVal string) {
+		// recordEventTimeout specifies the max timeout to record an event
+		const recordEventTimeout = 10 * time.Second
+
+		if newVal != conf.PublicIP {
+			return
+		}
+
+		ctx, cancel := context.WithTimeout(context.Background(), recordEventTimeout)
+		defer cancel()
+
+		agent.RecordLocalEvents(ctx, []*pb.TimelineEvent{
+			pb.NewLeaderElected(agent.GetConfig().Clock.Now(),
+				agent.GetConfig().Name),
+		})
 	})
 
 	var cancelVoter context.CancelFunc
@@ -295,7 +315,7 @@ func runAgent(conf *agent.Config, monitoringConf *monitoring.Config, leaderConf 
 	}
 
 	errorC := make(chan error, 10)
-	client, err := startLeaderClient(leaderConf, errorC)
+	client, err := startLeaderClient(leaderConf, monitoringAgent, errorC)
 	if err != nil {
 		return trace.Wrap(err)
 	}
