@@ -357,7 +357,7 @@
   version = "v1.0.0"
 
 [[projects]]
-  digest = "1:ec8b8b952c8bf2e72e4c1c0e74e209788ab9ce6098d73a6cc1a91c437421c4be"
+  digest = "1:381cd11c9a80622938f46c676183d9f8f6408491e7bb200601d04e3e8779a4ab"
   name = "github.com/gravitational/satellite"
   packages = [
     "agent",
@@ -377,8 +377,8 @@
     "utils",
   ]
   pruneopts = "UT"
-  revision = "73961bdc6c6b5efb516ba2c35b14697e77e4f248"
-  version = "5.5.9"
+  revision = "ff18d2e8111869dd520e7859fe86ff3cae28884c"
+  version = "5.5.10"
 
 [[projects]]
   digest = "1:418247f700939c99867b42639d985686ba229fd9f8ee9e119c7cc3ffde6e0fe3"
@@ -1217,6 +1217,8 @@
     "github.com/gravitational/satellite/agent/health",
     "github.com/gravitational/satellite/agent/proto/agentpb",
     "github.com/gravitational/satellite/cmd",
+    "github.com/gravitational/satellite/lib/history/sqlite",
+    "github.com/gravitational/satellite/lib/rpc/client",
     "github.com/gravitational/satellite/monitoring",
     "github.com/gravitational/satellite/monitoring/collector",
     "github.com/gravitational/trace",
