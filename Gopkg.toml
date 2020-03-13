@@ -93,10 +93,6 @@ ignored = ["github.com/gravitational/planet/build/*"]
   name = "github.com/gravitational/go-udev"
 
 [[constraint]]
-  name = "golang.org/x/net"
-  branch = "release-branch.go1.9"
-
-[[constraint]]
   name = "github.com/gravitational/satellite"
   version = "7.0.7"
 
@@ -104,10 +100,6 @@ ignored = ["github.com/gravitational/planet/build/*"]
   name = "github.com/gravitational/trace"
   #version = "=1.1.11"
   revision = "f1826cb7433410e4bc7990258a62b0b4468341e0"
-
-[[constraint]]
-  name = "github.com/julienschmidt/httprouter"
-  version = "1.1.0"
 
 [[constraint]]
   name = "github.com/opencontainers/selinux"
