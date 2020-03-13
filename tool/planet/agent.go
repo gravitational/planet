@@ -23,20 +23,21 @@ import (
 	"io"
 	"io/ioutil"
 	"os"
-	"os/exec"
 	"os/signal"
 	"strconv"
+	"sync"
 	"syscall"
 	"time"
 
 	"github.com/gravitational/planet/lib/constants"
 	"github.com/gravitational/planet/lib/monitoring"
-	"github.com/gravitational/satellite/lib/rpc/client"
 
+	systemdDbus "github.com/coreos/go-systemd/dbus"
 	etcdconf "github.com/gravitational/coordinate/config"
 	"github.com/gravitational/coordinate/leader"
 	"github.com/gravitational/satellite/agent"
 	pb "github.com/gravitational/satellite/agent/proto/agentpb"
+	"github.com/gravitational/satellite/lib/rpc/client"
 	"github.com/gravitational/trace"
 	log "github.com/sirupsen/logrus"
 	etcd "go.etcd.io/etcd/client"
@@ -82,7 +83,7 @@ func (conf LeaderConfig) String() string {
 // Otherwise, the services are stopped to avoid interfering with the active master instance.
 // Also, every time a new master is elected, the node modifies its /etc/hosts file
 // to reflect the change of the kubernetes API server.
-func startLeaderClient(conf *LeaderConfig, agent agent.Agent, errorC chan error) (leaderClient io.Closer, err error) {
+func startLeaderClient(ctx context.Context, conf *LeaderConfig, agent agent.Agent, errorC chan error) (leaderClient io.Closer, err error) {
 	log.Infof("%v start", conf)
 	var hostname string
 	hostname, err = os.Hostname()
@@ -121,6 +122,12 @@ func startLeaderClient(conf *LeaderConfig, agent agent.Agent, errorC chan error)
 		}
 	}
 
+	mon, err := newUnitMonitor()
+	if err != nil {
+		return nil, trace.Wrap(err)
+	}
+	defer mon.close()
+
 	client, err := leader.NewClient(leader.Config{Client: etcdClient})
 	if err != nil {
 		return nil, trace.Wrap(err)
@@ -132,39 +139,18 @@ func startLeaderClient(conf *LeaderConfig, agent agent.Agent, errorC chan error)
 		}
 	}()
 
+	logger := log.WithField("addr", conf.PublicIP)
+
 	// Add a callback to watch for changes to the leader key.
 	// If this node becomes the leader, start a number of additional
 	// services as a master
 	client.AddWatchCallback(conf.LeaderKey, conf.Term/3, func(key, prevVal, newVal string) {
-		log.Infof("new leader: %v", newVal)
+		logger.WithField("leader-addr", newVal).Info("New leader.")
 		if newVal == conf.PublicIP {
-			if err := unitsCommand("start"); err != nil {
-				log.Infof("failed to start units: %v", err)
-			}
+			mon.start(ctx)
 			return
 		}
-		if err := unitsCommand("stop"); err != nil {
-			log.Infof("failed to stop units: %v", err)
-		}
-	})
-
-	// Add a callback to watch for changes to the leader key.
-	// If this node becomes the leader, record a LeaderElected event to the
-	// local timeline.
-	client.AddWatchCallback(conf.LeaderKey, conf.Term/3, func(key, prevVal, newVal string) {
-		// recordEventTimeout specifies the max timeout to record an event
-		const recordEventTimeout = 10 * time.Second
-
-		if newVal != conf.PublicIP {
-			return
-		}
-
-		ctx, cancel := context.WithTimeout(context.Background(), recordEventTimeout)
-		defer cancel()
-
-		agent.RecordLocalEvents(ctx, []*pb.TimelineEvent{
-			pb.NewLeaderElected(agent.GetConfig().Clock.Now(), prevVal, newVal),
-		})
+		mon.stop(ctx)
 	})
 
 	var cancelVoter context.CancelFunc
@@ -172,17 +158,15 @@ func startLeaderClient(conf *LeaderConfig, agent agent.Agent, errorC chan error)
 	if conf.Role == RoleMaster {
 		switch conf.ElectionEnabled {
 		case true:
-			log.Infof("adding voter for IP %v", conf.PublicIP)
-			ctx, cancelVoter = context.WithCancel(context.TODO())
-			if err = client.AddVoter(ctx, conf.LeaderKey, conf.PublicIP, conf.Term); err != nil {
+			logger.Info("Add voter.")
+			voterCtx, voterCancel = context.WithCancel(ctx)
+			if err = client.AddVoter(voterCtx, conf.LeaderKey, conf.PublicIP, conf.Term); err != nil {
+				voterCancel()
 				return nil, trace.Wrap(err)
 			}
 		case false:
-			log.Info("shutting down services until election has been re-enabled")
-			// Shut down services at startup if running as master
-			if err := unitsCommand("stop"); err != nil {
-				log.Infof("failed to stop units: %v", err)
-			}
+			logger.Info("Shut down services until election has been re-enabled.")
+			mon.stop(ctx)
 		}
 	}
 	// watch the election mode status and start/stop participation
@@ -192,30 +176,31 @@ func startLeaderClient(conf *LeaderConfig, agent agent.Agent, errorC chan error)
 		enabled, _ := strconv.ParseBool(newVal)
 		switch enabled {
 		case true:
-			if cancelVoter != nil {
-				log.Infof("voter is already active")
+			if voterCancel != nil {
+				logger.Info("Voter is already active.")
 				return
 			}
 			// start election participation
-			ctx, cancelVoter = context.WithCancel(context.TODO())
-			if err = client.AddVoter(ctx, conf.LeaderKey, conf.PublicIP, conf.Term); err != nil {
-				log.Errorf("failed to add voter for %v: %v", conf.PublicIP, trace.DebugReport(err))
+			voterCtx, voterCancel = context.WithCancel(context.TODO())
+			if err = client.AddVoter(voterCtx, conf.LeaderKey, conf.PublicIP, conf.Term); err != nil {
+				voterCancel()
+				log.WithError(err).Error("Failed to add voter.")
 				errorC <- err
 			}
 		case false:
-			if cancelVoter == nil {
-				log.Info("no voter active")
+			if voterCancel == nil {
+				log.Info("No voter active.")
 				return
 			}
 			// stop election participation
-			cancelVoter()
-			cancelVoter = nil
+			voterCancel()
+			voterCancel = nil
 		}
 	})
 	// modify /etc/hosts upon election of a new leader node
 	client.AddWatchCallback(conf.LeaderKey, conf.Term/3, func(key, prevVal, newLeaderIP string) {
-		if err := updateDNS(conf, hostname, newLeaderIP); err != nil {
-			log.Error(trace.DebugReport(err))
+		if err := updateDNS(conf, newLeaderIP); err != nil {
+			log.WithError(err).WithField("leader-addr", newLeaderIP).Error("Failed to update DNS.")
 		}
 	})
 
@@ -236,7 +221,7 @@ func writeLocalLeader(target string, masterIP string) error {
 	return trace.Wrap(err)
 }
 
-func updateDNS(conf *LeaderConfig, hostname string, newMasterIP string) error {
+func updateDNS(conf *LeaderConfig, newMasterIP string) error {
 	log.Infof("Setting new leader address to %v in %v", newMasterIP, CoreDNSHosts)
 	err := writeLocalLeader(CoreDNSHosts, newMasterIP)
 	if err != nil {
@@ -251,27 +236,96 @@ var electedUnits = []string{
 	"kube-apiserver.service",
 }
 
-func unitsCommand(command string) error {
-	log.Debugf("executing %v on %v", command, electedUnits)
-	var errors []error
-	for _, unit := range electedUnits {
-		cmd := exec.Command("/bin/systemctl", command, unit)
-		log.Debugf("executing %v", cmd)
-		out, err := cmd.CombinedOutput()
+func newUnitMonitor() (*unitMonitor, error) {
+	conn, err := systemdDbus.New()
+	if err != nil {
+		return nil, trace.Wrap(err)
+	}
+	return &unitMonitor{
+		conn:  conn,
+		units: electedUnits,
+	}, nil
+}
+
+type unitMonitor struct {
+	conn  *systemdDbus.Conn
+	units []string
+}
+
+func (r *unitMonitor) close() {
+	r.conn.Close()
+}
+
+func (r *unitMonitor) start(ctx context.Context) {
+	stopC := make(chan string, len(r.units))
+	var wg sync.WaitGroup
+	wg.Add(len(r.units) + 1)
+	for _, unit := range r.units {
+		go func(unit string) {
+			defer wg.Done()
+			if _, err := r.conn.StartUnit(unit, "replace", stopC); err != nil {
+				log.WithError(err).WithField("unit", unit).Warn("Failed to start unit.")
+			}
+		}(unit)
+	}
+	go func() {
+		r.waitForJobs(ctx, stopC)
+		wg.Done()
+
+	}()
+	wg.Wait()
+}
+
+func (r *unitMonitor) stop(ctx context.Context) {
+	stopC := make(chan string, len(r.units))
+	var wg sync.WaitGroup
+	wg.Add(len(r.units) + 1)
+	for _, unit := range r.units {
+		go func(unit string) {
+			defer wg.Done()
+			if _, err := r.conn.StopUnit(unit, "replace", stopC); err != nil {
+				log.WithError(err).WithField("unit", unit).Warn("Failed to stop unit.")
+			}
+		}(unit)
+	}
+	go func() {
+		defer wg.Done()
+		r.waitForJobs(ctx, stopC)
+		failedUnits, err := r.conn.ListUnitsByPatterns([]string{"failed"}, r.units)
 		if err != nil {
-			errors = append(errors, err)
-			// Instead of failing immediately, complete start of other units
-			log.Warningf("failed to execute %v: %s\n%v", cmd, out, trace.DebugReport(err))
+			log.WithError(err).Warn("Failed to list units by name.")
+			return
+		}
+		for _, unit := range failedUnits {
+			if err := r.conn.ResetFailedUnit(unit.Name); err != nil {
+				log.WithError(err).WithField("unit", unit.Name).Warn("Failed to reset failed unit.")
+			}
+		}
+	}()
+	wg.Wait()
+}
+
+func (r *unitMonitor) waitForJobs(ctx context.Context, stopC <-chan string) {
+	for {
+		var done int
+		select {
+		case result := <-stopC:
+			log.WithField("result", result).Info("Job done.")
+			done += 1
+			if done >= len(r.units) {
+				return
+			}
+		case <-ctx.Done():
+			return
 		}
 	}
-	return trace.NewAggregate(errors...)
 }
 
 // runAgent starts the master election / health check loops in background and
 // blocks until a signal has been received.
 func runAgent(conf *agent.Config, monitoringConf *monitoring.Config, leaderConf *LeaderConfig, peers []string) error {
-	ctx, cancelCtx := context.WithCancel(context.Background())
-	defer cancelCtx()
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
 
 	err := monitoringConf.CheckAndSetDefaults()
 	if err != nil {
@@ -314,7 +368,7 @@ func runAgent(conf *agent.Config, monitoringConf *monitoring.Config, leaderConf 
 	}
 
 	errorC := make(chan error, 10)
-	client, err := startLeaderClient(leaderConf, monitoringAgent, errorC)
+	client, err := startLeaderClient(ctx, leaderConf, monitoringAgent, errorC)
 	if err != nil {
 		return trace.Wrap(err)
 	}
