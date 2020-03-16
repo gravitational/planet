@@ -30,6 +30,7 @@ import (
 
 	"github.com/gravitational/planet/lib/constants"
 	"github.com/gravitational/planet/lib/monitoring"
+	"github.com/gravitational/planet/lib/utils"
 
 	systemdDbus "github.com/coreos/go-systemd/dbus"
 	etcdconf "github.com/gravitational/coordinate/config"
@@ -301,7 +302,7 @@ func (r *unitMonitor) start(ctx context.Context) {
 func (r *unitMonitor) stop(ctx context.Context) error {
 	stopC := make(chan string, len(r.units))
 	// Number of successfully started stop jobs
-	var numStopped int
+	var numStarted int
 	for _, unit := range r.units {
 		logger := log.WithField("unit", unit)
 		logger.Info("Shut down service.")
@@ -309,10 +310,10 @@ func (r *unitMonitor) stop(ctx context.Context) error {
 			log.WithError(err).WithField("unit", unit).Warn("Failed to stop unit.")
 			continue
 		}
-		numStopped += 1
+		numStarted += 1
 	}
-	if numStopped != 0 {
-		r.waitForJobs(ctx, stopC, numStopped)
+	if numStarted != 0 {
+		r.waitForJobs(ctx, stopC, numStarted)
 	}
 	// NB: ListUnitsByPatterns is not supported on systemd 219
 	failedUnits, err := r.conn.ListUnitsFiltered([]string{"failed"})
@@ -320,6 +321,9 @@ func (r *unitMonitor) stop(ctx context.Context) error {
 		return trace.Wrap(err)
 	}
 	for _, unit := range failedUnits {
+		if !utils.StringInSlice(r.units, unit.Name) {
+			continue
+		}
 		if err := r.conn.ResetFailedUnit(unit.Name); err != nil {
 			log.WithError(err).WithField("unit", unit.Name).Warn("Failed to reset failed unit.")
 		}
@@ -327,14 +331,14 @@ func (r *unitMonitor) stop(ctx context.Context) error {
 	return nil
 }
 
-func (r *unitMonitor) waitForJobs(ctx context.Context, stopC <-chan string, services int) {
+func (r *unitMonitor) waitForJobs(ctx context.Context, stopC <-chan string, numStarted int) {
 	var done int
 	for {
 		select {
 		case result := <-stopC:
 			log.WithField("result", result).Info("Job done.")
 			done += 1
-			if done >= services {
+			if done >= numStarted {
 				return
 			}
 		case <-ctx.Done():

@@ -128,6 +128,16 @@ func ExitStatusFromError(err error) *int {
 	return nil
 }
 
+// StringInSlice retunrs true if needle is in haystack
+func StringInSlice(haystack []string, needle string) bool {
+	for i := range haystack {
+		if haystack[i] == needle {
+			return true
+		}
+	}
+	return false
+}
+
 // ToJSON converts a single YAML document into a JSON document
 // or returns an error. If the document appears to be JSON the
 // YAML decoding path is not used (so that error messages are
