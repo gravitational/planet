@@ -301,6 +301,10 @@ const (
 	// CoreDNSConf is the location of the coredns configuration file within planet
 	CoreDNSConf = "/etc/coredns/coredns.conf"
 
+	// CoreDNSClusterConf is the location of the coredns configuration file for the overlay network
+	// and updated via k8s configmap
+	CoreDNSClusterConf = "/etc/coredns/configmaps/overlay.conf"
+
 	// HostsFile specifies the location of the hosts configuration file
 	HostsFile = "/etc/hosts"
 
