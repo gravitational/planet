@@ -21,18 +21,15 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
-	"io/ioutil"
 	"os"
 	"os/signal"
 	"strconv"
 	"syscall"
 	"time"
 
-	"github.com/gravitational/planet/lib/constants"
 	"github.com/gravitational/planet/lib/monitoring"
-	"github.com/gravitational/planet/lib/utils"
+	"github.com/gravitational/planet/lib/reconcile"
 
-	systemdDbus "github.com/coreos/go-systemd/dbus"
 	etcdconf "github.com/gravitational/coordinate/config"
 	"github.com/gravitational/coordinate/leader"
 	"github.com/gravitational/satellite/agent"
@@ -109,6 +106,18 @@ func startLeaderClient(ctx context.Context, conf *LeaderConfig, agent agent.Agen
 		return nil, trace.Wrap(err)
 	}
 
+	client, err := leader.NewClient(leader.Config{Client: etcdClient})
+	if err != nil {
+		return nil, trace.Wrap(err)
+	}
+	defer func() {
+		if err != nil {
+			client.Close()
+		}
+	}()
+
+	logger := log.WithField("addr", conf.PublicIP)
+
 	if conf.Role == RoleMaster {
 		etcdapi := etcd.NewKeysAPI(etcdClient)
 		// Set initial value of election participation mode
@@ -126,224 +135,51 @@ func startLeaderClient(ctx context.Context, conf *LeaderConfig, agent agent.Agen
 	if err != nil {
 		return nil, trace.Wrap(err)
 	}
-	defer func() {
-		if err != nil {
-			mon.close()
-		}
-	}()
-
-	client, err := leader.NewClient(leader.Config{Client: etcdClient})
-	if err != nil {
-		return nil, trace.Wrap(err)
+	plan := agentPlan{
+		leaderKey:    conf.LeaderKey,
+		localAddr:    conf.PublicIP,
+		electionTerm: conf.Term,
+		mon:          mon,
+		client:       client,
 	}
-	defer func() {
-		if err != nil {
-			client.Close()
-		}
-	}()
+	reconciler := reconcile.New()
 
-	logger := log.WithField("addr", conf.PublicIP)
-
-	// Add a callback to watch for changes to the leader key.
-	// If this node becomes the leader, start a number of additional
-	// services as a master
-	client.AddWatchCallback(conf.LeaderKey, conf.Term/3, func(key, prevVal, newLeaderIP string) {
-		logger.WithField("leader-addr", newLeaderIP).Info("New leader.")
-		if newLeaderIP == conf.PublicIP {
-			logger.Info("Start control plane units.")
-			mon.start(ctx)
-			return
-		}
-		logger.Info("Shut down services.")
-		if err := mon.stop(ctx); err != nil {
-			logger.WithError(err).Warn("Failed to stop control plane units.")
-		}
-	})
-
-	var cancelVoter context.CancelFunc
-	var ctx context.Context
-	if conf.Role == RoleMaster {
-		switch conf.ElectionEnabled {
-		case true:
-			logger.Info("Add voter.")
-			voterCtx, voterCancel = context.WithCancel(ctx)
-			if err = client.AddVoter(voterCtx, conf.LeaderKey, conf.PublicIP, conf.Term); err != nil {
-				voterCancel()
-				return nil, trace.Wrap(err)
-			}
-		case false:
-			logger.Info("Shut down services until election has been re-enabled.")
-			if err := mon.stop(ctx); err != nil {
-				logger.WithError(err).Warn("Failed to stop control plane units.")
-			}
-		}
-	}
-	// watch the election mode status and start/stop participation
-	// depending on the value of the election mode key
-	client.AddWatchCallback(conf.ElectionKey, conf.Term, func(key, prevVal, newVal string) {
-		var err error
-		enabled, _ := strconv.ParseBool(newVal)
-		switch enabled {
-		case true:
-			if voterCancel != nil {
-				logger.Info("Voter is already active.")
-				return
-			}
-			logger.Info("Start election participation.")
-			voterCtx, voterCancel = context.WithCancel(context.TODO())
-			if err = client.AddVoter(voterCtx, conf.LeaderKey, conf.PublicIP, conf.Term); err != nil {
-				voterCancel()
-				log.WithError(err).Error("Failed to add voter.")
-				errorC <- err
-			}
-		case false:
-			if voterCancel == nil {
-				log.Info("No voter active.")
-				return
-			}
-			logger.Info("Stop election participation.")
-			voterCancel()
-			voterCancel = nil
-		}
-	})
-	// modify /etc/hosts upon election of a new leader node
-	client.AddWatchCallback(conf.LeaderKey, conf.Term/3, func(key, prevVal, newLeaderIP string) {
-		if err := updateDNS(conf, newLeaderIP); err != nil {
-			log.WithError(err).WithField("leader-addr", newLeaderIP).Error("Failed to update DNS.")
-		}
-	})
+	client.AddWatchCallback(conf.LeaderKey, conf.Term/3, updateLeaderTrigger(ctx, reconciler, plan, logger))
+	client.AddWatchCallback(conf.ElectionKey, conf.Term,
+		updateElectionParticipationTrigger(ctx, reconciler, plan, logger))
 
 	return &clientState{
-		mon:    mon,
-		client: client,
+		client:     client,
+		reconciler: reconciler,
 	}, nil
 }
 
-func writeLocalLeader(target string, masterIP string) error {
-	contents := fmt.Sprint(masterIP, " ",
-		constants.APIServerDNSName, " ",
-		constants.APIServerDNSNameGravity, " ",
-		constants.RegistryDNSName, " ",
-		LegacyAPIServerDNSName, "\n")
-	err := ioutil.WriteFile(
-		target,
-		[]byte(contents),
-		SharedFileMask,
-	)
-	return trace.Wrap(err)
-}
-
-type clientState struct {
-	mon    *unitMonitor
-	client *leader.Client
-}
-
-// Close closes the client resources.
+// Close closes this state by releasing the resources.
 // Implements io.Closer
 func (r *clientState) Close() error {
-	r.mon.close()
+	r.reconciler.Stop()
 	return r.client.Close()
 }
 
-func updateDNS(conf *LeaderConfig, newMasterIP string) error {
-	log.Infof("Setting new leader address to %v in %v", newMasterIP, CoreDNSHosts)
-	err := writeLocalLeader(CoreDNSHosts, newMasterIP)
-	if err != nil {
-		return trace.Wrap(err)
-	}
-	return nil
+type clientState struct {
+	client     *leader.Client
+	reconciler *reconcile.Reconciler
 }
 
-var electedUnits = []string{
-	"kube-controller-manager.service",
-	"kube-scheduler.service",
-	"kube-apiserver.service",
+func updateLeaderTrigger(ctx context.Context, reconciler *reconcile.Reconciler, plan agentPlan, logger log.FieldLogger) leader.CallbackFn {
+	return func(_, _, newLeaderAddr string) {
+		logger.WithField("leader-addr", newLeaderAddr).Info("New leader.")
+		plan.leaderAddr = newLeaderAddr
+		reconciler.Reset(ctx, &plan)
+	}
 }
 
-func newUnitMonitor() (*unitMonitor, error) {
-	conn, err := systemdDbus.New()
-	if err != nil {
-		return nil, trace.Wrap(err)
-	}
-	return &unitMonitor{
-		conn:  conn,
-		units: electedUnits,
-	}, nil
-}
-
-type unitMonitor struct {
-	conn  *systemdDbus.Conn
-	units []string
-}
-
-func (r *unitMonitor) close() {
-	r.conn.Close()
-}
-
-func (r *unitMonitor) start(ctx context.Context) {
-	stopC := make(chan string, len(r.units))
-	// Number of successfully started start jobs
-	var numStarted int
-	for _, unit := range r.units {
-		logger := log.WithField("unit", unit)
-		logger.Info("Start service.")
-		if _, err := r.conn.StartUnit(unit, "replace", stopC); err != nil {
-			logger.WithError(err).Warn("Failed to start unit.")
-			continue
-		}
-		numStarted += 1
-	}
-	if numStarted == 0 {
-		return
-	}
-	r.waitForJobs(ctx, stopC, numStarted)
-}
-
-func (r *unitMonitor) stop(ctx context.Context) error {
-	stopC := make(chan string, len(r.units))
-	// Number of successfully started stop jobs
-	var numStarted int
-	for _, unit := range r.units {
-		logger := log.WithField("unit", unit)
-		logger.Info("Shut down service.")
-		if _, err := r.conn.StopUnit(unit, "replace", stopC); err != nil {
-			log.WithError(err).WithField("unit", unit).Warn("Failed to stop unit.")
-			continue
-		}
-		numStarted += 1
-	}
-	if numStarted != 0 {
-		r.waitForJobs(ctx, stopC, numStarted)
-	}
-	// NB: ListUnitsByPatterns is not supported on systemd 219
-	failedUnits, err := r.conn.ListUnitsFiltered([]string{"failed"})
-	if err != nil {
-		return trace.Wrap(err)
-	}
-	for _, unit := range failedUnits {
-		if !utils.StringInSlice(r.units, unit.Name) {
-			continue
-		}
-		if err := r.conn.ResetFailedUnit(unit.Name); err != nil {
-			log.WithError(err).WithField("unit", unit.Name).Warn("Failed to reset failed unit.")
-		}
-	}
-	return nil
-}
-
-func (r *unitMonitor) waitForJobs(ctx context.Context, stopC <-chan string, numStarted int) {
-	var done int
-	for {
-		select {
-		case result := <-stopC:
-			log.WithField("result", result).Info("Job done.")
-			done += 1
-			if done >= numStarted {
-				return
-			}
-		case <-ctx.Done():
-			return
-		}
+func updateElectionParticipationTrigger(ctx context.Context, reconciler *reconcile.Reconciler, plan agentPlan, logger log.FieldLogger) leader.CallbackFn {
+	return func(_, _, enabledFlag string) {
+		enabled, _ := strconv.ParseBool(enabledFlag)
+		logger.WithField("enabled", enabled).Info("Election participation status.")
+		plan.electionPaused = !enabled
+		reconciler.Reset(ctx, &plan)
 	}
 }
 

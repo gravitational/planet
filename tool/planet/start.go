@@ -578,7 +578,7 @@ func addKubeletOptions(config *Config) error {
 	config.Files = append(config.Files, box.File{
 		Path:     constants.KubeletConfigFile,
 		Contents: bytes.NewReader(configBytes),
-		Mode:     SharedReadWriteMask,
+		Mode:     constants.SharedReadWriteMask,
 	})
 	return nil
 }

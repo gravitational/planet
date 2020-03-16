@@ -19,28 +19,16 @@ package leader
 import (
 	"context"
 	"fmt"
+	"sync"
 	"sync/atomic"
 	"time"
 
-	"github.com/gravitational/coordinate/config"
+	"github.com/cenkalti/backoff"
 	"github.com/gravitational/trace"
-
-	ebackoff "github.com/cenkalti/backoff"
 	"github.com/jonboulle/clockwork"
 	log "github.com/sirupsen/logrus"
 	"go.etcd.io/etcd/client"
 )
-
-// Config sets leader election configuration options
-type Config struct {
-	// ETCD defines etcd configuration, client will be instantiated
-	// if passed
-	ETCD *config.Config
-	// Clock is a time provider
-	Clock clockwork.Clock
-	// Client is ETCD client will be used if passed
-	Client client.Client
-}
 
 // Client implements ETCD-backed leader election client
 // that helps to elect new leaders for a given key and
@@ -48,36 +36,44 @@ type Config struct {
 type Client struct {
 	client client.Client
 	clock  clockwork.Clock
-	closeC chan bool
+	closeC chan struct{}
 	pauseC chan bool
 	closed uint32
+	// voterC controls the voting participation
+	voterC chan bool
+	once   sync.Once
 }
 
 // NewClient returns a new instance of leader election client
 func NewClient(cfg Config) (*Client, error) {
-	if cfg.Clock == nil {
-		cfg.Clock = clockwork.NewRealClock()
-	}
-	var err error
-	client := cfg.Client
-	if client == nil {
-		if cfg.ETCD == nil {
-			return nil, trace.BadParameter("expected either ETCD config or Client")
-		}
-		if err = cfg.ETCD.CheckAndSetDefaults(); err != nil {
-			return nil, trace.Wrap(err)
-		}
-		client, err = cfg.ETCD.NewClient()
-		if err != nil {
-			return nil, trace.Wrap(err)
-		}
+	if err := cfg.checkAndSetDefaults(); err != nil {
+		return nil, trace.Wrap(err)
 	}
 	return &Client{
-		client: client,
+		client: cfg.Client,
 		clock:  cfg.Clock,
-		closeC: make(chan bool),
+		closeC: make(chan struct{}),
 		pauseC: make(chan bool),
+		voterC: make(chan bool),
 	}, nil
+}
+
+func (r *Config) checkAndSetDefaults() error {
+	if r.Client == nil {
+		return trace.BadParameter("Client is required")
+	}
+	if r.Clock == nil {
+		r.Clock = clockwork.NewRealClock()
+	}
+	return nil
+}
+
+// Config sets leader election configuration options
+type Config struct {
+	// Clock is a time provider
+	Clock clockwork.Clock
+	// Client is ETCD client will be used if passed
+	Client client.Client
 }
 
 // CallbackFn specifies callback that is called by AddWatchCallback
@@ -105,24 +101,6 @@ func (l *Client) AddWatchCallback(key string, retry time.Duration, fn CallbackFn
 	}()
 }
 
-func (l *Client) getWatchAtLatestIndex(ctx context.Context, api client.KeysAPI, key string, retry time.Duration) (client.Watcher, *client.Response, error) {
-	resp, err := l.getFirstValue(key, retry)
-	if err != nil {
-		return nil, nil, trace.BadParameter("%v unexpected error: %v", ctx.Value("prefix"), err)
-	} else if resp == nil {
-		log.Debugf("%v client is closing, return", ctx.Value("prefix"))
-		return nil, nil, nil
-	}
-	log.Debugf("%v got current value '%v' for key '%v'", ctx.Value("prefix"), resp.Node.Value, key)
-	watcher := api.Watcher(key, &client.WatcherOptions{
-		// Response.Index corresponds to X-Etcd-Index response header field
-		// and is the recommended starting point after a history miss of over
-		// 1000 events
-		AfterIndex: resp.Index,
-	})
-	return watcher, resp, nil
-}
-
 // AddWatch starts watching the key for changes and sending them
 // to the valuesC, the watch is stopped
 func (l *Client) AddWatch(key string, retry time.Duration, valuesC chan string) {
@@ -140,8 +118,8 @@ func (l *Client) AddWatch(key string, retry time.Duration, valuesC chan string) 
 			closer()
 		}()
 
-		backoff := NewUnlimitedExponentialBackOff()
-		ticker := ebackoff.NewTicker(backoff)
+		b := NewUnlimitedExponentialBackOff()
+		ticker := backoff.NewTicker(b)
 		var steps int
 
 		watcher, resp, err = l.getWatchAtLatestIndex(ctx, api, key, retry)
@@ -171,7 +149,7 @@ func (l *Client) AddWatch(key string, retry time.Duration, valuesC chan string) 
 					if resp.Node.Value == "" {
 						continue
 					}
-					backoff.Reset()
+					b.Reset()
 				}
 			}
 
@@ -203,7 +181,7 @@ func (l *Client) AddWatch(key string, retry time.Duration, valuesC chan string) 
 						if err != nil {
 							continue
 						}
-						backoff.Reset()
+						b.Reset()
 						steps = 0
 					}
 
@@ -229,56 +207,113 @@ func (l *Client) AddWatch(key string, retry time.Duration, valuesC chan string) 
 // to the given value with the time-to-live value specified with term.
 // The time-to-live value cannot be less than a second.
 // After successfully setting the key, it attempts to renew the lease for the specified
-// term indefinitely
-func (l *Client) AddVoter(context context.Context, key, value string, term time.Duration) error {
-	if value == "" {
-		return trace.BadParameter("voter value for key cannot be empty")
+// term indefinitely.
+// The method is idempotent and does nothing if invoked multiple times
+func (l *Client) AddVoter(ctx context.Context, key, value string, term time.Duration) {
+	l.once.Do(func() {
+		l.startVoterLoop(key, value, term)
+	})
+	select {
+	case l.voterC <- true:
+	case <-ctx.Done():
 	}
-	if term < time.Second {
-		return trace.BadParameter("term cannot be < 1s")
+}
+
+// RemoveVoter stops the voting loop.
+func (l *Client) RemoveVoter(ctx context.Context) {
+	select {
+	case l.voterC <- false:
+	case <-ctx.Done():
 	}
+}
+
+// StepDown makes this participant to pause his attempts to re-elect itself thus giving up its leadership
+func (l *Client) StepDown() {
+	l.pauseC <- true
+}
+
+// Close stops current operations and releases resources
+func (l *Client) Close() error {
+	// already closed
+	if !atomic.CompareAndSwapUint32(&l.closed, 0, 1) {
+		return nil
+	}
+	close(l.closeC)
+	return nil
+}
+
+// startVoterLoop starts a process that attempts to set the specified key to
+// to the given value with the time-to-live value specified with term.
+// The time-to-live value cannot be less than a second.
+// After successfully setting the key, it attempts to renew the lease for the specified
+// term indefinitely.
+func (l *Client) startVoterLoop(key, value string, term time.Duration) {
 	go func() {
 		err := l.elect(key, value, term)
 		if err != nil {
-			log.Debugf("voter error: %v", err)
+			log.WithError(err).Warn("Voter error.")
 		}
 		ticker := time.NewTicker(term / 5)
-		defer ticker.Stop()
+		tickerC := ticker.C
 		for {
 			select {
 			case <-l.pauseC:
-				log.Debug("was asked to step down, pausing heartbeat")
+				log.Info("Step down.")
 				select {
 				case <-time.After(term * 2):
 				case <-l.closeC:
-					return
-				case <-context.Done():
-					log.Debugf("removing voter for %v", value)
 					return
 				}
 			default:
 			}
 
 			select {
-			case <-ticker.C:
+			case <-tickerC:
 				err := l.elect(key, value, term)
 				if err != nil {
-					log.Debugf("voter error: %v", err)
+					log.WithError(err).Warn("Voter error.")
 				}
+
+			case enabled := <-l.voterC:
+				if !enabled {
+					if ticker != nil {
+						ticker.Stop()
+					}
+					ticker = nil
+					tickerC = nil
+					continue
+				}
+				if tickerC == nil {
+					ticker = time.NewTicker(term / 5)
+					tickerC = ticker.C
+				}
+
 			case <-l.closeC:
-				return
-			case <-context.Done():
-				log.Debugf("removing voter for %v", value)
+				if ticker != nil {
+					ticker.Stop()
+				}
 				return
 			}
 		}
 	}()
-	return nil
 }
 
-// StepDown makes this participant to pause his attempts to re-elect itself thus giving up its leadership
-func (l *Client) StepDown() {
-	l.pauseC <- true
+func (l *Client) getWatchAtLatestIndex(ctx context.Context, api client.KeysAPI, key string, retry time.Duration) (client.Watcher, *client.Response, error) {
+	resp, err := l.getFirstValue(key, retry)
+	if err != nil {
+		return nil, nil, trace.BadParameter("%v unexpected error: %v", ctx.Value("prefix"), err)
+	} else if resp == nil {
+		log.Debugf("%v client is closing, return", ctx.Value("prefix"))
+		return nil, nil, nil
+	}
+	log.Debugf("%v got current value '%v' for key '%v'", ctx.Value("prefix"), resp.Node.Value, key)
+	watcher := api.Watcher(key, &client.WatcherOptions{
+		// Response.Index corresponds to X-Etcd-Index response header field
+		// and is the recommended starting point after a history miss of over
+		// 1000 events
+		AfterIndex: resp.Index,
+	})
+	return watcher, resp, nil
 }
 
 // getFirstValue returns the current value for key if it exists, or waits
@@ -343,41 +378,4 @@ func (l *Client) elect(key, value string, term time.Duration) error {
 	}
 	log.Debugf("%v extended lease", candidate)
 	return nil
-}
-
-// Close stops current operations and releases resources
-func (l *Client) Close() error {
-	// already closed
-	if !atomic.CompareAndSwapUint32(&l.closed, 0, 1) {
-		return nil
-	}
-	close(l.closeC)
-	return nil
-}
-
-// IsNotFound determines if the specified error identifies a node not found event
-func IsNotFound(err error) bool {
-	e, ok := err.(client.Error)
-	if !ok {
-		return false
-	}
-	return e.Code == client.ErrorCodeKeyNotFound
-}
-
-// IsAlreadyExist determines if the specified error identifies a duplicate node event
-func IsAlreadyExist(err error) bool {
-	e, ok := err.(client.Error)
-	if !ok {
-		return false
-	}
-	return e.Code == client.ErrorCodeNodeExist
-}
-
-// IsWatchExpired determins if the specified error identifies an expired watch event
-func IsWatchExpired(err error) bool {
-	switch clientErr := err.(type) {
-	case client.Error:
-		return clientErr.Code == client.ErrorCodeEventIndexCleared
-	}
-	return false
 }

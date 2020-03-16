@@ -309,11 +309,6 @@ const (
 	// AssumeEtcdVersion is the etcd version we assume we're using if we're unable to locate the running version
 	AssumeEtcdVersion = "v2.3.8"
 
-	// LegacyAPIServerDNSName is the domain name of a current leader server
-	// as used to be in previous versions.
-	// This is kept for backwards-compatibility
-	LegacyAPIServerDNSName = "apiserver"
-
 	// DNSNdots defines the threshold for amount of dots that must appear in a name
 	// before an initial absolute query will be made
 	// See resolv.conf(5) on a Linux machine
@@ -345,24 +340,12 @@ const (
 	// PlanetResolv is planet local resolver
 	PlanetResolv = "resolv.gravity.conf"
 
-	// SharedFileMask is file mask for shared file
-	SharedFileMask = 0644
-
-	// SharedDirMask is a permissions mask for a shared directory
-	SharedDirMask = 0755
-
-	// SharedReadWriteMask is a mask for a shared file with read/write access for everyone
-	SharedReadWriteMask = 0666
-
 	// CoreDNSConf is the location of the coredns configuration file within planet
 	CoreDNSConf = "/etc/coredns/coredns.conf"
 
 	// CoreDNSClusterConf is the location of the coredns configuration file for the overlay network
 	// and updated via k8s configmap
 	CoreDNSClusterConf = "/etc/coredns/configmaps/overlay.conf"
-
-	// CoreDNSHosts is the location of a hosts file to be served by CoreDNS
-	CoreDNSHosts = "/etc/coredns/coredns.hosts"
 
 	// HostsFile specifies the location of the hosts configuration file
 	HostsFile = "/etc/hosts"

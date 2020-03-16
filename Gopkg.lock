@@ -171,7 +171,7 @@
   version = "v0.2.0"
 
 [[projects]]
-  digest = "1:9cfbf780a6640fe56f95ac3f66adc545f3081791c95ef89d729d98a6f0eefd6b"
+  digest = "1:bfff4d89c7898c71335b98fc8f1fd2817bbf22cbb7f1a26220fed15c338845ac"
   name = "github.com/coreos/go-systemd"
   packages = [
     "dbus",
@@ -387,15 +387,15 @@
   revision = "c3428bd84c23f0cfcc759f2ef12632be5ff5d95d"
 
 [[projects]]
-  digest = "1:e9719f92f471356932fc96793ac03b3a09f92584d564fb5a9905d7c76eceb56d"
+  branch = "dmitri/voter-api"
+  digest = "1:be5632031038a676ef9402ffaa570b1cc5619f64c79f6fb409f01cc32486835d"
   name = "github.com/gravitational/coordinate"
   packages = [
     "config",
     "leader",
   ]
   pruneopts = "UT"
-  revision = "12af3c0f95932fb6be66ca4e104c0701b256717a"
-  version = "2.0.0"
+  revision = "e92a6d10cdbfb924693ea7e4de17783fdb6c77c8"
 
 [[projects]]
   digest = "1:c260afdfe9e996804d4f70844de6337332cd28df672aa2c5cda4db41af181725"
