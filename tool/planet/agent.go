@@ -306,6 +306,8 @@ func runAgent(conf *agent.Config, monitoringConf *monitoring.Config, leaderConf 
 		}
 	}
 
+	go runSystemdCgroupCleaner(ctx)
+
 	signalc := make(chan os.Signal, 2)
 	signal.Notify(signalc, os.Interrupt, syscall.SIGTERM)
 
