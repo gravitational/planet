@@ -44,6 +44,7 @@ HELM_VER := 2.15.0
 COREDNS_VER := 1.3.1
 NODE_PROBLEM_DETECTOR_VER := v0.6.4
 CNI_VER := 0.7.5
+SERF_VER := v0.8.5
 
 # planet user to use inside the rootfs tarball. This serves as a placeholder
 # and the files will be owned by the actual planet user after extraction
@@ -54,7 +55,7 @@ PLANET_GID ?= 980665
 # This list needs to include every version of etcd that we can upgrade from + latest
 # Version log
 # v3.3.4
-# v3.3.9  - 5.2.x, 
+# v3.3.9  - 5.2.x,
 # v3.3.11 - 5.5.x,
 # v3.3.12 - 6.3.x, 6.1.x, 5.5.x
 # v3.3.15 - 6.3.x
