@@ -1,8 +1,7 @@
 .PHONY: all
 
-VER := v0.8.0
 REPODIR := $(GOPATH)/src/github.com/hashicorp/serf
-OUT := $(ASSETDIR)/serf-$(VER)
+OUT := $(ASSETDIR)/serf-$(SERF_VER)
 BINARIES := $(ROOTFS)/usr/bin/serf
 
 all: agent.mk $(OUT) $(BINARIES)
@@ -10,7 +9,7 @@ all: agent.mk $(OUT) $(BINARIES)
 $(OUT):
 	@echo "\n---> Building Serf:\n"
 	mkdir -p $(GOPATH)/src/github.com/hashicorp
-	cd $(GOPATH)/src/github.com/hashicorp && git clone https://github.com/hashicorp/serf -b $(VER) --depth 1 
+	cd $(GOPATH)/src/github.com/hashicorp && git clone https://github.com/hashicorp/serf -b $(SERF_VER) --depth 1
 	cd $(REPODIR) && \
 	go get -t -d ./... && \
 	GOOS=linux GOARCH=amd64 CGO_ENABLED=0 go build -o $@ ./cmd/serf
