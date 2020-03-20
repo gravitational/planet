@@ -32,6 +32,7 @@ build: | $(ASSETDIR)
 		make -e \
 			KUBE_VER=$(KUBE_VER) \
 			FLANNEL_VER=$(FLANNEL_VER) \
+			SERF_VER=$(SERF_VER) \
 			ETCD_VER="$(ETCD_VER)" \
 			ETCD_LATEST_VER=$(ETCD_LATEST_VER) \
 			-C /assets/makefiles -f planet.mk
