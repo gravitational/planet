@@ -225,6 +225,14 @@
   version = "v1.7.0"
 
 [[projects]]
+  digest = "1:af43bdaaf86655a2343f113e9b293bbc16b12099eaeb223982bbe4d4c22ba14d"
+  name = "github.com/fatih/structs"
+  packages = ["."]
+  pruneopts = "UT"
+  revision = "4966fc68f5b7593aafa6cbbba2d65ec6e1416047"
+  version = "v1.1.0"
+
+[[projects]]
   digest = "1:c45cef8e0074ea2f8176a051df38553ba997a3616f1ec2d35222b1cf9864881e"
   name = "github.com/ghodss/yaml"
   packages = ["."]
@@ -357,7 +365,7 @@
   version = "v1.0.0"
 
 [[projects]]
-  digest = "1:381cd11c9a80622938f46c676183d9f8f6408491e7bb200601d04e3e8779a4ab"
+  digest = "1:06c90820fff2697be863233c63b061748dd5ed1b6a643a78852f3fcd8d1716a3"
   name = "github.com/gravitational/satellite"
   packages = [
     "agent",
@@ -377,16 +385,16 @@
     "utils",
   ]
   pruneopts = "UT"
-  revision = "ff18d2e8111869dd520e7859fe86ff3cae28884c"
-  version = "5.5.10"
+  revision = "8b2e20fee56280192f1565d3a5b02462171cd1eb"
+  version = "5.5.11"
 
 [[projects]]
-  digest = "1:418247f700939c99867b42639d985686ba229fd9f8ee9e119c7cc3ffde6e0fe3"
+  digest = "1:dc84545f9f2a442b14864f2f7e54ae556cae53bd437a05a456572fea9e73cc87"
   name = "github.com/gravitational/trace"
   packages = ["."]
   pruneopts = "UT"
-  revision = "a535a178675fb4a11ba74818491754a8c5575dd6"
-  version = "1.1.8"
+  revision = "dd5b2e8eae86d31f6273ff3ac46d5b15edd6d6be"
+  version = "1.1.10"
 
 [[projects]]
   digest = "1:841d5835e94129658adabece66a4cc54d2cec9a40fa8b51743ea35d0519dd6c2"
@@ -565,6 +573,14 @@
   revision = "d65d576e9348f5982d7f6d83682b694e731a45c6"
 
 [[projects]]
+  digest = "1:b787518ff1745b6710250b526c50cb32fa3322127d144bebc3602a606cbe332a"
+  name = "github.com/mailgun/holster"
+  packages = ["."]
+  pruneopts = "UT"
+  revision = "2296d2fb30b143ac13780cb07dd5e75b22d044b1"
+  version = "v3.8.0"
+
+[[projects]]
   branch = "master"
   digest = "1:1f97d3c252bf9bda0869c228d0ec84a440f1590d6e33e83221c0dff185caad1f"
   name = "github.com/mailgun/minheap"
@@ -723,16 +739,15 @@
   version = "v0.8.0"
 
 [[projects]]
-  digest = "1:20a8a18488bdef471795af0413d9a3c9c35dc24ca93342329b884ba3c15cbaab"
+  digest = "1:d14a5f4bfecf017cb780bdde1b6483e5deb87e12c332544d2c430eda58734bcb"
   name = "github.com/prometheus/client_golang"
   packages = [
     "prometheus",
-    "prometheus/internal",
     "prometheus/promhttp",
   ]
   pruneopts = "UT"
-  revision = "1cafe34db7fdec6022e17e00e1c1ea501022f3e4"
-  version = "v0.9.0"
+  revision = "c5b7fccd204277076155f10851dad72b76a49317"
+  version = "v0.8.0"
 
 [[projects]]
   branch = "master"
@@ -755,17 +770,16 @@
   revision = "bcb74de08d37a417cb6789eec1d6c810040f0470"
 
 [[projects]]
-  branch = "master"
-  digest = "1:ef74914912f99c79434d9c09658274678bc85080ebe3ab32bec3940ebce5e1fc"
+  digest = "1:6421995dc4b0cae1fc87b615c1b7eb22e87a6746b5ac1f73221879bd2f1f4fc1"
   name = "github.com/prometheus/procfs"
   packages = [
     ".",
+    "internal/fs",
     "internal/util",
-    "nfs",
-    "xfs",
   ]
   pruneopts = "UT"
-  revision = "185b4288413d2a0dd0806f78c90dde719829e5ae"
+  revision = "4850c197847aa06aecc37570077fc16e9215d565"
+  version = "v0.0.10"
 
 [[projects]]
   branch = "master"

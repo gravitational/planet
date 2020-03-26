@@ -43,6 +43,8 @@ import (
 type Config struct {
 	// Role is the current agent's role
 	Role agent.Role
+	// AdvertiseIP is the planet agent's advertised IP address
+	AdvertiseIP string
 	// KubeAddr is the address of the kubernetes API server
 	KubeAddr string
 	// ClusterDNS is the IP of the kubernetes DNS service
@@ -263,6 +265,18 @@ func addToMaster(node agent.Agent, config *Config, etcdConfig *monitoring.ETCDCo
 	case constants.CloudProviderAWS:
 		node.AddChecker(monitoring.NewAWSHasProfileChecker())
 	}
+
+	nethealthChecker, err := monitoring.NewNethealthChecker(
+		monitoring.NethealthConfig{
+			AdvertiseIP: config.AdvertiseIP,
+			KubeConfig:  &kubeConfig,
+		},
+	)
+	if err != nil {
+		return trace.Wrap(err)
+	}
+	node.AddChecker(nethealthChecker)
+
 	return nil
 }
 
@@ -307,6 +321,18 @@ func addToNode(node agent.Agent, config *Config, etcdConfig *monitoring.ETCDConf
 	case constants.CloudProviderAWS:
 		node.AddChecker(monitoring.NewAWSHasProfileChecker())
 	}
+
+	nethealthChecker, err := monitoring.NewNethealthChecker(
+		monitoring.NethealthConfig{
+			AdvertiseIP: config.AdvertiseIP,
+			KubeConfig:  &nodeConfig,
+		},
+	)
+	if err != nil {
+		return trace.Wrap(err)
+	}
+	node.AddChecker(nethealthChecker)
+
 	return nil
 }
 
