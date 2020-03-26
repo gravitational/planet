@@ -43,7 +43,7 @@ import (
 type Config struct {
 	// Role is the current agent's role
 	Role agent.Role
-	// AdvertiseIP is the planet agent's advertised ip address
+	// AdvertiseIP is the planet agent's advertised IP address
 	AdvertiseIP string
 	// KubeAddr is the address of the kubernetes API server
 	KubeAddr string
