@@ -98,12 +98,11 @@ ignored = ["github.com/gravitational/planet/build/*"]
 
 [[override]]
   name = "github.com/gravitational/trace"
-  #version = "=1.1.11"
-  revision = "f1826cb7433410e4bc7990258a62b0b4468341e0"
+  version = "=1.1.11"
 
 [[constraint]]
   name = "github.com/opencontainers/selinux"
-  version = "=v1.3.2"
+  version = "=v1.4.0"
 
 [[constraint]]
   name = "github.com/opencontainers/runc"
