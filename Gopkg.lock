@@ -171,24 +171,20 @@
   version = "v0.2.0"
 
 [[projects]]
-  digest = "1:535e93bf23e41f2cf50a6d7a86a39375565f3c3c980df7ae45d38884c979faff"
+  digest = "1:9cfbf780a6640fe56f95ac3f66adc545f3081791c95ef89d729d98a6f0eefd6b"
   name = "github.com/coreos/go-systemd"
   packages = [
     "dbus",
     "journal",
-    "util",
   ]
   pruneopts = "UT"
   revision = "40e2722dffead74698ca12a750f64ef313ddce05"
   version = "v16"
 
 [[projects]]
-  digest = "1:129a158ba1ebf652f53b189d61dcf9fbfca8ac70b36bcb48a501200a21fb6086"
+  digest = "1:39ff4d4d6baca1ac63c6a03404b761d664be14a71bb5a4aca8fef643d0f66fef"
   name = "github.com/coreos/pkg"
-  packages = [
-    "capnslog",
-    "dlopen",
-  ]
+  packages = ["capnslog"]
   pruneopts = "UT"
   revision = "97fdf19511ea361ae1c100dd393cc47f8dcfa1e1"
   version = "v4"
@@ -450,11 +446,12 @@
   version = "7.0.7"
 
 [[projects]]
-  digest = "1:7b65e71a43314399db406911332bd338da7021b11e8f9ca9b02e5ab7eb750135"
+  digest = "1:5639168299375c369a68748214586e3b25bbc17e7ec9c64564f43f4635097bfc"
   name = "github.com/gravitational/trace"
   packages = ["."]
   pruneopts = "UT"
-  revision = "f1826cb7433410e4bc7990258a62b0b4468341e0"
+  revision = "2d27a078e25b4e8f656d1354fddf37d316d1e9bf"
+  version = "1.1.11"
 
 [[projects]]
   digest = "1:01cb46669ee737a700ca9a0968ffe2aa820f262e5f49e1e54f8bfc441650ea8e"
@@ -579,14 +576,6 @@
   pruneopts = "UT"
   revision = "1624edc4454b8682399def8740d46db5e4362ba4"
   version = "v1.1.5"
-
-[[projects]]
-  digest = "1:f97285a3b0a496dcf8801072622230d513f69175665d94de60eb042d03387f6c"
-  name = "github.com/julienschmidt/httprouter"
-  packages = ["."]
-  pruneopts = "UT"
-  revision = "348b672cd90d8190f8240323e372ecd1e66b59dc"
-  version = "v1.2.0"
 
 [[projects]]
   digest = "1:31e761d97c76151dde79e9d28964a812c46efc5baee4085b86f68f0c654450de"
@@ -773,15 +762,16 @@
   revision = "29686dbc5559d93fb1ef402eeda3e35c38d75af4"
 
 [[projects]]
-  digest = "1:6748659a7722ee8e719726fb0102a98f3c80103d643ed45f0b6cbb2c82463ceb"
+  digest = "1:0c8dc3b42a59e1fc6dd03a3c9daebf55d6d85e6c8267084378942767ef41bb32"
   name = "github.com/opencontainers/selinux"
   packages = [
     "go-selinux",
     "go-selinux/label",
+    "pkg/pwalk",
   ]
   pruneopts = "UT"
-  revision = "9400b9f1346111e4e265efd9563cd3b4a8ed8ad7"
-  version = "v1.3.2"
+  revision = "069a5a99e1e5e46c9be197aa5ca6388b041aa4c7"
+  version = "v1.4.0"
 
 [[projects]]
   digest = "1:e5d0bd87abc2781d14e274807a470acd180f0499f8bf5bb18606e9ec22ad9de9"
@@ -1118,6 +1108,17 @@
   ]
   pruneopts = "UT"
   revision = "807dcd883420cac3466af9424a593f57de8033eb"
+
+[[projects]]
+  branch = "master"
+  digest = "1:918a46e4a2fb83df33f668f5a6bd51b2996775d073fce1800d3ec01b0a5ddd2b"
+  name = "golang.org/x/xerrors"
+  packages = [
+    ".",
+    "internal",
+  ]
+  pruneopts = "UT"
+  revision = "9bdfabe68543c54f90421aeb9a60ef8061b5b544"
 
 [[projects]]
   digest = "1:6247f76e55a1e1a5c19a81e2d4b4dff6730461eeb5bbb0a16dd4a8ec8637ee93"
