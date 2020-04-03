@@ -58,6 +58,14 @@ func (r *unitMonitor) stop(name string) error {
 	return nil
 }
 
+func (r *unitMonitor) filterUnits(states ...serviceActiveState) ([]systemdDbus.UnitStatus, error) {
+	filter := make([]string, 0, len(states))
+	for _, state := range states {
+		filter = append(filter, string(state))
+	}
+	return r.conn.ListUnitsFiltered(filter)
+}
+
 // status validates whether the status of the specified service equals targetStatus
 func (r *unitMonitor) status(service string) (*systemdDbus.UnitStatus, error) {
 	units, err := r.conn.ListUnits()
@@ -76,3 +84,10 @@ func (r *unitMonitor) status(service string) (*systemdDbus.UnitStatus, error) {
 func (r *unitMonitor) resetStatus(service string) error {
 	return r.conn.ResetFailedUnit(service)
 }
+
+type serviceActiveState string
+
+const (
+	activeStateInactive serviceActiveState = "inactive"
+	activeStateActive   serviceActiveState = "active"
+)

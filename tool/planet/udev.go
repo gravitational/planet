@@ -40,9 +40,15 @@ func newUdevListener(seLinux bool) (*udevListener, error) {
 	}
 	doneC := make(chan struct{})
 
-	monitor.FilterAddMatchSubsystemDevtype("block", "disk")
-	monitor.FilterAddMatchSubsystemDevtype("block", "partition")
-	monitor.FilterAddMatchTag("systemd")
+	if err := monitor.FilterAddMatchSubsystemDevtype("block", "disk"); err != nil {
+		return nil, trace.BadParameter("failed to filter block devices of type disk")
+	}
+	if err := monitor.FilterAddMatchSubsystemDevtype("block", "partition"); err != nil {
+		return nil, trace.BadParameter("failed to filter block devices of type partition")
+	}
+	if err := monitor.FilterAddMatchTag("systemd"); err != nil {
+		return nil, trace.BadParameter("failed to filter systemd devices")
+	}
 
 	recvC, err := monitor.DeviceChan(doneC)
 	if err != nil {
@@ -63,8 +69,8 @@ func newUdevListener(seLinux bool) (*udevListener, error) {
 // Close closes the listener and removes the installed udev filters
 func (r *udevListener) Close() error {
 	removeFilters := func() {
-		r.monitor.FilterRemove()
-		r.monitor.FilterUpdate()
+		r.monitor.FilterRemove() //nolint:errcheck
+		r.monitor.FilterUpdate() //nolint:errcheck
 	}
 	close(r.doneC)
 	removeFilters()

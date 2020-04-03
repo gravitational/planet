@@ -128,7 +128,7 @@ func ExitStatusFromError(err error) *int {
 	return nil
 }
 
-// StringInSlice retunrs true if needle is in haystack
+// StringInSlice returns true if needle is in haystack
 func StringInSlice(haystack []string, needle string) bool {
 	for i := range haystack {
 		if haystack[i] == needle {
@@ -158,8 +158,8 @@ func hasJSONPrefix(buf []byte) bool {
 	return hasPrefix(buf, jsonPrefix)
 }
 
-// Return true if the first non-whitespace bytes in buf is
-// prefix.
+// hasPrefix returns true if the first non-whitespace bytes in buf match
+// the specified prefix.
 func hasPrefix(buf []byte, prefix []byte) bool {
 	trim := bytes.TrimLeftFunc(buf, unicode.IsSpace)
 	return bytes.HasPrefix(trim, prefix)

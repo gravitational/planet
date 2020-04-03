@@ -388,14 +388,14 @@
 
 [[projects]]
   branch = "dmitri/voter-api"
-  digest = "1:be5632031038a676ef9402ffaa570b1cc5619f64c79f6fb409f01cc32486835d"
+  digest = "1:8036c2ee6767236a6ca7dc95280c5ba54604fc4789375d46b224ca4a89af4e23"
   name = "github.com/gravitational/coordinate"
   packages = [
     "config",
     "leader",
   ]
   pruneopts = "UT"
-  revision = "e92a6d10cdbfb924693ea7e4de17783fdb6c77c8"
+  revision = "a11215775b668a7ddd6f3a628556875ea5cea36f"
 
 [[projects]]
   digest = "1:c260afdfe9e996804d4f70844de6337332cd28df672aa2c5cda4db41af181725"
@@ -1459,6 +1459,7 @@
     "github.com/gravitational/version",
     "github.com/hashicorp/serf/client",
     "github.com/imdario/mergo",
+    "github.com/jonboulle/clockwork",
     "github.com/kylelemons/godebug/diff",
     "github.com/magefile/mage/mage",
     "github.com/magefile/mage/mg",

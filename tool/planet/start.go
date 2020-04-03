@@ -26,7 +26,6 @@ import (
 	"os"
 	"path"
 	"path/filepath"
-	"sort"
 	"strconv"
 	"strings"
 	"text/template"
@@ -800,12 +799,6 @@ func setHosts(config *Config, entries []utils.HostEntry) error {
 }
 
 const (
-	// CertificateAuthorityKeyPair is the name of the TLS cert authority
-	// file (with .cert extension) that is used to sign APIserver
-	// certificates and secret keys
-	CertificateAuthorityKeyPair = "root"
-	// APIServerKeyPair is the name of the apiserver keypair
-	APIServerKeyPair = "apiserver"
 	// RoleMaster sets up node as a K8s master server
 	RoleMaster = "master"
 	// RoleNode sets up planet as K8s node server
@@ -890,7 +883,6 @@ var flannelConflist = `
 
 const (
 	ETCDWorkDir              = "/ext/etcd"
-	ETCDProxyDir             = "/ext/etcd/proxy"
 	DockerWorkDir            = "/ext/docker"
 	RegistryWorkDir          = "/ext/registry"
 	ContainerEnvironmentFile = "/etc/container-environment"
@@ -984,7 +976,7 @@ func monitorUnits(box *box.Box, units ...string) {
 		out := &bytes.Buffer{}
 		fmt.Fprintf(out, "%v", time.Since(start))
 		for _, unit := range units {
-			if state, _ := unitState[unit]; state == serviceActive {
+			if state := unitState[unit]; state == serviceActive {
 				fmt.Fprintf(out, " %v \x1b[32m[OK]\x1b[0m", unit)
 			} else {
 				fmt.Fprintf(out, " %v [%v]", unit, state)
@@ -1010,15 +1002,6 @@ func getInactiveUnits(units map[string]string) (inactive []string) {
 		}
 	}
 	return inactive
-}
-
-func unitNames(units map[string]string) []string {
-	out := []string{}
-	for unit := range units {
-		out = append(out, unit)
-	}
-	sort.StringSlice(out).Sort()
-	return out
 }
 
 func getStatus(b *box.Box, unit string) (status string, err error) {

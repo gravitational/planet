@@ -21,20 +21,19 @@ import (
 	"sync"
 	"time"
 
-	"github.com/cenkalti/backoff"
 	"github.com/gravitational/trace"
+	"github.com/jonboulle/clockwork"
 	"github.com/sirupsen/logrus"
 )
 
 // Plan describes a plan as a list of steps to achieving a specific goal.
-// Plan is complete when the next call to Create does not produce any steps
+// Plan is complete when all steps execute without errors.
 type Plan interface {
 	// Name returns the name of this plan.
 	// The name is used in logging
 	Name() string
 	// Create creates a list of operation steps to execute as part of the plan.
 	// Individual steps are capable of generating sub-steps as part of their work.
-	// Once this returns an empty list, the plan is considered complete
 	Create(context.Context) ([]Step, error)
 }
 
@@ -48,15 +47,17 @@ type Step interface {
 }
 
 // New creates a new plan reconciler
-func New() *Reconciler {
+func New(config Config) *Reconciler {
+	config.setDefaults()
 	return &Reconciler{
+		config:      config,
 		log:         logrus.WithField(trace.Component, "reconciler"),
 		stop:        make(chan chan struct{}),
 		planUpdates: make(chan Plan, 1),
 	}
 }
 
-// Reset strarts the reconciler loop using the specified plan.
+// Reset starts the reconciler loop using the specified plan.
 // If the reconciler is already executing a plan, it will be canceled to start a new one
 func (r *Reconciler) Reset(ctx context.Context, plan Plan) {
 	r.once.Do(func() {
@@ -78,52 +79,95 @@ func (r *Reconciler) Stop() {
 
 // Reconciler is a plan reconciler
 type Reconciler struct {
+	config      Config
 	log         logrus.FieldLogger
 	stop        chan chan struct{}
 	once        sync.Once
 	planUpdates chan Plan
 }
 
+// Config defines reconciler configuration
+type Config struct {
+	// Timeout defines the time steps for executing a single plan between attempts
+	Timeout time.Duration
+	// ResyncTimeout defines the maximum time to wait between unconditional attempts
+	// to execute the last plan
+	ResyncTimeout time.Duration
+	// clock specifies the time implementation.
+	// Overridden in tests
+	clock clockwork.Clock
+}
+
+func (r *Config) setDefaults() {
+	if r.Timeout == 0 {
+		r.Timeout = timeout
+	}
+	if r.ResyncTimeout == 0 {
+		r.ResyncTimeout = resyncTimeout
+	}
+	if r.clock == nil {
+		r.clock = clockwork.NewRealClock()
+	}
+}
+
 func (r *Reconciler) loop() {
-	const timeout = 10 * time.Second
-	var plan Plan
-	var ticker *backoff.Ticker
-	var tickerC <-chan time.Time
-	ctx, cancel := context.WithCancel(context.Background())
+	var (
+		plan    Plan
+		ticker  clockwork.Ticker
+		tickerC <-chan time.Time
+	)
 	for {
 		select {
 		case <-tickerC:
-			// Another iteration
-			logger := r.log.WithField("plan", plan.Name())
-			steps, err := plan.Create(ctx)
-			if err != nil {
-				logger.WithError(err).Warn("Failed to create plan.")
+			// TODO: come up with canceling strategy
+			if r.executePlan(context.TODO(), plan) != nil {
 				continue
 			}
-			if err := execute(ctx, steps, logger); err != nil {
-				logger.WithError(err).Warn("Failed to execute plan.")
-				continue
-			}
-			tickerC = nil
+			// Schedule infrequent resync attempts
 			ticker.Stop()
-			cancel()
+			ticker = r.config.clock.NewTicker(r.config.ResyncTimeout)
+			tickerC = ticker.Chan()
 
 		case c := <-r.stop:
-			cancel()
+			r.log.Debug("Stop.")
 			r.stop = nil
+			if ticker != nil {
+				ticker.Stop()
+			}
 			close(c)
 			return
 
 		case plan = <-r.planUpdates:
 			if ticker != nil {
 				ticker.Stop()
-				tickerC = nil
 			}
-			cancel()
-			ticker = backoff.NewTicker(backoff.NewConstantBackOff(timeout))
-			tickerC = ticker.C
+			if r.executePlan(context.TODO(), plan) == nil {
+				// On success, schedule infrequent resync attempts
+				ticker = r.config.clock.NewTicker(r.config.ResyncTimeout)
+				tickerC = ticker.Chan()
+				continue
+			}
+			// On failure, continue after a short timeout
+			ticker = r.config.clock.NewTicker(r.config.Timeout)
+			tickerC = ticker.Chan()
 		}
 	}
+}
+
+func (r *Reconciler) executePlan(ctx context.Context, plan Plan) error {
+	logger := r.log.WithField("plan", plan.Name())
+	logger.Info("Reconcile plan.")
+	steps, err := plan.Create(ctx)
+	if err != nil {
+		logger.WithError(err).Warn("Failed to create plan.")
+		return trace.Wrap(err)
+	}
+	if err := execute(ctx, steps, logger); err != nil {
+		logger.WithError(err).Warn("Failed to execute plan.")
+		return trace.Wrap(err)
+	}
+	logger.Info("Reconciled plan.")
+	return nil
 }
 
 func execute(ctx context.Context, steps []Step, logger logrus.FieldLogger) error {
@@ -140,3 +184,8 @@ func execute(ctx context.Context, steps []Step, logger logrus.FieldLogger) error
 	}
 	return nil
 }
+
+const (
+	timeout       = 10 * time.Second
+	resyncTimeout = 5 * time.Minute
+)

@@ -16,7 +16,11 @@ limitations under the License.
 
 package leader
 
-import "go.etcd.io/etcd/client"
+import (
+	"context"
+
+	"go.etcd.io/etcd/client"
+)
 
 // IsNotFound determines if the specified error identifies a node not found event
 func IsNotFound(err error) bool {
@@ -41,6 +45,19 @@ func IsWatchExpired(err error) bool {
 	switch clientErr := err.(type) {
 	case client.Error:
 		return clientErr.Code == client.ErrorCodeEventIndexCleared
+	}
+	return false
+}
+
+// IsContextCanceled returns true if the provided error indicates canceled context.
+func IsContextCanceled(err error) bool {
+	if err == context.Canceled {
+		return true
+	}
+	if clusterErr, ok := err.(*client.ClusterError); ok {
+		if len(clusterErr.Errors) != 0 && clusterErr.Errors[0] == context.Canceled {
+			return true
+		}
 	}
 	return false
 }

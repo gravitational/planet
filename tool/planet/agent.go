@@ -106,6 +106,19 @@ func startLeaderClient(ctx context.Context, conf *LeaderConfig, agent agent.Agen
 		return nil, trace.Wrap(err)
 	}
 
+	logger := log.WithField("addr", conf.PublicIP)
+
+	if conf.Role == RoleMaster {
+		etcdapi := etcd.NewKeysAPI(etcdClient)
+		// Set initial value of election participation mode
+		_, err = etcdapi.Set(ctx, conf.ElectionKey,
+			strconv.FormatBool(conf.ElectionEnabled),
+			&etcd.SetOptions{PrevExist: etcd.PrevIgnore})
+		if err != nil {
+			return nil, trace.Wrap(err)
+		}
+	}
+
 	client, err := leader.NewClient(leader.Config{Client: etcdClient})
 	if err != nil {
 		return nil, trace.Wrap(err)
@@ -116,41 +129,31 @@ func startLeaderClient(ctx context.Context, conf *LeaderConfig, agent agent.Agen
 		}
 	}()
 
-	logger := log.WithField("addr", conf.PublicIP)
-
-	if conf.Role == RoleMaster {
-		etcdapi := etcd.NewKeysAPI(etcdClient)
-		// Set initial value of election participation mode
-		_, err = etcdapi.Set(context.TODO(), conf.ElectionKey,
-			strconv.FormatBool(conf.ElectionEnabled),
-			&etcd.SetOptions{PrevExist: etcd.PrevNoExist})
-		if err != nil {
-			if err = convertError(err); !trace.IsAlreadyExists(err) {
-				return nil, trace.Wrap(err)
-			}
-		}
-	}
-
 	mon, err := newUnitMonitor()
 	if err != nil {
 		return nil, trace.Wrap(err)
 	}
 	plan := agentPlan{
-		leaderKey:    conf.LeaderKey,
-		localAddr:    conf.PublicIP,
-		electionTerm: conf.Term,
-		mon:          mon,
-		client:       client,
+		leaderKey:      conf.LeaderKey,
+		localAddr:      conf.PublicIP,
+		electionTerm:   conf.Term,
+		electionPaused: !conf.ElectionEnabled,
+		mon:            mon,
+		client:         client,
 	}
-	reconciler := reconcile.New()
+	reconciler := reconcile.New(reconcile.Config{})
 
-	client.AddWatchCallback(conf.LeaderKey, conf.Term/3, updateLeaderTrigger(ctx, reconciler, plan, logger))
-	client.AddWatchCallback(conf.ElectionKey, conf.Term,
-		updateElectionParticipationTrigger(ctx, reconciler, plan, logger))
+	state := &agentState{
+		plan: plan,
+	}
+
+	client.AddWatchCallback(conf.LeaderKey, updateLeaderTrigger(ctx, reconciler, state, logger))
+	client.AddWatchCallback(conf.ElectionKey, updateElectionParticipationTrigger(ctx, reconciler, state, logger))
 
 	return &clientState{
 		client:     client,
 		reconciler: reconciler,
+		mon:        mon,
 	}, nil
 }
 
@@ -158,28 +161,28 @@ func startLeaderClient(ctx context.Context, conf *LeaderConfig, agent agent.Agen
 // Implements io.Closer
 func (r *clientState) Close() error {
 	r.reconciler.Stop()
+	r.mon.close()
 	return r.client.Close()
 }
 
 type clientState struct {
 	client     *leader.Client
 	reconciler *reconcile.Reconciler
+	mon        *unitMonitor
 }
 
-func updateLeaderTrigger(ctx context.Context, reconciler *reconcile.Reconciler, plan agentPlan, logger log.FieldLogger) leader.CallbackFn {
+func updateLeaderTrigger(ctx context.Context, reconciler *reconcile.Reconciler, state *agentState, logger log.FieldLogger) leader.CallbackFn {
 	return func(_, _, newLeaderAddr string) {
 		logger.WithField("leader-addr", newLeaderAddr).Info("New leader.")
-		plan.leaderAddr = newLeaderAddr
-		reconciler.Reset(ctx, &plan)
+		reconciler.Reset(ctx, state.withLeaderAddr(newLeaderAddr))
 	}
 }
 
-func updateElectionParticipationTrigger(ctx context.Context, reconciler *reconcile.Reconciler, plan agentPlan, logger log.FieldLogger) leader.CallbackFn {
+func updateElectionParticipationTrigger(ctx context.Context, reconciler *reconcile.Reconciler, state *agentState, logger log.FieldLogger) leader.CallbackFn {
 	return func(_, _, enabledFlag string) {
 		enabled, _ := strconv.ParseBool(enabledFlag)
 		logger.WithField("enabled", enabled).Info("Election participation status.")
-		plan.electionPaused = !enabled
-		reconciler.Reset(ctx, &plan)
+		reconciler.Reset(ctx, state.withElectionEnabled(enabled))
 	}
 }
 
