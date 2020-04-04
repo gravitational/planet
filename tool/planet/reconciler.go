@@ -159,6 +159,11 @@ func (r *stopUnit) Name() string {
 // if it fails to stop
 func (r *stopUnit) Do(context.Context) ([]reconcile.Step, error) {
 	if err := r.mon.stop(r.name); err != nil {
+		if trace.IsNotFound(err) {
+			// If a service is not currently loaded, it will not appear in the list.
+			// Ignore this as if the service has already been stopped
+			return nil, nil
+		}
 		return nil, trace.Wrap(err, "failed to stop service").AddField("unit", r.name)
 	}
 	return []reconcile.Step{newResetFailedUnit(r.mon, r.name)}, nil
@@ -196,11 +201,8 @@ type startUnit struct {
 
 func newResetFailedUnit(mon *unitMonitor, name string) *resetFailedUnit {
 	return &resetFailedUnit{
-		unitState: unitState{
-			mon:   mon,
-			name:  name,
-			state: activeStateInactive,
-		},
+		mon:  mon,
+		name: name,
 	}
 }
 
@@ -211,23 +213,26 @@ func (r *resetFailedUnit) Name() string {
 
 // Do resets the status of the underlying service unit if it's failed
 func (r *resetFailedUnit) Do(ctx context.Context) ([]reconcile.Step, error) {
-	steps, err := r.unitState.Do(ctx)
+	unit, err := r.mon.status(r.name)
 	if err != nil {
 		if trace.IsNotFound(err) {
-			// If a service is not currently loaded, it will not appear in the list.
-			// Ignore this as if the service has already been stopped
+			// Ignore not loaded units
 			return nil, nil
 		}
-		return nil, trace.Wrap(err)
+		return nil, trace.Wrap(err, "failed to query service status").AddField("unit", r.name)
+	}
+	if unit.ActiveState != string(activeStateFailed) {
+		return nil, nil
 	}
 	if err := r.mon.resetStatus(r.name); err != nil {
 		return nil, trace.Wrap(err, "failed to reset service status").AddField("unit", r.name)
 	}
-	return steps, nil
+	return nil, nil
 }
 
 type resetFailedUnit struct {
-	unitState
+	mon  *unitMonitor
+	name string
 }
 
 func newUnitState(mon *unitMonitor, name string, state serviceActiveState) *unitState {

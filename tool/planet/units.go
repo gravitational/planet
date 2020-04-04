@@ -18,6 +18,7 @@ package main
 
 import (
 	systemdDbus "github.com/coreos/go-systemd/dbus"
+	"github.com/godbus/dbus"
 	"github.com/gravitational/trace"
 	"github.com/sirupsen/logrus"
 )
@@ -45,7 +46,10 @@ func (r *unitMonitor) close() {
 func (r *unitMonitor) start(name string) error {
 	r.log.WithField("unit", name).Debug("Start service.")
 	if _, err := r.conn.StartUnit(name, "replace", nil); err != nil {
-		return trace.Wrap(err, "failed to start unit %v", name)
+		if isNoSuchUnitError(err) {
+			return trace.NotFound("service %v not found", name)
+		}
+		return trace.Wrap(err, "failed to start service %v", name)
 	}
 	return nil
 }
@@ -53,7 +57,10 @@ func (r *unitMonitor) start(name string) error {
 func (r *unitMonitor) stop(name string) error {
 	r.log.WithField("unit", name).Debug("Shut down service.")
 	if _, err := r.conn.StopUnit(name, "replace", nil); err != nil {
-		return trace.Wrap(err, "failed to stop unit %v", name)
+		if isNoSuchUnitError(err) {
+			return trace.NotFound("service %v not found", name)
+		}
+		return trace.Wrap(err, "failed to stop service %v", name)
 	}
 	return nil
 }
@@ -85,9 +92,17 @@ func (r *unitMonitor) resetStatus(service string) error {
 	return r.conn.ResetFailedUnit(service)
 }
 
+func isNoSuchUnitError(err error) bool {
+	if dbusErr, ok := trace.Unwrap(err).(dbus.Error); ok {
+		return dbusErr.Name == "org.freedesktop.systemd1.NoSuchUnit"
+	}
+	return false
+}
+
 type serviceActiveState string
 
 const (
 	activeStateInactive serviceActiveState = "inactive"
 	activeStateActive   serviceActiveState = "active"
+	activeStateFailed   serviceActiveState = "failed"
 )
