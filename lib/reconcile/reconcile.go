@@ -41,7 +41,7 @@ type Plan interface {
 type Step interface {
 	// Name returns the step name
 	Name() string
-	// Do executes the step action.
+	// Do executes the step.
 	// Optionally returns additional Steps to execute or error in case of failure
 	Do(context.Context) ([]Step, error)
 }
@@ -111,45 +111,54 @@ func (r *Config) setDefaults() {
 }
 
 func (r *Reconciler) loop() {
-	var (
-		plan    Plan
-		ticker  clockwork.Ticker
-		tickerC <-chan time.Time
-	)
+	var wg sync.WaitGroup
+	ctx, cancel := context.WithCancel(context.Background())
 	for {
 		select {
-		case <-tickerC:
-			// TODO: come up with canceling strategy
-			if r.executePlan(context.TODO(), plan) != nil {
-				continue
-			}
-			// Schedule infrequent resync attempts
-			ticker.Stop()
-			ticker = r.config.clock.NewTicker(r.config.ResyncTimeout)
-			tickerC = ticker.Chan()
-
 		case c := <-r.stop:
 			r.log.Debug("Stop.")
 			r.stop = nil
-			if ticker != nil {
-				ticker.Stop()
-			}
+			cancel()
+			wg.Wait()
 			close(c)
 			return
 
-		case plan = <-r.planUpdates:
-			if ticker != nil {
-				ticker.Stop()
-			}
-			if r.executePlan(context.TODO(), plan) == nil {
-				// On success, schedule infrequent resync attempts
-				ticker = r.config.clock.NewTicker(r.config.ResyncTimeout)
-				tickerC = ticker.Chan()
+		case plan := <-r.planUpdates:
+			cancel()
+			wg.Wait()
+			ctx, cancel = context.WithCancel(context.Background())
+			wg.Add(1)
+			go r.executorLoop(ctx, plan, &wg)
+		}
+	}
+}
+
+func (r *Reconciler) executorLoop(ctx context.Context, plan Plan, wg *sync.WaitGroup) {
+	defer wg.Done()
+	timeout := r.config.Timeout
+	if r.executePlan(ctx, plan) == nil {
+		timeout = r.config.ResyncTimeout
+	}
+	ticker := r.config.clock.NewTicker(timeout)
+	defer ticker.Stop()
+	tickerC := ticker.Chan()
+	for {
+		select {
+		case <-tickerC:
+			if r.executePlan(ctx, plan) != nil {
+				if timeout != r.config.Timeout {
+					ticker.Stop()
+					timeout = r.config.Timeout
+					ticker = r.config.clock.NewTicker(timeout)
+					tickerC = ticker.Chan()
+				}
 				continue
 			}
-			// On failure, continue after a short timeout
-			ticker = r.config.clock.NewTicker(r.config.Timeout)
+			ticker.Stop()
+			ticker = r.config.clock.NewTicker(r.config.ResyncTimeout)
 			tickerC = ticker.Chan()
+		case <-ctx.Done():
+			return
 		}
 	}
 }
