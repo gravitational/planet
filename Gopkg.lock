@@ -928,7 +928,7 @@
   version = "v1.3.3"
 
 [[projects]]
-  digest = "1:fa7ce8fc37d6376cb41865ecc2f8ecb877a5043fad7b10afcf7c56edea8c35d4"
+  digest = "1:121edfe9d264ff6d73ab0d37737d6516dc055a9f6ffcc3031ab05984a9d0d72c"
   name = "go.etcd.io/etcd"
   packages = [
     "auth/authpb",
@@ -938,6 +938,7 @@
     "clientv3/balancer/connectivity",
     "clientv3/balancer/picker",
     "clientv3/balancer/resolver/endpoint",
+    "clientv3/concurrency",
     "clientv3/credentials",
     "etcdserver/api/v3rpc/rpctypes",
     "etcdserver/etcdserverpb",
@@ -1474,6 +1475,7 @@
     "github.com/opencontainers/runtime-spec/specs-go",
     "github.com/opencontainers/selinux/go-selinux",
     "github.com/pborman/uuid",
+    "github.com/pkg/errors",
     "github.com/prometheus/client_golang/prometheus",
     "github.com/sirupsen/logrus",
     "github.com/sirupsen/logrus/hooks/syslog",
@@ -1481,6 +1483,8 @@
     "github.com/syndtr/gocapability/capability",
     "go.etcd.io/etcd/client",
     "go.etcd.io/etcd/clientv3",
+    "go.etcd.io/etcd/clientv3/concurrency",
+    "go.etcd.io/etcd/mvcc/mvccpb",
     "golang.org/x/sys/unix",
     "gopkg.in/alecthomas/kingpin.v2",
     "gopkg.in/check.v1",

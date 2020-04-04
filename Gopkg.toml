@@ -77,11 +77,6 @@ ignored = ["github.com/gravitational/planet/build/*"]
   name = "github.com/gravitational/configure"
 
 [[constraint]]
-  name = "github.com/gravitational/coordinate"
-  #version = "=2.0.1"
-  branch = "dmitri/voter-api"
-
-[[constraint]]
   version = "=0.0.3"
   name = "github.com/gravitational/etcd-backup"
 

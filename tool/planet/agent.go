@@ -27,6 +27,7 @@ import (
 	"syscall"
 	"time"
 
+	"github.com/gravitational/planet/lib/leadership"
 	"github.com/gravitational/planet/lib/monitoring"
 	"github.com/gravitational/planet/lib/reconcile"
 
@@ -124,6 +125,15 @@ func startLeaderClient(ctx context.Context, conf *LeaderConfig, agent agent.Agen
 		}
 	}()
 
+	candidate, err := leadership.NewCandidate(ctx, leadership.CandidateConfig{
+		Prefix: conf.LeaderKey,
+		Term:   conf.Term,
+		Name:   conf.PublicIP,
+	})
+	if err != nil {
+		return nil, trace.Wrap(err)
+	}
+
 	mon, err := newUnitMonitor()
 	if err != nil {
 		return nil, trace.Wrap(err)
@@ -142,6 +152,7 @@ func startLeaderClient(ctx context.Context, conf *LeaderConfig, agent agent.Agen
 		plan: plan,
 	}
 
+	// FIXME
 	client.AddWatchCallback(conf.LeaderKey, updateLeaderTrigger(ctx, agent, reconciler, state, logger))
 	client.AddWatchCallback(conf.ElectionKey, updateElectionParticipationTrigger(ctx, reconciler, state, logger))
 
@@ -149,6 +160,7 @@ func startLeaderClient(ctx context.Context, conf *LeaderConfig, agent agent.Agen
 		client:     client,
 		reconciler: reconciler,
 		mon:        mon,
+		candidate:  candidate,
 	}, nil
 }
 
@@ -156,6 +168,7 @@ func startLeaderClient(ctx context.Context, conf *LeaderConfig, agent agent.Agen
 // Implements io.Closer
 func (r *clientState) Close() error {
 	r.reconciler.Stop()
+	r.candidate.Stop()
 	r.mon.close()
 	return r.client.Close()
 }
@@ -164,6 +177,7 @@ type clientState struct {
 	client     *leader.Client
 	reconciler *reconcile.Reconciler
 	mon        *unitMonitor
+	candidate  *leadership.Candidate
 }
 
 func updateLeaderTrigger(ctx context.Context, agent agent.Agent, reconciler *reconcile.Reconciler, state *agentState, logger log.FieldLogger) leader.CallbackFn {
