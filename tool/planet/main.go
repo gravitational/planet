@@ -333,6 +333,7 @@ func run() error {
 		// }
 		monitoringConf := &monitoring.Config{
 			Role:                  agent.Role(*cagentRole),
+			AdvertiseIP:           cagentPublicIP.String(),
 			KubeAddr:              *cagentKubeAddr,
 			ClusterDNS:            cagentClusterDNS.String(),
 			UpstreamNameservers:   *cagentDNSUpstreamNameservers,
