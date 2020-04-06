@@ -1,4 +1,4 @@
-package elections
+package leadership
 
 import (
 	"context"
@@ -11,7 +11,6 @@ import (
 	"github.com/sirupsen/logrus"
 	etcd "go.etcd.io/etcd/clientv3"
 	"google.golang.org/grpc"
-	"google.golang.org/grpc/grpclog"
 	. "gopkg.in/check.v1"
 )
 
@@ -26,13 +25,15 @@ var _ = Suite(&S{})
 func (s *S) SetUpSuite(c *C) {
 	logrus.SetLevel(logrus.DebugLevel)
 	logrus.SetOutput(os.Stderr)
+}
+
+func (s *S) SetUpTest(c *C) {
 	endpointsEnv := os.Getenv("PLANET_TEST_ETCD_ENDPOINTS")
 	if endpointsEnv == "" {
 		// Skip the suite
 		c.Skip("This test requires etcd, specify endpoint(s) as a comma-separated list in PLANET_TEST_ETCD_ENDPOINTS")
 		return
 	}
-	etcd.SetLogger(grpclog.NewLoggerV2WithVerbosity(os.Stderr, os.Stderr, os.Stderr, 4))
 	config := config{
 		endpoints:               strings.Split(endpointsEnv, ","),
 		headerTimeoutPerRequest: 1 * time.Second,
@@ -43,7 +44,8 @@ func (s *S) SetUpSuite(c *C) {
 	c.Assert(err, IsNil)
 }
 
-func (s *S) TestCanStopCanidate(c *C) {
+func (s *S) TestCanStopCandidate(c *C) {
+	defer s.client.Close()
 	candidate, err := NewCandidate(context.TODO(), CandidateConfig{
 		Term:   1 * time.Second,
 		Prefix: "testleader",
@@ -55,6 +57,7 @@ func (s *S) TestCanStopCanidate(c *C) {
 }
 
 func (s *S) TestCandidateCanElectItself(c *C) {
+	defer s.client.Close()
 	candidate, err := NewCandidate(context.TODO(), CandidateConfig{
 		Term:   1 * time.Second,
 		Prefix: "testleader",
@@ -68,6 +71,7 @@ func (s *S) TestCandidateCanElectItself(c *C) {
 }
 
 func (s *S) TestCandidateCanStepDown(c *C) {
+	defer s.client.Close()
 	const term = 1 * time.Second
 	candidate1, err := NewCandidate(context.TODO(), CandidateConfig{
 		Term:   term,

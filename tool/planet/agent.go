@@ -27,7 +27,7 @@ import (
 	"syscall"
 	"time"
 
-	leadership "github.com/gravitational/planet/lib/elections"
+	"github.com/gravitational/planet/lib/leadership"
 	"github.com/gravitational/planet/lib/monitoring"
 	"github.com/gravitational/planet/lib/reconcile"
 
@@ -125,7 +125,7 @@ func startLeaderClient(ctx context.Context, conf *LeaderConfig, agent agent.Agen
 		}
 	}()
 
-	candidate, err := elections.NewCandidate(ctx, elections.CandidateConfig{
+	candidate, err := leadership.NewCandidate(ctx, leadership.CandidateConfig{
 		Prefix: conf.LeaderKey,
 		Term:   conf.Term,
 		Name:   conf.PublicIP,

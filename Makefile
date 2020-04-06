@@ -241,8 +241,8 @@ get-version:
 $(OUTPUTDIR):
 	mkdir -p $@
 
-.PHONY:	elections-test
-elections-test:
+.PHONY:	leadership-test
+leadership-test:
 	if docker ps | grep $(TEST_ETCD_INSTANCE) --quiet; then \
 	  echo "ETCD is already running"; \
 	else \
@@ -263,7 +263,7 @@ elections-test:
 			-listen-client-urls=http://0.0.0.0:2379,http://0.0.0.0:4001 \
 			-advertise-client-urls http://localhost:32379,http://localhost:34001; \
 	fi;
-	PLANET_TEST_ETCD_ENDPOINTS=http://localhost:34001 go test -timeout=1m -count=1 -race -v ./lib/elections/... -check.vv -check.f=$(TC)
+	PLANET_TEST_ETCD_ENDPOINTS=http://localhost:34001 go test -count=1 -race -v ./lib/leadership/... -check.vv -check.f=$(TC)
 
 .PHONY:	etcd-stop
 etcd-stop:
