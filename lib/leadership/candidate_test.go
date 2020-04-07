@@ -25,9 +25,6 @@ var _ = Suite(&S{})
 func (s *S) SetUpSuite(c *C) {
 	logrus.SetLevel(logrus.DebugLevel)
 	logrus.SetOutput(os.Stderr)
-}
-
-func (s *S) SetUpTest(c *C) {
 	endpointsEnv := os.Getenv("PLANET_TEST_ETCD_ENDPOINTS")
 	if endpointsEnv == "" {
 		// Skip the suite
@@ -45,7 +42,6 @@ func (s *S) SetUpTest(c *C) {
 }
 
 func (s *S) TestCanStopCandidate(c *C) {
-	defer s.client.Close()
 	candidate, err := NewCandidate(context.TODO(), CandidateConfig{
 		Term:   1 * time.Second,
 		Prefix: "testleader",
@@ -57,7 +53,6 @@ func (s *S) TestCanStopCandidate(c *C) {
 }
 
 func (s *S) TestCandidateCanElectItself(c *C) {
-	defer s.client.Close()
 	candidate, err := NewCandidate(context.TODO(), CandidateConfig{
 		Term:   1 * time.Second,
 		Prefix: "testleader",
@@ -71,7 +66,6 @@ func (s *S) TestCandidateCanElectItself(c *C) {
 }
 
 func (s *S) TestCandidateCanStepDown(c *C) {
-	defer s.client.Close()
 	const term = 1 * time.Second
 	candidate1, err := NewCandidate(context.TODO(), CandidateConfig{
 		Term:   term,
@@ -102,6 +96,41 @@ func (s *S) TestCandidateCanStepDown(c *C) {
 
 	candidate2.start()
 	candidate1.StepDown(context.TODO())
+
+	c.Assert(<-respChan, Equals, "candidate2")
+}
+
+func (s *S) TestCandidateCanPause(c *C) {
+	const term = 1 * time.Second
+	candidate1, err := NewCandidate(context.TODO(), CandidateConfig{
+		Term:   term,
+		Prefix: "testleader",
+		Name:   "candidate1",
+		Client: s.client,
+	})
+	c.Assert(err, IsNil)
+	defer candidate1.Stop()
+	candidate2, err := newCandidate(context.TODO(), CandidateConfig{
+		Term:   term,
+		Prefix: "testleader",
+		Name:   "candidate2",
+		Client: s.client,
+	})
+	c.Assert(err, IsNil)
+	defer candidate2.Stop()
+
+	respChan := make(chan string, 2)
+	go drainChan(candidate2.LeaderChan())
+	go func() {
+		for resp := range candidate1.LeaderChan() {
+			respChan <- resp
+		}
+	}()
+
+	c.Assert(<-respChan, Equals, "candidate1")
+
+	candidate2.start()
+	candidate1.Pause(context.TODO(), true)
 
 	c.Assert(<-respChan, Equals, "candidate2")
 }

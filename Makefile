@@ -263,7 +263,7 @@ leadership-test:
 			-listen-client-urls=http://0.0.0.0:2379,http://0.0.0.0:4001 \
 			-advertise-client-urls http://localhost:32379,http://localhost:34001; \
 	fi;
-	PLANET_TEST_ETCD_ENDPOINTS=http://localhost:34001 go test -count=1 -race -v ./lib/leadership/... -check.vv -check.f=$(TC)
+	PLANET_TEST_ETCD_ENDPOINTS=http://localhost:34001 go test -timeout=20s -count=1 -race -v ./lib/leadership/... -check.vv -check.f=$(TC)
 
 .PHONY:	etcd-stop
 etcd-stop:

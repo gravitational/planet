@@ -37,7 +37,6 @@ type Candidate struct {
 	config     CandidateConfig
 	ctx        context.Context
 	cancel     context.CancelFunc
-	wg         sync.WaitGroup
 	resignChan chan struct{}
 	leaderChan chan string
 	pauseChan  chan bool
@@ -54,7 +53,7 @@ func (r *Candidate) Stop() {
 func (r *Candidate) StepDown(ctx context.Context) {
 	select {
 	case r.resignChan <- struct{}{}:
-	case <-r.ctx.Done():
+	case <-ctx.Done():
 	}
 }
 
@@ -65,10 +64,10 @@ func (r *Candidate) LeaderChan() <-chan string {
 }
 
 // Pause pauses/resumes this candidate's campaign
-func (r *Candidate) Pause(paused bool) {
+func (r *Candidate) Pause(ctx context.Context, paused bool) {
 	select {
 	case r.pauseChan <- paused:
-	case <-r.ctx.Done():
+	case <-ctx.Done():
 	}
 }
 
@@ -91,39 +90,93 @@ type CandidateConfig struct {
 }
 
 func (r *Candidate) loop() {
-	defer close(r.leaderChan)
-
-	var ticker clockwork.Ticker
+	var (
+		ticker         clockwork.Ticker
+		tickerC        <-chan time.Time
+		sessionDone    <-chan struct{}
+		observeChan    <-chan etcd.GetResponse
+		errChan        <-chan error
+		wg             sync.WaitGroup
+		paused         bool
+		election       *concurrency.Election
+		session        *concurrency.Session
+		campaignCtx    context.Context
+		campaignCancel context.CancelFunc
+		stopCampaign   = func() {
+			campaignCancel()
+			wg.Wait()
+			errChan = nil
+		}
+		startCampaign = func() {
+			if paused || errChan != nil {
+				return
+			}
+			campaignCtx, campaignCancel = context.WithCancel(r.ctx)
+			errChan = r.startCampaign(campaignCtx, election, &wg)
+		}
+		observeCtx    context.Context
+		observeCancel context.CancelFunc
+		stopObserve   = func() {
+			observeCancel()
+			observeChan = nil
+		}
+		startObserve = func() {
+			if observeChan != nil {
+				return
+			}
+			observeCtx, observeCancel = context.WithCancel(r.ctx)
+			observeChan = election.Observe(observeCtx)
+		}
+		reconnect = func() error {
+			var err error
+			election, session, err = r.config.newElection(r.ctx, 0)
+			if err != nil {
+				return err
+			}
+			node, err := election.Leader(r.ctx)
+			if err != nil && !isLeaderNotFoundError(err) {
+				return err
+			}
+			sessionDone = nil
+			if r.config.isLeader(node) {
+				session.Orphan()
+				election, session, err = r.config.resumeLeadership(r.ctx, node)
+				if err != nil {
+					return err
+				}
+			} else {
+				startCampaign()
+			}
+			sessionDone = session.Done()
+			startObserve()
+			return nil
+		}
+	)
 	defer func() {
 		if ticker != nil {
 			ticker.Stop()
 		}
-	}()
-	var tickerC <-chan time.Time
-	var sessionDone <-chan struct{}
-	var observeChan <-chan etcd.GetResponse
-	var errChan <-chan error
-	ctx, cancel := context.WithCancel(r.ctx)
-	election, session, err := r.config.newElection(r.ctx, 0)
-	defer func() {
 		if session != nil {
 			ctx, cancel := context.WithTimeout(context.Background(), resignTimeout)
 			r.resign(ctx, election, session)
 			cancel()
 			session.Close()
 		}
-		if cancel != nil {
-			cancel()
-		}
-		r.wg.Wait()
+		stopCampaign()
+		stopObserve()
+		close(r.leaderChan)
 	}()
+
+	campaignCtx, campaignCancel = context.WithCancel(r.ctx)
+	observeCtx, observeCancel = context.WithCancel(r.ctx)
+	var err error
+	election, session, err = r.config.newElection(r.ctx, 0)
 	if err == nil {
 		// Start as a candidate
-		errChan = r.startCampaign(ctx, election)
-		observeChan = election.Observe(r.ctx)
+		errChan = r.startCampaign(campaignCtx, election, &wg)
+		observeChan = election.Observe(observeCtx)
 		sessionDone = session.Done()
 	}
-	var paused bool
 
 	for {
 		select {
@@ -138,36 +191,44 @@ func (r *Candidate) loop() {
 		}
 		select {
 		case resp, ok := <-observeChan:
-			if !ok {
-				r.config.Info("Observer chan closed unexpectedly.")
-				observeChan = nil
-				if tickerC == nil {
-					ticker = r.config.clock.NewTicker(r.config.ReconnectTimeout)
-					tickerC = ticker.Chan()
-				}
+			if ok {
+				r.config.WithField("leader", string(resp.Kvs[0].Value)).Debug("New leader.")
+				// Leadership change event
+				r.setLeader(string(resp.Kvs[0].Value))
 				continue
 			}
-			r.config.WithField("leader", string(resp.Kvs[0].Value)).Debug("New leader.")
-			// Leadership change event
-			r.setLeader(string(resp.Kvs[0].Value))
+			r.config.Info("Observer chan closed unexpectedly.")
+			stopObserve()
+			if tickerC == nil {
+				ticker = r.config.clock.NewTicker(r.config.ReconnectTimeout)
+				tickerC = ticker.Chan()
+			}
+			// New state: reconnect after implicit error
 
 		case err = <-errChan:
-			cancel()
-			r.wg.Wait()
-			errChan = nil
+			stopCampaign()
 			if err == nil {
 				r.config.Debug("Elected successfully.")
+				// New state: leader
+				// Session expiration leads to another Campaign call
 				continue
 			}
-			session.Close()
-			session = nil
-			sessionDone = nil
+			if !isNotLeaderError(err) {
+				stopObserve()
+				continue // New state: reconnect after error
+			}
+			err = nil
+			r.config.WithError(err).Debug("Lost election.")
 
 		case <-sessionDone:
 			r.config.Debug("Session expired.")
-			election, session, err = r.config.newElection(r.ctx, 0)
-			if err == nil {
-				sessionDone = session.Done()
+			stopCampaign()
+			stopObserve()
+			if err = reconnect(); err == nil {
+				if ticker != nil {
+					ticker.Stop()
+				}
+				tickerC = nil
 			}
 
 		case <-tickerC:
@@ -175,48 +236,24 @@ func (r *Candidate) loop() {
 			if session != nil {
 				session.Orphan()
 			}
-			election, session, err = r.config.newElection(r.ctx, 0)
-			if err != nil {
-				continue
+			if err = reconnect(); err == nil {
+				ticker.Stop()
+				tickerC = nil
 			}
-			sessionDone = session.Done()
-			if observeChan == nil {
-				observeChan = election.Observe(r.ctx)
-			}
-			node, err := election.Leader(r.ctx)
-			if err != nil && !isLeaderNotFoundError(err) {
-				continue
-			}
-			if r.config.isLeader(node) {
-				session.Orphan()
-				election, session, err = r.config.resumeLeadership(r.ctx, node)
-				if err != nil {
-					continue
-				}
-				sessionDone = session.Done()
-			} else if !paused && errChan == nil {
-				ctx, cancel = context.WithCancel(r.ctx)
-				errChan = r.startCampaign(ctx, election)
-			}
-			ticker.Stop()
-			tickerC = nil
 
 		case paused = <-r.pauseChan:
 			logger := r.config.WithField("paused", paused)
 			if paused {
 				logger.Debug("Pausing campaign.")
-				cancel()
-				r.wg.Wait()
-				errChan = nil
-			} else if errChan == nil {
+				stopCampaign()
+			} else {
 				logger.Debug("Resuming campaign.")
-				// nolint:lostcancel
-				ctx, cancel = context.WithCancel(r.ctx)
-				errChan = r.startCampaign(ctx, election)
+				startCampaign()
 			}
 
 		case <-r.resignChan:
 			if r.resign(r.ctx, election, session) == nil {
+				stopCampaign()
 				select {
 				case <-r.config.clock.After(2 * r.config.Term):
 				case <-r.ctx.Done():
@@ -229,13 +266,13 @@ func (r *Candidate) loop() {
 	}
 }
 
-func (r *Candidate) startCampaign(ctx context.Context, election *concurrency.Election) <-chan error {
+func (r *Candidate) startCampaign(ctx context.Context, election *concurrency.Election, wg *sync.WaitGroup) <-chan error {
 	// Buffered since errChan might not get a read before candidate is canceled
 	errChan := make(chan error, 1)
-	r.wg.Add(1)
+	wg.Add(1)
 	go func() {
 		errChan <- election.Campaign(ctx, r.config.Name)
-		r.wg.Done()
+		wg.Done()
 	}()
 	return errChan
 }
@@ -329,8 +366,12 @@ func (r *CandidateConfig) newSession(ctx context.Context, leaseID etcd.LeaseID) 
 	)
 }
 
+func isNotLeaderError(err error) bool {
+	return err == concurrency.ErrElectionNotLeader
+}
+
 func isLeaderNotFoundError(err error) bool {
-	return trace.Unwrap(err) == concurrency.ErrElectionNoLeader
+	return err == concurrency.ErrElectionNoLeader
 }
 
 func isContextCanceledError(err error) bool {
@@ -343,5 +384,5 @@ const (
 	// TODO: make reconnects use exponential backoff
 	defaultReconnectTimeout = 5 * time.Second
 
-	resignTimeout = 1 * time.Second
+	resignTimeout = 5 * time.Second
 )
