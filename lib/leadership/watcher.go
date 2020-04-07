@@ -12,17 +12,17 @@ import (
 )
 
 // NewWatcher returns a new watcher to relay changes to the specified key.
-// The watcher is automatically started.
+// The watcher is automatically active.
 func NewWatcher(config WatcherConfig) (*Watcher, error) {
 	if err := config.checkAndSetDefaults(); err != nil {
 		return nil, trace.Wrap(err)
 	}
 	ctx, cancel := context.WithCancel(context.Background())
 	w := &Watcher{
-		config: config,
-		ctx:    ctx,
-		cancel: cancel,
-		respC:  make(chan etcd.Event),
+		config:   config,
+		ctx:      ctx,
+		cancel:   cancel,
+		respChan: make(chan etcd.Event),
 	}
 	go w.loop()
 	return w, nil
@@ -31,10 +31,10 @@ func NewWatcher(config WatcherConfig) (*Watcher, error) {
 // Watcher can follow and push notifications whenever
 // there is a change for the specified key.
 type Watcher struct {
-	config WatcherConfig
-	respC  chan etcd.Event
-	ctx    context.Context
-	cancel context.CancelFunc
+	config   WatcherConfig
+	respChan chan etcd.Event
+	ctx      context.Context
+	cancel   context.CancelFunc
 }
 
 // WatcherConfig defines watcher configuration
@@ -42,8 +42,10 @@ type WatcherConfig struct {
 	// Key specifies the key to watch
 	Key string
 	// Client specifies the etcd client
-	Client       *etcd.Client
+	Client *etcd.Client
+	// RetryTimeout specifies the timeout between reconnect attempts
 	RetryTimeout time.Duration
+	// FieldLogger specifies the logger
 	logrus.FieldLogger
 	clock clockwork.Clock
 }
@@ -51,16 +53,18 @@ type WatcherConfig struct {
 // Stop requests watcher to stop and release resources
 func (r *Watcher) Stop() {
 	r.cancel()
+	for range r.respChan {
+	}
 }
 
 // RespChan returns the channel that the watcher is relaying the updates to.
 // The channel must be served to avoid blocking the watcher
 func (r *Watcher) RespChan() <-chan etcd.Event {
-	return r.respC
+	return r.respChan
 }
 
 func (r *Watcher) loop() {
-	defer close(r.respC)
+	defer close(r.respChan)
 
 	ticker := r.config.clock.NewTicker(r.config.RetryTimeout)
 	defer ticker.Stop()
@@ -73,7 +77,7 @@ func (r *Watcher) loop() {
 	if err == nil && len(resp.Kvs) != 0 {
 		// Update the receiver
 		select {
-		case r.respC <- etcd.Event{
+		case r.respChan <- etcd.Event{
 			Kv: resp.Kvs[0],
 		}:
 			revision = resp.Kvs[0].ModRevision + 1
@@ -117,7 +121,7 @@ func (r *Watcher) loop() {
 				}
 				for _, ev := range resp.Events {
 					select {
-					case r.respC <- *ev:
+					case r.respChan <- *ev:
 					case <-r.ctx.Done():
 						return
 					}

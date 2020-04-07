@@ -13,8 +13,8 @@ import (
 	"go.etcd.io/etcd/clientv3/concurrency"
 )
 
-// NewCandidate returns a new election candidates.
-// Specifid context is used to initialize a session.
+// NewCandidate returns a new election candidate.
+// Specifid context is only used to initialize a session.
 // The returned candidate is automatically active
 func NewCandidate(ctx context.Context, config CandidateConfig) (*Candidate, error) {
 	if err := config.checkAndSetDefaults(); err != nil {
@@ -64,7 +64,7 @@ func (r *Candidate) LeaderChan() <-chan string {
 	return r.leaderChan
 }
 
-// Pause pauses/resumes this candidates campaign
+// Pause pauses/resumes this candidate's campaign
 func (r *Candidate) Pause(paused bool) {
 	select {
 	case r.pauseChan <- paused:
