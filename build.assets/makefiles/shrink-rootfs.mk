@@ -27,6 +27,7 @@ all:
 	rm -rf $(ROOTFS)/var/log/*
 	rm -rf $(ROOTFS)/var/cache
 	rm -rf $(ROOTFS)/lib/systemd/system/sysinit.target.wants/proc-sys-fs-binfmt_misc.automount
+	rm -rf $(ROOTFS)/lib/modules-load.d/open-iscsi.conf
 	$(foreach unit,$(units),rm -f $(ROOTFS)/lib/systemd/system/multi-user.target.wants/$(unit);)
 	$(foreach unit,$(units),rm -f $(ROOTFS)/etc/systemd/system/multi-user.target.wants/$(unit);)
 	$(foreach unit,$(units),rm -f $(ROOTFS)/etc/systemd/system/sysinit.target.wants/$(unit);)

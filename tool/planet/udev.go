@@ -37,6 +37,7 @@ func newUdevListener(rootfs, socketPath string) (*udevListener, error) {
 	doneC := make(chan struct{})
 
 	monitor.FilterAddMatchSubsystemDevtype("block", "disk")
+	monitor.FilterAddMatchSubsystemDevtype("block", "partition")
 	monitor.FilterAddMatchTag("systemd")
 
 	recvC, err := monitor.DeviceChan(doneC)
