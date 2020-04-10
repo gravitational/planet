@@ -163,8 +163,7 @@ func startLeaderClient(conf *LeaderConfig, agent agent.Agent, errorC chan error)
 		defer cancel()
 
 		agent.RecordLocalEvents(ctx, []*pb.TimelineEvent{
-			pb.NewLeaderElected(agent.GetConfig().Clock.Now(),
-				agent.GetConfig().Name),
+			pb.NewLeaderElected(agent.GetConfig().Clock.Now(), prevVal, newVal),
 		})
 	})
 

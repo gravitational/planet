@@ -423,7 +423,7 @@
 
 [[projects]]
   branch = "bernard/master/leader-change-event"
-  digest = "1:e5d9cfdbf80ce80f048157a1eb5ef55032f5ad8b108d84103589cd78e3dc4c85"
+  digest = "1:a25631bd126c51f37f362be09aa38e7dc77734928ac6c369ad5442222e8db4d1"
   name = "github.com/gravitational/satellite"
   packages = [
     "agent",
@@ -443,7 +443,7 @@
     "utils",
   ]
   pruneopts = "UT"
-  revision = "fd0d438351b386cfd2cbd1f3c686be5917bd7983"
+  revision = "8149240f8ef7ea8a83af2aa509c4f71afbdde135"
 
 [[projects]]
   digest = "1:5639168299375c369a68748214586e3b25bbc17e7ec9c64564f43f4635097bfc"
