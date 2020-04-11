@@ -145,6 +145,8 @@ func (r *Candidate) loop() {
 					return err
 				}
 			} else {
+				// TODO(dmitri): this should not be the default, it starts the follower timer
+				// and checks the leader. Should also start campaign on errors?
 				startCampaign()
 			}
 			sessionDone = session.Done()
@@ -172,10 +174,12 @@ func (r *Candidate) loop() {
 	var err error
 	election, session, err = r.config.newElection(r.ctx, 0)
 	if err == nil {
-		// Start as a candidate
-		errChan = r.startCampaign(campaignCtx, election, &wg)
+		// Start as a follower
 		observeChan = election.Observe(observeCtx)
 		sessionDone = session.Done()
+		// TODO(dmitri): use another time to track follower state?
+		ticker = r.config.clock.NewTicker(newRandomTimeout())
+		tickerC = ticker.Chan()
 	}
 
 	for {
@@ -195,6 +199,7 @@ func (r *Candidate) loop() {
 				r.config.WithField("leader", string(resp.Kvs[0].Value)).Debug("New leader.")
 				// Leadership change event
 				r.setLeader(string(resp.Kvs[0].Value))
+				// TODO(dmitri): restart follower timer if not leader
 				continue
 			}
 			r.config.Info("Observer chan closed unexpectedly.")
@@ -221,6 +226,8 @@ func (r *Candidate) loop() {
 			r.config.WithError(err).Debug("Lost election.")
 
 		case <-sessionDone:
+			// TODO(dmitri): should we check the leader here as well and start campaign
+			// (switch to candidate mode)?
 			r.config.Debug("Session expired.")
 			stopCampaign()
 			stopObserve()
@@ -232,7 +239,9 @@ func (r *Candidate) loop() {
 			}
 
 		case <-tickerC:
-			r.config.WithError(err).Warn("Candidate failed, will reconnect.")
+			if err != nil {
+				r.config.WithError(err).Warn("Candidate failed, will reconnect.")
+			}
 			if session != nil {
 				session.Orphan()
 			}
