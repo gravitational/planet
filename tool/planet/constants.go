@@ -513,6 +513,9 @@ var KubeletConfig = kubeletconfig.KubeletConfiguration{
 	Authorization: kubeletconfig.KubeletAuthorization{
 		Mode: kubeletconfig.KubeletAuthorizationModeWebhook,
 	},
+	// Allow parallel image pulls to avoid head of line blocking
+	// https://github.com/gravitational/gravity/issues/1167
+	SerializeImagePulls: utils.BoolPtr(false),
 }
 
 // KubeletConfigOverrides specifies the subset of kubelet configuration
