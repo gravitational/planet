@@ -42,6 +42,8 @@ build: | $(ASSETDIR)
 			SERF_VER=$(SERF_VER) \
 			ETCD_VER="$(ETCD_VER)" \
 			ETCD_LATEST_VER=$(ETCD_LATEST_VER) \
+			PLANET_UID=$(PLANET_UID) \
+			PLANET_GID=$(PLANET_GID) \
 			-C /assets/makefiles -f planet.mk
 	$(MAKE) -C $(ASSETS)/makefiles/master/k8s-master -e -f containers.mk
 
@@ -58,9 +60,9 @@ planet-image:
 	sed -i "s/REPLACE_COREDNS_LATEST_VERSION/$(COREDNS_VER)/g" $(TARGETDIR)/orbit.manifest.json
 	@echo -e "\n---> Creating Planet image...\n"
 	cd $(TARGETDIR) && fakeroot -- sh -c ' \
-		chown -R 1000:1000 . ; \
+		chown -R $(PLANET_UID):$(PLANET_GID) . ; \
 		chown -R root:root rootfs/sbin/mount.* ; \
-		chown -R root:1000 rootfs/etc/ ; \
+		chown -R root:$(PLANET_GID) rootfs/etc/ ; \
 		chmod -R g+rw rootfs/etc ; \
 		tar -czf $(TARBALL) orbit.manifest.json rootfs'
 	@echo -e "\nDone --> $(TARBALL)"

@@ -369,6 +369,12 @@ func getLibcontainerConfig(containerID, rootfs string, cfg Config) (*configs.Con
 				Flags:       syscall.MS_NOSUID | syscall.MS_NODEV,
 				Data:        "mode=755",
 			},
+			{
+				Source:      "tmpfs",
+				Destination: "/run/lock",
+				Device:      "tmpfs",
+				Flags:       defaultMountFlags,
+			},
 			// /run/udev is used by OpenEBS node device manager to detect
 			// added and removed block devices
 			{
@@ -376,25 +382,6 @@ func getLibcontainerConfig(containerID, rootfs string, cfg Config) (*configs.Con
 				Source:      "/run/udev",
 				Destination: "/run/udev",
 				Flags:       syscall.MS_BIND,
-			},
-			{
-				Source:      "tmpfs",
-				Destination: "/run/lock",
-				Device:      "tmpfs",
-				Flags:       defaultMountFlags,
-			},
-			{
-				Destination: "/sys/fs/selinux",
-				Source:      "/sys/fs/selinux",
-				Device:      "bind",
-				// Flags:       syscall.MS_BIND | syscall.MS_RDONLY | syscall.MS_RELATIME,
-				Flags: syscall.MS_BIND | syscall.MS_RELATIME | syscall.MS_RDONLY,
-			},
-			{
-				Device:      "bind",
-				Source:      "/etc/selinux",
-				Destination: "/etc/selinux",
-				Flags:       defaultMountFlags | syscall.MS_BIND | syscall.MS_RDONLY,
 			},
 		},
 		Cgroups: &configs.Cgroup{

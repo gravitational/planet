@@ -433,12 +433,12 @@
   revision = "fc2ac640fb6b26cb54a5892c203f934cf624cf46"
 
 [[projects]]
-  digest = "1:dc84545f9f2a442b14864f2f7e54ae556cae53bd437a05a456572fea9e73cc87"
+  digest = "1:5639168299375c369a68748214586e3b25bbc17e7ec9c64564f43f4635097bfc"
   name = "github.com/gravitational/trace"
   packages = ["."]
   pruneopts = "UT"
-  revision = "dd5b2e8eae86d31f6273ff3ac46d5b15edd6d6be"
-  version = "1.1.10"
+  revision = "2d27a078e25b4e8f656d1354fddf37d316d1e9bf"
+  version = "1.1.11"
 
 [[projects]]
   digest = "1:841d5835e94129658adabece66a4cc54d2cec9a40fa8b51743ea35d0519dd6c2"
@@ -740,15 +740,16 @@
   revision = "29686dbc5559d93fb1ef402eeda3e35c38d75af4"
 
 [[projects]]
-  digest = "1:6554de13aa788f5eac8a461263e408d8899fe11cf2e5528a94b56cb432de731a"
+  digest = "1:0c8dc3b42a59e1fc6dd03a3c9daebf55d6d85e6c8267084378942767ef41bb32"
   name = "github.com/opencontainers/selinux"
   packages = [
     "go-selinux",
     "go-selinux/label",
+    "pkg/pwalk",
   ]
   pruneopts = "UT"
-  revision = "4defb1c884d2f4f9c890c615380f20f7fc215cf3"
-  version = "v1.3.1"
+  revision = "069a5a99e1e5e46c9be197aa5ca6388b041aa4c7"
+  version = "v1.4.0"
 
 [[projects]]
   digest = "1:e5d0bd87abc2781d14e274807a470acd180f0499f8bf5bb18606e9ec22ad9de9"
