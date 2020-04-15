@@ -11,9 +11,9 @@ import (
 	"time"
 
 	"github.com/gravitational/planet/lib/constants"
+	"github.com/gravitational/planet/lib/leadership"
 	"github.com/gravitational/planet/lib/reconcile"
 
-	"github.com/gravitational/coordinate/leader"
 	"github.com/gravitational/trace"
 	"github.com/sirupsen/logrus"
 )
@@ -75,16 +75,16 @@ type agentPlan struct {
 	leaderKey      string
 	localAddr      string
 	leaderAddr     string
-	client         *leader.Client
+	candidate      *leadership.Candidate
 	mon            *unitMonitor
 }
 
 func (r *agentPlan) addVoter(ctx context.Context) {
-	r.client.AddVoter(ctx, r.leaderKey, r.localAddr, r.electionTerm)
+	r.candidate.Pause(ctx, false)
 }
 
 func (r *agentPlan) removeVoter(ctx context.Context) {
-	r.client.RemoveVoter(ctx, r.leaderKey, r.localAddr, r.electionTerm)
+	r.candidate.Pause(ctx, true)
 }
 
 type agentState struct {

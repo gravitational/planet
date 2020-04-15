@@ -85,7 +85,7 @@ GO_FILES := $(shell find . -type f -name '*.go' -not -path "./vendor/*" -not -pa
 # Space separated patterns of packages to skip
 IGNORED_PACKAGES := /vendor build/
 
-TEST_ETCD_IMAGE := quay.io/coreos/etcd:v3.4.3
+TEST_ETCD_IMAGE := quay.io/coreos/etcd:$(ETCD_LATEST_VER)
 TEST_ETCD_INSTANCE := leadertest0
 
 .PHONY: all
@@ -252,7 +252,6 @@ leadership-test:
 	    docker rm -v $$etcd_instance; \
 	  fi; \
 	  docker run --name=$(TEST_ETCD_INSTANCE) \
-	  	--publish 34001:4001 \
 		--publish 32380:2380 \
 		--publish 32379:2379 \
 		--env "ETCD_API=2" \
@@ -260,10 +259,10 @@ leadership-test:
 		etcd -name etcd0 \
 			-debug \
 			-logger=zap \
-			-listen-client-urls=http://0.0.0.0:2379,http://0.0.0.0:4001 \
-			-advertise-client-urls http://localhost:32379,http://localhost:34001; \
+			-listen-client-urls=http://0.0.0.0:2379 \
+			-advertise-client-urls http://localhost:32379; \
 	fi;
-	PLANET_TEST_ETCD_ENDPOINTS=http://localhost:34001 go test -timeout=20s -count=1 -race -v ./lib/leadership/... -check.vv -check.f=$(TC)
+	PLANET_TEST_ETCD_ENDPOINTS=http://localhost:32379 go test -timeout=20s -count=1 -race -v ./lib/leadership/... -check.vv -check.f=$(TC)
 
 .PHONY:	etcd-stop
 etcd-stop:

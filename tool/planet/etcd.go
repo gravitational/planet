@@ -711,29 +711,6 @@ func getConfirmation(prompt, confirmationResponse string) error {
 	return nil
 }
 
-//nolint:deadcode,unused
-func convertError(err error) error {
-	if err == nil {
-		return nil
-	}
-	switch err := err.(type) {
-	case *etcd.ClusterError:
-		return trace.Wrap(err, err.Detail())
-	case etcd.Error:
-		switch err.Code {
-		case etcd.ErrorCodeKeyNotFound:
-			return trace.NotFound(err.Error())
-		case etcd.ErrorCodeNotFile:
-			return trace.BadParameter(err.Error())
-		case etcd.ErrorCodeNodeExist:
-			return trace.AlreadyExists(err.Error())
-		case etcd.ErrorCodeTestFailed:
-			return trace.CompareFailed(err.Error())
-		}
-	}
-	return err
-}
-
 // systemctl runs a local systemctl command.
 // TODO(knisbet): I'm using systemctl here, because using go-systemd and dbus appears to be unreliable, with
 // masking unit files not working. Ideally, this will use dbus at some point in the future.

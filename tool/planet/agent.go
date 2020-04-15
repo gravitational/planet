@@ -27,18 +27,17 @@ import (
 	"syscall"
 	"time"
 
+	libetcd "github.com/gravitational/planet/lib/etcd"
 	"github.com/gravitational/planet/lib/leadership"
 	"github.com/gravitational/planet/lib/monitoring"
 	"github.com/gravitational/planet/lib/reconcile"
 
-	etcdconf "github.com/gravitational/coordinate/config"
-	"github.com/gravitational/coordinate/leader"
 	"github.com/gravitational/satellite/agent"
 	pb "github.com/gravitational/satellite/agent/proto/agentpb"
 	"github.com/gravitational/satellite/lib/rpc/client"
 	"github.com/gravitational/trace"
 	log "github.com/sirupsen/logrus"
-	etcd "go.etcd.io/etcd/client"
+	etcdv3 "go.etcd.io/etcd/clientv3"
 )
 
 // LeaderConfig represents configuration for the master election task
@@ -62,7 +61,7 @@ type LeaderConfig struct {
 	// fails to renew it
 	Term time.Duration
 	// ETCD defines etcd configuration
-	ETCD etcdconf.Config
+	ETCD libetcd.Config
 	// APIServerDNS is a name of the API server entry to lookup
 	// for the currently active API server
 	APIServerDNS string
@@ -81,7 +80,7 @@ func (conf LeaderConfig) String() string {
 // Otherwise, the services are stopped to avoid interfering with the active master instance.
 // Also, every time a new master is elected, the node modifies its /etc/hosts file
 // to reflect the change of the kubernetes API server.
-func startLeaderClient(ctx context.Context, conf *LeaderConfig, agent agent.Agent, errorC chan error) (leaderClient io.Closer, err error) {
+func startLeaderClient(ctx context.Context, conf *LeaderConfig, agent agent.Agent, errorC chan error) (c io.Closer, err error) {
 	log.WithField("config", conf.String()).Info("Start.")
 
 	if conf.Role == RoleMaster {
@@ -93,74 +92,80 @@ func startLeaderClient(ctx context.Context, conf *LeaderConfig, agent agent.Agen
 		return nil, trace.Wrap(err)
 	}
 
-	if err = conf.ETCD.CheckAndSetDefaults(); err != nil {
-		return nil, trace.Wrap(err)
-	}
-	var etcdClient etcd.Client
-	etcdClient, err = conf.ETCD.NewClient()
-	if err != nil {
-		return nil, trace.Wrap(err)
-	}
-
-	logger := log.WithField("addr", conf.PublicIP)
-
-	if conf.Role == RoleMaster {
-		etcdapi := etcd.NewKeysAPI(etcdClient)
-		// Set initial value of election participation mode
-		_, err = etcdapi.Set(ctx, conf.ElectionKey,
-			strconv.FormatBool(conf.ElectionEnabled),
-			&etcd.SetOptions{PrevExist: etcd.PrevIgnore})
-		if err != nil {
-			return nil, trace.Wrap(err)
-		}
-	}
-
-	client, err := leader.NewClient(leader.Config{Client: etcdClient})
+	etcdClient, err := conf.ETCD.NewClientV3()
 	if err != nil {
 		return nil, trace.Wrap(err)
 	}
 	defer func() {
 		if err != nil {
-			client.Close()
+			etcdClient.Close()
 		}
 	}()
+
+	logger := log.WithField("advertise-addr", conf.PublicIP)
 
 	candidate, err := leadership.NewCandidate(ctx, leadership.CandidateConfig{
 		Prefix: conf.LeaderKey,
 		Term:   conf.Term,
 		Name:   conf.PublicIP,
+		Client: etcdClient,
 	})
 	if err != nil {
 		return nil, trace.Wrap(err)
 	}
 
+	watcher, err := leadership.NewWatcher(leadership.WatcherConfig{
+		Key:    conf.ElectionKey,
+		Client: etcdClient,
+	})
+	if err != nil {
+		return nil, trace.Wrap(err)
+	}
+	defer func() {
+		if err != nil {
+			watcher.Stop()
+		}
+	}()
+
 	mon, err := newUnitMonitor()
 	if err != nil {
 		return nil, trace.Wrap(err)
 	}
+
 	plan := agentPlan{
 		leaderKey:      conf.LeaderKey,
 		localAddr:      conf.PublicIP,
 		electionTerm:   conf.Term,
 		electionPaused: !conf.ElectionEnabled,
 		mon:            mon,
-		client:         client,
+		candidate:      candidate,
 	}
 	reconciler := reconcile.New(reconcile.Config{})
-
 	state := &agentState{
 		plan: plan,
 	}
 
-	// FIXME
-	client.AddWatchCallback(conf.LeaderKey, updateLeaderTrigger(ctx, agent, reconciler, state, logger))
-	client.AddWatchCallback(conf.ElectionKey, updateElectionParticipationTrigger(ctx, reconciler, state, logger))
+	if conf.Role == RoleMaster {
+		err = libetcd.PutNoExist(ctx, etcdClient, conf.ElectionKey, strconv.FormatBool(conf.ElectionEnabled))
+		if !trace.IsAlreadyExists(err) {
+			return nil, trace.Wrap(err)
+		}
+		if conf.ElectionEnabled {
+			candidate.Start()
+		}
+	} else {
+		candidate.StartObserver()
+	}
+
+	go updateLeader(ctx, candidate.LeaderChan(), agent, reconciler, state, logger)
+	go updateElectionParticipation(ctx, watcher.RespChan(), reconciler, state, logger)
 
 	return &clientState{
-		client:     client,
+		client:     etcdClient,
 		reconciler: reconciler,
 		mon:        mon,
 		candidate:  candidate,
+		watcher:    watcher,
 	}, nil
 }
 
@@ -169,37 +174,43 @@ func startLeaderClient(ctx context.Context, conf *LeaderConfig, agent agent.Agen
 func (r *clientState) Close() error {
 	r.reconciler.Stop()
 	r.candidate.Stop()
+	r.watcher.Stop()
 	r.mon.close()
 	return r.client.Close()
 }
 
 type clientState struct {
-	client     *leader.Client
+	client     *etcdv3.Client
 	reconciler *reconcile.Reconciler
 	mon        *unitMonitor
 	candidate  *leadership.Candidate
+	watcher    *leadership.Watcher
 }
 
-func updateLeaderTrigger(ctx context.Context, agent agent.Agent, reconciler *reconcile.Reconciler, state *agentState, logger log.FieldLogger) leader.CallbackFn {
-	return func(_, prevValue, newLeaderAddr string) {
-		if newLeaderAddr == "" || prevValue == newLeaderAddr {
+func updateLeader(ctx context.Context, updateChan <-chan string, agent agent.Agent, reconciler *reconcile.Reconciler, state *agentState, logger log.FieldLogger) {
+	var prevLeaderAddr string
+	for leaderAddr := range updateChan {
+		if leaderAddr == "" || prevLeaderAddr == leaderAddr {
 			return
 		}
-		logger.WithField("leader-addr", newLeaderAddr).Info("New leader.")
-		plan := state.withLeaderAddr(newLeaderAddr)
+		prevLeaderAddr = leaderAddr
+		logger.WithField("leader-addr", leaderAddr).Info("New leader.")
+		plan := state.withLeaderAddr(leaderAddr)
 		reconciler.Reset(ctx, plan)
-		if newLeaderAddr != plan.localAddr {
-			recordNewLeaderElectedEvent(agent, prevValue, newLeaderAddr)
+		if leaderAddr != plan.localAddr {
+			recordNewLeaderElectedEvent(agent, prevLeaderAddr, leaderAddr)
 		}
 	}
 }
 
-func updateElectionParticipationTrigger(ctx context.Context, reconciler *reconcile.Reconciler, state *agentState, logger log.FieldLogger) leader.CallbackFn {
-	return func(_, prevValue, enabledFlag string) {
-		if enabledFlag == "" || prevValue == enabledFlag {
+func updateElectionParticipation(ctx context.Context, respChan <-chan etcdv3.Event, reconciler *reconcile.Reconciler, state *agentState, logger log.FieldLogger) {
+	var prevValue string
+	for ev := range respChan {
+		value := string(ev.Kv.Value)
+		if value == "" || prevValue == value {
 			return
 		}
-		enabled, _ := strconv.ParseBool(enabledFlag)
+		enabled, _ := strconv.ParseBool(value)
 		logger.WithField("enabled", enabled).Info("Election participation status.")
 		reconciler.Reset(ctx, state.withElectionEnabled(enabled))
 	}
@@ -297,48 +308,40 @@ func runAgent(conf *agent.Config, monitoringConf *monitoring.Config, leaderConf 
 	return nil
 }
 
-func leaderPause(publicIP, electionKey string, etcd *etcdconf.Config) error {
-	log.Infof("disable election participation for %v", publicIP)
-	return enableElection(publicIP, electionKey, false, etcd)
+func leaderPause(publicIP, electionKey string, config *libetcd.Config) error {
+	log.WithField("public-ip", publicIP).Info("Disable election participation.")
+	return enableElection(publicIP, electionKey, false, config)
 }
 
-func leaderResume(publicIP, electionKey string, etcd *etcdconf.Config) error {
-	log.Infof("enable election participation for %v", publicIP)
-	return enableElection(publicIP, electionKey, true, etcd)
+func leaderResume(publicIP, electionKey string, config *libetcd.Config) error {
+	log.WithField("public-ip", publicIP).Info("Enable election participation.")
+	return enableElection(publicIP, electionKey, true, config)
 }
 
-func leaderView(leaderKey string, etcd *etcdconf.Config) error {
-	client, err := getEtcdClient(etcd)
+func leaderView(leaderKey string, config *libetcd.Config) error {
+	client, err := config.NewClientV3()
 	if err != nil {
 		return trace.Wrap(err)
 	}
-	resp, err := client.Get(context.TODO(), leaderKey, nil)
+	defer client.Close()
+	kv := etcdv3.NewKV(client)
+	resp, err := kv.Get(context.TODO(), leaderKey)
 	if err != nil {
 		return trace.Wrap(err)
 	}
-	fmt.Println(resp.Node.Value)
+	fmt.Println(string(resp.Kvs[0].Value))
 	return nil
 }
 
-func enableElection(publicIP, electionKey string, enabled bool, etcd *etcdconf.Config) error {
-	client, err := getEtcdClient(etcd)
+func enableElection(publicIP, electionKey string, enabled bool, config *libetcd.Config) error {
+	client, err := config.NewClientV3()
 	if err != nil {
 		return trace.Wrap(err)
 	}
-	_, err = client.Set(context.TODO(), electionKey, strconv.FormatBool(enabled), nil)
+	defer client.Close()
+	kv := etcdv3.NewKV(client)
+	_, err = kv.Put(context.TODO(), electionKey, strconv.FormatBool(enabled))
 	return trace.Wrap(err)
-}
-
-func getEtcdClient(conf *etcdconf.Config) (etcd.KeysAPI, error) {
-	if err := conf.CheckAndSetDefaults(); err != nil {
-		return nil, trace.Wrap(err)
-	}
-	client, err := conf.NewClient()
-	if err != nil {
-		return nil, trace.Wrap(err)
-	}
-	etcdapi := etcd.NewKeysAPI(client)
-	return etcdapi, nil
 }
 
 type statusConfig struct {

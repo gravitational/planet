@@ -28,8 +28,8 @@ import (
 	"time"
 
 	"github.com/gravitational/planet/lib/constants"
+	libetcd "github.com/gravitational/planet/lib/etcd"
 
-	etcdconf "github.com/gravitational/coordinate/config"
 	"github.com/gravitational/satellite/agent"
 	"github.com/gravitational/satellite/agent/health"
 	"github.com/gravitational/satellite/monitoring"
@@ -63,7 +63,7 @@ type Config struct {
 	// DisableInterPodCheck disables inter-pod communication tests
 	DisableInterPodCheck bool
 	// ETCDConfig defines etcd-specific configuration
-	ETCDConfig etcdconf.Config
+	ETCDConfig libetcd.Config
 	// CloudProvider is the cloud provider backend this cluster is using
 	CloudProvider string
 	// NodeName is the kubernetes name of this node

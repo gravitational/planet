@@ -49,6 +49,7 @@ func (s *S) TestCanStopCandidate(c *C) {
 		Client: s.client,
 	})
 	c.Assert(err, IsNil)
+	candidate.Start()
 	candidate.Stop()
 }
 
@@ -60,8 +61,8 @@ func (s *S) TestCandidateCanElectItself(c *C) {
 		Client: s.client,
 	})
 	c.Assert(err, IsNil)
+	candidate.Start()
 	defer candidate.Stop()
-	c.Assert(err, IsNil)
 	c.Assert(<-candidate.LeaderChan(), Equals, "candidate")
 }
 
@@ -74,8 +75,9 @@ func (s *S) TestCandidateCanStepDown(c *C) {
 		Client: s.client,
 	})
 	c.Assert(err, IsNil)
+	candidate1.Start()
 	defer candidate1.Stop()
-	candidate2, err := newCandidate(context.TODO(), CandidateConfig{
+	candidate2, err := NewCandidate(context.TODO(), CandidateConfig{
 		Term:   term,
 		Prefix: "testleader",
 		Name:   "candidate2",
@@ -94,7 +96,7 @@ func (s *S) TestCandidateCanStepDown(c *C) {
 
 	c.Assert(<-respChan, Equals, "candidate1")
 
-	candidate2.start()
+	candidate2.Start()
 	candidate1.StepDown(context.TODO())
 
 	c.Assert(<-respChan, Equals, "candidate2")
@@ -109,15 +111,15 @@ func (s *S) TestCandidateCanPause(c *C) {
 		Client: s.client,
 	})
 	c.Assert(err, IsNil)
+	candidate1.Start()
 	defer candidate1.Stop()
-	candidate2, err := newCandidate(context.TODO(), CandidateConfig{
+	candidate2, err := NewCandidate(context.TODO(), CandidateConfig{
 		Term:   term,
 		Prefix: "testleader",
 		Name:   "candidate2",
 		Client: s.client,
 	})
 	c.Assert(err, IsNil)
-	defer candidate2.Stop()
 
 	respChan := make(chan string, 2)
 	go drainChan(candidate2.LeaderChan())
@@ -129,8 +131,9 @@ func (s *S) TestCandidateCanPause(c *C) {
 
 	c.Assert(<-respChan, Equals, "candidate1")
 
-	candidate2.start()
 	candidate1.Pause(context.TODO(), true)
+	candidate2.Start()
+	defer candidate2.Stop()
 
 	c.Assert(<-respChan, Equals, "candidate2")
 }
@@ -162,25 +165,6 @@ func (r *config) setDefaults() {
 	if r.headerTimeoutPerRequest == 0 {
 		r.headerTimeoutPerRequest = 1 * time.Second
 	}
-}
-
-func newCandidate(ctx context.Context, config CandidateConfig) (*Candidate, error) {
-	if err := config.checkAndSetDefaults(); err != nil {
-		return nil, trace.Wrap(err)
-	}
-	ctx, cancel := context.WithCancel(context.Background())
-	candidate := &Candidate{
-		config:     config,
-		ctx:        ctx,
-		cancel:     cancel,
-		resignChan: make(chan struct{}),
-		leaderChan: make(chan string),
-	}
-	return candidate, nil
-}
-
-func (r *Candidate) start() {
-	go r.loop()
 }
 
 func drainChan(ch <-chan string) {

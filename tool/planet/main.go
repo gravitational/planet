@@ -34,13 +34,12 @@ import (
 
 	"github.com/gravitational/planet/lib/box"
 	"github.com/gravitational/planet/lib/constants"
+	libetcd "github.com/gravitational/planet/lib/etcd"
 	"github.com/gravitational/planet/lib/monitoring"
-	"github.com/gravitational/planet/test/e2e"
 
 	"github.com/fatih/color"
 	kv "github.com/gravitational/configure"
 	"github.com/gravitational/configure/cstrings"
-	etcdconf "github.com/gravitational/coordinate/config"
 	"github.com/gravitational/satellite/agent"
 	"github.com/gravitational/satellite/agent/backend/inmemory"
 	"github.com/gravitational/satellite/lib/history/sqlite"
@@ -203,12 +202,6 @@ func run() error {
 		cstatusClientKeyFile = cstatus.Flag("client-key-file", "mTLS client key file").
 					Default(ClientRPCKeyPath).OverrideDefaultFromEnvar(EnvPlanetAgentClientKeyFile).String()
 
-		// test command
-		ctest             = app.Command("test", "Run end-to-end tests on a running cluster")
-		ctestKubeAddr     = HostPort(ctest.Flag("kube-addr", "Address of the kubernetes api server").Required())
-		ctestKubeRepoPath = ctest.Flag("kube-repo", "Path to a kubernetes repository").String()
-		ctestAssetPath    = ctest.Flag("asset-dir", "Path to test executables and data files").String()
-
 		// device management
 		cdevice = app.Command("device", "Manage devices in container")
 
@@ -308,7 +301,7 @@ func run() error {
 				RetentionDuration: *cagentRetention,
 			},
 		}
-		etcdConf := etcdconf.Config{
+		etcdConf := libetcd.Config{
 			Endpoints: *cagentEtcdEndpoints,
 			CAFile:    *cagentEtcdCAFile,
 			CertFile:  *cagentEtcdCertFile,
@@ -361,7 +354,7 @@ func run() error {
 		err = runAgent(conf, monitoringConf, leaderConf, toAddrList(*cagentInitialCluster))
 
 	case cleaderPause.FullCommand(), cleaderResume.FullCommand():
-		etcdConf := &etcdconf.Config{
+		config := &libetcd.Config{
 			Endpoints: *cleaderEtcdEndpoints,
 			CAFile:    *cleaderEtcdCAFile,
 			CertFile:  *cleaderEtcdCertFile,
@@ -369,18 +362,18 @@ func run() error {
 		}
 		memberKey := fmt.Sprintf("%v/%v", *cleaderElectionKey, *cleaderPublicIP)
 		if cmd == cleaderPause.FullCommand() {
-			err = leaderPause(cleaderPublicIP.String(), memberKey, etcdConf)
+			err = leaderPause(cleaderPublicIP.String(), memberKey, config)
 		} else {
-			err = leaderResume(cleaderPublicIP.String(), memberKey, etcdConf)
+			err = leaderResume(cleaderPublicIP.String(), memberKey, config)
 		}
 	case cleaderView.FullCommand():
-		etcdConf := &etcdconf.Config{
+		config := &libetcd.Config{
 			Endpoints: *cleaderEtcdEndpoints,
 			CAFile:    *cleaderEtcdCAFile,
 			CertFile:  *cleaderEtcdCertFile,
 			KeyFile:   *cleaderEtcdKeyFile,
 		}
-		err = leaderView(*cleaderViewKey, etcdConf)
+		err = leaderView(*cleaderViewKey, config)
 
 	// "start" command
 	case cstart.FullCommand():
@@ -497,15 +490,6 @@ func run() error {
 		if err == nil && !ok {
 			err = trace.Errorf("status degraded")
 		}
-
-	// "test" command
-	case ctest.FullCommand():
-		config := &e2e.Config{
-			KubeMasterAddr: ctestKubeAddr.String(),
-			KubeRepoPath:   *ctestKubeRepoPath,
-			AssetDir:       *ctestAssetPath,
-		}
-		err = e2e.RunTests(config, extraArgs)
 
 	case cdeviceAdd.FullCommand():
 		var device configs.Device
