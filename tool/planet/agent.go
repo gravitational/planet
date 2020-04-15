@@ -81,12 +81,7 @@ func (conf LeaderConfig) String() string {
 // Also, every time a new master is elected, the node modifies its /etc/hosts file
 // to reflect the change of the kubernetes API server.
 func startLeaderClient(ctx context.Context, conf *LeaderConfig, agent agent.Agent, errorC chan error) (leaderClient io.Closer, err error) {
-	log.Infof("%v start", conf)
-	var hostname string
-	hostname, err = os.Hostname()
-	if err != nil {
-		return nil, trace.Wrap(err)
-	}
+	log.WithField("config", conf.String()).Info("Start.")
 
 	if conf.Role == RoleMaster {
 		err = upsertCgroups(true)
@@ -147,7 +142,7 @@ func startLeaderClient(ctx context.Context, conf *LeaderConfig, agent agent.Agen
 		plan: plan,
 	}
 
-	client.AddWatchCallback(conf.LeaderKey, updateLeaderTrigger(ctx, reconciler, state, logger))
+	client.AddWatchCallback(conf.LeaderKey, updateLeaderTrigger(ctx, agent, reconciler, state, logger))
 	client.AddWatchCallback(conf.ElectionKey, updateElectionParticipationTrigger(ctx, reconciler, state, logger))
 
 	return &clientState{
@@ -171,19 +166,41 @@ type clientState struct {
 	mon        *unitMonitor
 }
 
-func updateLeaderTrigger(ctx context.Context, reconciler *reconcile.Reconciler, state *agentState, logger log.FieldLogger) leader.CallbackFn {
-	return func(_, _, newLeaderAddr string) {
+func updateLeaderTrigger(ctx context.Context, agent agent.Agent, reconciler *reconcile.Reconciler, state *agentState, logger log.FieldLogger) leader.CallbackFn {
+	return func(_, prevValue, newLeaderAddr string) {
+		if newLeaderAddr == "" || prevValue == newLeaderAddr {
+			return
+		}
 		logger.WithField("leader-addr", newLeaderAddr).Info("New leader.")
-		reconciler.Reset(ctx, state.withLeaderAddr(newLeaderAddr))
+		plan := state.withLeaderAddr(newLeaderAddr)
+		reconciler.Reset(ctx, plan)
+		if newLeaderAddr != plan.localAddr {
+			recordNewLeaderElectedEvent(agent, prevValue, newLeaderAddr)
+		}
 	}
 }
 
 func updateElectionParticipationTrigger(ctx context.Context, reconciler *reconcile.Reconciler, state *agentState, logger log.FieldLogger) leader.CallbackFn {
-	return func(_, _, enabledFlag string) {
+	return func(_, prevValue, enabledFlag string) {
+		if enabledFlag == "" || prevValue == enabledFlag {
+			return
+		}
 		enabled, _ := strconv.ParseBool(enabledFlag)
 		logger.WithField("enabled", enabled).Info("Election participation status.")
 		reconciler.Reset(ctx, state.withElectionEnabled(enabled))
 	}
+}
+
+func recordNewLeaderElectedEvent(agent agent.Agent, prevValue, newLeaderAddr string) {
+	// recordEventTimeout specifies the max timeout to record an event
+	const recordEventTimeout = 10 * time.Second
+
+	ctx, cancel := context.WithTimeout(context.Background(), recordEventTimeout)
+	defer cancel()
+
+	agent.RecordLocalEvents(ctx, []*pb.TimelineEvent{
+		pb.NewLeaderElected(agent.GetConfig().Clock.Now(), prevValue, newLeaderAddr),
+	})
 }
 
 // runAgent starts the master election / health check loops in background and

@@ -28,11 +28,16 @@ func IsNotFound(err error) bool {
 	if !ok {
 		return false
 	}
-	return e.Code == client.ErrorCodeKeyNotFound
+	switch e.Code {
+	case client.ErrorCodeKeyNotFound, client.ErrorCodeNotFile, client.ErrorCodeNotDir:
+		return true
+	default:
+		return false
+	}
 }
 
-// IsAlreadyExist determines if the specified error identifies a duplicate node event
-func IsAlreadyExist(err error) bool {
+// IsAlreadyExists determines if the specified error identifies a duplicate node event
+func IsAlreadyExists(err error) bool {
 	e, ok := err.(client.Error)
 	if !ok {
 		return false

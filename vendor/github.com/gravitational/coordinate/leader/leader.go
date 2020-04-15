@@ -24,6 +24,7 @@ import (
 
 	"github.com/cenkalti/backoff"
 	"github.com/gravitational/trace"
+	"github.com/jonboulle/clockwork"
 	"github.com/sirupsen/logrus"
 	"go.etcd.io/etcd/client"
 )
@@ -60,6 +61,9 @@ func (r *Config) checkAndSetDefaults() error {
 	if r.Client == nil {
 		return trace.BadParameter("Client is required")
 	}
+	if r.clock == nil {
+		r.clock = clockwork.NewRealClock()
+	}
 	return nil
 }
 
@@ -67,6 +71,7 @@ func (r *Config) checkAndSetDefaults() error {
 type Config struct {
 	// Client is the ETCD client to use
 	Client client.Client
+	clock  clockwork.Clock
 }
 
 // CallbackFn specifies callback that is called by AddWatchCallback
@@ -100,7 +105,13 @@ func (l *Client) AddWatch(key string, valuesC chan string) {
 	logger := log.WithField("key", key)
 	logger.WithField("peers", l.Client.Endpoints()).Info("Setting up watch.")
 
-	go l.watchLoop(key, valuesC, logger)
+	ctx, cancel := context.WithCancel(context.Background())
+	go func() {
+		<-l.closeC
+		cancel()
+	}()
+
+	go l.watchLoop(ctx, key, valuesC, logger)
 }
 
 // AddVoter starts a goroutine that attempts to set the specified key to
@@ -111,22 +122,24 @@ func (l *Client) AddWatch(key string, valuesC chan string) {
 // The method is idempotent and does nothing if invoked multiple times
 func (l *Client) AddVoter(ctx context.Context, key, value string, term time.Duration) {
 	l.once.Do(func() {
-		go l.voterLoop(key, value, term, true)
+		l.startVoterLoop(key, value, term, true)
 	})
 	select {
 	case l.voterC <- true:
 	case <-ctx.Done():
+	case <-l.closeC:
 	}
 }
 
 // RemoveVoter stops the voting loop.
 func (l *Client) RemoveVoter(ctx context.Context, key, value string, term time.Duration) {
 	l.once.Do(func() {
-		go l.voterLoop(key, value, term, false)
+		l.startVoterLoop(key, value, term, false)
 	})
 	select {
 	case l.voterC <- false:
 	case <-ctx.Done():
+	case <-l.closeC:
 	}
 }
 
@@ -148,7 +161,19 @@ func (l *Client) Close() error {
 	return nil
 }
 
-func (l *Client) watchLoop(key string, valuesC chan string, logger logrus.FieldLogger) {
+func (l *Client) startVoterLoop(key, value string, term time.Duration, enabled bool) {
+	ctx, cancel := context.WithCancel(context.Background())
+	go func() {
+		<-l.closeC
+		cancel()
+	}()
+	go l.voterLoop(ctx, key, value, term, enabled)
+}
+
+func (l *Client) watchLoop(ctx context.Context, key string, valuesC chan string, logger logrus.FieldLogger) {
+	// maxFailedSteps sets the limit on the number of failed attempts before the watch
+	// is forcibly reset
+	const maxFailedSteps = 10
 	api := client.NewKeysAPI(l.Client)
 	var watcher client.Watcher
 	var resp *client.Response
@@ -158,22 +183,18 @@ func (l *Client) watchLoop(key string, valuesC chan string, logger logrus.FieldL
 	ticker := backoff.NewTicker(b)
 	defer ticker.Stop()
 
-	ctx, cancel := context.WithCancel(context.Background())
-	go func() {
-		<-l.closeC
-		cancel()
-	}()
-
 	// steps collects number of failed attempts due to unknown error so far
 	var steps int
-	tick := func(err error) (ok bool) {
+	// tick implements a single step of the watcher reconcile loop.
+	// it evaluates the specified error and decides whether the loop should continue.
+	tick := func(err error) (continueLoop bool) {
 		if err == nil {
 			return true
 		}
 		if IsContextCanceled(err) {
 			// The context has been canceled while watcher was waiting
 			// for next event.
-			logger.Info("Context has been canceled.")
+			logger.Info("Context canceled while watcher was waiting for next event.")
 			return false
 		}
 		select {
@@ -193,7 +214,7 @@ func (l *Client) watchLoop(key string, valuesC chan string, logger logrus.FieldL
 				// Unknown error, try recreating the watch after a few repeated
 				// unknown errors.
 				logger.WithError(err).Error("Unexpected watch error.")
-				if steps > 10 {
+				if steps > maxFailedSteps {
 					watcher = nil
 					b.Reset()
 					steps = 0
@@ -206,18 +227,14 @@ func (l *Client) watchLoop(key string, valuesC chan string, logger logrus.FieldL
 		if watcher == nil {
 			watcher, err = l.getWatchAtLatestIndex(ctx, api, key, valuesC)
 			if err != nil {
+				logger.WithError(err).Warn("Failed to create watch at latest index.")
 				continue
 			}
 			// Successful return means the current value has been sent to receiver
 		}
 		resp, err = watcher.Next(ctx)
 		if err != nil {
-			continue
-		}
-		if resp.Node.Value == "" {
-			continue
-		}
-		if resp.PrevNode != nil && resp.PrevNode.Value == resp.Node.Value {
+			logger.WithError(err).Warn("Watcher failed to respond with event.")
 			continue
 		}
 		select {
@@ -234,40 +251,39 @@ func (l *Client) watchLoop(key string, valuesC chan string, logger logrus.FieldL
 // The time-to-live value cannot be less than a second.
 // After successfully setting the key, it attempts to renew the lease for the specified
 // term indefinitely.
-func (l *Client) voterLoop(key, value string, term time.Duration, enabled bool) {
+// The specified context is bound to the underlying close chan and will expire when the client is closed
+func (l *Client) voterLoop(ctx context.Context, key, value string, term time.Duration, enabled bool) {
 	logger := log.WithFields(logrus.Fields{
 		"key":   key,
 		"value": value,
 		"term":  term,
 	})
-	var ticker *time.Ticker
+	var ticker clockwork.Ticker
 	var tickerC <-chan time.Time
-	ctx, cancel := context.WithCancel(context.Background())
-	go func() {
-		<-l.closeC
-		cancel()
+	defer func() {
+		if ticker != nil {
+			ticker.Stop()
+		}
 	}()
 	if enabled {
 		err := l.elect(ctx, key, value, term, logger)
 		if err != nil {
 			logger.WithError(err).Warn("Failed to run election term.")
 		}
-		ticker = time.NewTicker(term / 5)
-		tickerC = ticker.C
+		ticker = l.clock.NewTicker(term / 5)
+		tickerC = ticker.Chan()
 	}
 	for {
 		select {
 		case <-l.pauseC:
 			logger.Info("Step down.")
 			select {
-			case <-time.After(term * 3):
+			case <-l.clock.After(term * 2):
+				logger.Info("Resume election participation.")
 			case <-l.closeC:
 				return
 			}
-		default:
-		}
 
-		select {
 		case <-tickerC:
 			err := l.elect(ctx, key, value, term, logger)
 			if err != nil {
@@ -276,6 +292,7 @@ func (l *Client) voterLoop(key, value string, term time.Duration, enabled bool) 
 
 		case enabled := <-l.voterC:
 			if !enabled {
+				logger.Info("Pause election participation.")
 				if ticker != nil {
 					ticker.Stop()
 				}
@@ -284,14 +301,12 @@ func (l *Client) voterLoop(key, value string, term time.Duration, enabled bool) 
 				continue
 			}
 			if tickerC == nil {
-				ticker = time.NewTicker(term / 5)
-				tickerC = ticker.C
+				ticker = l.clock.NewTicker(term / 5)
+				tickerC = ticker.Chan()
 			}
 
 		case <-l.closeC:
-			if ticker != nil {
-				ticker.Stop()
-			}
+			logger.Info("Voter is closing.")
 			return
 		}
 	}
@@ -350,7 +365,7 @@ func (l *Client) elect(ctx context.Context, key, value string, term time.Duratio
 	if resp.Node.Value != value {
 		return nil
 	}
-	if resp.Node.Expiration.Sub(time.Now().UTC()) > time.Duration(term/2) {
+	if resp.Node.Expiration.Sub(l.clock.Now().UTC()) > time.Duration(term/2) {
 		return nil
 	}
 
@@ -363,6 +378,6 @@ func (l *Client) elect(ctx context.Context, key, value string, term time.Duratio
 	if err != nil {
 		return trace.Wrap(err)
 	}
-	logger.Info("Extended lease.")
+	logger.Debug("Extended lease.")
 	return nil
 }
