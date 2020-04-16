@@ -121,11 +121,6 @@ func startLeaderClient(ctx context.Context, conf *LeaderConfig, agent agent.Agen
 	if err != nil {
 		return nil, trace.Wrap(err)
 	}
-	defer func() {
-		if err != nil {
-			watcher.Stop()
-		}
-	}()
 
 	mon, err := newUnitMonitor()
 	if err != nil {
@@ -156,6 +151,7 @@ func startLeaderClient(ctx context.Context, conf *LeaderConfig, agent agent.Agen
 	} else {
 		candidate.StartObserver()
 	}
+	watcher.Start()
 
 	go updateLeader(ctx, candidate.LeaderChan(), agent, reconciler, state, logger)
 	go updateElectionParticipation(ctx, watcher.RespChan(), reconciler, state, logger)
