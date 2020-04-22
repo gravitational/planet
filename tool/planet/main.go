@@ -139,6 +139,7 @@ func run() error {
 		cstartDisableFlannel = cstart.Flag("disable-flannel", "Disable flannel within the planet container").OverrideDefaultFromEnvar(EnvDisableFlannel).Bool()
 		cstartKubeletConfig  = cstart.Flag("kubelet-config", "Kubelet configuration as base64-encoded JSON payload").OverrideDefaultFromEnvar(EnvPlanetKubeletConfig).String()
 		cstartCloudConfig    = cstart.Flag("cloud-config", "Cloud configuration as base64-encoded payload").OverrideDefaultFromEnvar(EnvPlanetCloudConfig).String()
+		cstartSerfKey        = cstart.Flag("serf-key", "Encryption key for serf cluster").Envar(EnvSerfKey).Required().String()
 
 		// start the planet agent
 		cagent                 = app.Command("agent", "Start Planet Agent")
@@ -441,6 +442,7 @@ func run() error {
 			DisableFlannel:   *cstartDisableFlannel,
 			KubeletConfig:    *cstartKubeletConfig,
 			CloudConfig:      *cstartCloudConfig,
+			SerfKey:          *cstartSerfKey,
 		}
 		if *cstartSelfTest {
 			err = selfTest(config, *cstartTestKubeRepoPath, *cstartTestSpec, extraArgs)

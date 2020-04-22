@@ -176,7 +176,7 @@ buildbox: base
 .PHONY: clean
 clean:
 	$(MAKE) -C $(ASSETS)/makefiles -f buildbox.mk clean
-	rm -rf $(BUILDDIR)
+	rm -rf $(BUILDDIR)/planet
 
 # internal use:
 .PHONY: make-docker-image

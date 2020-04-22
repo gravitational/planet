@@ -246,6 +246,10 @@ const (
 	// This is external configuration for the container
 	EnvPlanetCloudConfig = "PLANET_CLOUD_CONFIG"
 
+	// EnvSerfKey specifies the encryption key for the serf agent.
+	// Assumed to be base64-encoded 16, 24 or 32-byte key for the respective AES cipher
+	EnvSerfKey = "PLANET_SERF_KEY"
+
 	// DefaultDNSListenAddr is the default IP address CoreDNS will listen on
 	DefaultDNSListenAddr = "127.0.0.2"
 

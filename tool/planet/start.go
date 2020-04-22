@@ -161,6 +161,7 @@ func start(config *Config, monitorc chan<- bool) (*runtimeContext, error) {
 		box.EnvPair{Name: EnvElectionEnabled, Val: strconv.FormatBool(config.ElectionEnabled)},
 		box.EnvPair{Name: EnvDNSHosts, Val: config.DNS.Hosts.String()},
 		box.EnvPair{Name: EnvDNSZones, Val: config.DNS.Zones.String()},
+		box.EnvPair{Name: EnvSerfKey, Val: config.SerfKey},
 	)
 
 	// Setup http_proxy / no_proxy environment configuration
