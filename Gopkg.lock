@@ -388,14 +388,14 @@
 
 [[projects]]
   branch = "dmitri/voter-api"
-  digest = "1:9c1423079ec29056b3eb05beb8ad2b65ea2d795dc9235fb3b9810af5e0735da6"
+  digest = "1:4b9761208d8a5ffaf2fd4c491e1f7d13f07d85962bc8aef6057585b1e56b7d2c"
   name = "github.com/gravitational/coordinate"
   packages = [
     "config",
     "leader",
   ]
   pruneopts = "UT"
-  revision = "ab9a6e668e7ae05a85de456649e79d4053435e14"
+  revision = "c66b395cdd5ebff88388b3900749cc710b78ea6e"
 
 [[projects]]
   digest = "1:c260afdfe9e996804d4f70844de6337332cd28df672aa2c5cda4db41af181725"

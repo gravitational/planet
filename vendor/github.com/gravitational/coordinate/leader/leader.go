@@ -42,6 +42,8 @@ type Client struct {
 	// voterC controls the voting participation
 	voterC chan bool
 	once   sync.Once
+	boff   *countedBackoff
+	wg     sync.WaitGroup
 }
 
 // NewClient returns a new instance of leader election client
@@ -54,6 +56,7 @@ func NewClient(cfg Config) (*Client, error) {
 		closeC: make(chan struct{}),
 		pauseC: make(chan bool),
 		voterC: make(chan bool),
+		boff:   newBackoff(),
 	}, nil
 }
 
@@ -111,6 +114,7 @@ func (l *Client) AddWatch(key string, valuesC chan string) {
 		cancel()
 	}()
 
+	l.wg.Add(1)
 	go l.watchLoop(ctx, key, valuesC, logger)
 }
 
@@ -158,6 +162,7 @@ func (l *Client) Close() error {
 		return nil
 	}
 	close(l.closeC)
+	l.wg.Wait()
 	return nil
 }
 
@@ -171,77 +176,65 @@ func (l *Client) startVoterLoop(key, value string, term time.Duration, enabled b
 }
 
 func (l *Client) watchLoop(ctx context.Context, key string, valuesC chan string, logger logrus.FieldLogger) {
+	defer l.wg.Done()
 	// maxFailedSteps sets the limit on the number of failed attempts before the watch
 	// is forcibly reset
 	const maxFailedSteps = 10
-	api := client.NewKeysAPI(l.Client)
-	var watcher client.Watcher
-	var resp *client.Response
+	var (
+		api     = client.NewKeysAPI(l.Client)
+		watcher client.Watcher
+	)
 	var err error
-
-	b := NewUnlimitedExponentialBackOff()
-	ticker := backoff.NewTicker(b)
-	defer ticker.Stop()
-
-	// steps collects number of failed attempts due to unknown error so far
-	var steps int
-	// tick implements a single step of the watcher reconcile loop.
-	// it evaluates the specified error and decides whether the loop should continue.
-	tick := func(err error) (continueLoop bool) {
-		if err == nil {
-			return true
-		}
-		if IsContextCanceled(err) {
-			// The context has been canceled while watcher was waiting
-			// for next event.
-			logger.Info("Context canceled while watcher was waiting for next event.")
-			return false
-		}
+	for {
 		select {
+		case <-time.After(l.boff.NextBackOff()):
 		case <-l.closeC:
-			return false
-		case <-ticker.C:
-			if clusterErr, ok := err.(*client.ClusterError); ok {
-				// Got an etcd error, the watcher will retry.
-				logger.WithError(clusterErr).Errorf("Etcd error: %v.", clusterErr.Detail())
-			} else if IsWatchExpired(err) {
-				// The watcher has expired, reset it so it's recreated on the
-				// next loop cycle.
-				logger.Info("Watch has expired, resetting watch index.")
-				watcher = nil
-			} else {
-				steps += 1
-				// Unknown error, try recreating the watch after a few repeated
-				// unknown errors.
-				logger.WithError(err).Error("Unexpected watch error.")
-				if steps > maxFailedSteps {
-					watcher = nil
-					b.Reset()
-					steps = 0
-				}
-			}
-			return true
+			return
 		}
-	}
-	for tick(err) {
 		if watcher == nil {
 			watcher, err = l.getWatchAtLatestIndex(ctx, api, key, valuesC)
+			log.WithError(err).Info("Create watcher at latest index.")
 			if err != nil {
+				if IsContextError(err) {
+					return
+				}
+				if IsWatchExpired(err) {
+					// The watcher has expired, reset it so it's recreated on the
+					// next loop cycle.
+					logger.Info("Watch has expired, resetting watch index.")
+					watcher = nil
+				} else if err := asClusterError(err); err != nil {
+					logger.Warnf("Cluster error: %v.")
+				} else {
+					l.boff.inc()
+					if l.boff.count() > maxFailedSteps {
+						log.Info("Reset watcher at latest index.")
+						watcher = nil
+						l.boff.Reset()
+					}
+				}
 				logger.WithError(err).Warn("Failed to create watch at latest index.")
 				continue
 			}
-			// Successful return means the current value has been sent to receiver
+			// Successful return means the current value has already been sent to receiver
 		}
-		resp, err = watcher.Next(ctx)
-		if err != nil {
-			logger.WithError(err).Warn("Watcher failed to respond with event.")
-			continue
-		}
-		select {
-		case valuesC <- resp.Node.Value:
-		case <-l.closeC:
-			logger.Info("Watcher is closing.")
-			return
+		for {
+			resp, err := watcher.Next(ctx)
+			if err != nil {
+				if IsContextError(err) {
+					return
+				}
+				logger.WithError(err).Warn("Failed to retrieve event from watcher.")
+				watcher = nil
+				break
+			}
+			l.boff.Reset()
+			select {
+			case valuesC <- resp.Node.Value:
+			case <-l.closeC:
+				logger.Info("Watcher is closing.")
+				return
+			}
 		}
 	}
 }
@@ -379,5 +372,40 @@ func (l *Client) elect(ctx context.Context, key, value string, term time.Duratio
 		return trace.Wrap(err)
 	}
 	logger.Debug("Extended lease.")
+	return nil
+}
+
+func newBackoff() *countedBackoff {
+	return &countedBackoff{
+		b: backoff.NewExponentialBackOff(),
+	}
+}
+
+func (r *countedBackoff) Reset() {
+	r.steps = 0
+	r.b.Reset()
+}
+
+func (r *countedBackoff) NextBackOff() time.Duration {
+	return r.b.NextBackOff()
+}
+
+func (r *countedBackoff) inc() {
+	r.steps += 1
+}
+
+func (r *countedBackoff) count() int {
+	return r.steps
+}
+
+type countedBackoff struct {
+	b     *backoff.ExponentialBackOff
+	steps int
+}
+
+func asClusterError(err error) error {
+	if err, ok := trace.Unwrap(err).(*client.ClusterError); ok {
+		return err
+	}
 	return nil
 }

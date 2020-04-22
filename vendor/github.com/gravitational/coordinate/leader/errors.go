@@ -19,16 +19,17 @@ package leader
 import (
 	"context"
 
+	"github.com/gravitational/trace"
 	"go.etcd.io/etcd/client"
 )
 
 // IsNotFound determines if the specified error identifies a node not found event
 func IsNotFound(err error) bool {
-	e, ok := err.(client.Error)
+	clientErr, ok := trace.Unwrap(err).(client.Error)
 	if !ok {
 		return false
 	}
-	switch e.Code {
+	switch clientErr.Code {
 	case client.ErrorCodeKeyNotFound, client.ErrorCodeNotFile, client.ErrorCodeNotDir:
 		return true
 	default:
@@ -38,31 +39,32 @@ func IsNotFound(err error) bool {
 
 // IsAlreadyExists determines if the specified error identifies a duplicate node event
 func IsAlreadyExists(err error) bool {
-	e, ok := err.(client.Error)
-	if !ok {
-		return false
-	}
-	return e.Code == client.ErrorCodeNodeExist
-}
-
-// IsWatchExpired determins if the specified error identifies an expired watch event
-func IsWatchExpired(err error) bool {
-	switch clientErr := err.(type) {
-	case client.Error:
-		return clientErr.Code == client.ErrorCodeEventIndexCleared
+	if err, ok := trace.Unwrap(err).(client.Error); ok {
+		return err.Code == client.ErrorCodeNodeExist
 	}
 	return false
 }
 
-// IsContextCanceled returns true if the provided error indicates canceled context.
-func IsContextCanceled(err error) bool {
-	if err == context.Canceled {
+// IsWatchExpired determins if the specified error identifies an expired watch event
+func IsWatchExpired(err error) bool {
+	if err, ok := trace.Unwrap(err).(client.Error); ok {
+		return err.Code == client.ErrorCodeEventIndexCleared
+	}
+	return false
+}
+
+// IsContextError returns true if the provided error indicates a canceled or expired context.
+func IsContextError(err error) bool {
+	if err == nil {
+		return false
+	}
+	err = trace.Unwrap(err)
+	if err == context.Canceled || err == context.DeadlineExceeded {
 		return true
 	}
-	if clusterErr, ok := err.(*client.ClusterError); ok {
-		if len(clusterErr.Errors) != 0 && clusterErr.Errors[0] == context.Canceled {
-			return true
-		}
+	if err, ok := err.(*client.ClusterError); ok {
+		return len(err.Errors) != 0 && (err.Errors[0] == context.Canceled ||
+			err.Errors[0] == context.DeadlineExceeded)
 	}
 	return false
 }
