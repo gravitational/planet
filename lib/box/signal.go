@@ -51,6 +51,7 @@ func (s *signalForwarder) Forward(process *libcontainer.Process, tty *tty) (int,
 		return -1, trace.Wrap(err)
 	}
 
+	logger := logrus.WithField("process", process.Args)
 	// Perform the initial tty resize. Always ignore errors resizing because
 	// stdout might have disappeared (due to races with when SIGHUP is sent).
 	_ = tty.resize()
@@ -63,10 +64,10 @@ func (s *signalForwarder) Forward(process *libcontainer.Process, tty *tty) (int,
 		case unix.SIGCHLD:
 			exits, err := s.reap()
 			if err != nil {
-				logrus.WithError(err).Error("error reaping child")
+				logrus.WithError(err).Error("Error reaping child.")
 			}
 			for _, e := range exits {
-				logrus.WithFields(logrus.Fields{
+				logger.WithFields(logrus.Fields{
 					"pid":    e.pid,
 					"status": e.status,
 				}).Debug("Process exited.")
@@ -79,7 +80,7 @@ func (s *signalForwarder) Forward(process *libcontainer.Process, tty *tty) (int,
 				}
 			}
 		default:
-			logrus.WithFields(logrus.Fields{
+			logger.WithFields(logrus.Fields{
 				"pid":    pid,
 				"signal": signal,
 			}).Debug("Send signal to process.")

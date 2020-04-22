@@ -14,7 +14,7 @@ import (
 )
 
 // NewCandidate returns a new election candidate.
-// Specifid context is only used to initialize a session.
+// Specified context is only used to initialize a session.
 // The returned candidate is automatically active
 func NewCandidate(ctx context.Context, config CandidateConfig) (*Candidate, error) {
 	if err := config.checkAndSetDefaults(); err != nil {
@@ -325,7 +325,7 @@ func isLeaderNotFoundError(err error) bool {
 }
 
 // electionTimeout generates a random timeout for a candidate's election.
-// Its prupose is to allow some room in the elections by avoiding all candidates
+// Its purpose is to allow some room in the elections by avoiding all candidates
 // from starting the elections at the time
 func electionTimeout() time.Duration {
 	return time.Duration(150+rand.Intn(150)) * time.Millisecond

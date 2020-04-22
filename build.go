@@ -16,7 +16,12 @@ limitations under the License.
 package main
 
 import (
+	"runtime/debug"
+	"time"
+
 	upgrade "github.com/gravitational/planet/test/etcd-upgrade"
+	"github.com/gravitational/planet/test/leadership"
+
 	"github.com/gravitational/trace"
 	"github.com/magefile/mage/mg"
 )
@@ -28,4 +33,15 @@ func (Test) TestEtcdUpgrade() error {
 	// TODO(knisbet) integrate this variable with etcd versions set in Makefile
 	err := upgrade.TestUpgradeBetweenVersions("v3.3.3", "v3.4.3")
 	return trace.Wrap(err)
+}
+
+func (Test) TestLeaderToleratesEtcdDowntime() error {
+	const timeout = 1 * time.Minute
+	go func() {
+		<-time.After(timeout)
+		debug.SetTraceback("all")
+		panic("test timed out")
+	}()
+	// TODO: use the latest version from the Makefile
+	return leadership.TestCandidateToleratesClusterFailure("v3.4.3")
 }

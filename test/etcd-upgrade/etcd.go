@@ -19,20 +19,14 @@ package etcd
 import (
 	"context"
 	"fmt"
-	"io"
 	"io/ioutil"
-	"log"
 	"math/rand"
 	"os"
 	"path/filepath"
 	"time"
 
-	"github.com/docker/docker/api/types"
-	"github.com/docker/docker/api/types/container"
-	"github.com/docker/docker/api/types/mount"
-	"github.com/docker/docker/api/types/network"
-	"github.com/docker/docker/client"
-	"github.com/docker/go-connections/nat"
+	"github.com/gravitational/planet/test/internal/etcd"
+
 	etcdconf "github.com/gravitational/coordinate/config"
 	backup "github.com/gravitational/etcd-backup/lib/etcd"
 	"github.com/gravitational/trace"
@@ -70,12 +64,15 @@ func TestUpgradeBetweenVersions(from, to string) error {
 	assertNoErr(os.MkdirAll(dataPathFrom, 0777))
 	assertNoErr(os.MkdirAll(dataPathTo, 0777))
 
+	c := etcd.Config{
+		DataDir:       dataPathFrom,
+		Port:          etcdPort,
+		Version:       from,
+		ContainerName: etcdTestContainerName,
+		Image:         etcdImage,
+	}
 	logrus.Info("Starting etcd")
-	assertNoErr(startEtcd(config{
-		dataDir: dataPathFrom,
-		port:    etcdPort,
-		version: from,
-	}))
+	assertNoErr(c.Start(context.TODO()))
 
 	logrus.Info("Waiting for etcd to become healthy")
 	assertNoErr(waitEtcdHealthy(context.TODO(), etcdPort))
@@ -108,20 +105,23 @@ func TestUpgradeBetweenVersions(from, to string) error {
 	assertNoErr(writer.Close())
 
 	logrus.Info("Stopping etcd for upgrade")
-	assertNoErr(stopEtcd())
+	assertNoErr(c.Stop(context.TODO()))
 
+	c = etcd.Config{
+		DataDir:       dataPathTo,
+		Port:          etcdUpgradePort,
+		Version:       from,
+		ContainerName: etcdTestContainerName,
+		Image:         etcdImage,
+	}
 	logrus.Info("Starting temporary etcd cluster to initialize database")
-	assertNoErr(startEtcd(config{
-		dataDir: dataPathTo,
-		port:    etcdUpgradePort,
-		version: from,
-	}))
+	assertNoErr(c.Start(context.TODO()))
 
 	logrus.Info("Waiting for etcd to become healthy")
 	assertNoErr(waitEtcdHealthy(context.TODO(), etcdUpgradePort))
 
 	logrus.Info("Stopping temporary etcd cluster")
-	assertNoErr(stopEtcd())
+	assertNoErr(c.Stop(context.TODO()))
 
 	logrus.Info("Running offline restore against etcd DB")
 	restoreConf := backup.RestoreConfig{
@@ -130,12 +130,15 @@ func TestUpgradeBetweenVersions(from, to string) error {
 	}
 	assertNoErr(backup.OfflineRestore(context.TODO(), restoreConf, dataPathTo))
 
+	c = etcd.Config{
+		DataDir:       dataPathTo,
+		Port:          etcdUpgradePort,
+		Version:       from,
+		ContainerName: etcdTestContainerName,
+		Image:         etcdImage,
+	}
 	logrus.Info("Starting temporary etcd cluster to restore backup")
-	assertNoErr(startEtcd(config{
-		dataDir: dataPathTo,
-		port:    etcdUpgradePort,
-		version: from,
-	}))
+	assertNoErr(c.Start(context.TODO()))
 
 	logrus.Info("Waiting for etcd to become healthy")
 	assertNoErr(waitEtcdHealthy(context.TODO(), etcdUpgradePort))
@@ -154,14 +157,17 @@ func TestUpgradeBetweenVersions(from, to string) error {
 	assertNoErr(backup.Restore(context.TODO(), restoreConf))
 
 	logrus.Info("Stopping temporary etcd cluster")
-	assertNoErr(stopEtcd())
+	assertNoErr(c.Stop(context.TODO()))
 
+	c = etcd.Config{
+		DataDir:       dataPathTo,
+		Port:          etcdPort,
+		Version:       from,
+		ContainerName: etcdTestContainerName,
+		Image:         etcdImage,
+	}
 	logrus.Info("Starting etcd cluster as new version")
-	assertNoErr(startEtcd(config{
-		dataDir: dataPathTo,
-		port:    etcdPort,
-		version: from,
-	}))
+	assertNoErr(c.Start(context.TODO()))
 
 	logrus.Info("Waiting for etcd to become healthy")
 	assertNoErr(waitEtcdHealthy(context.TODO(), etcdPort))
@@ -176,129 +182,9 @@ func TestUpgradeBetweenVersions(from, to string) error {
 	assertNoErr(watcher.test())
 
 	logrus.Info("shutting down etcd, test complete")
-	assertNoErr(stopEtcd())
+	assertNoErr(c.Stop(context.TODO()))
 
 	return nil
-}
-
-type config struct {
-	dataDir         string
-	forceNewCluster bool
-	port            string
-	version         string
-}
-
-func startEtcd(c config) error {
-	cli := dockerClient()
-
-	// Check if a container already exists, and if it does, clean up the container
-	containers, err := cli.ContainerList(context.TODO(), types.ContainerListOptions{All: true})
-	assertNoErr(err)
-	for _, container := range containers {
-		if len(container.Names) > 0 && container.Names[0] == fmt.Sprintf("/%v", etcdTestContainerName) {
-			logrus.Info("Stopping Container ID: ", container.ID)
-			_ = cli.ContainerStop(context.TODO(), container.ID, nil)
-			_ = cli.ContainerRemove(context.TODO(), container.ID, types.ContainerRemoveOptions{})
-		}
-	}
-
-	// Pull the image from the upstream repository
-	image := fmt.Sprintf("%v:%v", etcdImage, c.version)
-	reader, err := cli.ImagePull(context.TODO(), image, types.ImagePullOptions{})
-	assertNoErr(err)
-	io.Copy(os.Stdout, reader)
-
-	etcdClientPort, err := nat.NewPort("tcp", "2379")
-	if err != nil {
-		return trace.Wrap(err)
-	}
-
-	cmd := []string{"/usr/local/bin/etcd",
-		"--data-dir", "/etcd-data",
-		"--enable-v2=true",
-		"--listen-client-urls", "http://0.0.0.0:2379",
-		"--advertise-client-urls", "http://127.0.0.1:2379",
-		"--snapshot-count", "100",
-		"--initial-cluster-state", "new",
-	}
-	if c.forceNewCluster {
-		cmd = append(cmd, "--force-new-cluster")
-	}
-
-	cont, err := cli.ContainerCreate(context.TODO(),
-		&container.Config{
-			User:  fmt.Sprint(os.Getuid()),
-			Image: image,
-			Cmd:   cmd,
-		},
-		&container.HostConfig{
-			PortBindings: nat.PortMap{
-				etcdClientPort: []nat.PortBinding{
-					nat.PortBinding{
-						HostIP:   "127.0.0.1",
-						HostPort: c.port,
-					},
-				},
-			},
-			Mounts: []mount.Mount{
-				{
-					Type:   mount.TypeBind,
-					Source: c.dataDir,
-					Target: "/etcd-data",
-				},
-			},
-		},
-		&network.NetworkingConfig{},
-		etcdTestContainerName)
-	if err != nil {
-		return trace.Wrap(err)
-	}
-
-	err = cli.ContainerStart(context.TODO(), cont.ID, types.ContainerStartOptions{})
-	if err != nil {
-		return trace.Wrap(err)
-	}
-	logrus.Printf("Container %s (%s) is started\n", etcdTestContainerName, cont.ID)
-
-	return nil
-}
-
-func stopEtcd() error {
-	cli := dockerClient()
-	t := 15 * time.Second
-	return trace.Wrap(cli.ContainerStop(context.TODO(), etcdTestContainerName, &t))
-}
-
-func dockerClient() *client.Client {
-	cli, err := client.NewEnvClient()
-	if err != nil {
-		panic(err)
-	}
-	cli.NegotiateAPIVersion(context.TODO())
-	return cli
-}
-
-func getEtcdClients(port string) (*clientv2.Client, *clientv3.Client) {
-	cfg := clientv2.Config{
-		Endpoints: []string{fmt.Sprintf("http://127.0.0.1:%v", port)},
-		Transport: clientv2.DefaultTransport,
-		// set timeout per request to fail fast when the target endpoint is unavailable
-		HeaderTimeoutPerRequest: time.Second,
-	}
-	clientv2, err := clientv2.New(cfg)
-	if err != nil {
-		log.Fatal(err)
-	}
-
-	clientv3, err := clientv3.New(clientv3.Config{
-		Endpoints:   []string{fmt.Sprintf("http://127.0.0.1:%v", port)},
-		DialTimeout: 5 * time.Second,
-	})
-	if err != nil {
-		log.Fatal(err)
-	}
-
-	return &clientv2, clientv3
 }
 
 type watcher struct {
@@ -308,7 +194,7 @@ type watcher struct {
 }
 
 func newWatcher() watcher {
-	cv2, cv3 := getEtcdClients(etcdPort)
+	cv2, cv3 := etcd.GetClients(etcdPort)
 	kapi := clientv2.NewKeysAPI(*cv2)
 
 	return watcher{
@@ -318,7 +204,10 @@ func newWatcher() watcher {
 }
 
 func (w *watcher) test() error {
-	_, cv3 := getEtcdClients(etcdPort)
+	cv3, err := etcd.GetClientV3(etcdPort)
+	if err != nil {
+		return trace.Wrap(err)
+	}
 	value := fmt.Sprint(rand.Uint64())
 
 	// trigger v3 watch
@@ -355,7 +244,7 @@ const numWritesPerKey = 3
 
 // create a sample set of data so that the revision index moves sufficiently forward
 func writeEtcdTestData() error {
-	cv2, cv3 := getEtcdClients(etcdPort)
+	cv2, cv3 := etcd.GetClients(etcdPort)
 	kapi := clientv2.NewKeysAPI(*cv2)
 
 	// etcdv2
@@ -399,7 +288,7 @@ func writeEtcdTestData() error {
 
 // validateEtcdTestData checks all the expected keys exist after the upgrade
 func validateEtcdTestData() error {
-	cv2, cv3 := getEtcdClients(etcdPort)
+	cv2, cv3 := etcd.GetClients(etcdPort)
 	kapi := clientv2.NewKeysAPI(*cv2)
 
 	// etcdv2
@@ -478,7 +367,7 @@ func validateEtcdTestData() error {
 }
 
 func waitEtcdHealthy(ctx context.Context, port string) error {
-	cv2, _ := getEtcdClients(port)
+	cv2, _ := etcd.GetClients(etcdPort)
 	mapi := clientv2.NewMembersAPI(*cv2)
 	for {
 		leader, _ := mapi.Leader(ctx)
