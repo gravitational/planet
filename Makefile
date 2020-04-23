@@ -71,6 +71,10 @@ BUILDBOX_GO_VER ?= 1.12.9
 PLANET_BUILD_TAG ?= $(shell git describe --tags)
 PLANET_IMAGE_NAME ?= planet/base
 PLANET_IMAGE ?= $(PLANET_IMAGE_NAME):$(PLANET_BUILD_TAG)
+PLANET_OS_NAME ?= planet/os
+PLANET_OS_IMAGE ?= $(PLANET_OS_NAME):$(PLANET_BUILD_TAG)
+PLANET_BUILDBOX_NAME ?=planet/buildbox
+PLANET_BUILDBOX_IMAGE ?= $(PLANET_BUILDBOX_NAME):$(PLANET_BUILD_TAG)
 export
 
 PUBLIC_IP ?= 127.0.0.1
@@ -170,21 +174,21 @@ enter:
 .PHONY: os
 os:
 	@echo -e "\n---> Making Planet/OS (Debian) Docker image...\n"
-	$(MAKE) -e BUILDIMAGE=planet/os DOCKERFILE=os.dockerfile make-docker-image
+	$(MAKE) -e BUILDIMAGE=$(PLANET_OS_IMAGE) DOCKERFILE=os.dockerfile make-docker-image
 
 # Build the image with components required for running a Kubernetes node
 .PHONY: base
 base: os
 	@echo -e "\n---> Making Planet/Base Docker image based on Planet/OS...\n"
 	$(MAKE) -e BUILDIMAGE=$(PLANET_IMAGE) DOCKERFILE=base.dockerfile \
-		EXTRA_ARGS="--build-arg SECCOMP_VER=$(SECCOMP_VER) --build-arg PLANET_UID=$(PLANET_UID) --build-arg PLANET_GID=$(PLANET_GID)" \
+		EXTRA_ARGS="--build-arg SECCOMP_VER=$(SECCOMP_VER) --build-arg PLANET_UID=$(PLANET_UID) --build-arg PLANET_GID=$(PLANET_GID) --build-arg PLANET_OS_IMAGE=$(PLANET_OS_IMAGE)" \
 		make-docker-image
 
 # Build a container used for building the planet image
 .PHONY: buildbox
 buildbox: base
 	@echo -e "\n---> Making Planet/BuildBox Docker image:\n" ;\
-	$(MAKE) -e BUILDIMAGE=planet/buildbox \
+	$(MAKE) -e BUILDIMAGE=$(PLANET_BUILDBOX_IMAGE) \
 		DOCKERFILE=buildbox.dockerfile \
 		EXTRA_ARGS="--build-arg GOVERSION=$(BUILDBOX_GO_VER) --build-arg PLANET_BASE_IMAGE=$(PLANET_IMAGE)" \
 		make-docker-image
