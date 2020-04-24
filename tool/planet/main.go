@@ -201,6 +201,16 @@ func run() error {
 		cstatusClientKeyFile = cstatus.Flag("client-key-file", "mTLS client key file").
 					Default(ClientRPCKeyPath).OverrideDefaultFromEnvar(EnvPlanetAgentClientKeyFile).String()
 
+		cstatusDump        = app.Command("debug-status", "Dump Planet Agent debug internals")
+		cstatusDumpProfile = cstatusDump.Flag("profile", "Name of the profile to dump").Required().String()
+		cstatusDumpRPCPort = cstatusDump.Flag("rpc-port", "Local agent RPC port.").Default("7575").Int()
+		cstatusDumpCAFile  = cstatusDump.Flag("ca-file", "CA to authenticate server").
+					Default(ClientRPCCAPath).OverrideDefaultFromEnvar(EnvPlanetAgentCAFile).String()
+		cstatusDumpClientCertFile = cstatusDump.Flag("client-cert-file", "mTLS client certificate file").
+						Default(ClientRPCCertPath).OverrideDefaultFromEnvar(EnvPlanetAgentClientCertFile).String()
+		cstatusDumpClientKeyFile = cstatusDump.Flag("client-key-file", "mTLS client key file").
+						Default(ClientRPCKeyPath).OverrideDefaultFromEnvar(EnvPlanetAgentClientKeyFile).String()
+
 		// test command
 		ctest             = app.Command("test", "Run end-to-end tests on a running cluster")
 		ctestKubeAddr     = HostPort(ctest.Flag("kube-addr", "Address of the kubernetes api server").Required())
@@ -493,6 +503,16 @@ func run() error {
 		if err == nil && !ok {
 			err = trace.Errorf("status degraded")
 		}
+
+	// "debug-status" command
+	case cstatusDump.FullCommand():
+		err = getAgentDebugProfile(debugConfig{
+			profile:        *cstatusDumpProfile,
+			rpcPort:        *cstatusDumpRPCPort,
+			caFile:         *cstatusDumpCAFile,
+			clientCertFile: *cstatusDumpClientCertFile,
+			clientKeyFile:  *cstatusDumpClientKeyFile,
+		})
 
 	// "test" command
 	case ctest.FullCommand():

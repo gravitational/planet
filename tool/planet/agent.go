@@ -37,8 +37,10 @@ import (
 	"github.com/gravitational/coordinate/leader"
 	"github.com/gravitational/satellite/agent"
 	pb "github.com/gravitational/satellite/agent/proto/agentpb"
+	debugpb "github.com/gravitational/satellite/agent/proto/debug"
 	"github.com/gravitational/satellite/lib/rpc/client"
 	"github.com/gravitational/trace"
+	"github.com/gravitational/trace/trail"
 	log "github.com/sirupsen/logrus"
 )
 
@@ -427,6 +429,7 @@ func status(c statusConfig) (ok bool, err error) {
 	if err != nil {
 		return false, trace.Wrap(err)
 	}
+	defer client.Close()
 	var statusJson []byte
 	var statusBlob interface{}
 	if c.local {
@@ -462,6 +465,52 @@ func status(c statusConfig) (ok bool, err error) {
 		return ok, trace.Wrap(err, "failed to output status")
 	}
 	return ok, nil
+}
+
+type debugConfig struct {
+	profile        string
+	rpcPort        int
+	caFile         string
+	clientCertFile string
+	clientKeyFile  string
+}
+
+// getAgentDebugProfile dumps agent's debug profile given with the specified configuration
+func getAgentDebugProfile(c debugConfig) error {
+	ctx, cancel := context.WithTimeout(context.TODO(), constants.DumpProfileTimeout)
+	defer cancel()
+	config := client.Config{
+		Address:  rpcAddr(c.rpcPort),
+		CAFile:   c.caFile,
+		CertFile: c.clientCertFile,
+		KeyFile:  c.clientKeyFile,
+	}
+	client, err := client.NewClient(ctx, config)
+	if err != nil {
+		return trace.Wrap(err)
+	}
+	defer client.Close()
+	resp, err := client.Profile(ctx, &debugpb.ProfileRequest{Profile: c.profile})
+	if err != nil {
+		return trace.Wrap(err)
+	}
+	return streamResponse(os.Stdout, resp)
+}
+
+func streamResponse(w io.Writer, stream debugpb.Debug_ProfileClient) error {
+	for {
+		resp, err := stream.Recv()
+		if err != nil {
+			if trace.IsEOF(err) {
+				return nil
+			}
+			return trail.FromGRPC(err)
+		}
+		_, err = w.Write(resp.Output)
+		if err != nil {
+			return trace.ConvertSystemError(err)
+		}
+	}
 }
 
 func rpcAddr(port int) string {
