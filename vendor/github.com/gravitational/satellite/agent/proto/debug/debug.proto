@@ -29,7 +29,7 @@ service Debug {
 message ProfileRequest {
     // Profile specifies the profile name
     string profile = 1;
-    // Outputspecifies the output format.
+    // Output specifies the output format.
     enum Output {
         option (gogoproto.goproto_enum_prefix) = false;
         option (gogoproto.goproto_enum_stringer) = false;

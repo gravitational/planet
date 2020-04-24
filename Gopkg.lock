@@ -256,7 +256,7 @@
   version = "v4.1.0"
 
 [[projects]]
-  digest = "1:db238461f652ddb7c7057bc6fc503f6003a29987b1485ecbb96d92287db65bc9"
+  digest = "1:33f49b72fdad072a03d13b31a42edfff08088b7c27198f4073b8213a58884f27"
   name = "github.com/gogo/protobuf"
   packages = [
     "gogoproto",
@@ -265,8 +265,8 @@
     "sortkeys",
   ]
   pruneopts = "UT"
-  revision = "636bf0302bc95575d69441b25a2603156ffdddf1"
-  version = "v1.1.1"
+  revision = "ba06b47c162d49f2af050fb4c75bcbc86a159d5c"
+  version = "v1.2.1"
 
 [[projects]]
   digest = "1:4c0989ca0bcd10799064318923b9bc2db6b4d6338dd75f3f2d86c3511aaaf5cf"
@@ -366,7 +366,7 @@
 
 [[projects]]
   branch = "dmitri/5.5.x/1091-agent"
-  digest = "1:d7a46ca9dd3373155ddb77923383c1f15b087c951bff8bfeecd1e639d2e99f88"
+  digest = "1:d2e3d8967ef81230410ae0b2bbe282a570a444e81426edb8cfeaa608cf227473"
   name = "github.com/gravitational/satellite"
   packages = [
     "agent",
@@ -387,7 +387,7 @@
     "utils",
   ]
   pruneopts = "UT"
-  revision = "bab494a558c2129ca76fab53b9a810ea5a75784e"
+  revision = "0c4089c9f622b49a4fb34f1f6debb58868cc130e"
 
 [[projects]]
   digest = "1:488b046f7e099afaa97b0596967f96c54a0c8f85bb02d155931982fed2275851"
