@@ -5,6 +5,9 @@ ASSETDIR ?= $(BUILDDIR)/assets
 ROOTFS ?= $(TARGETDIR)/rootfs
 CONTAINERNAME ?= planet-base-build
 TARBALL ?= $(BUILDDIR)/planet.tar.gz
+PLANET_BUILD_TAG ?= $(shell git describe --tags)
+BUILDBOX_NAME ?= planet/buildbox
+BUILDBOX_IMAGE ?= $(BUILDBOX_NAME):$(PLANET_BUILD_TAG)
 export
 TMPFS_SIZE ?= 900m
 VER_UPDATES = ETCD_LATEST_VER KUBE_VER FLANNEL_VER DOCKER_VER HELM_VER COREDNS_VER
@@ -28,7 +31,7 @@ build: | $(ASSETDIR)
 		--env="ROOTFS=/rootfs" \
 		--env="TARGETDIR=/targetdir" \
 		--env="ASSETDIR=/assetdir" \
-		planet/buildbox:latest \
+		$(BUILDBOX_IMAGE) \
 		make -e \
 			KUBE_VER=$(KUBE_VER) \
 			FLANNEL_VER=$(FLANNEL_VER) \
@@ -68,7 +71,7 @@ enter-buildbox:
 		--env="ROOTFS=/rootfs" \
 		--env="TARGETDIR=/targetdir" \
 		--env="ASSETDIR=/assetdir" \
-		planet/buildbox:latest \
+		$(BUILDBOX_IMAGE) \
 		/bin/bash
 
 $(ROOTFS)/bin/bash: clean-rootfs
