@@ -124,7 +124,7 @@ func StringInSlice(haystack []string, needle string) bool {
 	return false
 }
 
-/ ExitStatusFromError returns the exit status from the specified error.
+// ExitStatusFromError returns the exit status from the specified error.
 // If the error is not exit status error, return nil
 func ExitStatusFromError(err error) *int {
 	exitErr, ok := trace.Unwrap(err).(*exec.ExitError)

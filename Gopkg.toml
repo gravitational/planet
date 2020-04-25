@@ -60,8 +60,7 @@ ignored = ["github.com/Sirupsen/logrus", "github.com/gravitational/planet/build/
   version = "2.0.0"
 
 [[override]]
-  name = "go.etcd.io/etcd"
-  source = "github.com/coreos/etcd"
+  name = "github.com/coreos/etcd"
   version = "=v3.3.12"
 
 [[override]]
