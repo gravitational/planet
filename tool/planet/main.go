@@ -31,7 +31,6 @@ import (
 	"strconv"
 	"strings"
 	"syscall"
-	"time"
 
 	"github.com/fatih/color"
 	"github.com/gravitational/configure/cstrings"
@@ -110,9 +109,6 @@ func run() error {
 					String()
 		cstartVxlanPort               = cstart.Flag("vxlan-port", "overlay network port").Default(strconv.Itoa(DefaultVxlanPort)).OverrideDefaultFromEnvar(EnvVxlanPort).Int()
 		cstartServiceUID              = cstart.Flag("service-uid", "service user ID. Service user is used for services that do not require elevated permissions").OverrideDefaultFromEnvar(EnvServiceUID).String()
-		cstartSelfTest                = cstart.Flag("self-test", "Run end-to-end tests on the started cluster").Bool()
-		cstartTestSpec                = cstart.Flag("test-spec", "Regexp of the test specs to run (self-test mode only)").Default("Networking|Pods").String()
-		cstartTestKubeRepoPath        = cstart.Flag("repo-path", "Path to either a k8s repository or a directory with test configuration files (self-test mode only)").String()
 		cstartEtcdProxy               = cstart.Flag("etcd-proxy", "Etcd proxy mode: 'off', 'on' or 'readonly'").OverrideDefaultFromEnvar("PLANET_ETCD_PROXY").String()
 		cstartEtcdMemberName          = cstart.Flag("etcd-member-name", "Etcd member name").OverrideDefaultFromEnvar("PLANET_ETCD_MEMBER_NAME").String()
 		cstartEtcdInitialCluster      = KeyValueList(cstart.Flag("etcd-initial-cluster", "Initial etcd cluster configuration (list of peers)").OverrideDefaultFromEnvar("PLANET_ETCD_INITIAL_CLUSTER"))
@@ -442,11 +438,7 @@ func run() error {
 			CloudConfig:      *cstartCloudConfig,
 			AllowPrivileged:  *cstartAllowPrivileged,
 		}
-		if *cstartSelfTest {
-			err = selfTest(config, *cstartTestKubeRepoPath, *cstartTestSpec, extraArgs)
-		} else {
-			err = startAndWait(config)
-		}
+		err = startAndWait(config)
 
 	// "init" command
 	case cinit.FullCommand():
@@ -539,42 +531,6 @@ func run() error {
 
 	default:
 		err = trace.Errorf("unsupported command: %v", cmd)
-	}
-
-	return err
-}
-
-const monitoringDbFile = "monitoring.db"
-
-func selfTest(config *Config, repoDir, spec string, extraArgs []string) error {
-	var ctx *runtimeContext
-	var err error
-	const idleTimeout = 30 * time.Second
-
-	testConfig := &e2e.Config{
-		KubeMasterAddr: config.MasterIP + ":8080", // FIXME: get from configuration
-		KubeRepoPath:   repoDir,
-	}
-
-	monitorc := make(chan bool, 1)
-	ctx, err = start(config, monitorc)
-	if err == nil {
-		select {
-		case clusterUp := <-monitorc:
-			if clusterUp {
-				if spec != "" {
-					log.Infof("Testing: %s", spec)
-					extraArgs = append(extraArgs, fmt.Sprintf("-focus=%s", spec))
-				}
-				err = e2e.RunTests(testConfig, extraArgs)
-			} else {
-				err = trace.Errorf("cannot start testing: cluster not running")
-			}
-		case <-time.After(idleTimeout):
-			err = trace.Errorf("timed out waiting for units to come up")
-		}
-		stop(config.Rootfs, config.SocketPath)
-		ctx.Close()
 	}
 
 	return err

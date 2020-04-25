@@ -112,6 +112,16 @@ func Int32Ptr(v int32) *int32 {
 	return &v
 }
 
+// StringInSlice returns true if needle is in haystack
+func StringInSlice(haystack []string, needle string) bool {
+	for i := range haystack {
+		if haystack[i] == needle {
+			return true
+		}
+	}
+	return false
+}
+
 // ToJSON converts a single YAML document into a JSON document
 // or returns an error. If the document appears to be JSON the
 // YAML decoding path is not used (so that error messages are
@@ -132,8 +142,8 @@ func hasJSONPrefix(buf []byte) bool {
 	return hasPrefix(buf, jsonPrefix)
 }
 
-// Return true if the first non-whitespace bytes in buf is
-// prefix.
+// hasPrefix returns true if the first non-whitespace bytes in buf match
+// the specified prefix.
 func hasPrefix(buf []byte, prefix []byte) bool {
 	trim := bytes.TrimLeftFunc(buf, unicode.IsSpace)
 	return bytes.HasPrefix(trim, prefix)

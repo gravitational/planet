@@ -36,9 +36,15 @@ func newUdevListener(rootfs, socketPath string) (*udevListener, error) {
 	monitor := udev.NewMonitorFromNetlink("udev")
 	doneC := make(chan struct{})
 
-	monitor.FilterAddMatchSubsystemDevtype("block", "disk")
-	monitor.FilterAddMatchSubsystemDevtype("block", "partition")
-	monitor.FilterAddMatchTag("systemd")
+	if err := monitor.FilterAddMatchSubsystemDevtype("block", "disk"); err != nil {
+		return nil, trace.BadParameter("failed to filter block devices of type disk")
+	}
+	if err := monitor.FilterAddMatchSubsystemDevtype("block", "partition"); err != nil {
+		return nil, trace.BadParameter("failed to filter block devices of type partition")
+	}
+	if err := monitor.FilterAddMatchTag("systemd"); err != nil {
+		return nil, trace.BadParameter("failed to filter systemd devices")
+	}
 
 	recvC, err := monitor.DeviceChan(doneC)
 	if err != nil {

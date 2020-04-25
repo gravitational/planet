@@ -133,7 +133,15 @@
   revision = "cb7008ab3d8359b78c5f464cb7cf160107ad5925"
 
 [[projects]]
-  digest = "1:4f618dd2213260a992922925a03349430af6994d8a481c53280703732e5bc4ab"
+  digest = "1:c7db0d7eb0409eda9ac91b3a9d9ed49a019d0c9c82c6dd4e4bfcf97267c7d435"
+  name = "github.com/coreos/bbolt"
+  packages = ["."]
+  pruneopts = "UT"
+  revision = "68cc10a767ea1c6b9e8dcb9847317ff192d6d974"
+  version = "v1.3.4"
+
+[[projects]]
+  digest = "1:56d62ed70f574050e28359bbdcb0eb09b8667335b8ac438f97baff00eb3b2cc5"
   name = "github.com/coreos/etcd"
   packages = [
     "auth/authpb",
@@ -141,8 +149,14 @@
     "clientv3",
     "etcdserver/api/v3rpc/rpctypes",
     "etcdserver/etcdserverpb",
+    "lease",
+    "lease/leasepb",
+    "mvcc",
+    "mvcc/backend",
     "mvcc/mvccpb",
+    "pkg/adt",
     "pkg/pathutil",
+    "pkg/schedule",
     "pkg/srv",
     "pkg/tlsutil",
     "pkg/transport",
@@ -150,8 +164,8 @@
     "version",
   ]
   pruneopts = "UT"
-  revision = "27fc7e2296f506182f58ce846e48f36b34fe6842"
-  version = "v3.3.10"
+  revision = "d57e8b8d97adfc4a6c224fe116714bf1a1f3beb9"
+  version = "v3.3.12"
 
 [[projects]]
   digest = "1:0ef770954bca104ee99b3b6b7f9b240605ac03517d9f98cbc1893daa03f3c038"
@@ -162,20 +176,22 @@
   version = "v0.2.0"
 
 [[projects]]
-  digest = "1:23b153950e96615981a18dfee3b3c85070eacd9f4432257f093c42f4a2bed406"
+  digest = "1:e6cb20204387062b3150efcd0cb9b6e7802e871ec78250627d5b88892fa1aac2"
   name = "github.com/coreos/go-systemd"
   packages = [
     "dbus",
+    "internal/dlopen",
+    "journal",
     "util",
   ]
   pruneopts = "UT"
-  revision = "40e2722dffead74698ca12a750f64ef313ddce05"
-  version = "v16"
+  revision = "d3cd4ed1dbcf5835feba465b180436db54f20228"
+  version = "v21"
 
 [[projects]]
-  digest = "1:6e2ff82d2fe11ee35ec8dceb4346b8144a761f1c8655592c4ebe99a92fcec327"
+  digest = "1:39ff4d4d6baca1ac63c6a03404b761d664be14a71bb5a4aca8fef643d0f66fef"
   name = "github.com/coreos/pkg"
-  packages = ["dlopen"]
+  packages = ["capnslog"]
   pruneopts = "UT"
   revision = "97fdf19511ea361ae1c100dd393cc47f8dcfa1e1"
   version = "v4"
@@ -255,12 +271,12 @@
   version = "v1.39.0"
 
 [[projects]]
-  digest = "1:57fa4c058c21ce25d0b7272518dd746065117abf6cc706158b0d361202024520"
+  digest = "1:dae52e85e2f3d0a734799e74ec0711d3ddd673b21a9e83be6c899af64c3a98f6"
   name = "github.com/godbus/dbus"
   packages = ["."]
   pruneopts = "UT"
-  revision = "a389bdde4dd695d414e47b755e95e72b7826432c"
-  version = "v4.1.0"
+  revision = "66d97aec3384421e393c2a76b770a1b5c31d07a8"
+  version = "v5.0.0"
 
 [[projects]]
   digest = "1:db238461f652ddb7c7057bc6fc503f6003a29987b1485ecbb96d92287db65bc9"
@@ -288,6 +304,14 @@
   pruneopts = "UT"
   revision = "aa810b61a9c79d51363740d207bb46cf8e620ed5"
   version = "v1.2.0"
+
+[[projects]]
+  digest = "1:0bfbe13936953a98ae3cfe8ed6670d396ad81edf069a806d2f6515d7bb6950df"
+  name = "github.com/google/btree"
+  packages = ["."]
+  pruneopts = "UT"
+  revision = "4030bb1f1f0c35b30ca7009e9ebd06849dd45306"
+  version = "v1.0.0"
 
 [[projects]]
   branch = "master"
@@ -318,7 +342,7 @@
   version = "v0.2.0"
 
 [[projects]]
-  branch = "master"
+  branch = "dmitri/kingpin-bool-flag"
   digest = "1:304cf5247969d11161afab9b010f6b8f2f05144ced22fdea75554ff76f858e1e"
   name = "github.com/gravitational/configure"
   packages = [
@@ -326,26 +350,26 @@
     "cstrings",
   ]
   pruneopts = "UT"
-  revision = "c3428bd84c23f0cfcc759f2ef12632be5ff5d95d"
+  revision = "fce91dea0d0df90e464aaa1b2ffd9acb8dd7b5c7"
 
 [[projects]]
-  branch = "master"
-  digest = "1:6f323c8ee44a44f7be69a733288612635ac279e07ea1e08815c553599a0543d0"
+  branch = "dmitri/6.1.x/voter-api"
+  digest = "1:0c4f93e288a1e38eab45ea1751760d120815aec57f7168c3b6032c56c47c205e"
   name = "github.com/gravitational/coordinate"
   packages = [
     "config",
     "leader",
   ]
   pruneopts = "UT"
-  revision = "2bc9a83f6fe22919202fb09bfa01f2ff8b7784cb"
+  revision = "5cc0b7cbd43fd3c8dbcd3a2d0eef4bb019dc41f4"
 
 [[projects]]
-  branch = "master"
-  digest = "1:ac78536dad0ccbfd9dcec7de002b60ba1ec538880efb184ea10cb0b05e5b26af"
+  branch = "version/6.1.x"
+  digest = "1:03148d453a97fd870ab7e74bfeac5d8e23268114d32fa694eb8d1bf8e2683bca"
   name = "github.com/gravitational/etcd-backup"
   packages = ["lib/etcd"]
   pruneopts = "UT"
-  revision = "610631b157d97a1c7d364c9b5dec1e8cb22d016d"
+  revision = "6fcf9edb2eb04a27550b032836062f4df3e1986e"
 
 [[projects]]
   branch = "master"
@@ -710,6 +734,14 @@
   version = "v1.2"
 
 [[projects]]
+  branch = "master"
+  digest = "1:89da0f0574bc94cfd0ac8b59af67bf76cdd110d503df2721006b9f0492394333"
+  name = "github.com/petar/GoLLRB"
+  packages = ["llrb"]
+  pruneopts = "UT"
+  revision = "33fb24c13b99c46c93183c291836c573ac382536"
+
+[[projects]]
   digest = "1:40e195917a951a8bf867cd05de2a46aaf1806c50cf92eebf4c16f78cd196f747"
   name = "github.com/pkg/errors"
   packages = ["."]
@@ -846,6 +878,15 @@
   packages = ["."]
   pruneopts = "UT"
   revision = "13995c7128ccc8e51e9a6bd2b551020a27180abd"
+
+[[projects]]
+  digest = "1:968f9ee97c521616063a582e791c27124bef68b8135a38fae96bc01f300631e4"
+  name = "go.etcd.io/etcd"
+  packages = ["client"]
+  pruneopts = "UT"
+  revision = "d57e8b8d97adfc4a6c224fe116714bf1a1f3beb9"
+  source = "github.com/coreos/etcd"
+  version = "v3.3.12"
 
 [[projects]]
   branch = "master"
@@ -1252,6 +1293,7 @@
     "github.com/gravitational/version",
     "github.com/hashicorp/serf/client",
     "github.com/imdario/mergo",
+    "github.com/jonboulle/clockwork",
     "github.com/julienschmidt/httprouter",
     "github.com/kylelemons/godebug/diff",
     "github.com/mitchellh/go-ps",

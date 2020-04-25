@@ -79,8 +79,8 @@ build: $(BUILD_ASSETS)/planet $(BUILDDIR)/planet.tar.gz
 	cp -f $< $(OUTPUTDIR)/rootfs/usr/bin/
 
 .PHONY: planet-bin
-planet-bin:
-	go build -o $(BUILDDIR)/planet github.com/gravitational/planet/tool/planet
+planet-bin: | $(OUTPUTDIR)
+	go build -o $(OUTPUTDIR)/planet github.com/gravitational/planet/tool/planet
 
 # Deploys the build artifacts to Amazon S3
 .PHONY: dev-deploy
@@ -180,7 +180,7 @@ buildbox: base
 .PHONY: clean
 clean:
 	$(MAKE) -C $(ASSETS)/makefiles -f buildbox.mk clean
-	rm -rf $(BUILDDIR)
+	rm -rf $(BUILDDIR)/planet
 
 # internal use:
 .PHONY: make-docker-image
@@ -221,3 +221,6 @@ fix-logrus:
 .PHONY: get-version
 get-version:
 	@echo $(PLANET_BUILD_TAG)
+
+$(OUTPUTDIR):
+	mkdir -p $@

@@ -119,16 +119,17 @@ func etcdInit() error {
 	return nil
 }
 
-func etcdBackup(backupFile string) error {
+func etcdBackup(backupFile string) (err error) {
 	ctx, cancel := context.WithTimeout(context.Background(), EtcdUpgradeTimeout)
 	defer cancel()
 
-	// If a backup from a previous upgrade exists, clean it up
-	if _, err := os.Stat(backupFile); err == nil {
-		err = os.Remove(backupFile)
+	writer := os.Stdout
+	if backupFile != "" {
+		writer, err = os.Create(backupFile)
 		if err != nil {
 			return trace.Wrap(err)
 		}
+		defer writer.Close()
 	}
 
 	backupConf := backup.BackupConfig{
@@ -139,12 +140,13 @@ func etcdBackup(backupFile string) error {
 			CAFile:    DefaultEtcdctlCAFile,
 		},
 		Prefix: []string{"/"}, // Backup all etcd data
-		File:   backupFile,
+		Writer: writer,
+		Log:    log.StandardLogger(),
 	}
 	log.Info("BackupConfig: ", spew.Sdump(backupConf))
 	backupConf.Log = log.StandardLogger()
 
-	err := backup.Backup(ctx, backupConf)
+	err = backup.Backup(ctx, backupConf)
 	if err != nil {
 		return trace.Wrap(err)
 	}

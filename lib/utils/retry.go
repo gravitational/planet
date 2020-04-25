@@ -55,10 +55,10 @@ func RetryWithInterval(ctx context.Context, interval backoff.BackOff, fn func() 
 		err = fn()
 		return err
 	}, b, func(err error, d time.Duration) {
-		log.Debugf("Retrying: %v (time %v).", trace.UserMessage(err), d)
+		log.WithField("err", trace.UserMessage(err)).WithField("in", d).Info("Retry.")
 	})
 	if err != nil {
-		log.Errorf("All attempts failed: %v.", trace.DebugReport(err))
+		log.WithError(err).Error("All attempts failed.")
 		return trace.Wrap(err)
 	}
 	return nil

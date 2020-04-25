@@ -89,5 +89,5 @@ type KeyValue struct {
 	Lease int64 `protobuf:"varint,6,opt,name=lease,proto3" json:"lease,omitempty"`
 	// TTL (not from etcd datastructure)
 	// This is the TTL of the key, which we look up during the backup, because etcd3 stores these separatly from the key
-	TTL int64 `json:ttl,omitempty`
+	TTL int64 `json:"ttl,omitempty"`
 }

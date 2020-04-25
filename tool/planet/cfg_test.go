@@ -33,7 +33,7 @@ func (r *CommandFlagSuite) TestExtractsAddr(c *check.C) {
 
 	// exercise
 	var result kv.KeyVal
-	result.Set(input)
+	c.Assert(result.Set(input), check.IsNil)
 	addrs := toAddrList(result)
 	sort.Strings(addrs)
 
@@ -49,7 +49,7 @@ func (r *CommandFlagSuite) TestConvertsToEtcdPeer(c *check.C) {
 
 	// exercise
 	var result kv.KeyVal
-	result.Set(input)
+	c.Assert(result.Set(input), check.IsNil)
 	addrs := toEtcdPeerList(result)
 
 	// validate
@@ -83,4 +83,3 @@ func (r *oneOfChecker) Check(params []interface{}, names []string) (result bool,
 	}
 	return true, ""
 }
-
