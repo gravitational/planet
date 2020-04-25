@@ -27,10 +27,6 @@ ignored = ["github.com/Sirupsen/logrus", "github.com/gravitational/planet/build/
   unused-packages = true
 
 [[override]]
-  name = "github.com/coreos/go-systemd"
-  version = "v16"
-
-[[override]]
   name = "bitbucket.org/ww/goautoneg"
   # Bitbucket doesn't support git protocol, which causes dep to timeout trying to connect
   # force to https url instead
@@ -62,21 +58,28 @@ ignored = ["github.com/Sirupsen/logrus", "github.com/gravitational/planet/build/
   name = "github.com/cenkalti/backoff"
   version = "2.0.0"
 
-[[constraint]]
-  name = "github.com/coreos/etcd"
-  version = "3.3.3"
+[[override]]
+  name = "go.etcd.io/etcd"
+  source = "github.com/coreos/etcd"
+  version = "=v3.3.12"
+
+[[override]]
+  name = "github.com/gravitational/etcd-backup"
+  #version = "=v0.0.3"
+  branch = "version/6.1.x"
 
 [[constraint]]
   name = "github.com/docker/docker"
   version = "=1.9.1"
 
 [[constraint]]
-  branch = "master"
   name = "github.com/gravitational/configure"
+  branch = "dmitri/kingpin-bool-flag"
 
 [[constraint]]
-  branch = "master"
   name = "github.com/gravitational/coordinate"
+  #version = "=2.0.1"
+  branch = "dmitri/6.1.x/voter-api"
 
 [[constraint]]
   branch = "master"
@@ -156,6 +159,14 @@ ignored = ["github.com/Sirupsen/logrus", "github.com/gravitational/planet/build/
 [[constraint]]
   name = "gopkg.in/yaml.v2"
   version = "v2.2.2"
+
+[[constraint]]
+  name = "github.com/godbus/dbus"
+  version = "=v5"
+
+[[override]]
+  name = "github.com/coreos/go-systemd"
+  version = "=v21"
 
 [[override]]
   name = "github.com/opencontainers/runtime-spec"

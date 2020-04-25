@@ -19,6 +19,7 @@ package etcd
 import (
 	"context"
 	"encoding/json"
+	"io"
 	"os"
 
 	etcdv2 "github.com/coreos/etcd/client"
@@ -32,13 +33,16 @@ import (
 type BackupConfig struct {
 	EtcdConfig etcdconf.Config
 	Prefix     []string
-	File       string
+	Writer     io.Writer
 	Log        log.FieldLogger
 }
 
 func (b *BackupConfig) CheckAndSetDefaults() error {
 	if b.Prefix == nil {
 		b.Prefix = []string{"/"}
+	}
+	if b.Writer == nil {
+		b.Writer = os.Stdout
 	}
 	return nil
 }
@@ -58,13 +62,7 @@ func Backup(ctx context.Context, conf BackupConfig) error {
 		defer clientv3.Close()
 	}
 
-	file, err := os.OpenFile(conf.File, os.O_WRONLY|os.O_CREATE, 0666)
-	if err != nil {
-		return trace.Wrap(err)
-	}
-	defer file.Close()
-
-	enc := json.NewEncoder(file)
+	enc := json.NewEncoder(conf.Writer)
 	enc.Encode(&backupVersion{Version: FileVersion})
 
 	for _, prefix := range conf.Prefix {

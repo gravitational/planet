@@ -47,6 +47,15 @@ const (
 	// SharedDirMask is a mask for shared directories
 	SharedDirMask = 0755
 
+	// SharedFileMask is file mask for shared file
+	SharedFileMask = 0644
+
+	// GroupReadWriteMask is a file mask for owder/group read/write
+	GroupReadWriteMask = 0660
+
+	// DeviceReadWritePerms specifies the read/write permissions for a device
+	DeviceReadWritePerms = "rwm"
+
 	// SystemdUnitPath specifies the path for user systemd units
 	SystemdUnitPath = "/etc/systemd/system"
 
@@ -71,6 +80,14 @@ const (
 
 	// KubeletConfigFile specifies the file path for kubelet configuration
 	KubeletConfigFile = "/etc/kubernetes/kubelet.yaml"
+
+	// CoreDNSHosts is the location of a hosts file to be served by CoreDNS
+	CoreDNSHosts = "/etc/coredns/coredns.hosts"
+
+	// LegacyAPIServerDNSName is the domain name of a current leader server
+	// as used to be in previous versions.
+	// This is kept for backwards-compatibility
+	LegacyAPIServerDNSName = "apiserver"
 )
 
 var (
