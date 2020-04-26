@@ -23,8 +23,8 @@ import (
 	"time"
 
 	"github.com/cenkalti/backoff"
-	"github.com/gravitational/trace"
 	"github.com/coreos/etcd/client"
+	"github.com/gravitational/trace"
 	"github.com/jonboulle/clockwork"
 	"github.com/sirupsen/logrus"
 )
@@ -108,12 +108,17 @@ func (l *Client) AddWatch(key string, valuesC chan string) {
 	logger := log.WithField("key", key)
 	logger.WithField("peers", l.Client.Endpoints()).Info("Setting up watch.")
 
+	select {
+	case <-l.closeC:
+		return
+	default:
+	}
+
 	ctx, cancel := context.WithCancel(context.Background())
 	go func() {
 		<-l.closeC
 		cancel()
 	}()
-
 	l.wg.Add(1)
 	go l.watchLoop(ctx, key, valuesC, logger)
 }
@@ -204,7 +209,7 @@ func (l *Client) watchLoop(ctx context.Context, key string, valuesC chan string,
 					logger.Info("Watch has expired, resetting watch index.")
 					watcher = nil
 				} else if err := asClusterError(err); err != nil {
-					logger.Warnf("Cluster error: %v.")
+					logger.Warnf("Cluster error: %v.", err)
 				} else {
 					l.boff.inc()
 					if l.boff.count() > maxFailedSteps {
