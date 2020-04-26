@@ -354,14 +354,14 @@
 
 [[projects]]
   branch = "dmitri/6.1.x/voter-api"
-  digest = "1:0c4f93e288a1e38eab45ea1751760d120815aec57f7168c3b6032c56c47c205e"
+  digest = "1:fb3aec1ec4f7dc9436e540492c5e66df1132676de550692fe42ea20b42ee6b6d"
   name = "github.com/gravitational/coordinate"
   packages = [
     "config",
     "leader",
   ]
   pruneopts = "UT"
-  revision = "5cc0b7cbd43fd3c8dbcd3a2d0eef4bb019dc41f4"
+  revision = "ad131de760d43e50edceef565cb2b9fde12a92c0"
 
 [[projects]]
   branch = "version/6.1.x"
@@ -877,15 +877,6 @@
   packages = ["."]
   pruneopts = "UT"
   revision = "13995c7128ccc8e51e9a6bd2b551020a27180abd"
-
-[[projects]]
-  digest = "1:968f9ee97c521616063a582e791c27124bef68b8135a38fae96bc01f300631e4"
-  name = "go.etcd.io/etcd"
-  packages = ["client"]
-  pruneopts = "UT"
-  revision = "d57e8b8d97adfc4a6c224fe116714bf1a1f3beb9"
-  source = "github.com/coreos/etcd"
-  version = "v3.3.12"
 
 [[projects]]
   branch = "master"

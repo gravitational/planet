@@ -19,8 +19,8 @@ package leader
 import (
 	"context"
 
+	"github.com/coreos/etcd/client"
 	"github.com/gravitational/trace"
-	"go.etcd.io/etcd/client"
 )
 
 // IsNotFound determines if the specified error identifies a node not found event
