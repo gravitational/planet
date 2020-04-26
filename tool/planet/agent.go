@@ -177,7 +177,7 @@ func updateLeaderTrigger(ctx context.Context, agent agent.Agent, reconciler *rec
 		plan := state.withLeaderAddr(newLeaderAddr)
 		reconciler.Reset(ctx, plan)
 		if newLeaderAddr != plan.localAddr {
-			recordNewLeaderElectedEvent(agent, prevValue, newLeaderAddr)
+			recordNewLeaderElectedEvent(ctx, agent, prevValue, newLeaderAddr)
 		}
 	}
 }
@@ -193,11 +193,11 @@ func updateElectionParticipationTrigger(ctx context.Context, reconciler *reconci
 	}
 }
 
-func recordNewLeaderElectedEvent(agent agent.Agent, prevValue, newLeaderAddr string) {
+func recordNewLeaderElectedEvent(ctx context.Context, agent agent.Agent, prevValue, newLeaderAddr string) {
 	// recordEventTimeout specifies the max timeout to record an event
 	const recordEventTimeout = 10 * time.Second
 
-	ctx, cancel := context.WithTimeout(context.Background(), recordEventTimeout)
+	ctx, cancel := context.WithTimeout(ctx, recordEventTimeout)
 	defer cancel()
 
 	agent.RecordLocalEvents(ctx, []*pb.TimelineEvent{
@@ -211,6 +211,10 @@ func runAgent(conf *agent.Config, monitoringConf *monitoring.Config, leaderConf 
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 
+	err := monitoringConf.Check()
+	if err != nil {
+		return trace.Wrap(err)
+	}
 	if conf.Tags == nil {
 		conf.Tags = make(map[string]string)
 	}
