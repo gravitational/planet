@@ -928,7 +928,7 @@
   version = "v1.3.3"
 
 [[projects]]
-  digest = "1:fa7ce8fc37d6376cb41865ecc2f8ecb877a5043fad7b10afcf7c56edea8c35d4"
+  digest = "1:92c278e11377c17aae9a3988c5e603e782c3339b6434e28c18c6ac82189f2b3b"
   name = "go.etcd.io/etcd"
   packages = [
     "auth/authpb",
@@ -964,8 +964,8 @@
     "version",
   ]
   pruneopts = "UT"
-  revision = "c65a9e2dd1fd500ca4191b1f22ddfe5e019b3ca1"
-  version = "v3.4.4"
+  revision = "e694b7bb087538c146e188a29753967d189d202b"
+  version = "v3.4.7"
 
 [[projects]]
   digest = "1:19525e48b45af69339bd7c2812137dbd1e650a78fc09c7c75482e307d51aa28d"
