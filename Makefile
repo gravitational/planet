@@ -59,13 +59,15 @@ PLANET_GID ?= 980665
 # v3.3.11 - 5.5.x,
 # v3.3.12 - 6.3.x, 6.1.x, 5.5.x
 # v3.3.15 - 6.3.x
+# v3.3.20 - 6.3.x, 6.1.x, 5.5.x
 # v3.4.3  - 7.0.x
-ETCD_VER := v3.3.12 v3.3.15 v3.4.3
+# v3.4.7  - 7.0.x
+ETCD_VER := v3.3.12 v3.3.15 v3.4.3 v3.4.7
 # This is the version of etcd we should upgrade to (from the version list)
 # Note: When bumping the ETCD_LATEST_VERSION, please ensure that:
 #   - The version of etcd vendored as a library is the same (Gopkg.toml)
 #   - Modify build.go and run the etcd upgrade integration test (go run mage.go ci:testEtcdUpgrade)
-ETCD_LATEST_VER := v3.4.3
+ETCD_LATEST_VER := v3.4.7
 
 BUILDBOX_GO_VER ?= 1.12.9
 PLANET_BUILD_TAG ?= $(shell git describe --tags)
