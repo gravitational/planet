@@ -354,14 +354,14 @@
 
 [[projects]]
   branch = "dmitri/6.1.x/voter-api"
-  digest = "1:1b24eda75910a1b35197c4f8b4c85c3cf12287badee2b095ad3d06e6ca551e9f"
+  digest = "1:fb3aec1ec4f7dc9436e540492c5e66df1132676de550692fe42ea20b42ee6b6d"
   name = "github.com/gravitational/coordinate"
   packages = [
     "config",
     "leader",
   ]
   pruneopts = "UT"
-  revision = "d0b6cb21324833eeba1a7fe383d0aa38fa131ac3"
+  revision = "ad131de760d43e50edceef565cb2b9fde12a92c0"
 
 [[projects]]
   branch = "version/6.1.x"
@@ -388,7 +388,6 @@
   version = "v1.0.0"
 
 [[projects]]
-  branch = "dmitri/6.1.x/depfile"
   digest = "1:164c7bd87f7353e872b3fc40728c80b553099f9ce8ae8058c56ee7ca71777f6d"
   name = "github.com/gravitational/satellite"
   packages = [
@@ -409,7 +408,7 @@
     "utils",
   ]
   pruneopts = "UT"
-  revision = "2b7d8010777561648632f5b2b8865275a620dea3"
+  revision = "fc2ac640fb6b26cb54a5892c203f934cf624cf46"
 
 [[projects]]
   digest = "1:dc84545f9f2a442b14864f2f7e54ae556cae53bd437a05a456572fea9e73cc87"
@@ -537,7 +536,6 @@
   version = "v1.2.0"
 
 [[projects]]
-  branch = "master"
   digest = "1:35f49695a600c368ad7811a672d583b3e004b44fe883a0a1eb2a6c0d75eaeb1b"
   name = "github.com/jonboulle/clockwork"
   packages = ["."]

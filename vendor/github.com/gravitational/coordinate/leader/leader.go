@@ -42,8 +42,11 @@ type Client struct {
 	// voterC controls the voting participation
 	voterC chan bool
 	once   sync.Once
-	boff   *countedBackoff
 	wg     sync.WaitGroup
+
+	// updateLeaseC receives lease updates.
+	// Used in tests
+	updateLeaseC chan *client.Response
 }
 
 // NewClient returns a new instance of leader election client
@@ -56,7 +59,6 @@ func NewClient(cfg Config) (*Client, error) {
 		closeC: make(chan struct{}),
 		pauseC: make(chan bool),
 		voterC: make(chan bool),
-		boff:   newBackoff(),
 	}, nil
 }
 
@@ -86,13 +88,14 @@ type CallbackFn func(key, prevValue, newValue string)
 // previous values for the key. In the first call, both values are the same
 // and reflect the value of the key at that moment
 func (l *Client) AddWatchCallback(key string, fn CallbackFn) {
+	ctx, cancel := context.WithCancel(context.Background())
+	valuesC := make(chan string)
 	go func() {
-		valuesC := make(chan string)
-		l.AddWatch(key, valuesC)
 		var prev string
 		for {
 			select {
 			case <-l.closeC:
+				cancel()
 				return
 			case val := <-valuesC:
 				fn(key, prev, val)
@@ -100,26 +103,26 @@ func (l *Client) AddWatchCallback(key string, fn CallbackFn) {
 			}
 		}
 	}()
+	l.wg.Add(1)
+	l.addWatch(ctx, key, valuesC)
 }
 
 // AddWatch starts watching the key for changes and sending them
 // to the valuesC until the client is stopped.
 func (l *Client) AddWatch(key string, valuesC chan string) {
-	logger := log.WithField("key", key)
-	logger.WithField("peers", l.Client.Endpoints()).Info("Setting up watch.")
-
-	select {
-	case <-l.closeC:
-		return
-	default:
-	}
-
 	ctx, cancel := context.WithCancel(context.Background())
 	go func() {
 		<-l.closeC
 		cancel()
 	}()
 	l.wg.Add(1)
+	l.addWatch(ctx, key, valuesC)
+}
+
+func (l *Client) addWatch(ctx context.Context, key string, valuesC chan string) {
+	logger := log.WithField("key", key)
+	logger.WithField("peers", l.Client.Endpoints()).Info("Setting up watch.")
+
 	go l.watchLoop(ctx, key, valuesC, logger)
 }
 
@@ -182,6 +185,7 @@ func (l *Client) startVoterLoop(key, value string, term time.Duration, enabled b
 
 func (l *Client) watchLoop(ctx context.Context, key string, valuesC chan string, logger logrus.FieldLogger) {
 	defer l.wg.Done()
+	boff := newBackoff()
 	// maxFailedSteps sets the limit on the number of failed attempts before the watch
 	// is forcibly reset
 	const maxFailedSteps = 10
@@ -192,12 +196,12 @@ func (l *Client) watchLoop(ctx context.Context, key string, valuesC chan string,
 	var err error
 	for {
 		select {
-		case <-time.After(l.boff.NextBackOff()):
+		case <-time.After(boff.NextBackOff()):
 		case <-l.closeC:
 			return
 		}
 		if watcher == nil {
-			watcher, err = l.getWatchAtLatestIndex(ctx, api, key, valuesC)
+			watcher, err = l.getWatchAtLatestIndex(ctx, api, key, valuesC, logger)
 			log.WithError(err).Info("Create watcher at latest index.")
 			if err != nil {
 				if IsContextError(err) {
@@ -211,11 +215,11 @@ func (l *Client) watchLoop(ctx context.Context, key string, valuesC chan string,
 				} else if err := asClusterError(err); err != nil {
 					logger.Warnf("Cluster error: %v.", err)
 				} else {
-					l.boff.inc()
-					if l.boff.count() > maxFailedSteps {
+					boff.inc()
+					if boff.count() > maxFailedSteps {
 						log.Info("Reset watcher at latest index.")
 						watcher = nil
-						l.boff.Reset()
+						boff.Reset()
 					}
 				}
 				logger.WithError(err).Warn("Failed to create watch at latest index.")
@@ -233,7 +237,7 @@ func (l *Client) watchLoop(ctx context.Context, key string, valuesC chan string,
 				watcher = nil
 				break
 			}
-			l.boff.Reset()
+			boff.Reset()
 			select {
 			case valuesC <- resp.Node.Value:
 			case <-l.closeC:
@@ -310,8 +314,8 @@ func (l *Client) voterLoop(ctx context.Context, key, value string, term time.Dur
 	}
 }
 
-func (l *Client) getWatchAtLatestIndex(ctx context.Context, api client.KeysAPI, key string, valuesC chan string) (client.Watcher, error) {
-	logger := log.WithField("key", key)
+func (l *Client) getWatchAtLatestIndex(ctx context.Context, api client.KeysAPI, key string, valuesC chan string, logger logrus.FieldLogger) (client.Watcher, error) {
+	logger = logger.WithField("key", key)
 	logger.Info("Recreating watch at the latest index.")
 	resp, err := api.Get(ctx, key, nil)
 	if err != nil {
@@ -350,13 +354,14 @@ func (l *Client) elect(ctx context.Context, key, value string, term time.Duratio
 			return trace.Wrap(err)
 		}
 		// try to grab the lock for the given term
-		_, err := api.Set(ctx, key, value, &client.SetOptions{
+		node, err := api.Set(ctx, key, value, &client.SetOptions{
 			TTL:       term,
 			PrevExist: client.PrevNoExist,
 		})
 		if err != nil {
 			return trace.Wrap(err)
 		}
+		l.updateLease(node)
 		logger.Info("Acquired lease.")
 		return nil
 	}
@@ -366,9 +371,8 @@ func (l *Client) elect(ctx context.Context, key, value string, term time.Duratio
 	if resp.Node.Expiration.Sub(l.clock.Now().UTC()) > time.Duration(term/2) {
 		return nil
 	}
-
 	// extend the lease before the current expries
-	_, err = api.Set(ctx, key, value, &client.SetOptions{
+	node, err := api.Set(ctx, key, value, &client.SetOptions{
 		TTL:       term,
 		PrevValue: value,
 		PrevIndex: resp.Node.ModifiedIndex,
@@ -376,8 +380,17 @@ func (l *Client) elect(ctx context.Context, key, value string, term time.Duratio
 	if err != nil {
 		return trace.Wrap(err)
 	}
+	l.updateLease(node)
 	logger.Debug("Extended lease.")
 	return nil
+}
+
+func (l *Client) updateLease(node *client.Response) {
+	select {
+	case l.updateLeaseC <- node:
+	case <-l.closeC:
+	default:
+	}
 }
 
 func newBackoff() *countedBackoff {
