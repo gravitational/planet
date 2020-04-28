@@ -157,7 +157,7 @@ enter:
 .PHONY: os
 os:
 	@echo -e "\n---> Making Planet/OS (Debian) Docker image...\n"
-	$(MAKE) -e BUILDIMAGE=$(PLANET_OS_IMAGE) DOCKERFILE=os.dockerfile make-docker-image
+	$(MAKE) -e BUILDIMAGE=$(PLANET_OS_IMAGE) DOCKERFILE=os.dockerfile EXTRA_ARGS="--pull" make-docker-image
 
 # Build the image with components required for running a Kubernetes node
 .PHONY: base
