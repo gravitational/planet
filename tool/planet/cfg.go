@@ -133,6 +133,9 @@ type Config struct {
 	KubeletConfig string
 	// CloudConfig specifies the cloud configuration as JSON-encoded payload
 	CloudConfig string
+	// SerfKey specifies the encryption key for serf.
+	// Assumsed to be base64-encoded 16, 24 or 32-byte key
+	SerfKey string
 }
 
 // DNS describes DNS server configuration

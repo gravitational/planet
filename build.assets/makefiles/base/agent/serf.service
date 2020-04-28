@@ -10,6 +10,7 @@ StartLimitBurst=720
 
 EnvironmentFile=/etc/container-environment
 ExecStart=/usr/bin/serf agent \
+	-encrypt=${PLANET_SERF_KEY} \
 	-bind=${PLANET_PUBLIC_IP}:7496 \
 	-node=${PLANET_AGENT_NAME} \
 	-snapshot=/ext/state/serf-snapshot \

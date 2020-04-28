@@ -460,6 +460,14 @@
                 "cli": {
                     "name": "feature-gates"
                 }
+            },
+            {
+                "type": "String",
+                "name": "serf-key",
+                "env": "PLANET_SERF_KEY",
+                "cli": {
+                    "name": "serf-key"
+                }
             }
         ]
     }
