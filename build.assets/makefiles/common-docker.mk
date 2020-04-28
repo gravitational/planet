@@ -22,12 +22,15 @@ all: common-docker.mk $(ASSETDIR)/planet $(ASSETDIR)/docker-import
 $(ASSETDIR)/planet: flags
 # Add to ldflags to compile a completely static version of the planet binary (w/o the glibc dependency)
 # -ldflags '-extldflags "-static"'
+	cd $(PLANET_PKG_PATH) && \
 	CGO_LDFLAGS_ALLOW=".*" \
-	GOOS=linux GOARCH=amd64 \
-		go build -ldflags $(PLANET_LINKFLAGS) $(PLANET_BUILDFLAGS) -o $@ github.com/gravitational/planet/tool/planet
+	GOOS=linux GOARCH=amd64 GO111MODULE=on \
+		go build -mod=vendor -ldflags $(PLANET_LINKFLAGS) $(PLANET_BUILDFLAGS) -o $@ github.com/gravitational/planet/tool/planet
 
 $(ASSETDIR)/docker-import:
-	GOOS=linux GOARCH=amd64 go build -ldflags "$(PLANET_GO_LDFLAGS)" -o $@ github.com/gravitational/planet/tool/docker-import
+	cd $(PLANET_PKG_PATH) && \
+	GOOS=linux GOARCH=amd64 GO111MODULE=on \
+	  go build -mod=vendor -ldflags "$(PLANET_GO_LDFLAGS)" -o $@ github.com/gravitational/planet/tool/docker-import
 
 .PHONY: flags
 flags:
