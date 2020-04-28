@@ -268,16 +268,7 @@ func addToMaster(node agent.Agent, config *Config, etcdConfig *monitoring.ETCDCo
 		node.AddChecker(monitoring.NewAWSHasProfileChecker())
 	}
 
-	nethealthChecker, err := monitoring.NewNethealthChecker(
-		monitoring.NethealthConfig{
-			AdvertiseIP: config.AdvertiseIP,
-			KubeConfig:  &kubeConfig,
-		},
-	)
-	if err != nil {
-		return trace.Wrap(err)
-	}
-	node.AddChecker(nethealthChecker)
+	// TODO: reenable nethealth checker once issues are fixed
 
 	return nil
 }
@@ -330,16 +321,7 @@ func addToNode(node agent.Agent, config *Config, etcdConfig *monitoring.ETCDConf
 		node.AddChecker(monitoring.NewAWSHasProfileChecker())
 	}
 
-	nethealthChecker, err := monitoring.NewNethealthChecker(
-		monitoring.NethealthConfig{
-			AdvertiseIP: config.AdvertiseIP,
-			KubeConfig:  &nodeConfig,
-		},
-	)
-	if err != nil {
-		return trace.Wrap(err)
-	}
-	node.AddChecker(nethealthChecker)
+	// TODO: reenable nethealth checker once issues are fixed
 
 	return nil
 }
