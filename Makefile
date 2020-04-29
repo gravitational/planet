@@ -34,6 +34,7 @@ BUILD_ASSETS := $(PWD)/build/assets
 BUILDDIR ?= $(PWD)/build
 BUILDDIR := $(shell realpath $(BUILDDIR))
 OUTPUTDIR := $(BUILDDIR)/planet
+DOCKER_BUILD_OPTS ?= "--pull"
 
 KUBE_VER ?= v1.13.12
 SECCOMP_VER ?= 2.3.1-2.1+deb9u1
@@ -157,7 +158,7 @@ enter:
 .PHONY: os
 os:
 	@echo -e "\n---> Making Planet/OS (Debian) Docker image...\n"
-	$(MAKE) -e BUILDIMAGE=$(PLANET_OS_IMAGE) DOCKERFILE=os.dockerfile EXTRA_ARGS="--pull" make-docker-image
+	$(MAKE) -e BUILDIMAGE=$(PLANET_OS_IMAGE) DOCKERFILE=os.dockerfile EXTRA_ARGS=$(DOCKER_BUILD_OPTS) make-docker-image 
 
 # Build the image with components required for running a Kubernetes node
 .PHONY: base
