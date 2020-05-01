@@ -1,7 +1,8 @@
 # This dockerfile bakes a base image Planet will use.
 # It is basically Debian with latest packages and properly configured locales
 #
-FROM debian:stretch-backports
+# debian:stretch-backports tagged 20200501
+FROM quay.io/gravitational/debian-mirror@sha256:4b6ec644c29e4964a6f74543a5bf8c12bed6dec3d479e039936e4a37a8af9116
 
 ENV DEBIAN_FRONTEND noninteractive
 
