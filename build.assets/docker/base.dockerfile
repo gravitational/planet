@@ -61,6 +61,8 @@ RUN curl https://download.docker.com/linux/static/stable/x86_64/docker-$DOCKER_V
 RUN curl https://storage.googleapis.com/kubernetes-helm/helm-$HELM_VER-linux-amd64.tar.gz -o /tmp/helm-$HELM_VER.tar.gz && \
     mkdir -p /tmp/helm && tar -xvzf /tmp/helm-$HELM_VER.tar.gz -C /tmp/helm && \
     cp /tmp/helm/linux-amd64/helm /usr/bin && \
+    # make symlink for helm for backward compatibility
+    ln -sf /usr/bin/helm /bin/helm && \
     rm -rf /tmp/helm*
 
 RUN curl -L https://github.com/coredns/coredns/releases/download/v${COREDNS_VER}/coredns_${COREDNS_VER}_linux_amd64.tgz -o /tmp/coredns-${COREDNS_VER}.tar.gz && \
