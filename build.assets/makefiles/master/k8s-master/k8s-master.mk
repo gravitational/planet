@@ -19,3 +19,6 @@ all: k8s-master.mk
 	install -m 0755 $(BINDIR)/kubectl $(ROOTFS)/usr/bin
 	install -m 0755 $(BINDIR)/kube-proxy $(ROOTFS)/usr/bin
 	install -m 0755 $(BINDIR)/kubelet $(ROOTFS)/usr/bin
+	
+	# make symlink for kubectl for backward compatibility
+	ln -sf /usr/bin/kubectl $(ROOTFS)/bin/kubectl
