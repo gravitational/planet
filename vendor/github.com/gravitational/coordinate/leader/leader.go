@@ -36,10 +36,19 @@ var log = logrus.WithField(trace.Component, "leader")
 // monitors the changes to the leaders
 type Client struct {
 	Config
+	// closeC is the channel that indicates whether the client
+	// should stop internal processes and exit
 	closeC chan struct{}
-	pauseC chan bool
 	closed uint32
-	// voterC controls the voting participation
+	// pauseC is the channel that control whether the client
+	// should resign as a leader.
+	// The handler will pause the client to make it resign and allow another peer to elect itself
+	pauseC chan bool
+	// voterC controls the voting participation.
+	// The channel is serviced in an internal process
+	// that either stops or restarts the election step when the client attempts to aquire
+	// a lease on the leader key.
+	// The send is not blocking
 	voterC chan bool
 	once   sync.Once
 	wg     sync.WaitGroup
@@ -198,31 +207,29 @@ func (l *Client) watchLoop(ctx context.Context, key string, valuesC chan string,
 		select {
 		case <-time.After(boff.NextBackOff()):
 		case <-l.closeC:
+			logger.Info("Watch loop closing.")
 			return
 		}
 		if watcher == nil {
 			watcher, err = l.getWatchAtLatestIndex(ctx, api, key, valuesC, logger)
-			log.WithError(err).Info("Create watcher at latest index.")
 			if err != nil {
 				if IsContextError(err) {
+					logger.Info("Context expired, watch loop closing.")
 					return
-				}
-				if IsWatchExpired(err) {
+				} else if IsWatchExpired(err) {
 					// The watcher has expired, reset it so it's recreated on the
 					// next loop cycle.
-					logger.Info("Watch has expired, resetting watch index.")
+					logger.Warn("Watch has expired, resetting watch index.")
 					watcher = nil
-				} else if err := asClusterError(err); err != nil {
-					logger.Warnf("Cluster error: %v.", err)
 				} else {
+					logger.WithError(err).Warn("Failed to create watch at latest index.")
 					boff.inc()
 					if boff.count() > maxFailedSteps {
-						log.Info("Reset watcher at latest index.")
+						logger.Info("Reset watcher at latest index.")
 						watcher = nil
 						boff.Reset()
 					}
 				}
-				logger.WithError(err).Warn("Failed to create watch at latest index.")
 				continue
 			}
 			// Successful return means the current value has already been sent to receiver
@@ -419,11 +426,4 @@ func (r *countedBackoff) count() int {
 type countedBackoff struct {
 	b     *backoff.ExponentialBackOff
 	steps int
-}
-
-func asClusterError(err error) error {
-	if err, ok := trace.Unwrap(err).(*client.ClusterError); ok {
-		return err
-	}
-	return nil
 }

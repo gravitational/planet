@@ -23,7 +23,7 @@ import (
 	"github.com/gravitational/trace"
 )
 
-// IsNotFound determines if the specified error identifies a node not found event
+// IsNotFound determines if the specified error identifies a not found error
 func IsNotFound(err error) bool {
 	clientErr, ok := trace.Unwrap(err).(client.Error)
 	if !ok {
@@ -45,7 +45,7 @@ func IsAlreadyExists(err error) bool {
 	return false
 }
 
-// IsWatchExpired determins if the specified error identifies an expired watch event
+// IsWatchExpired determines if the specified error identifies an expired watch event
 func IsWatchExpired(err error) bool {
 	if err, ok := trace.Unwrap(err).(client.Error); ok {
 		return err.Code == client.ErrorCodeEventIndexCleared
