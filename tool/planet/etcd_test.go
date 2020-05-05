@@ -26,7 +26,7 @@ import (
 )
 
 // Hook up gocheck into the "go test" runner.
-func TestEtcd(t *testing.T) { check.TestingT(t) }
+func Test(t *testing.T) { check.TestingT(t) }
 
 type EtcdSuite struct{}
 

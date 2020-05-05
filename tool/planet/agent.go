@@ -130,16 +130,8 @@ func startLeaderClient(ctx context.Context, conf *LeaderConfig, agent agent.Agen
 	if err != nil {
 		return nil, trace.Wrap(err)
 	}
-	plan := agentPlan{
-		leaderKey:      conf.LeaderKey,
-		localAddr:      conf.PublicIP,
-		electionTerm:   conf.Term,
-		electionPaused: !conf.ElectionEnabled,
-		mon:            mon,
-		client:         client,
-	}
+	plan := newAgentPlan(*conf, client, mon)
 	reconciler := reconcile.New(reconcile.Config{})
-
 	state := &agentState{
 		plan: plan,
 	}

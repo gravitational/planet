@@ -128,13 +128,15 @@ func (r *Reconciler) loop() {
 			wg.Wait()
 			ctx, cancel = context.WithCancel(context.Background())
 			wg.Add(1)
-			go r.executorLoop(ctx, plan, &wg)
+			go func() {
+				r.executorLoop(ctx, plan)
+				wg.Done()
+			}()
 		}
 	}
 }
 
-func (r *Reconciler) executorLoop(ctx context.Context, plan Plan, wg *sync.WaitGroup) {
-	defer wg.Done()
+func (r *Reconciler) executorLoop(ctx context.Context, plan Plan) {
 	timeout := r.config.Timeout
 	if r.executePlan(ctx, plan) == nil {
 		timeout = r.config.ResyncTimeout
@@ -157,6 +159,7 @@ func (r *Reconciler) executorLoop(ctx context.Context, plan Plan, wg *sync.WaitG
 			ticker.Stop()
 			ticker = r.config.clock.NewTicker(r.config.ResyncTimeout)
 			tickerC = ticker.Chan()
+
 		case <-ctx.Done():
 			return
 		}

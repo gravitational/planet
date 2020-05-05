@@ -1,3 +1,19 @@
+/*
+Copyright 2020 Gravitational, Inc.
+
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+
+    http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
+*/
+
 package main
 
 import (
@@ -18,13 +34,26 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
+func newAgentPlan(config LeaderConfig, client *leader.Client, mon *unitMonitor) agentPlan {
+	return agentPlan{
+		leaderKey:          config.LeaderKey,
+		localAddr:          config.PublicIP,
+		electionTerm:       config.Term,
+		electionPaused:     !config.ElectionEnabled,
+		mon:                mon,
+		client:             client,
+		verifyLeaderAddr:   verifyLeaderAddr,
+		verifyServiceState: verifyServiceState,
+	}
+}
+
 // Name returns the name of this plan.
 // Implements reconciler.Plan
 func (r *agentPlan) Name() string {
 	return "agent state reconciler"
 }
 
-// Creates a new plan for agent operation
+// Creates a new plan for agent operation.
 // Implements reconciler.Plan
 func (r *agentPlan) Create(ctx context.Context) (steps []reconcile.Step, err error) {
 	logger := logrus.WithField(trace.Component, r.Name())
@@ -38,27 +67,27 @@ func (r *agentPlan) Create(ctx context.Context) (steps []reconcile.Step, err err
 	if r.leaderAddr == "" {
 		return steps, nil
 	}
-	if err := verifyLeaderAddr(r.leaderAddr); err != nil {
+	if err := r.verifyLeaderAddr(r.leaderAddr); err != nil {
 		logger.WithError(err).Warn("Failed to check local leader DNS configuration, will update configuration.")
 		steps = append(steps, updateDNS{leaderAddr: r.leaderAddr})
 	}
-	state := activeStateActive
-	units := serviceUnits
-	if r.localAddr != r.leaderAddr {
-		state = activeStateInactive
-		units = controlServiceUnits
+	stateTarget := regularNodeUnitStateTarget
+	if r.localAddr == r.leaderAddr {
+		stateTarget = leaderNodeUnitStateTarget
 	}
-	invalid, err := verifyServiceState(r.mon, state, units, logger)
-	if err == nil {
+	unitsToStop, err1 := r.verifyServiceState(r.mon, stateTarget.stop.state, stateTarget.stop.units, logger)
+	unitsToStart, err2 := r.verifyServiceState(r.mon, stateTarget.start.state, stateTarget.start.units, logger)
+	if err1 == nil && err2 == nil {
 		return steps, nil
 	}
 	logger.WithError(err).Warn("Failed to verify service state, will reconcile.")
-	if r.localAddr == r.leaderAddr {
-		logger.Debug("Start service units.")
-		return append(steps, startUnits(r.mon, invalid...)...), nil
+	if len(unitsToStop) != 0 {
+		steps = append(steps, stopUnits(r.mon, unitsToStop...)...)
 	}
-	logger.Debug("Stop service units.")
-	return append(steps, stopUnits(r.mon, invalid...)...), nil
+	if len(unitsToStart) != 0 {
+		steps = append(steps, startUnits(r.mon, unitsToStart...)...)
+	}
+	return steps, nil
 }
 
 func (r *agentPlan) String() string {
@@ -75,8 +104,12 @@ type agentPlan struct {
 	leaderKey      string
 	localAddr      string
 	leaderAddr     string
-	client         *leader.Client
+	client         coordinateClient
 	mon            *unitMonitor
+
+	// for testing purposes
+	verifyLeaderAddr   func(addr string) error
+	verifyServiceState func(mon *unitMonitor, state serviceActiveState, units []string, logger logrus.FieldLogger) ([]string, error)
 }
 
 func (r *agentPlan) addVoter(ctx context.Context) {
@@ -332,20 +365,61 @@ func writeLocalLeader(leaderAddr string) error {
 		constants.CoreDNSHosts, []byte(contents), constants.SharedFileMask))
 }
 
+// nodeUnitStateTarget describes a state target for a set of service units
+// on a node
+type nodeUnitStateTarget struct {
+	stop  unitStateTarget
+	start unitStateTarget
+}
+
+// unitStateTarget describes a state target for a set of service units
+type unitStateTarget struct {
+	units []string
+	state serviceActiveState
+}
+
+type coordinateClient interface {
+	AddVoter(ctx context.Context, key, addr string, term time.Duration)
+	RemoveVoter(ctx context.Context, key, addr string, term time.Duration)
+}
+
 const corednsNumFields = 5
 
 var (
-	serviceUnits = append([]string{
-		"kube-kubelet.service",
-		"kube-proxy.service",
-		"docker.service",
-		"registry.service",
-		"coredns.service",
-	}, controlServiceUnits...)
+	regularNodeUnitStateTarget = nodeUnitStateTarget{
+		stop: unitStateTarget{
+			units: controlServiceUnits,
+			state: activeStateInactive,
+		},
+		start: unitStateTarget{
+			units: serviceUnits,
+			state: activeStateActive,
+		},
+	}
+
+	leaderNodeUnitStateTarget = nodeUnitStateTarget{
+		start: unitStateTarget{
+			units: allServiceUnits,
+			state: activeStateActive,
+		},
+		stop: unitStateTarget{
+			state: activeStateInactive,
+		},
+	}
+
+	allServiceUnits = append(serviceUnits, controlServiceUnits...)
 
 	controlServiceUnits = []string{
 		"kube-controller-manager.service",
 		"kube-scheduler.service",
 		"kube-apiserver.service",
+	}
+
+	serviceUnits = []string{
+		"kube-kubelet.service",
+		"kube-proxy.service",
+		"docker.service",
+		"registry.service",
+		"coredns.service",
 	}
 )
