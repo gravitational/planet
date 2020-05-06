@@ -198,13 +198,11 @@
   version = "v0.2.0"
 
 [[projects]]
-  digest = "1:e6cb20204387062b3150efcd0cb9b6e7802e871ec78250627d5b88892fa1aac2"
+  digest = "1:bfff4d89c7898c71335b98fc8f1fd2817bbf22cbb7f1a26220fed15c338845ac"
   name = "github.com/coreos/go-systemd"
   packages = [
     "dbus",
-    "internal/dlopen",
     "journal",
-    "util",
   ]
   pruneopts = "UT"
   revision = "d3cd4ed1dbcf5835feba465b180436db54f20228"
@@ -375,7 +373,7 @@
   revision = "fce91dea0d0df90e464aaa1b2ffd9acb8dd7b5c7"
 
 [[projects]]
-  branch = "dmitri/6.1.x/voter-api"
+  branch = "version/6.1.x"
   digest = "1:420e0eaaeea452c7472e3a89e436cd19419984571196d3a17c619da84a3f0190"
   name = "github.com/gravitational/coordinate"
   packages = [
@@ -383,7 +381,7 @@
     "leader",
   ]
   pruneopts = "UT"
-  revision = "5aeb2a52fbb0e6ee3611417e1a271fdf16462c56"
+  revision = "cb51803917cd44c07b2afea2f94620706e9e45e6"
 
 [[projects]]
   branch = "version/6.1.x"
