@@ -70,5 +70,8 @@ RUN curl -L https://github.com/coredns/coredns/releases/download/v${COREDNS_VER}
     cp /tmp/coredns/coredns /usr/bin && \
     rm -rf /tmp/coredns*
 
+# add symlink for bash for backward compatibility
+RUN ln -sf /bin/bash /usr/bin/bash
+
 RUN groupadd --system --non-unique --gid 1000 planet ;\
     useradd --system --non-unique --no-create-home -g 1000 -u 1000 planet
