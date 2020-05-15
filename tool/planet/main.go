@@ -150,6 +150,7 @@ func run() error {
 		cagentTerm             = cagent.Flag("term", "Leader lease duration").Default(DefaultLeaderTerm.String()).Duration()
 		cagentRPCAddrs         = List(cagent.Flag("rpc-addr", "Address to bind the RPC listener to.  Can be specified multiple times").Default("127.0.0.1:7575"))
 		cagentMetricsAddr      = cagent.Flag("metrics-addr", "Address to listen on for web interface and telemetry for Prometheus metrics").Default("127.0.0.1:7580").String()
+		cagentDebugAddr        = cagent.Flag("debug-addr", "Path to the agent debug server socket").Default(DefaultDebugAddr).String()
 		cagentKubeAddr         = cagent.Flag("kube-addr", "Address of the kubernetes API server.  Will default to apiserver-dns:8080").String()
 		cagentName             = cagent.Flag("name", "Agent name.  Must be the same as the name of the local serf node").OverrideDefaultFromEnvar(EnvAgentName).String()
 		cagentNodeName         = cagent.Flag("node-name", "Kubernetes node name").OverrideDefaultFromEnvar(EnvNodeName).String()
@@ -306,6 +307,7 @@ func run() error {
 			RPCAddrs:    *cagentRPCAddrs,
 			SerfConfig:  serf.Config{Addr: *cagentSerfRPCAddr},
 			MetricsAddr: *cagentMetricsAddr,
+			DebugAddr:   *cagentDebugAddr,
 			Cache:       cache,
 			CAFile:      *cagentEtcdCAFile,
 			CertFile:    *cagentEtcdCertFile,
