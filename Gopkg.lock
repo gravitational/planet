@@ -365,8 +365,8 @@
   version = "v1.0.0"
 
 [[projects]]
-  branch = "dmitri/5.5.x/1091-agent"
-  digest = "1:0ad219b2245a2b3252e53edeb69fdb0f8b053ebd639548de5b0913d7df4b0e5b"
+  branch = "dmitri/5.5.x/1091-agent-debugserver"
+  digest = "1:dab152ae2c85472f2233a5c5e869ec7d75445e76214d23f0e8aff8273fe9fe09"
   name = "github.com/gravitational/satellite"
   packages = [
     "agent",
@@ -387,7 +387,7 @@
     "utils",
   ]
   pruneopts = "UT"
-  revision = "468180a6a8f38374c6892832cbd992160c6e3422"
+  revision = "9fad7664eb5a19e5ba9c5f3ceb642c56b6cb752d"
 
 [[projects]]
   digest = "1:488b046f7e099afaa97b0596967f96c54a0c8f85bb02d155931982fed2275851"
@@ -1026,6 +1026,14 @@
   pruneopts = "UT"
   revision = "d2d2541c53f18d2a059457998ce2876cc8e67cbf"
   version = "v0.9.1"
+
+[[projects]]
+  branch = "v2"
+  digest = "1:5bb148b78468350091db2ffbb2370f35cc6dcd74d9378a31b1c7b86ff7528f08"
+  name = "gopkg.in/tomb.v2"
+  packages = ["."]
+  pruneopts = "UT"
+  revision = "d5d1b5820637886def9eef33e03a27a9f166942c"
 
 [[projects]]
   digest = "1:342378ac4dcb378a5448dd723f0784ae519383532f5e70ade24132c4c8693202"
