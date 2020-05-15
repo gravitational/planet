@@ -42,6 +42,7 @@ import (
 	"github.com/gravitational/trace"
 	"github.com/gravitational/trace/trail"
 	log "github.com/sirupsen/logrus"
+	"golang.org/x/sync/errgroup"
 )
 
 // LeaderConfig represents configuration for the master election task
@@ -262,10 +263,11 @@ func unitsCommand(command string) error {
 }
 
 // runAgent starts the master election / health check loops in background and
-// blocks until a signal has been received.
+// blocks until a signal has been received or an error occurs.
 func runAgent(conf *agent.Config, monitoringConf *monitoring.Config, leaderConf *LeaderConfig, peers []string) error {
-	ctx, cancelCtx := context.WithCancel(context.Background())
-	defer cancelCtx()
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+	g, ctx := errgroup.WithContext(ctx)
 
 	err := monitoringConf.CheckAndSetDefaults()
 	if err != nil {
@@ -279,7 +281,11 @@ func runAgent(conf *agent.Config, monitoringConf *monitoring.Config, leaderConf 
 	if err != nil {
 		return trace.Wrap(err)
 	}
-	defer monitoringAgent.Close()
+	defer func() {
+		if err != nil {
+			monitoringAgent.Close()
+		}
+	}()
 
 	err = monitoring.AddMetrics(monitoringAgent, monitoringConf)
 	if err != nil {
@@ -287,10 +293,6 @@ func runAgent(conf *agent.Config, monitoringConf *monitoring.Config, leaderConf 
 	}
 
 	err = monitoring.AddCheckers(monitoringAgent, monitoringConf)
-	if err != nil {
-		return trace.Wrap(err)
-	}
-	err = monitoringAgent.Start()
 	if err != nil {
 		return trace.Wrap(err)
 	}
@@ -327,21 +329,29 @@ func runAgent(conf *agent.Config, monitoringConf *monitoring.Config, leaderConf 
 		}
 	}
 
-	go runSystemdCgroupCleaner(ctx)
+	g.Go(monitoringAgent.Run)
+	g.Go(func() error {
+		runSystemdCgroupCleaner(ctx)
+		return nil
+	})
+	g.Go(func() error {
+		select {
+		case err := <-errorC:
+			return err
+		case <-ctx.Done():
+			return nil
+		}
+	})
+	g.Go(func() error {
+		watchSignals(cancel)
+		return nil
+	})
 
-	doneC := make(chan struct{})
-	go watchSignals(doneC)
-
-	select {
-	case <-doneC:
-	case err := <-errorC:
-		return trace.Wrap(err)
-	}
-
-	return nil
+	return trace.Wrap(g.Wait())
 }
 
-func watchSignals(doneC chan<- struct{}) {
+func watchSignals(cancel context.CancelFunc) {
+	defer cancel()
 	signalC := make(chan os.Signal, 1)
 	signal.Notify(signalC, os.Interrupt, syscall.SIGTERM, syscall.SIGUSR1)
 
@@ -354,7 +364,6 @@ func watchSignals(doneC chan<- struct{}) {
 		log.WithField("signal", sig).Debug("Received termination signal, will exit.")
 		break
 	}
-	close(doneC)
 }
 
 func leaderPause(publicIP, electionKey string, etcd *etcdconf.Config) error {
