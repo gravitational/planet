@@ -365,8 +365,8 @@
   version = "v1.0.0"
 
 [[projects]]
-  branch = "dmitri/5.5.x/1091-agent-debugserver"
-  digest = "1:dab152ae2c85472f2233a5c5e869ec7d75445e76214d23f0e8aff8273fe9fe09"
+  branch = "dmitri/5.5.x/1091-agent"
+  digest = "1:f2ad555e1fb963ab4bbb899b5a566e6e8e9383131890eb7ffe20b20863d648ed"
   name = "github.com/gravitational/satellite"
   packages = [
     "agent",
@@ -387,7 +387,7 @@
     "utils",
   ]
   pruneopts = "UT"
-  revision = "9fad7664eb5a19e5ba9c5f3ceb642c56b6cb752d"
+  revision = "551de87490ef1204d5ba7d0b12482cd28235134c"
 
 [[projects]]
   digest = "1:488b046f7e099afaa97b0596967f96c54a0c8f85bb02d155931982fed2275851"
@@ -902,6 +902,13 @@
   revision = "9dcd33a902f40452422c2367fefcb95b54f9f8f8"
 
 [[projects]]
+  digest = "1:b521f10a2d8fa85c04a8ef4e62f2d1e14d303599a55d64dabf9f5a02f84d35eb"
+  name = "golang.org/x/sync"
+  packages = ["errgroup"]
+  pruneopts = "UT"
+  revision = "43a5402ce75a95522677f77c619865d66b8c57ab"
+
+[[projects]]
   digest = "1:a8b6f3b4dc60e2fa266203e846ae58bde7fd2a737201080827375e21455b0d2e"
   name = "golang.org/x/sys"
   packages = [
@@ -1026,14 +1033,6 @@
   pruneopts = "UT"
   revision = "d2d2541c53f18d2a059457998ce2876cc8e67cbf"
   version = "v0.9.1"
-
-[[projects]]
-  branch = "v2"
-  digest = "1:5bb148b78468350091db2ffbb2370f35cc6dcd74d9378a31b1c7b86ff7528f08"
-  name = "gopkg.in/tomb.v2"
-  packages = ["."]
-  pruneopts = "UT"
-  revision = "d5d1b5820637886def9eef33e03a27a9f166942c"
 
 [[projects]]
   digest = "1:342378ac4dcb378a5448dd723f0784ae519383532f5e70ade24132c4c8693202"
@@ -1268,6 +1267,7 @@
     "github.com/sirupsen/logrus/hooks/syslog",
     "github.com/syndtr/gocapability/capability",
     "golang.org/x/net/websocket",
+    "golang.org/x/sync/errgroup",
     "gopkg.in/alecthomas/kingpin.v2",
     "gopkg.in/check.v1",
     "k8s.io/api/core/v1",
