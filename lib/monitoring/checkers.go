@@ -238,7 +238,13 @@ func addToMaster(node agent.Agent, config *Config, etcdConfig *monitoring.ETCDCo
 		node.AddChecker(monitoring.NewAWSHasProfileChecker())
 	}
 
-	// TODO: reenable nethealth checker once issues are fixed
+	nethealthChecker, err := monitoring.NewNethealthChecker(
+		monitoring.NethealthConfig{
+			NodeName:   config.NodeName,
+			KubeConfig: &kubeConfig,
+		},
+	)
+	node.AddChecker(nethealthChecker)
 
 	return nil
 }
@@ -287,7 +293,13 @@ func addToNode(node agent.Agent, config *Config, etcdConfig *monitoring.ETCDConf
 		node.AddChecker(monitoring.NewAWSHasProfileChecker())
 	}
 
-	// TODO: reenable nethealth checker once issues are fixed
+	nethealthChecker, err := monitoring.NewNethealthChecker(
+		monitoring.NethealthConfig{
+			NodeName:   config.NodeName,
+			KubeConfig: &nodeConfig,
+		},
+	)
+	node.AddChecker(nethealthChecker)
 
 	return nil
 }

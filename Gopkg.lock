@@ -364,7 +364,7 @@
   version = "v1.0.0"
 
 [[projects]]
-  digest = "1:164c7bd87f7353e872b3fc40728c80b553099f9ce8ae8058c56ee7ca71777f6d"
+  digest = "1:339cc440cc6a232a5e10dd89ea667217fef0028c5ecb522f0d15877309e8b3d9"
   name = "github.com/gravitational/satellite"
   packages = [
     "agent",
@@ -384,8 +384,8 @@
     "utils",
   ]
   pruneopts = "UT"
-  revision = "3af6e21e95042446bc3d00fa3e7027944e26afc1"
-  version = "6.1.7"
+  revision = "77ab3d8928cea7e3cae346b80327dcae58a9ebaf"
+  version = "6.1.8"
 
 [[projects]]
   digest = "1:dc84545f9f2a442b14864f2f7e54ae556cae53bd437a05a456572fea9e73cc87"
@@ -513,7 +513,6 @@
   version = "v1.2.0"
 
 [[projects]]
-  branch = "master"
   digest = "1:35f49695a600c368ad7811a672d583b3e004b44fe883a0a1eb2a6c0d75eaeb1b"
   name = "github.com/jonboulle/clockwork"
   packages = ["."]
