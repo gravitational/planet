@@ -39,6 +39,7 @@ import (
 	pb "github.com/gravitational/satellite/agent/proto/agentpb"
 	debugpb "github.com/gravitational/satellite/agent/proto/debug"
 	"github.com/gravitational/satellite/lib/rpc/client"
+	agentutils "github.com/gravitational/satellite/utils"
 	"github.com/gravitational/trace"
 	"github.com/gravitational/trace/trail"
 	log "github.com/sirupsen/logrus"
@@ -339,7 +340,7 @@ func runAgent(conf *agent.Config, monitoringConf *monitoring.Config, leaderConf 
 		case err := <-errorC:
 			return err
 		case <-ctx.Done():
-			return nil
+			return monitoringAgent.Close()
 		}
 	})
 	g.Go(func() error {
@@ -356,13 +357,12 @@ func watchSignals(cancel context.CancelFunc) {
 	signal.Notify(signalC, os.Interrupt, syscall.SIGTERM, syscall.SIGUSR1)
 
 	for sig := range signalC {
-		if sig == syscall.SIGUSR1 {
-			debug = !debug
-			switchLoggingToDebug(debug)
-			continue
+		if sig != syscall.SIGUSR1 {
+			log.WithField("signal", sig).Info("Received termination signal, will exit.")
+			return
 		}
-		log.WithField("signal", sig).Debug("Received termination signal, will exit.")
-		break
+		debug = !debug
+		switchLoggingToDebug(debug)
 	}
 }
 
@@ -443,7 +443,7 @@ func status(c statusConfig) (ok bool, err error) {
 	if c.local {
 		status, err := client.LocalStatus(ctx)
 		if err != nil {
-			if agent.IsUnavailableError(err) {
+			if agentutils.IsUnavailableError(err) {
 				return false, newAgentUnavailableError()
 			}
 			return false, trace.Wrap(err)
@@ -453,7 +453,7 @@ func status(c statusConfig) (ok bool, err error) {
 	} else {
 		status, err := client.Status(ctx)
 		if err != nil {
-			if agent.IsUnavailableError(err) {
+			if agentutils.IsUnavailableError(err) {
 				return false, newAgentUnavailableError()
 			}
 			return false, trace.Wrap(err)

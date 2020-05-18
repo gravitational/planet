@@ -366,7 +366,7 @@
 
 [[projects]]
   branch = "dmitri/5.5.x/1091-agent"
-  digest = "1:f2ad555e1fb963ab4bbb899b5a566e6e8e9383131890eb7ffe20b20863d648ed"
+  digest = "1:f003ba9dc0d677c8832cbd7d34fb24694bfab71348212d048884a140c6d09f39"
   name = "github.com/gravitational/satellite"
   packages = [
     "agent",
@@ -376,6 +376,7 @@
     "agent/proto/agentpb",
     "agent/proto/debug",
     "cmd",
+    "lib/ctxgroup",
     "lib/history",
     "lib/history/sqlite",
     "lib/kubernetes",
@@ -387,7 +388,7 @@
     "utils",
   ]
   pruneopts = "UT"
-  revision = "551de87490ef1204d5ba7d0b12482cd28235134c"
+  revision = "36fc4d6470e582eea534e02795a98aa4c385a2ab"
 
 [[projects]]
   digest = "1:488b046f7e099afaa97b0596967f96c54a0c8f85bb02d155931982fed2275851"
@@ -1247,6 +1248,7 @@
     "github.com/gravitational/satellite/lib/rpc/client",
     "github.com/gravitational/satellite/monitoring",
     "github.com/gravitational/satellite/monitoring/collector",
+    "github.com/gravitational/satellite/utils",
     "github.com/gravitational/trace",
     "github.com/gravitational/trace/trail",
     "github.com/gravitational/version",

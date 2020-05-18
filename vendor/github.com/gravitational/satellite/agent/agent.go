@@ -20,7 +20,6 @@ import (
 	"context"
 	"fmt"
 	"net"
-	"net/http"
 	"os"
 	"path"
 	"runtime/debug"
@@ -30,18 +29,18 @@ import (
 	"github.com/gravitational/satellite/agent/cache"
 	"github.com/gravitational/satellite/agent/health"
 	pb "github.com/gravitational/satellite/agent/proto/agentpb"
+	"github.com/gravitational/satellite/lib/ctxgroup"
 	"github.com/gravitational/satellite/lib/history"
 	"github.com/gravitational/satellite/lib/history/sqlite"
 	"github.com/gravitational/satellite/lib/membership"
 	"github.com/gravitational/satellite/lib/rpc/client"
+	"github.com/gravitational/satellite/utils"
 
 	"github.com/gravitational/trace"
 	"github.com/gravitational/ttlmap"
 	serf "github.com/hashicorp/serf/client"
 	"github.com/jonboulle/clockwork"
-	"github.com/prometheus/client_golang/prometheus/promhttp"
 	log "github.com/sirupsen/logrus"
-	"golang.org/x/sync/errgroup"
 )
 
 // Config defines satellite configuration.
@@ -79,8 +78,8 @@ type Config struct {
 	// MetricsAddr specifies the address to listen on for web interface and telemetry for Prometheus metrics.
 	MetricsAddr string
 
-	// DebugAddr specifies the location of the unix domain socket for debug endpoint
-	DebugAddr string
+	// DebugSocketPath specifies the location of the unix domain socket for debug endpoint
+	DebugSocketPath string
 
 	// Peers lists the nodes that are part of the initial serf cluster configuration.
 	// This is not a final cluster configuration and new nodes or node updates
@@ -179,10 +178,8 @@ type agent struct {
 	// cancel is used to cancel the internal processes
 	// running as part of g
 	cancel context.CancelFunc
-	// ctx manages the lifetime of the agent's internal processes
-	ctx context.Context
 	// g manages the internal agent's processes
-	g *errgroup.Group
+	g ctxgroup.Group
 }
 
 // New creates an instance of an agent based on configuration options given in config.
@@ -202,11 +199,11 @@ func New(config *Config) (*agent, error) {
 	}
 
 	var debugListener net.Listener
-	if config.DebugAddr != "" {
-		if err := os.Remove(config.DebugAddr); err != nil && !os.IsNotExist(err) {
+	if config.DebugSocketPath != "" {
+		if err := os.Remove(config.DebugSocketPath); err != nil && !os.IsNotExist(err) {
 			return nil, trace.ConvertSystemError(err)
 		}
-		debugListener, err = net.Listen("unix", config.DebugAddr)
+		debugListener, err = net.Listen("unix", config.DebugSocketPath)
 		if err != nil {
 			return nil, trace.Wrap(err)
 		}
@@ -233,7 +230,7 @@ func New(config *Config) (*agent, error) {
 	}
 
 	ctx, cancel := context.WithCancel(context.Background())
-	g, ctx := errgroup.WithContext(ctx)
+	g := ctxgroup.WithContext(ctx)
 	agent := &agent{
 		Config:                  *config,
 		ClusterMembership:       serfClient,
@@ -245,7 +242,6 @@ func New(config *Config) (*agent, error) {
 		metricsListener:         metricsListener,
 		debugListener:           debugListener,
 		lastSeen:                lastSeen,
-		ctx:                     ctx,
 		cancel:                  cancel,
 		g:                       g,
 	}
@@ -293,21 +289,9 @@ func (r *agent) Run() (err error) {
 
 // Start starts the agent's background tasks.
 func (r *agent) Start() error {
-	r.g.Go(r.recycleLoop)
-	r.g.Go(r.statusUpdateLoop)
-	r.g.Go(r.serveMetrics)
+	r.g.GoCtx(r.recycleLoop)
+	r.g.GoCtx(r.statusUpdateLoop)
 	return nil
-}
-
-// serveMetrics registers the prometheus metrics handler and starts accepting
-// connections on the metrics listener.
-func (r *agent) serveMetrics() error {
-	http.Handle("/metrics", promhttp.Handler())
-	err := http.Serve(r.metricsListener, nil)
-	if err == http.ErrServerClosed {
-		return nil
-	}
-	return trace.Wrap(err, "failed to service metrcs")
 }
 
 // IsMember returns true if this agent is a member of the serf cluster
@@ -344,20 +328,10 @@ func (r *agent) Join(peers []string) error {
 
 // Close stops all background activity and releases the agent's resources.
 func (r *agent) Close() (err error) {
-	var errors []error
-	if r.metricsListener != nil {
-		if err := r.metricsListener.Close(); err != nil {
-			errors = append(errors, err)
-		}
-	}
-	if r.debugListener != nil {
-		if err := r.debugListener.Close(); err != nil {
-			errors = append(errors, err)
-		}
-	}
 	r.rpc.Stop()
 	r.cancel()
-	if err := r.g.Wait(); err != nil {
+	var errors []error
+	if err := r.g.Wait(); err != nil && !utils.IsContextCanceledError(err) {
 		errors = append(errors, err)
 	}
 	if err := r.ClusterMembership.Close(); err != nil {
@@ -536,7 +510,7 @@ func runChecker(ctx context.Context, checker health.Checker, probeCh chan<- heal
 }
 
 // recycleLoop periodically recycles the cache.
-func (r *agent) recycleLoop() error {
+func (r *agent) recycleLoop(ctx context.Context) error {
 	ticker := r.Clock.NewTicker(recycleTimeout)
 	defer ticker.Stop()
 
@@ -547,7 +521,7 @@ func (r *agent) recycleLoop() error {
 				log.WithError(err).Warn("Error recycling status.")
 			}
 
-		case <-r.ctx.Done():
+		case <-ctx.Done():
 			log.Info("Recycle loop is stopping.")
 			return nil
 		}
@@ -557,18 +531,18 @@ func (r *agent) recycleLoop() error {
 // statusUpdateLoop is a long running background process that periodically
 // updates the health status of the cluster by querying status of other active
 // cluster members.
-func (r *agent) statusUpdateLoop() error {
+func (r *agent) statusUpdateLoop(ctx context.Context) error {
 	ticker := r.Clock.NewTicker(StatusUpdateTimeout)
 	defer ticker.Stop()
 
 	for {
 		select {
 		case <-ticker.Chan():
-			if err := r.updateStatus(r.ctx); err != nil {
+			if err := r.updateStatus(ctx); err != nil {
 				log.WithError(err).Warn("Failed to updates status.")
 			}
 
-		case <-r.ctx.Done():
+		case <-ctx.Done():
 			log.Info("Status update loop is stopping.")
 			return nil
 		}

@@ -80,7 +80,7 @@ build: $(BUILD_ASSETS)/planet $(BUILDDIR)/planet.tar.gz
 
 .PHONY: planet-bin
 planet-bin:
-	go build -o $(BUILDDIR)/planet github.com/gravitational/planet/tool/planet
+	go build -o $(OUTPUTDIR)/planet github.com/gravitational/planet/tool/planet
 
 # Deploys the build artifacts to Amazon S3
 .PHONY: dev-deploy
