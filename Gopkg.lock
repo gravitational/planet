@@ -365,7 +365,7 @@
   version = "v1.0.0"
 
 [[projects]]
-  digest = "1:eb252bfa0cddb6733b11ff4cd286701afa24c5c9d694d6f7425b5e22b4540b6a"
+  digest = "1:5e339bebf0b5b31b3543a8d01d8a986d451499b85e2ca652564627a93f0d7261"
   name = "github.com/gravitational/satellite"
   packages = [
     "agent",
@@ -387,7 +387,8 @@
     "utils",
   ]
   pruneopts = "UT"
-  revision = "a4a8500f9d97a68e5c341ddea9e4f79f17ae9049"
+  revision = "c015eb9c2471d3ab679a187c9bf561ca155d02b2"
+  version = "5.5.15"
 
 [[projects]]
   digest = "1:488b046f7e099afaa97b0596967f96c54a0c8f85bb02d155931982fed2275851"
@@ -1243,6 +1244,7 @@
     "github.com/gravitational/satellite/agent/proto/agentpb",
     "github.com/gravitational/satellite/agent/proto/debug",
     "github.com/gravitational/satellite/cmd",
+    "github.com/gravitational/satellite/lib/ctxgroup",
     "github.com/gravitational/satellite/lib/history/sqlite",
     "github.com/gravitational/satellite/lib/rpc/client",
     "github.com/gravitational/satellite/monitoring",
@@ -1268,7 +1270,6 @@
     "github.com/sirupsen/logrus/hooks/syslog",
     "github.com/syndtr/gocapability/capability",
     "golang.org/x/net/websocket",
-    "golang.org/x/sync/errgroup",
     "gopkg.in/alecthomas/kingpin.v2",
     "gopkg.in/check.v1",
     "k8s.io/api/core/v1",
