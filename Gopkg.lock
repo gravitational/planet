@@ -256,7 +256,7 @@
   version = "v4.1.0"
 
 [[projects]]
-  digest = "1:db238461f652ddb7c7057bc6fc503f6003a29987b1485ecbb96d92287db65bc9"
+  digest = "1:33f49b72fdad072a03d13b31a42edfff08088b7c27198f4073b8213a58884f27"
   name = "github.com/gogo/protobuf"
   packages = [
     "gogoproto",
@@ -265,8 +265,8 @@
     "sortkeys",
   ]
   pruneopts = "UT"
-  revision = "636bf0302bc95575d69441b25a2603156ffdddf1"
-  version = "v1.1.1"
+  revision = "ba06b47c162d49f2af050fb4c75bcbc86a159d5c"
+  version = "v1.2.1"
 
 [[projects]]
   digest = "1:4c0989ca0bcd10799064318923b9bc2db6b4d6338dd75f3f2d86c3511aaaf5cf"
@@ -365,7 +365,7 @@
   version = "v1.0.0"
 
 [[projects]]
-  digest = "1:96ca5428bf35f04dd28e72ccdfb6bce406ad88298246ba1548d9db8f4927be08"
+  digest = "1:5e339bebf0b5b31b3543a8d01d8a986d451499b85e2ca652564627a93f0d7261"
   name = "github.com/gravitational/satellite"
   packages = [
     "agent",
@@ -373,7 +373,9 @@
     "agent/cache",
     "agent/health",
     "agent/proto/agentpb",
+    "agent/proto/debug",
     "cmd",
+    "lib/ctxgroup",
     "lib/history",
     "lib/history/sqlite",
     "lib/kubernetes",
@@ -385,13 +387,16 @@
     "utils",
   ]
   pruneopts = "UT"
-  revision = "649873d24de588dba4ea0098b66fc8f6b5d94c24"
-  version = "5.5.14"
+  revision = "c015eb9c2471d3ab679a187c9bf561ca155d02b2"
+  version = "5.5.15"
 
 [[projects]]
-  digest = "1:dc84545f9f2a442b14864f2f7e54ae556cae53bd437a05a456572fea9e73cc87"
+  digest = "1:488b046f7e099afaa97b0596967f96c54a0c8f85bb02d155931982fed2275851"
   name = "github.com/gravitational/trace"
-  packages = ["."]
+  packages = [
+    ".",
+    "trail",
+  ]
   pruneopts = "UT"
   revision = "dd5b2e8eae86d31f6273ff3ac46d5b15edd6d6be"
   version = "1.1.10"
@@ -898,6 +903,13 @@
   revision = "9dcd33a902f40452422c2367fefcb95b54f9f8f8"
 
 [[projects]]
+  digest = "1:b521f10a2d8fa85c04a8ef4e62f2d1e14d303599a55d64dabf9f5a02f84d35eb"
+  name = "golang.org/x/sync"
+  packages = ["errgroup"]
+  pruneopts = "UT"
+  revision = "43a5402ce75a95522677f77c619865d66b8c57ab"
+
+[[projects]]
   digest = "1:a8b6f3b4dc60e2fa266203e846ae58bde7fd2a737201080827375e21455b0d2e"
   name = "golang.org/x/sys"
   packages = [
@@ -1230,12 +1242,16 @@
     "github.com/gravitational/satellite/agent/backend/inmemory",
     "github.com/gravitational/satellite/agent/health",
     "github.com/gravitational/satellite/agent/proto/agentpb",
+    "github.com/gravitational/satellite/agent/proto/debug",
     "github.com/gravitational/satellite/cmd",
+    "github.com/gravitational/satellite/lib/ctxgroup",
     "github.com/gravitational/satellite/lib/history/sqlite",
     "github.com/gravitational/satellite/lib/rpc/client",
     "github.com/gravitational/satellite/monitoring",
     "github.com/gravitational/satellite/monitoring/collector",
+    "github.com/gravitational/satellite/utils",
     "github.com/gravitational/trace",
+    "github.com/gravitational/trace/trail",
     "github.com/gravitational/version",
     "github.com/hashicorp/serf/client",
     "github.com/imdario/mergo",

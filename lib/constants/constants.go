@@ -70,12 +70,13 @@ const (
 
 	// KubeletConfigFile specifies the file path for kubelet configuration
 	KubeletConfigFile = "/etc/kubernetes/kubelet.yaml"
-)
 
-var (
 	// GravityDataDir is the directory where gravity data is stored in planet
 	GravityDataDir = "/var/lib/gravity"
 
 	// HTTPTimeout specifies the default HTTP timeout for checks
 	HTTPTimeout = 10 * time.Second
+
+	// DumpProfileTimeout specifies the time limit for dumping agent debug internals
+	DumpProfileTimeout = 1 * time.Minute
 )
