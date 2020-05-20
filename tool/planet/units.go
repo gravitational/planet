@@ -73,7 +73,8 @@ func (r *unitMonitor) filterUnits(states ...serviceActiveState) ([]systemdDbus.U
 	return r.conn.ListUnitsFiltered(filter)
 }
 
-// status validates whether the status of the specified service equals targetStatus
+// status returns the status of the specified service.
+// Returns NotFound error if the service cannot be found among the currently loaded units
 func (r *unitMonitor) status(service string) (*systemdDbus.UnitStatus, error) {
 	units, err := r.conn.ListUnits()
 	if err != nil {

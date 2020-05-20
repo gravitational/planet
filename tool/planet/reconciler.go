@@ -53,7 +53,7 @@ func (r *agentPlan) Name() string {
 	return "agent state reconciler"
 }
 
-// Creates a new plan for agent operation.
+// Create creates a new plan for agent operation.
 // Implements reconciler.Plan
 func (r *agentPlan) Create(ctx context.Context) (steps []reconcile.Step, err error) {
 	logger := logrus.WithField(trace.Component, r.Name())
