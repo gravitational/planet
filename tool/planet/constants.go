@@ -275,7 +275,7 @@ const (
 	// DefaultEtcdUpgradeEndpoints specified the endpoint for the temporary etcd used during upgrades
 	DefaultEtcdUpgradeEndpoints = "https://127.0.0.2:2379"
 
-	// DefaultDebugAddr specifies the path to the agent's debug endpoint socket
+	// DefaultDebugSocketPath specifies the path to the agent's debug endpoint socket
 	DefaultDebugSocketPath = "/var/run/agent.sock"
 
 	// DefaultSecretsMountDir specifies the default location for certificates

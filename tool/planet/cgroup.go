@@ -52,7 +52,7 @@ func runSystemdCgroupCleaner(ctx context.Context) {
 		case <-ticker.C:
 			err := cleanSystemdScopes()
 			if err != nil {
-				logrus.WithError(err).Warn("Failed to clean systemd scopes that don't contain processes")
+				logrus.WithError(err).Warn("Failed to clean systemd scopes that don't contain processes.")
 			}
 		case <-ctx.Done():
 			return

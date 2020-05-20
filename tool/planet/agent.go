@@ -38,12 +38,12 @@ import (
 	"github.com/gravitational/satellite/agent"
 	pb "github.com/gravitational/satellite/agent/proto/agentpb"
 	debugpb "github.com/gravitational/satellite/agent/proto/debug"
+	"github.com/gravitational/satellite/lib/ctxgroup"
 	"github.com/gravitational/satellite/lib/rpc/client"
 	agentutils "github.com/gravitational/satellite/utils"
 	"github.com/gravitational/trace"
 	"github.com/gravitational/trace/trail"
 	log "github.com/sirupsen/logrus"
-	"golang.org/x/sync/errgroup"
 )
 
 // LeaderConfig represents configuration for the master election task
@@ -268,7 +268,7 @@ func unitsCommand(command string) error {
 func runAgent(conf *agent.Config, monitoringConf *monitoring.Config, leaderConf *LeaderConfig, peers []string) error {
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
-	g, ctx := errgroup.WithContext(ctx)
+	g := ctxgroup.WithContext(ctx)
 
 	err := monitoringConf.CheckAndSetDefaults()
 	if err != nil {
@@ -331,16 +331,17 @@ func runAgent(conf *agent.Config, monitoringConf *monitoring.Config, leaderConf 
 	}
 
 	g.Go(monitoringAgent.Run)
-	g.Go(func() error {
+	g.GoCtx(func(ctx context.Context) error {
 		runSystemdCgroupCleaner(ctx)
 		return nil
 	})
-	g.Go(func() error {
+	g.GoCtx(func(ctx context.Context) error {
+		defer monitoringAgent.Close()
 		select {
 		case err := <-errorC:
 			return err
 		case <-ctx.Done():
-			return monitoringAgent.Close()
+			return nil
 		}
 	})
 	g.Go(func() error {

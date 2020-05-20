@@ -202,7 +202,7 @@ func run() error {
 		cstatusClientKeyFile = cstatus.Flag("client-key-file", "mTLS client key file").
 					Default(ClientRPCKeyPath).OverrideDefaultFromEnvar(EnvPlanetAgentClientKeyFile).String()
 
-		cstatusDump        = app.Command("debug-status", "Dump Planet Agent debug internals")
+		cstatusDump        = app.Command("debug-status", "Dump Planet Agent debug information")
 		cstatusDumpProfile = cstatusDump.Flag("profile", "Name of the profile to dump").Default("goroutine").String()
 		cstatusDumpRPCPort = cstatusDump.Flag("rpc-port", "Local agent RPC port.").Default("7575").Int()
 		cstatusDumpCAFile  = cstatusDump.Flag("ca-file", "CA to authenticate server").
