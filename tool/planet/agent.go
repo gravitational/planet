@@ -159,6 +159,10 @@ func startLeaderClient(conf *LeaderConfig, agent agent.Agent, errorC chan error)
 		if newVal != conf.PublicIP {
 			return
 		}
+		// Ignore if same leader is re-elected
+		if newVal == prevVal {
+			return
+		}
 
 		ctx, cancel := context.WithTimeout(context.Background(), recordEventTimeout)
 		defer cancel()
