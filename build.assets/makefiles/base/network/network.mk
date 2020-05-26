@@ -5,7 +5,7 @@ NAME := flannel
 TARGET := $(NAME)-$(FLANNEL_VER)
 TARGET_TAR := $(TARGET)-linux-$(ARCH).tar.gz
 BINARIES := $(ASSETDIR)/flanneld-$(FLANNEL_VER)
-CNI_TARBALL := $(ASSETDIR)/cni-plugins-amd64-v$(CNI_VER).tgz
+CNI_TARBALL := $(ASSETDIR)/cni-plugins-linux-amd64-v$(CNI_VER).tgz
 CURL ?= curl -L --retry 5
 
 all: $(BINARIES) $(CNI_TARBALL) network.mk
@@ -36,6 +36,6 @@ $(BINARIES):
 
 $(CNI_TARBALL):
 	$(CURL) -L --retry 5 \
-		https://github.com/containernetworking/plugins/releases/download/v$(CNI_VER)/cni-plugins-amd64-v$(CNI_VER).tgz \
+		https://github.com/containernetworking/plugins/releases/download/v$(CNI_VER)/cni-plugins-linux-amd64-v$(CNI_VER).tgz \
 		-o $@
 
