@@ -63,8 +63,8 @@ PLANET_GID ?= 980665
 # v3.3.22 - 6.3.x, 6.1.x, 5.5.x
 # v3.4.3  - 7.0.x
 # v3.4.7  - 7.0.x
-# v3.4.9   - 7.0.x
-ETCD_VER := v3.3.12 v3.3.15 v3.4.3 v3.4.7 3.4.9
+# v3.4.9  - 7.0.x
+ETCD_VER := v3.3.12 v3.3.15 v3.3.20 v3.3.22 v3.4.3 v3.4.7 v3.4.9
 # This is the version of etcd we should upgrade to (from the version list)
 # Note: When bumping the ETCD_LATEST_VERSION, please ensure that:
 #   - The version of etcd vendored as a library is the same (Gopkg.toml)
