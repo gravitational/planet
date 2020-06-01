@@ -54,6 +54,7 @@ require (
 	github.com/mailgun/holster v3.0.0+incompatible // indirect
 	github.com/mattn/go-isatty v0.0.6 // indirect
 	github.com/mattn/go-sqlite3 v1.13.0 // indirect
+	github.com/matttproud/golang_protobuf_extensions v1.0.1 // indirect
 	github.com/miekg/dns v1.0.12 // indirect
 	github.com/mitchellh/go-ps v0.0.0-20170309133038-4fdf99ab2936
 	github.com/mrunalp/fileutils v0.0.0-20171103030105-7d4729fb3618 // indirect
@@ -84,10 +85,11 @@ require (
 	gopkg.in/alecthomas/kingpin.v2 v2.2.6
 	gopkg.in/check.v1 v1.0.0-20180628173108-788fd7840127
 	gopkg.in/yaml.v2 v2.2.8
-	k8s.io/api v0.17.3
-	k8s.io/apimachinery v0.17.5-beta.0
-	k8s.io/client-go v0.17.3
-	k8s.io/kubelet v0.17.3
+	k8s.io/api v0.17.6
+	k8s.io/apimachinery v0.17.6
+	k8s.io/client-go v0.17.6
+	k8s.io/kubelet v0.17.6
+	sigs.k8s.io/structured-merge-diff v0.0.0-20190525122527-15d366b2352e // indirect
 )
 
 replace (

@@ -35,4 +35,4 @@ $(ASSETDIR)/docker-import:
 .PHONY: flags
 flags:
 	go install github.com/gravitational/version/cmd/linkflags
-	$(eval PLANET_LINKFLAGS := "$(shell linkflags -pkg=$(PLANET_PKG_PATH) -verpkg=github.com/gravitational/planet/vendor/github.com/gravitational/version) $(PLANET_GO_LDFLAGS)")
+	$(eval PLANET_LINKFLAGS := "$(shell linkflags -pkg=$(PLANET_PKG_PATH) -verpkg=github.com/gravitational/version) $(PLANET_GO_LDFLAGS)")
