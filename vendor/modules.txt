@@ -146,7 +146,7 @@ github.com/gravitational/etcd-backup/lib/etcd
 github.com/gravitational/go-udev
 # github.com/gravitational/roundtrip v1.0.0
 github.com/gravitational/roundtrip
-# github.com/gravitational/satellite v0.0.9-0.20200413193155-d7a2a93a8ed5
+# github.com/gravitational/satellite v0.0.9-0.20200603122809-c30ea2ee8a9e
 github.com/gravitational/satellite/agent
 github.com/gravitational/satellite/agent/health
 github.com/gravitational/satellite/agent/proto/agentpb
