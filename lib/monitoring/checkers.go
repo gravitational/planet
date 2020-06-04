@@ -244,6 +244,9 @@ func addToMaster(node agent.Agent, config *Config, etcdConfig *monitoring.ETCDCo
 			KubeConfig: &kubeConfig,
 		},
 	)
+	if err != nil {
+		return trace.Wrap(err)
+	}
 	node.AddChecker(nethealthChecker)
 
 	return nil
@@ -299,6 +302,9 @@ func addToNode(node agent.Agent, config *Config, etcdConfig *monitoring.ETCDConf
 			KubeConfig: &nodeConfig,
 		},
 	)
+	if err != nil {
+		return trace.Wrap(err)
+	}
 	node.AddChecker(nethealthChecker)
 
 	return nil
