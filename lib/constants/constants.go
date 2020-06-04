@@ -93,6 +93,9 @@ const (
 
 	// ContainerInitProcessLabel specifies the SELinux label for the init process
 	ContainerInitProcessLabel = "system_u:system_r:gravity_container_init_t:s0"
+
+	// DumpProfileTimeout specifies the time limit for dumping agent debug internals
+	DumpProfileTimeout = 1 * time.Minute
 )
 
 var (

@@ -148,6 +148,7 @@ func run() error {
 		cagentTerm             = cagent.Flag("term", "Leader lease duration").Default(DefaultLeaderTerm.String()).Duration()
 		cagentRPCAddrs         = List(cagent.Flag("rpc-addr", "Address to bind the RPC listener to.  Can be specified multiple times").Default("127.0.0.1:7575"))
 		cagentMetricsAddr      = cagent.Flag("metrics-addr", "Address to listen on for web interface and telemetry for Prometheus metrics").Default("127.0.0.1:7580").String()
+		cagentDebugSocketPath  = cagent.Flag("debug-socket-path", "Path to the agent debug server socket").Default(DefaultDebugSocketPath).String()
 		cagentKubeAddr         = cagent.Flag("kube-addr", "Address of the kubernetes API server.  Will default to apiserver-dns:8080").String()
 		cagentName             = cagent.Flag("name", "Agent name.  Must be the same as the name of the local serf node").OverrideDefaultFromEnvar(EnvAgentName).String()
 		cagentNodeName         = cagent.Flag("node-name", "Kubernetes node name").OverrideDefaultFromEnvar(EnvNodeName).String()
@@ -203,6 +204,16 @@ func run() error {
 		cstatusClientKeyFile = cstatus.Flag("client-key-file", "mTLS client key file").
 					Default(ClientRPCKeyPath).OverrideDefaultFromEnvar(EnvPlanetAgentClientKeyFile).String()
 
+		cstatusDump        = app.Command("debug-status", "Dump Planet Agent debug information")
+		cstatusDumpProfile = cstatusDump.Flag("profile", "Name of the profile to dump").Default("goroutine").String()
+		cstatusDumpRPCPort = cstatusDump.Flag("rpc-port", "Local agent RPC port.").Default("7575").Int()
+		cstatusDumpCAFile  = cstatusDump.Flag("ca-file", "CA to authenticate server").
+					Default(ClientRPCCAPath).OverrideDefaultFromEnvar(EnvPlanetAgentCAFile).String()
+		cstatusDumpClientCertFile = cstatusDump.Flag("client-cert-file", "mTLS client certificate file").
+						Default(ClientRPCCertPath).OverrideDefaultFromEnvar(EnvPlanetAgentClientCertFile).String()
+		cstatusDumpClientKeyFile = cstatusDump.Flag("client-key-file", "mTLS client key file").
+						Default(ClientRPCKeyPath).OverrideDefaultFromEnvar(EnvPlanetAgentClientKeyFile).String()
+
 		// test command
 		ctest             = app.Command("test", "Run end-to-end tests on a running cluster")
 		ctestKubeAddr     = HostPort(ctest.Flag("kube-addr", "Address of the kubernetes api server").Required())
@@ -224,7 +235,7 @@ func run() error {
 		cetcdInit = cetcd.Command("init", "Setup etcd to run the correct version").Hidden()
 
 		cetcdBackup       = cetcd.Command("backup", "Backup the etcd datastore to a file")
-		cetcdBackupFile   = cetcdBackup.Arg("file", "The file to store the backup").String()
+		cetcdBackupFile   = cetcdBackup.Arg("file", "The file to store the backup. If unspecified - stdout will be used.").String()
 		cetcdBackupPrefix = cetcdBackup.Flag("prefix", "Optional etcd prefix to backup (e.g. /gravity). Can be supplied multiple times").Default(ETCDBackupPrefix).Strings()
 
 		cetcdDisable        = cetcd.Command("disable", "Disable etcd on this node")
@@ -295,14 +306,15 @@ func run() error {
 		log.Infof("Kubernetes API server: %v", *cagentKubeAddr)
 		log.Infof("Private docker registry: %v", *cagentRegistryAddr)
 		conf := &agent.Config{
-			Name:        *cagentName,
-			RPCAddrs:    *cagentRPCAddrs,
-			SerfConfig:  serf.Config{Addr: *cagentSerfRPCAddr},
-			MetricsAddr: *cagentMetricsAddr,
-			Cache:       cache,
-			CAFile:      *cagentEtcdCAFile,
-			CertFile:    *cagentEtcdCertFile,
-			KeyFile:     *cagentEtcdKeyFile,
+			Name:            *cagentName,
+			RPCAddrs:        *cagentRPCAddrs,
+			SerfConfig:      serf.Config{Addr: *cagentSerfRPCAddr},
+			MetricsAddr:     *cagentMetricsAddr,
+			DebugSocketPath: *cagentDebugSocketPath,
+			Cache:           cache,
+			CAFile:          *cagentEtcdCAFile,
+			CertFile:        *cagentEtcdCertFile,
+			KeyFile:         *cagentEtcdKeyFile,
 			TimelineConfig: sqlite.Config{
 				DBPath:            *cagentTimelineDir,
 				RetentionDuration: *cagentRetention,
@@ -498,6 +510,16 @@ func run() error {
 			err = trace.Errorf("status degraded")
 		}
 
+	// "debug-status" command
+	case cstatusDump.FullCommand():
+		err = getAgentDebugProfile(debugConfig{
+			profile:        *cstatusDumpProfile,
+			rpcPort:        *cstatusDumpRPCPort,
+			caFile:         *cstatusDumpCAFile,
+			clientCertFile: *cstatusDumpClientCertFile,
+			clientKeyFile:  *cstatusDumpClientKeyFile,
+		})
+
 	// "test" command
 	case ctest.FullCommand():
 		config := &e2e.Config{
@@ -634,20 +656,21 @@ func setupSignalHandlers(seLinux bool) {
 		}
 		return false
 	}
-
-	var ignores = []os.Signal{syscall.SIGPIPE, syscall.SIGHUP, syscall.SIGUSR1, syscall.SIGUSR2, syscall.SIGALRM}
+	var ignores = []os.Signal{syscall.SIGPIPE, syscall.SIGHUP, syscall.SIGUSR2, syscall.SIGALRM}
 	var terminals = []os.Signal{os.Interrupt, syscall.SIGTERM, syscall.SIGQUIT}
 	c := make(chan os.Signal, 1)
 	go func() {
 		for sig := range c {
 			switch {
+			case sig == syscall.SIGUSR1:
+				flipDebugLogging()
 			case oneOf(ignores, sig):
-				log.Debugf("received a %s signal, ignoring...", sig)
+				log.Debugf("Received a %s signal, ignoring...", sig)
 			default:
-				log.Infof("received a %s signal, stopping...", sig)
+				log.Infof("Received a %s signal, stopping...", sig)
 				err := stop(seLinux)
 				if err != nil {
-					log.Errorf("error: %v", err)
+					log.WithError(err).Error("Failed to stop.")
 				}
 				return
 			}
@@ -710,6 +733,28 @@ func initLogging(debug bool) {
 	log.AddHook(hook)
 	log.SetOutput(ioutil.Discard)
 }
+
+func flipDebugLogging() {
+	debugC <- struct{}{}
+}
+
+func debugLoop() {
+	var debug bool
+	for {
+		select {
+		case <-debugC:
+			debug = !debug
+			level := log.DebugLevel
+			if !debug {
+				level = log.WarnLevel
+			}
+			log.SetLevel(level)
+			trace.SetDebug(debug)
+		}
+	}
+}
+
+var debugC chan struct{}
 
 // die prints the error message in red to the console and exits with a non-zero exit code
 func die(err error) {

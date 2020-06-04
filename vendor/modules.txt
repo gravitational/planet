@@ -146,7 +146,7 @@ github.com/gravitational/etcd-backup/lib/etcd
 github.com/gravitational/go-udev
 # github.com/gravitational/roundtrip v1.0.0
 github.com/gravitational/roundtrip
-# github.com/gravitational/satellite v0.0.9-0.20200603122809-c30ea2ee8a9e
+# github.com/gravitational/satellite v0.0.9-0.20200603173709-cccad2ad9abe
 github.com/gravitational/satellite/agent
 github.com/gravitational/satellite/agent/health
 github.com/gravitational/satellite/agent/proto/agentpb
@@ -157,11 +157,13 @@ github.com/gravitational/satellite/cmd
 github.com/gravitational/satellite/lib/history/sqlite
 github.com/gravitational/satellite/lib/rpc/client
 github.com/gravitational/satellite/agent/cache
+github.com/gravitational/satellite/agent/proto/debug
+github.com/gravitational/satellite/lib/ctxgroup
 github.com/gravitational/satellite/lib/history
 github.com/gravitational/satellite/lib/membership
-github.com/gravitational/satellite/lib/kubernetes
-github.com/gravitational/satellite/utils
 github.com/gravitational/satellite/lib/rpc
+github.com/gravitational/satellite/utils
+github.com/gravitational/satellite/lib/kubernetes
 # github.com/gravitational/trace v1.1.10-0.20200326194303-2d27a078e25b
 github.com/gravitational/trace
 # github.com/gravitational/version v0.0.2-0.20170324200323-95d33ece5ce1
@@ -374,6 +376,8 @@ golang.org/x/net/context/ctxhttp
 # golang.org/x/oauth2 v0.0.0-20190604053449-0f29369cfe45 => golang.org/x/oauth2 v0.0.0-20181017192945-9dcd33a902f4
 golang.org/x/oauth2
 golang.org/x/oauth2/internal
+# golang.org/x/sync v0.0.0-20190423024810-112230192c58
+golang.org/x/sync/errgroup
 # golang.org/x/sys v0.0.0-20200124204421-9fbb57f87de9 => golang.org/x/sys v0.0.0-20190812073006-9eafafc0a87e
 golang.org/x/sys/unix
 golang.org/x/sys/windows
@@ -403,12 +407,12 @@ google.golang.org/appengine/internal/remote_api
 google.golang.org/genproto/googleapis/rpc/status
 # google.golang.org/grpc v1.26.0
 google.golang.org/grpc
-google.golang.org/grpc/codes
 google.golang.org/grpc/credentials
-google.golang.org/grpc/status
+google.golang.org/grpc/codes
 google.golang.org/grpc/grpclog
 google.golang.org/grpc/keepalive
 google.golang.org/grpc/metadata
+google.golang.org/grpc/status
 google.golang.org/grpc/backoff
 google.golang.org/grpc/balancer
 google.golang.org/grpc/balancer/base

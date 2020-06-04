@@ -123,16 +123,11 @@ func (c *Config) LocalTransport() (*http.Transport, error) {
 		}}, nil
 }
 
-// GetKubeClient returns a Kubernetes client that uses kubectl certificate
+// getDefaultKubeClient returns a Kubernetes client that uses kubelet certificate
 // for authentication
-func GetKubeClient() (*kubernetes.Clientset, error) {
+func getDefaultKubeClient() (*kubernetes.Clientset, error) {
+	// FIXME: should this be KubectlConfigPath?
 	return getKubeClientFromPath(constants.KubeletConfigPath)
-}
-
-// GetPrivilegedKubeClient returns a Kubernetes client that uses scheduler
-// certificate for authentication
-func GetPrivilegedKubeClient() (*kubernetes.Clientset, error) {
-	return getKubeClientFromPath(constants.SchedulerConfigPath)
 }
 
 // getKubeClientFromPath returns a Kubernetes client using the given kubeconfig file
@@ -182,7 +177,7 @@ func addToMaster(node agent.Agent, config *Config, etcdConfig *monitoring.ETCDCo
 		return trace.Wrap(err)
 	}
 
-	client, err := GetKubeClient()
+	client, err := getDefaultKubeClient()
 	if err != nil {
 		return trace.Wrap(err)
 	}

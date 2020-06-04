@@ -32,7 +32,7 @@ func AddMetrics(node agent.Agent, config *Config) error {
 		CertFile:  config.ETCDConfig.CertFile,
 		KeyFile:   config.ETCDConfig.KeyFile,
 	}
-	client, err := GetKubeClient()
+	client, err := getDefaultKubeClient()
 	if err != nil {
 		return trace.Wrap(err)
 	}

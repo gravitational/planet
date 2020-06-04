@@ -35,7 +35,7 @@ require (
 	github.com/gravitational/etcd-backup v0.0.0-20200227044745-5751e027911a
 	github.com/gravitational/go-udev v0.0.0-20160615210516-4cc8baba3689
 	github.com/gravitational/roundtrip v1.0.0 // indirect
-	github.com/gravitational/satellite v0.0.9-0.20200603122809-c30ea2ee8a9e
+	github.com/gravitational/satellite v0.0.9-0.20200603173709-cccad2ad9abe
 	github.com/gravitational/trace v1.1.10-0.20200326194303-2d27a078e25b
 	github.com/gravitational/version v0.0.2-0.20170324200323-95d33ece5ce1
 	github.com/hashicorp/go-immutable-radix v1.0.0 // indirect
