@@ -89,7 +89,7 @@ ignored = ["github.com/gravitational/planet/build/*"]
   name = "github.com/gravitational/etcd-backup"
 
 [[constraint]]
-  branch = "master"
+  branch = "dmitri/sync-upstream"
   name = "github.com/gravitational/go-udev"
 
 [[constraint]]
@@ -175,3 +175,7 @@ ignored = ["github.com/gravitational/planet/build/*"]
 [[override]]
   name = "google.golang.org/grpc"
   version = "=v1.26.0"
+
+[[constraint]]
+  name = "golang.org/x/sync"
+  branch = "master"

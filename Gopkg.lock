@@ -406,12 +406,12 @@
   version = "0.0.3"
 
 [[projects]]
-  branch = "master"
-  digest = "1:170cc0c8108af9dd49569867e2d41097f9578ac65e7d02be098e301893d9b9ef"
+  branch = "dmitri/sync-upstream"
+  digest = "1:490c06877cc9794d9c58a18b354711e7aca760e14e83baf1b1d0ef8c7b7c0ae5"
   name = "github.com/gravitational/go-udev"
   packages = ["."]
   pruneopts = "UT"
-  revision = "4cc8baba3689adc2d4ec4cf0e8e6be7bb136a3d2"
+  revision = "c0acc0f3a3526eef30dd091d9b19313c9d61650d"
 
 [[projects]]
   digest = "1:e025b0f4997273273c5dc46a17caddb27ab7dc8b8aa9ffb50d326e7aeb4059c7"
@@ -1056,6 +1056,14 @@
   revision = "9dcd33a902f40452422c2367fefcb95b54f9f8f8"
 
 [[projects]]
+  branch = "master"
+  digest = "1:b521f10a2d8fa85c04a8ef4e62f2d1e14d303599a55d64dabf9f5a02f84d35eb"
+  name = "golang.org/x/sync"
+  packages = ["errgroup"]
+  pruneopts = "UT"
+  revision = "43a5402ce75a95522677f77c619865d66b8c57ab"
+
+[[projects]]
   digest = "1:689d11c3e6d3df8a1e2d2ad5a494ea99659d09faf706472bdd64cac7ac5f6887"
   name = "golang.org/x/sys"
   packages = [
@@ -1480,6 +1488,7 @@
     "github.com/syndtr/gocapability/capability",
     "go.etcd.io/etcd/client",
     "go.etcd.io/etcd/clientv3",
+    "golang.org/x/sync/errgroup",
     "golang.org/x/sys/unix",
     "gopkg.in/alecthomas/kingpin.v2",
     "gopkg.in/check.v1",

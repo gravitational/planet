@@ -287,6 +287,12 @@ func start(config *Config) (*runtimeContext, error) {
 	if err != nil {
 		return nil, trace.Wrap(err)
 	}
+	defer func() {
+		if err != nil {
+			listener.Close()
+		}
+	}()
+	listener.Start()
 
 	// start the container:
 	box, err := box.Start(cfg)
