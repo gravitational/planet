@@ -101,7 +101,7 @@ build: $(BUILD_ASSETS)/planet $(BUILDDIR)/planet.tar.gz
 
 .PHONY: planet-bin
 planet-bin:
-	GO111MODULE=on go build -mod=vendor -o $(BUILDDIR)/planet github.com/gravitational/planet/tool/planet
+	GO111MODULE=on go build -mod=vendor -o $(OUTPUTDIR)/planet github.com/gravitational/planet/tool/planet
 
 # Deploys the build artifacts to Amazon S3
 .PHONY: dev-deploy
