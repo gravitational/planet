@@ -121,7 +121,7 @@ Released under the [MIT License](LICENSE.txt).
 
 <sup id="footnote-versions">1</sup> In particular, keep in mind that we may be
 benchmarking against slightly older versions of other packages. Versions are
-pinned in the [benchmarks/go.mod][] file. [↩](#anchor-versions)
+pinned in zap's [glide.lock][] file. [↩](#anchor-versions)
 
 [doc-img]: https://godoc.org/go.uber.org/zap?status.svg
 [doc]: https://godoc.org/go.uber.org/zap
@@ -130,5 +130,5 @@ pinned in the [benchmarks/go.mod][] file. [↩](#anchor-versions)
 [cov-img]: https://codecov.io/gh/uber-go/zap/branch/master/graph/badge.svg
 [cov]: https://codecov.io/gh/uber-go/zap
 [benchmarking suite]: https://github.com/uber-go/zap/tree/master/benchmarks
-[benchmarks/go.mod]: https://github.com/uber-go/zap/blob/master/benchmarks/go.mod
+[glide.lock]: https://github.com/uber-go/zap/blob/master/glide.lock
 
