@@ -68,8 +68,12 @@ type Config struct {
 	CloudProvider string
 	// NodeName is the kubernetes name of this node
 	NodeName string
-	// HighWatermark is the usage limit percentage of monitored directories and devicemapper
+	// HighWatermark is the usage limit percentage of devicemapper
 	HighWatermark uint
+	// WatermarkWarning is the usage limit percentage of monitored directories
+	WatermarkWarning uint
+	// WatermarkCritical is the usage limit percentage of monitored directories
+	WatermarkCritical uint
 	// HTTPTimeout specifies the HTTP timeout for checks
 	HTTPTimeout time.Duration
 }
@@ -215,10 +219,19 @@ func addToMaster(node agent.Agent, config *Config, etcdConfig *monitoring.ETCDCo
 	node.AddChecker(monitoring.NewDNSChecker([]string{
 		"leader.telekube.local.",
 	}))
-	node.AddChecker(monitoring.NewStorageChecker(monitoring.StorageConfig{
-		Path:          constants.GravityDataDir,
-		HighWatermark: config.HighWatermark,
-	}))
+
+	storageChecker, err := monitoring.NewStorageChecker(
+		monitoring.StorageConfig{
+			Path:              constants.GravityDataDir,
+			WatermarkCritical: config.WatermarkCritical,
+			WatermarkWarning:  config.WatermarkWarning,
+		},
+	)
+	if err != nil {
+		return trace.Wrap(err)
+	}
+	node.AddChecker(storageChecker)
+
 	// the following checker will be no-op if docker driver is not devicemapper
 	node.AddChecker(monitoring.NewDockerDevicemapperChecker(
 		monitoring.DockerDevicemapperConfig{
@@ -306,10 +319,19 @@ func addToNode(node agent.Agent, config *Config, etcdConfig *monitoring.ETCDConf
 		"leader.telekube.local.",
 	}))
 	node.AddChecker(monitoring.NewNodeStatusChecker(nodeConfig, config.NodeName))
-	node.AddChecker(monitoring.NewStorageChecker(monitoring.StorageConfig{
-		Path:          constants.GravityDataDir,
-		HighWatermark: config.HighWatermark,
-	}))
+
+	storageChecker, err := monitoring.NewStorageChecker(
+		monitoring.StorageConfig{
+			Path:              constants.GravityDataDir,
+			WatermarkCritical: config.WatermarkCritical,
+			WatermarkWarning:  config.WatermarkWarning,
+		},
+	)
+	if err != nil {
+		return trace.Wrap(err)
+	}
+	node.AddChecker(storageChecker)
+
 	// the following checker will be no-op if docker driver is not devicemapper
 	node.AddChecker(monitoring.NewDockerDevicemapperChecker(
 		monitoring.DockerDevicemapperConfig{

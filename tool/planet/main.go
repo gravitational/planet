@@ -167,7 +167,9 @@ func run() error {
 		cagentDNSUpstreamNameservers = List(cagent.Flag("nameservers", "List of additional upstream nameservers to add to DNS configuration as a comma-separated list of IPs").OverrideDefaultFromEnvar(EnvDNSUpstreamNameservers))
 		cagentDNSZones               = DNSOverrides(cagent.Flag("dns-zones", "Comma-separated list of DNS zone to nameserver IP mappings as 'zone/nameserver' pairs").OverrideDefaultFromEnvar(EnvDNSZones))
 		cagentCloudProvider          = cagent.Flag("cloud-provider", "Which cloud provider backend the cluster is using").OverrideDefaultFromEnvar(EnvCloudProvider).String()
-		cagentHighWatermark          = cagent.Flag("high-watermark", "Usage percentage of monitored directories and devicemapper which is considered degrading").Default(strconv.Itoa(HighWatermark)).Uint64()
+		cagentHighWatermark          = cagent.Flag("high-watermark", "Usage percentage of devicemapper which is considered degrading").Default(strconv.Itoa(HighWatermark)).Uint64()
+		cagentWatermarkWarning       = cagent.Flag("warning-watermark", "Usage percentage of monitored directories which will trigger a warning probe").OverrideDefaultFromEnvar("PLANET_WATERMARK_WARNING").Uint64()
+		cagentWatermarkCritical      = cagent.Flag("critical-watermark", "Usage percentage of monitored directories which will trigger a critical probe").OverrideDefaultFromEnvar("PLANET_WATERMARK_CRITICAL").Uint64()
 		cagentHTTPTimeout            = cagent.Flag("http-timeout", "Timeout for HTTP requests, formatted as Go duration.").OverrideDefaultFromEnvar(EnvPlanetAgentHTTPTimeout).Default(constants.HTTPTimeout.String()).Duration()
 		cagentTimelineDir            = cagent.Flag("timeline-dir", "Directory to be used for timeline storage").Default("/tmp/timeline").String()
 		cagentRetention              = cagent.Flag("retention", "Window to retain timeline as a Go duration").Duration()
@@ -353,6 +355,8 @@ func run() error {
 			DisableInterPodCheck:  disableInterPodCheck,
 			CloudProvider:         *cagentCloudProvider,
 			HighWatermark:         uint(*cagentHighWatermark),
+			WatermarkCritical:     uint(*cagentWatermarkCritical),
+			WatermarkWarning:      uint(*cagentWatermarkWarning),
 			NodeName:              *cagentNodeName,
 			HTTPTimeout:           *cagentHTTPTimeout,
 		}
