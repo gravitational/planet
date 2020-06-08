@@ -68,10 +68,10 @@ type Config struct {
 	CloudProvider string
 	// NodeName is the kubernetes name of this node
 	NodeName string
-	// WatermarkWarning is the usage limit percentage of monitored directories
-	WatermarkWarning uint
-	// WatermarkCritical is the usage limit percentage of monitored directories
-	WatermarkCritical uint
+	// LowWatermark is the disk usage warning limit percentage of monitored directories
+	LowWatermark uint
+	// HighWatermark is the disk usage critical limit percentage of monitored directores
+	HighWatermark uint
 	// HTTPTimeout specifies the HTTP timeout for checks
 	HTTPTimeout time.Duration
 }
@@ -217,9 +217,9 @@ func addToMaster(node agent.Agent, config *Config, etcdConfig *monitoring.ETCDCo
 
 	storageChecker, err := monitoring.NewStorageChecker(
 		monitoring.StorageConfig{
-			Path:              constants.GravityDataDir,
-			WatermarkCritical: config.WatermarkCritical,
-			WatermarkWarning:  config.WatermarkWarning,
+			Path:          constants.GravityDataDir,
+			LowWatermark:  config.LowWatermark,
+			HighWatermark: config.HighWatermark,
 		},
 	)
 	if err != nil {
@@ -311,9 +311,9 @@ func addToNode(node agent.Agent, config *Config, etcdConfig *monitoring.ETCDConf
 
 	storageChecker, err := monitoring.NewStorageChecker(
 		monitoring.StorageConfig{
-			Path:              constants.GravityDataDir,
-			WatermarkCritical: config.WatermarkCritical,
-			WatermarkWarning:  config.WatermarkWarning,
+			Path:          constants.GravityDataDir,
+			LowWatermark:  config.LowWatermark,
+			HighWatermark: config.HighWatermark,
 		},
 	)
 	if err != nil {
