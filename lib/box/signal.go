@@ -61,7 +61,8 @@ func (s *signalForwarder) Forward(process *libcontainer.Process, tty *tty) (int,
 			// Ignore errors resizing, as above.
 			_ = tty.resize()
 		case unix.SIGCHLD:
-			exits, err := s.reap()
+			// Make sure to wait for exit of the specified child process.
+			exits, err := s.reap(pid)
 			if err != nil {
 				logrus.WithError(err).Error("error reaping child")
 			}
@@ -101,13 +102,13 @@ type exit struct {
 
 // reap runs wait4 in a loop until we have finished processing any existing exits
 // then returns all exits to the main event loop for further processing.
-func (h *signalForwarder) reap() (exits []exit, err error) {
+func (h *signalForwarder) reap(ppid int) (exits []exit, err error) {
 	var (
 		ws  unix.WaitStatus
 		rus unix.Rusage
 	)
 	for {
-		pid, err := unix.Wait4(-1, &ws, unix.WNOHANG, &rus)
+		pid, err := unix.Wait4(ppid, &ws, unix.WNOHANG, &rus)
 		if err != nil {
 			if err == unix.ECHILD {
 				return exits, nil
