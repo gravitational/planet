@@ -37,6 +37,7 @@ import (
 	"github.com/gravitational/coordinate/leader"
 	"github.com/gravitational/satellite/agent"
 	pb "github.com/gravitational/satellite/agent/proto/agentpb"
+	agentutils "github.com/gravitational/satellite/utils"
 	"github.com/gravitational/trace"
 	log "github.com/sirupsen/logrus"
 	etcd "go.etcd.io/etcd/client"
@@ -427,7 +428,7 @@ func status(c statusConfig) (ok bool, err error) {
 	if c.local {
 		status, err := client.LocalStatus(ctx)
 		if err != nil {
-			if agent.IsUnavailableError(err) {
+			if agentutils.IsUnavailableError(err) {
 				return false, newAgentUnavailableError()
 			}
 			return false, trace.Wrap(err)
@@ -437,7 +438,7 @@ func status(c statusConfig) (ok bool, err error) {
 	} else {
 		status, err := client.Status(ctx)
 		if err != nil {
-			if agent.IsUnavailableError(err) {
+			if agentutils.IsUnavailableError(err) {
 				return false, newAgentUnavailableError()
 			}
 			return false, trace.Wrap(err)

@@ -37,7 +37,7 @@ import (
 	"github.com/gravitational/planet/lib/monitoring"
 	"github.com/gravitational/planet/lib/utils"
 
-	"github.com/coreos/go-systemd/dbus"
+	"github.com/coreos/go-systemd/v22/dbus"
 	"github.com/davecgh/go-spew/spew"
 	etcdconf "github.com/gravitational/coordinate/config"
 	backup "github.com/gravitational/etcd-backup/lib/etcd"

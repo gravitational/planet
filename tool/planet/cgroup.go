@@ -48,9 +48,9 @@ import (
 	"text/template"
 	"time"
 
-	systemdDbus "github.com/coreos/go-systemd/dbus"
+	systemdDbus "github.com/coreos/go-systemd/v22/dbus"
 	"github.com/davecgh/go-spew/spew"
-	"github.com/godbus/dbus"
+	"github.com/godbus/dbus/v5"
 
 	"github.com/containerd/cgroups"
 	"github.com/gravitational/planet/lib/box"
