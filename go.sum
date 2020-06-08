@@ -168,8 +168,8 @@ github.com/gravitational/logrus v1.4.3 h1:gdyMN/zLd4R/kATybKzG1I6gjrbCqNJOl1Xiix
 github.com/gravitational/logrus v1.4.3/go.mod h1:+F7Ogzej0PZc/94MaYx/nvG9jOFMD2osvC3s+Squfpo=
 github.com/gravitational/roundtrip v1.0.0 h1:eb+0EABfSKC8607CQ4oOyWCm9zVIfio/wW78TjQqLSc=
 github.com/gravitational/roundtrip v1.0.0/go.mod h1:qccpLd30tAJVSpx7aOEEnws4ZT3njPwdbtT8lNQxbAs=
-github.com/gravitational/satellite v0.0.9-0.20200607150925-944a9dac023a h1:OXHnkKbYPWJttWRlQlPuUYm7tjp0nkxgygcyEcOddPw=
-github.com/gravitational/satellite v0.0.9-0.20200607150925-944a9dac023a/go.mod h1:DhCZZ7Cr4H5K0A6iHFBz3FsinATze/lNNgeG8leqzkc=
+github.com/gravitational/satellite v0.0.9-0.20200608111853-bae6f0a12823 h1:uMfc2gwMOAGzkWQ9OM0iEs7HHplwbk8FflU7UpH8FEA=
+github.com/gravitational/satellite v0.0.9-0.20200608111853-bae6f0a12823/go.mod h1:3iP0I0Ytu+mON9KMwOT876WXSEofO9K8H4MUnTEXZU0=
 github.com/gravitational/trace v1.1.10-0.20200129130229-dd5b2e8eae86/go.mod h1:RvdOUHE4SHqR3oXlFFKnGzms8a5dugHygGw1bqDstYI=
 github.com/gravitational/trace v1.1.11 h1:c+saoho5rBdj5lPEGzfHaYjh4Do4d+jX7hh4BgQtKc0=
 github.com/gravitational/trace v1.1.11/go.mod h1:RvdOUHE4SHqR3oXlFFKnGzms8a5dugHygGw1bqDstYI=

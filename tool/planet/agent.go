@@ -356,19 +356,20 @@ func runAgent(conf *agent.Config, monitoringConf *monitoring.Config, leaderConf 
 			return nil
 		}
 	})
-	g.Go(func() error {
-		watchSignals(cancel)
+	g.GoCtx(func(ctx context.Context) error {
+		watchSignals(ctx, cancel)
 		return nil
 	})
 
 	return trace.Wrap(g.Wait())
 }
 
-func watchSignals(cancel context.CancelFunc) {
+func watchSignals(ctx context.Context, cancel context.CancelFunc) {
 	defer cancel()
 	signalC := make(chan os.Signal, 1)
 	signal.Notify(signalC, os.Interrupt, syscall.SIGTERM, syscall.SIGUSR1)
 
+	go debugLoop(ctx)
 	for sig := range signalC {
 		if sig != syscall.SIGUSR1 {
 			log.WithField("signal", sig).Info("Received termination signal, will exit.")

@@ -17,6 +17,7 @@ limitations under the License.
 package main
 
 import (
+	"context"
 	"encoding/json"
 	"flag"
 	"fmt"
@@ -659,6 +660,9 @@ func setupSignalHandlers(seLinux bool) {
 	var ignores = []os.Signal{syscall.SIGPIPE, syscall.SIGHUP, syscall.SIGUSR2, syscall.SIGALRM}
 	var terminals = []os.Signal{os.Interrupt, syscall.SIGTERM, syscall.SIGQUIT}
 	c := make(chan os.Signal, 1)
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+	go debugLoop(ctx)
 	go func() {
 		for sig := range c {
 			switch {
@@ -738,7 +742,7 @@ func flipDebugLogging() {
 	debugC <- struct{}{}
 }
 
-func debugLoop() {
+func debugLoop(ctx context.Context) {
 	var debug bool
 	for {
 		select {
@@ -750,6 +754,9 @@ func debugLoop() {
 			}
 			log.SetLevel(level)
 			trace.SetDebug(debug)
+
+		case <-ctx.Done():
+			return
 		}
 	}
 }
