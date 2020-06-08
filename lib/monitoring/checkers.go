@@ -68,8 +68,6 @@ type Config struct {
 	CloudProvider string
 	// NodeName is the kubernetes name of this node
 	NodeName string
-	// HighWatermark is the usage limit percentage of devicemapper
-	HighWatermark uint
 	// WatermarkWarning is the usage limit percentage of monitored directories
 	WatermarkWarning uint
 	// WatermarkCritical is the usage limit percentage of monitored directories
@@ -80,9 +78,6 @@ type Config struct {
 
 // CheckAndSetDefaults validates monitoring configuration and sets defaults
 func (c Config) CheckAndSetDefaults() error {
-	if c.HighWatermark > 100 {
-		return trace.BadParameter("high watermark percentage should be 0-100")
-	}
 	if c.HTTPTimeout == 0 {
 		c.HTTPTimeout = constants.HTTPTimeout
 	}
@@ -232,12 +227,6 @@ func addToMaster(node agent.Agent, config *Config, etcdConfig *monitoring.ETCDCo
 	}
 	node.AddChecker(storageChecker)
 
-	// the following checker will be no-op if docker driver is not devicemapper
-	node.AddChecker(monitoring.NewDockerDevicemapperChecker(
-		monitoring.DockerDevicemapperConfig{
-			HighWatermark: config.HighWatermark,
-		}))
-
 	pingChecker, err := monitoring.NewPingChecker(
 		monitoring.PingCheckerConfig{
 			SerfRPCAddr:    node.GetConfig().SerfConfig.Addr,
@@ -331,12 +320,6 @@ func addToNode(node agent.Agent, config *Config, etcdConfig *monitoring.ETCDConf
 		return trace.Wrap(err)
 	}
 	node.AddChecker(storageChecker)
-
-	// the following checker will be no-op if docker driver is not devicemapper
-	node.AddChecker(monitoring.NewDockerDevicemapperChecker(
-		monitoring.DockerDevicemapperConfig{
-			HighWatermark: config.HighWatermark,
-		}))
 
 	// Add checkers specific to cloud provider backend
 	switch strings.ToLower(config.CloudProvider) {
