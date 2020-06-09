@@ -49,9 +49,6 @@ const (
 	// or beginPort+offset, inclusive) that may be consumed in order to proxy service traffic.
 	// If (unspecified, 0, or 0-0) then ports will be randomly chosen.
 	EnvProxyPortRange = "KUBE_PROXY_PORT_RANGE"
-	// EnvFeatureGates specifies the set of key=value pairs that describe feature gates for
-	// alpha/experimental features inside the runtime container
-	EnvFeatureGates = "KUBE_FEATURE_GATES"
 	// EnvVxlanPort is the environment variable with overlay network port
 	EnvVxlanPort = "PLANET_VXLAN_PORT"
 	// EnvStorageBackend names the environment variable that specifies
@@ -87,22 +84,7 @@ const (
 	EnvEtcdVersion = "PLANET_ETCD_VERSION"
 	// EnvEtcdPrevVersion points to the previously installed version used for rollback
 	EnvEtcdPrevVersion = "PLANET_ETCD_PREV_VERSION"
-	// EnvEtcdctlCertFile names the environment variable that specifies the location
-	// of the certificate file
-	EnvEtcdctlCertFile = "ETCDCTL_CERT_FILE"
-	// EnvEtcdctlKeyFile names the environment variable that specifies the location
-	// of the certificate key file
-	EnvEtcdctlKeyFile = "ETCDCTL_KEY_FILE"
-	// EnvEtcdctlCAFile names the environment variable that specifies the location
-	// of the CA certificate file
-	EnvEtcdctlCAFile = "ETCDCTL_CA_FILE"
-	// EnvEtcdctlPeers names the environment variable that specifies the list of nodes
-	// in the etcd cluster as a comma-separated list
-	EnvEtcdctlPeers = "ETCDCTL_PEERS"
 
-	// EnvLeaderKey names the environment variable that specifies the name
-	// of the key with the active leader
-	EnvLeaderKey = "KUBE_LEADER_KEY"
 	// EnvRole names the environment variable that specifies the service role of this node
 	// (master or not)
 	EnvRole = "PLANET_ROLE"
@@ -120,12 +102,6 @@ const (
 	// EnvInitialCluster names the environment variable that specifies the initial
 	// agent cluster configuration as comma-separated list of addresses
 	EnvInitialCluster = "PLANET_INITIAL_CLUSTER"
-	// EnvAWSAccessKey names the environment variable that specifies the AWS
-	// access key
-	EnvAWSAccessKey = "AWS_ACCESS_KEY_ID"
-	// EnvAWSSecretKey names the environment variable that specifies the AWS
-	// secret access key
-	EnvAWSSecretKey = "AWS_SECRET_ACCESS_KEY"
 	// EnvKubeConfig names the environment variable that specifies location
 	// of the kubernetes configuration file
 	EnvKubeConfig = "KUBECONFIG"
@@ -135,9 +111,6 @@ const (
 	// EnvDNSZones is the environment variable that specified DNS zone
 	// overrides for the CoreDNS config
 	EnvDNSZones = "PLANET_DNS_ZONES"
-	// EnvHostname names the environment variable that specifies the new
-	// hostname
-	EnvHostname = "PLANET_HOSTNAME"
 	// EnvDNSUpstreamNameservers names the environment variable that specifies
 	// additional nameservers to add to the container's CoreDNS configuration
 	EnvDNSUpstreamNameservers = "PLANET_DNS_UPSTREAM_NAMESERVERS"
@@ -160,12 +133,6 @@ const (
 
 	// EnvKubeProxyOptions specifies additional command line options for kube-proxy
 	EnvKubeProxyOptions = "KUBE_PROXY_FLAGS"
-
-	// EnvControllerManagerOptions specifies additional command line options for controller manager
-	EnvControllerManagerOptions = "KUBE_CONTROLLER_MANAGER_FLAGS"
-
-	// EnvCloudControllerManagerOptions specifies additional command line options for cloud controller manager
-	EnvCloudControllerManagerOptions = "KUBE_CLOUD_CONTROLLER_MANAGER_FLAGS"
 
 	// EnvKubeCloudOptions specifies cloud configuration command line options
 	EnvKubeCloudOptions = "KUBE_CLOUD_FLAGS"
@@ -196,8 +163,6 @@ const (
 
 	// EnvServiceUID names the environment variable that specifies the service user ID
 	EnvServiceUID = "PLANET_SERVICE_UID"
-	// EnvServiceGID names the environment variable that specifies the service group ID
-	EnvServiceGID = "PLANET_SERVICE_GID"
 
 	// EnvGCENodeTags names the environment variable that defines network node tags on GCE
 	EnvGCENodeTags = "PLANET_GCE_NODE_TAGS"
@@ -267,16 +232,9 @@ const (
 	// when executing commands inside the container
 	DefaultEnvPath = "/usr/local/bin:/usr/local/sbin:/usr/bin:/usr/sbin:/bin:/sbin"
 
-	// PlanetRoleMaster specifies the value of the node role to be master.
-	// A master node runs additional runtime tests as well as additional
-	// set of services
-	PlanetRoleMaster = "master"
-
 	// EtcdProxyOn specifies the value of the proxy mode that enables it
 	// See https://coreos.com/etcd/docs/latest/v2/configuration.html
 	EtcdProxyOn = "on"
-	// EtcdProxyOff specifies the value of the proxy mode that disables it
-	EtcdProxyOff = "off"
 
 	// DefaultLeaderTerm specifies the time-to-live value for the key used in leader election.
 	// It defines the maximum time the leader is maintained before the election is re-attempted.
@@ -309,11 +267,6 @@ const (
 	// AssumeEtcdVersion is the etcd version we assume we're using if we're unable to locate the running version
 	AssumeEtcdVersion = "v2.3.8"
 
-	// LegacyAPIServerDNSName is the domain name of a current leader server
-	// as used to be in previous versions.
-	// This is kept for backwards-compatibility
-	LegacyAPIServerDNSName = "apiserver"
-
 	// DNSNdots defines the threshold for amount of dots that must appear in a name
 	// before an initial absolute query will be made
 	// See resolv.conf(5) on a Linux machine
@@ -345,24 +298,8 @@ const (
 	// PlanetResolv is planet local resolver
 	PlanetResolv = "resolv.gravity.conf"
 
-	// SharedFileMask is file mask for shared file
-	SharedFileMask = 0644
-
-	// SharedDirMask is a permissions mask for a shared directory
-	SharedDirMask = 0755
-
-	// SharedReadWriteMask is a mask for a shared file with read/write access for everyone
-	SharedReadWriteMask = 0666
-
 	// CoreDNSConf is the location of the coredns configuration file within planet
 	CoreDNSConf = "/etc/coredns/coredns.conf"
-
-	// CoreDNSClusterConf is the location of the coredns configuration file for the overlay network
-	// and updated via k8s configmap
-	CoreDNSClusterConf = "/etc/coredns/configmaps/overlay.conf"
-
-	// CoreDNSHosts is the location of a hosts file to be served by CoreDNS
-	CoreDNSHosts = "/etc/coredns/coredns.hosts"
 
 	// HostsFile specifies the location of the hosts configuration file
 	HostsFile = "/etc/hosts"
@@ -398,12 +335,6 @@ const (
 	// APIServerKeyPath specifies the path to the api server key
 	APIServerKeyPath = "/var/state/apiserver.key"
 
-	// DefaultDockerBridge specifies the default name of the docker bridge
-	DefaultDockerBridge = "docker0"
-
-	// DefaultDockerUnit specifies the name of the docker service unit file
-	DefaultDockerUnit = "docker.service"
-
 	// MinKernelVersion specifies the minimum kernel version on the host
 	MinKernelVersion = 310
 
@@ -432,9 +363,6 @@ const (
 	// ServiceGroup specifies the name of the service group as seen inside the container.
 	ServiceGroup string = "planet"
 
-	// ETCDBackupTimeout specifies the timeout when attempting to backup/restore etcd
-	ETCDBackupTimeout = 5 * time.Minute
-
 	// ETCDRegistryPrefix is the etcd directory for the k8s api server data in etcd
 	ETCDRegistryPrefix = "/registry"
 
@@ -443,9 +371,6 @@ const (
 
 	// WaitInterval is the amount of time to sleep between loops
 	WaitInterval = 100 * time.Millisecond
-
-	// ServiceTimeout is the amount of time when trying to start/stop a systemd service
-	ServiceTimeout = 1 * time.Minute
 
 	// EtcdUpgradeTimeout is the amount of time to wait for operations during the etcd upgrade
 	EtcdUpgradeTimeout = 15 * time.Minute
@@ -459,13 +384,6 @@ const (
 
 // DefaultDNSAddress is the default listen address for local DNS server.
 var DefaultDNSAddress = fmt.Sprintf("%v:%v", DefaultDNSListenAddr, DNSPort)
-
-// K8sSearchDomains are default k8s search domain settings
-var K8sSearchDomains = []string{
-	"svc.cluster.local",
-	"default.svc.cluster.local",
-	"kube-system.svc.cluster.local",
-}
 
 // KubeletConfig specifies the default kubelet configuration
 var KubeletConfig = kubeletconfig.KubeletConfiguration{

@@ -548,8 +548,6 @@ func run() error {
 	return trace.Wrap(err)
 }
 
-const monitoringDbFile = "monitoring.db"
-
 func EnvVars(s kingpin.Settings) *box.EnvVars {
 	vars := new(box.EnvVars)
 	s.SetValue(vars)

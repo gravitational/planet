@@ -100,7 +100,7 @@ build: $(BUILD_ASSETS)/planet $(BUILDDIR)/planet.tar.gz
 	cp -f $< $(OUTPUTDIR)/rootfs/usr/bin/
 
 .PHONY: planet-bin
-planet-bin:
+planet-bin: | $(OUTPUTDIR)
 	GO111MODULE=on go build -mod=vendor -o $(OUTPUTDIR)/planet github.com/gravitational/planet/tool/planet
 
 # Deploys the build artifacts to Amazon S3
@@ -243,3 +243,6 @@ clean-images: clean-containers
 .PHONY: get-version
 get-version:
 	@echo $(PLANET_BUILD_TAG)
+
+$(OUTPUTDIR):
+	mkdir -p $@

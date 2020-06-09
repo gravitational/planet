@@ -51,8 +51,6 @@ import (
 
 var (
 	etcdUpgradeService = true
-	etcdService        = false
-	stopApiserverTrue  = true
 	stopApiserverFalse = false
 )
 
@@ -713,6 +711,7 @@ func getConfirmation(prompt, confirmationResponse string) error {
 	return nil
 }
 
+//nolint:deadcode,unused
 func convertError(err error) error {
 	if err == nil {
 		return nil

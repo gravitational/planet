@@ -48,14 +48,15 @@ import (
 	"text/template"
 	"time"
 
-	systemdDbus "github.com/coreos/go-systemd/v22/dbus"
-	"github.com/davecgh/go-spew/spew"
-	"github.com/godbus/dbus/v5"
 
-	"github.com/containerd/cgroups"
 	"github.com/gravitational/planet/lib/box"
 	"github.com/gravitational/planet/lib/constants"
 	"github.com/gravitational/planet/lib/utils"
+
+	"github.com/containerd/cgroups"
+	systemdDbus "github.com/coreos/go-systemd/v22/dbus"
+	"github.com/davecgh/go-spew/spew"
+	"github.com/godbus/dbus/v5"
 	"github.com/gravitational/trace"
 	specs "github.com/opencontainers/runtime-spec/specs-go"
 	"github.com/sirupsen/logrus"
@@ -200,7 +201,7 @@ func defaultCgroupConfig(numCPU int, isMaster bool) *CgroupConfig {
 		Cgroups: []CgroupEntry{
 			// /user
 			// - cgroup for user processes, capped cpu usage
-			CgroupEntry{
+			{
 				Path: "user",
 				LinuxResources: specs.LinuxResources{
 					CPU: &specs.LinuxCPU{
@@ -213,7 +214,7 @@ func defaultCgroupConfig(numCPU int, isMaster bool) *CgroupConfig {
 			// /system.slice
 			// - cgroup for planet services
 			// - set swapinness to 0
-			CgroupEntry{
+			{
 				Path: "system.slice",
 				LinuxResources: specs.LinuxResources{
 					CPU: &specs.LinuxCPU{
@@ -228,7 +229,7 @@ func defaultCgroupConfig(numCPU int, isMaster bool) *CgroupConfig {
 			// - cgroup for kubernetes pods
 			// - minimum cpu scheduling priority
 			// - Set swappiness to 20, so processes are less likely to swap. (Kubernetes recommends no swap)
-			CgroupEntry{
+			{
 				Path: "kube-pods",
 				LinuxResources: specs.LinuxResources{
 					CPU: &specs.LinuxCPU{
