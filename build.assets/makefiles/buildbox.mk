@@ -8,6 +8,13 @@ TARBALL ?= $(BUILDDIR)/planet.tar.gz
 PLANET_BUILD_TAG ?= $(shell git describe --tags)
 BUILDBOX_NAME ?= planet/buildbox
 BUILDBOX_IMAGE ?= $(BUILDBOX_NAME):$(PLANET_BUILD_TAG)
+
+GOCACHE_DOCKER_OPTIONS ?=
+GOCACHE ?= $(shell go env GOCACHE 2>/dev/null || echo $${HOME}/.cache/go-build)
+ifdef GOCACHE_ENABLED
+GOCACHE_DOCKER_OPTIONS = --volume $(GOCACHE):$(GOCACHE) --env "GOCACHE=$(GOCACHE)"
+endif
+
 export
 TMPFS_SIZE ?= 900m
 VER_UPDATES = ETCD_LATEST_VER KUBE_VER FLANNEL_VER DOCKER_VER HELM_VER COREDNS_VER NODE_PROBLEM_DETECTOR_VER
@@ -19,7 +26,7 @@ $(ASSETDIR):
 	@mkdir -p $(ASSETDIR)
 
 .PHONY: build
-build: | $(ASSETDIR)
+build: | $(ASSETDIR) $(GOCACHE)
 	@echo -e "\n---> Launching 'buildbox' Docker container to build planet:\n"
 	docker run -i -u $$(id -u) --rm=true \
 		--volume=$(ASSETS):/assets \
@@ -31,6 +38,7 @@ build: | $(ASSETDIR)
 		--env="ROOTFS=/rootfs" \
 		--env="TARGETDIR=/targetdir" \
 		--env="ASSETDIR=/assetdir" \
+		$(GOCACHE_DOCKER_OPTIONS) \
 		$(BUILDBOX_IMAGE) \
 		dumb-init make -e \
 			KUBE_VER=$(KUBE_VER) \
@@ -47,6 +55,9 @@ build: | $(ASSETDIR)
 			PLANET_GID=$(PLANET_GID) \
 			-C /assets/makefiles -f planet.mk
 	$(MAKE) -C $(ASSETS)/makefiles/master/k8s-master -e -f containers.mk
+
+$(GOCACHE):
+	mkdir -p $@
 
 .PHONY: planet-image
 planet-image:
