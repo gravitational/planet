@@ -10,7 +10,7 @@ BUILDBOX_NAME ?= planet/buildbox
 BUILDBOX_IMAGE ?= $(BUILDBOX_NAME):$(PLANET_BUILD_TAG)
 
 GOCACHE_DOCKER_OPTIONS ?=
-GOCACHE ?= $(HOME)/.cache/go-build
+GOCACHE ?= $(shell go env GOCACHE 2>/dev/null || echo $${HOME}/.cache/go-build)
 ifdef GOCACHE_ENABLED
 GOCACHE_DOCKER_OPTIONS = --volume $(GOCACHE):$(GOCACHE) --env "GOCACHE=$(GOCACHE)"
 endif
