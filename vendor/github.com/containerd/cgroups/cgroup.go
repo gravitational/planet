@@ -25,29 +25,56 @@ import (
 	"strings"
 	"sync"
 
+	v1 "github.com/containerd/cgroups/stats/v1"
 	specs "github.com/opencontainers/runtime-spec/specs-go"
 	"github.com/pkg/errors"
 )
 
 // New returns a new control via the cgroup cgroups interface
-func New(hierarchy Hierarchy, path Path, resources *specs.LinuxResources) (Cgroup, error) {
+func New(hierarchy Hierarchy, path Path, resources *specs.LinuxResources, opts ...InitOpts) (Cgroup, error) {
+	config := newInitConfig()
+	for _, o := range opts {
+		if err := o(config); err != nil {
+			return nil, err
+		}
+	}
 	subsystems, err := hierarchy()
 	if err != nil {
 		return nil, err
 	}
+	var active []Subsystem
 	for _, s := range subsystems {
+		// check if subsystem exists
 		if err := initializeSubsystem(s, path, resources); err != nil {
+			if err == ErrControllerNotActive {
+				if config.InitCheck != nil {
+					if skerr := config.InitCheck(s, path, err); skerr != nil {
+						if skerr != ErrIgnoreSubsystem {
+							return nil, skerr
+						}
+					}
+				}
+				continue
+			}
 			return nil, err
 		}
+		active = append(active, s)
 	}
 	return &cgroup{
 		path:       path,
-		subsystems: subsystems,
+		subsystems: active,
 	}, nil
 }
 
 // Load will load an existing cgroup and allow it to be controlled
-func Load(hierarchy Hierarchy, path Path) (Cgroup, error) {
+// All static path should not include `/sys/fs/cgroup/` prefix, it should start with your own cgroups name
+func Load(hierarchy Hierarchy, path Path, opts ...InitOpts) (Cgroup, error) {
+	config := newInitConfig()
+	for _, o := range opts {
+		if err := o(config); err != nil {
+			return nil, err
+		}
+	}
 	var activeSubsystems []Subsystem
 	subsystems, err := hierarchy()
 	if err != nil {
@@ -60,6 +87,16 @@ func Load(hierarchy Hierarchy, path Path) (Cgroup, error) {
 			if os.IsNotExist(errors.Cause(err)) {
 				return nil, ErrCgroupDeleted
 			}
+			if err == ErrControllerNotActive {
+				if config.InitCheck != nil {
+					if skerr := config.InitCheck(s, path, err); skerr != nil {
+						if skerr != ErrIgnoreSubsystem {
+							return nil, skerr
+						}
+					}
+				}
+				continue
+			}
 			return nil, err
 		}
 		if _, err := os.Lstat(s.Path(p)); err != nil {
@@ -69,6 +106,10 @@ func Load(hierarchy Hierarchy, path Path) (Cgroup, error) {
 			return nil, err
 		}
 		activeSubsystems = append(activeSubsystems, s)
+	}
+	// if we do not have any active systems then the cgroup is deleted
+	if len(activeSubsystems) == 0 {
+		return nil, ErrCgroupDeleted
 	}
 	return &cgroup{
 		path:       path,
@@ -207,7 +248,7 @@ func (c *cgroup) Delete() error {
 }
 
 // Stat returns the current metrics for the cgroup
-func (c *cgroup) Stat(handlers ...ErrorHandler) (*Metrics, error) {
+func (c *cgroup) Stat(handlers ...ErrorHandler) (*v1.Metrics, error) {
 	c.mu.Lock()
 	defer c.mu.Unlock()
 	if c.err != nil {
@@ -217,10 +258,10 @@ func (c *cgroup) Stat(handlers ...ErrorHandler) (*Metrics, error) {
 		handlers = append(handlers, errPassthrough)
 	}
 	var (
-		stats = &Metrics{
-			CPU: &CPUStat{
-				Throttling: &Throttle{},
-				Usage:      &CPUUsage{},
+		stats = &v1.Metrics{
+			CPU: &v1.CPUStat{
+				Throttling: &v1.Throttle{},
+				Usage:      &v1.CPUUsage{},
 			},
 		}
 		wg   = &sync.WaitGroup{}
@@ -417,7 +458,26 @@ func (c *cgroup) OOMEventFD() (uintptr, error) {
 	if err != nil {
 		return 0, err
 	}
-	return s.(*memoryController).OOMEventFD(sp)
+	return s.(*memoryController).memoryEvent(sp, OOMEvent())
+}
+
+// RegisterMemoryEvent allows the ability to register for all v1 memory cgroups
+// notifications.
+func (c *cgroup) RegisterMemoryEvent(event MemoryEvent) (uintptr, error) {
+	c.mu.Lock()
+	defer c.mu.Unlock()
+	if c.err != nil {
+		return 0, c.err
+	}
+	s := c.getSubsystem(Memory)
+	if s == nil {
+		return 0, ErrMemoryNotSupported
+	}
+	sp, err := c.path(Memory)
+	if err != nil {
+		return 0, err
+	}
+	return s.(*memoryController).memoryEvent(sp, event)
 }
 
 // State returns the state of the cgroup and its processes
@@ -458,6 +518,9 @@ func (c *cgroup) MoveTo(destination Cgroup) error {
 		}
 		for _, p := range processes {
 			if err := destination.Add(p); err != nil {
+				if strings.Contains(err.Error(), "no such process") {
+					continue
+				}
 				return err
 			}
 		}

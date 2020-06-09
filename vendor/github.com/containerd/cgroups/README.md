@@ -65,7 +65,7 @@ To update the resources applied in the cgroup
 ```go
 shares = uint64(200)
 if err := control.Update(&specs.LinuxResources{
-    CPU: &specs.CPU{
+    CPU: &specs.LinuxCPU{
         Shares: &shares,
     },
 }); err != nil {
@@ -111,6 +111,31 @@ err := control.MoveTo(destination)
 ```go
 subCgroup, err := control.New("child", resources)
 ```
+
+### Registering for memory events
+
+This allows you to get notified by an eventfd for v1 memory cgroups events.
+
+```go
+event := cgroups.MemoryThresholdEvent(50 * 1024 * 1024, false)
+efd, err := control.RegisterMemoryEvent(event)
+```
+
+```go
+event := cgroups.MemoryPressureEvent(cgroups.MediumPressure, cgroups.DefaultMode)
+efd, err := control.RegisterMemoryEvent(event)
+```
+
+```go
+efd, err := control.OOMEventFD()
+// or by using RegisterMemoryEvent
+event := cgroups.OOMEvent()
+efd, err := control.RegisterMemoryEvent(event)
+```
+
+### Attention
+
+All static path should not include `/sys/fs/cgroup/` prefix, it should start with your own cgroups name
 
 ## Project details
 
