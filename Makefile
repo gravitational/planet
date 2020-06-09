@@ -201,6 +201,11 @@ buildbox: base
 .PHONY: clean
 clean:
 	$(MAKE) -C $(ASSETS)/makefiles -f buildbox.mk clean
+	rm -rf $(BUILDDIR)
+
+.PHONY: dev-clean
+dev-clean:
+	$(MAKE) -C $(ASSETS)/makefiles -f buildbox.mk clean
 	rm -rf $(BUILDDIR)/planet
 
 # internal use:
