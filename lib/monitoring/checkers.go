@@ -70,7 +70,7 @@ type Config struct {
 	NodeName string
 	// LowWatermark is the disk usage warning limit percentage of monitored directories
 	LowWatermark uint
-	// HighWatermark is the disk usage critical limit percentage of monitored directores
+	// HighWatermark is the disk usage critical limit percentage of monitored directories
 	HighWatermark uint
 	// HTTPTimeout specifies the HTTP timeout for checks
 	HTTPTimeout time.Duration
