@@ -167,7 +167,8 @@ func run() error {
 		cagentDNSUpstreamNameservers = List(cagent.Flag("nameservers", "List of additional upstream nameservers to add to DNS configuration as a comma-separated list of IPs").OverrideDefaultFromEnvar(EnvDNSUpstreamNameservers))
 		cagentDNSZones               = DNSOverrides(cagent.Flag("dns-zones", "Comma-separated list of DNS zone to nameserver IP mappings as 'zone/nameserver' pairs").OverrideDefaultFromEnvar(EnvDNSZones))
 		cagentCloudProvider          = cagent.Flag("cloud-provider", "Which cloud provider backend the cluster is using").OverrideDefaultFromEnvar(EnvCloudProvider).String()
-		cagentHighWatermark          = cagent.Flag("high-watermark", "Usage percentage of monitored directories and devicemapper which is considered degrading").Default(strconv.Itoa(HighWatermark)).Uint64()
+		cagentLowWatermark           = cagent.Flag("low-watermark", "Low disk usage percentage of monitored directories").OverrideDefaultFromEnvar("PLANET_LOW_WATERMARK").Uint64()
+		cagentHighWatermark          = cagent.Flag("high-watermark", "High disk usage percentage of monitored directories").OverrideDefaultFromEnvar("PLANET_HIGH_WATERMARK").Uint64()
 		cagentHTTPTimeout            = cagent.Flag("http-timeout", "Timeout for HTTP requests, formatted as Go duration.").OverrideDefaultFromEnvar(EnvPlanetAgentHTTPTimeout).Default(constants.HTTPTimeout.String()).Duration()
 		cagentTimelineDir            = cagent.Flag("timeline-dir", "Directory to be used for timeline storage").Default("/tmp/timeline").String()
 		cagentRetention              = cagent.Flag("retention", "Window to retain timeline as a Go duration").Duration()
@@ -352,6 +353,7 @@ func run() error {
 			ETCDConfig:            etcdConf,
 			DisableInterPodCheck:  disableInterPodCheck,
 			CloudProvider:         *cagentCloudProvider,
+			LowWatermark:          uint(*cagentLowWatermark),
 			HighWatermark:         uint(*cagentHighWatermark),
 			NodeName:              *cagentNodeName,
 			HTTPTimeout:           *cagentHTTPTimeout,
