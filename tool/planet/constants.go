@@ -356,7 +356,7 @@ const (
 	EtcdUpgradeTimeout = 15 * time.Minute
 
 	// HighWatermark is the disk usage percentage that is considered degrading
-	HighWatermark = 80
+	HighWatermark = 90
 )
 
 // K8sSearchDomains are default k8s search domain settings
