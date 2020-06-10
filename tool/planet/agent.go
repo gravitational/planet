@@ -278,10 +278,6 @@ func runAgent(conf *agent.Config, monitoringConf *monitoring.Config, leaderConf 
 	ctx, cancelCtx := context.WithCancel(context.Background())
 	defer cancelCtx()
 
-	err := monitoringConf.Check()
-	if err != nil {
-		return trace.Wrap(err)
-	}
 	if conf.Tags == nil {
 		conf.Tags = make(map[string]string)
 	}
