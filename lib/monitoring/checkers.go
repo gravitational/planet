@@ -68,7 +68,9 @@ type Config struct {
 	CloudProvider string
 	// NodeName is the kubernetes name of this node
 	NodeName string
-	// HighWatermark is the usage limit percentage of monitored directories and devicemapper
+	// LowWatermark is the disk usage warning limit percentage of monitored directories
+	LowWatermark uint
+	// HighWatermark is the disk usage critical limit percentage of monitored directories
 	HighWatermark uint
 	// HTTPTimeout specifies the HTTP timeout for checks
 	HTTPTimeout time.Duration
@@ -76,9 +78,6 @@ type Config struct {
 
 // CheckAndSetDefaults validates monitoring configuration
 func (c *Config) CheckAndSetDefaults() error {
-	if c.HighWatermark > 100 {
-		return trace.BadParameter("high watermark percentage should be 0-100")
-	}
 	if c.HTTPTimeout == 0 {
 		c.HTTPTimeout = constants.HTTPTimeout
 	}
@@ -217,15 +216,18 @@ func addToMaster(node agent.Agent, config *Config, etcdConfig *monitoring.ETCDCo
 			"leader.telekube.local.",
 		}, config.LocalNameservers...))
 	}
-	node.AddChecker(monitoring.NewStorageChecker(monitoring.StorageConfig{
-		Path:          constants.GravityDataDir,
-		HighWatermark: config.HighWatermark,
-	}))
-	// the following checker will be no-op if docker driver is not devicemapper
-	node.AddChecker(monitoring.NewDockerDevicemapperChecker(
-		monitoring.DockerDevicemapperConfig{
+
+	storageChecker, err := monitoring.NewStorageChecker(
+		monitoring.StorageConfig{
+			Path:          constants.GravityDataDir,
+			LowWatermark:  config.LowWatermark,
 			HighWatermark: config.HighWatermark,
-		}))
+		},
+	)
+	if err != nil {
+		return trace.Wrap(err)
+	}
+	node.AddChecker(storageChecker)
 
 	pingChecker, err := monitoring.NewPingChecker(
 		monitoring.PingCheckerConfig{
@@ -314,15 +316,18 @@ func addToNode(node agent.Agent, config *Config, etcdConfig *monitoring.ETCDConf
 		NodeName:       config.NodeName,
 		CheckCondition: monitoring.CheckNodeCondition,
 	}))
-	node.AddChecker(monitoring.NewStorageChecker(monitoring.StorageConfig{
-		Path:          constants.GravityDataDir,
-		HighWatermark: config.HighWatermark,
-	}))
-	// the following checker will be no-op if docker driver is not devicemapper
-	node.AddChecker(monitoring.NewDockerDevicemapperChecker(
-		monitoring.DockerDevicemapperConfig{
+
+	storageChecker, err := monitoring.NewStorageChecker(
+		monitoring.StorageConfig{
+			Path:          constants.GravityDataDir,
+			LowWatermark:  config.LowWatermark,
 			HighWatermark: config.HighWatermark,
-		}))
+		},
+	)
+	if err != nil {
+		return trace.Wrap(err)
+	}
+	node.AddChecker(storageChecker)
 
 	// Add checkers specific to cloud provider backend
 	switch strings.ToLower(config.CloudProvider) {
