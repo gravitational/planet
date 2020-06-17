@@ -139,12 +139,12 @@ func startLeaderClient(conf *LeaderConfig, agent agent.Agent, errorC chan error)
 		log.Infof("new leader: %v", newVal)
 		if newVal == conf.PublicIP {
 			if err := startUnits(context.TODO()); err != nil {
-				log.Warnf("Failed to start units: %v", err)
+				log.WithError(err).Warn("Failed to start units.")
 			}
 			return
 		}
 		if err := stopUnits(context.TODO()); err != nil {
-			log.Warnf("Failed to stop units: %v.", err)
+			log.WithError(err).Warn("Failed to stop units:.")
 		}
 	})
 
@@ -264,7 +264,7 @@ func startUnits(ctx context.Context) error {
 		if err != nil {
 			errors = append(errors, err)
 			// Instead of failing immediately, complete start of other units
-			logger.WithError(err).Warnf("Failed to start unit.")
+			logger.WithError(err).Warn("Failed to start unit.")
 		}
 	}
 	return trace.NewAggregate(errors...)
@@ -278,15 +278,16 @@ func stopUnits(ctx context.Context) error {
 		err := systemctlCmd(ctx, "stop", unit)
 		if err != nil {
 			errors = append(errors, err)
-			// Instead of failing immediately, complete start of other units
-			logger.WithError(err).Warnf("Failed to stop unit: %s.")
+			// Instead of failing immediately, complete stop of other units
+			logger.WithError(err).Warn("Failed to stop unit.")
 		}
 		// Even if 'systemctl stop' did not fail, the service could have failed stopping
-		// even though 'stop' is blocking, it does not return an error upon service failing
+		// even though 'stop' is blocking, it does not return an error upon service failing.
+		// See github.com/gravitational/gravity/issues/1209 for more details
 		if err := systemctlCmd(ctx, "is-failed", unit); err == nil {
 			logger.Info("Reset failed unit.")
 			if err := systemctlCmd(ctx, "reset-failed", unit); err != nil {
-				logger.Warnf("Failed to reset failed unit: %v.", err)
+				logger.WithError(err).Warn("Failed to reset failed unit.")
 			}
 		}
 	}
