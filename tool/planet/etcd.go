@@ -735,14 +735,26 @@ func convertError(err error) error {
 	return err
 }
 
-// systemctl runs a local systemctl command.
+// systemctl runs a local systemctl command in non-blocking mode.
 // TODO(knisbet): I'm using systemctl here, because using go-systemd and dbus appears to be unreliable, with
 // masking unit files not working. Ideally, this will use dbus at some point in the future.
 func systemctl(ctx context.Context, operation, service string) error {
-	out, err := exec.CommandContext(ctx, "/bin/systemctl", "--no-block", operation, service).CombinedOutput()
-	log.Infof("%v %v: %v", operation, service, string(out))
+	return systemctlCmd(ctx, operation, service, "--no-block")
+}
+
+func systemctlCmd(ctx context.Context, operation, service string, args ...string) error {
+	args = append([]string{operation, service}, args...)
+	out, err := exec.CommandContext(ctx, "/bin/systemctl", args...).CombinedOutput()
+	log.WithFields(log.Fields{
+		"operation": operation,
+		"output":    string(out),
+		"service":   service,
+	}).Info("Execute systemctl.")
 	if err != nil {
-		return trace.Wrap(err, "failed to %v %v: %v", operation, service, string(out))
+		return trace.Wrap(err, "failed to execute systemctl: %s", out).AddFields(map[string]interface{}{
+			"operation": operation,
+			"service":   service,
+		})
 	}
 	return nil
 }
