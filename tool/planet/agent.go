@@ -144,7 +144,7 @@ func startLeaderClient(conf *LeaderConfig, agent agent.Agent, errorC chan error)
 			return
 		}
 		if err := stopUnits(context.TODO()); err != nil {
-			log.WithError(err).Warn("Failed to stop units:.")
+			log.WithError(err).Warn("Failed to stop units.")
 		}
 	})
 
@@ -185,7 +185,7 @@ func startLeaderClient(conf *LeaderConfig, agent agent.Agent, errorC chan error)
 			log.Info("Shut down services until election has been re-enabled.")
 			// Shut down services at startup if running as master
 			if err := stopUnits(context.TODO()); err != nil {
-				log.Warnf("Failed to stop units: %v.", err)
+				log.WithError(err).Warn("Failed to stop units.")
 			}
 		}
 	}
