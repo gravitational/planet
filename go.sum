@@ -180,6 +180,8 @@ github.com/gravitational/roundtrip v1.0.0 h1:eb+0EABfSKC8607CQ4oOyWCm9zVIfio/wW7
 github.com/gravitational/roundtrip v1.0.0/go.mod h1:qccpLd30tAJVSpx7aOEEnws4ZT3njPwdbtT8lNQxbAs=
 github.com/gravitational/satellite v0.0.9-0.20200609100618-407fa02c6dce h1:UptDml42JdB3GwN5UAsFyHL3jkT/6h9C8Dd7HvOsJ6c=
 github.com/gravitational/satellite v0.0.9-0.20200609100618-407fa02c6dce/go.mod h1:7bugfLfZ62l/Cuts2GWA6egYEQNI1wIjuvm6Ca4iiis=
+github.com/gravitational/satellite v0.0.9-0.20200622204742-3e27b8e36dec h1:4enBSeQs8F4CeX1rk5D/ON+jgGN1GQbFmtJyz59ubWI=
+github.com/gravitational/satellite v0.0.9-0.20200622204742-3e27b8e36dec/go.mod h1:7bugfLfZ62l/Cuts2GWA6egYEQNI1wIjuvm6Ca4iiis=
 github.com/gravitational/trace v1.1.11 h1:c+saoho5rBdj5lPEGzfHaYjh4Do4d+jX7hh4BgQtKc0=
 github.com/gravitational/trace v1.1.11/go.mod h1:RvdOUHE4SHqR3oXlFFKnGzms8a5dugHygGw1bqDstYI=
 github.com/gravitational/ttlmap v0.0.0-20200608174355-7e347b203ef0 h1:JmOlvnvlU4/JACZNMS99hpA9lxPZeHqB9lZXyucfyf0=
