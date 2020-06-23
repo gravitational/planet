@@ -23,7 +23,6 @@ import (
 	"io"
 	"io/ioutil"
 	"os"
-	"os/exec"
 	"os/signal"
 	"strconv"
 	"syscall"
@@ -138,13 +137,13 @@ func startLeaderClient(conf *LeaderConfig, agent agent.Agent, errorC chan error)
 	client.AddWatchCallback(conf.LeaderKey, conf.Term/3, func(key, prevVal, newVal string) {
 		log.Infof("new leader: %v", newVal)
 		if newVal == conf.PublicIP {
-			if err := unitsCommand("start"); err != nil {
-				log.Infof("failed to start units: %v", err)
+			if err := startUnits(context.TODO()); err != nil {
+				log.WithError(err).Warn("Failed to start units.")
 			}
 			return
 		}
-		if err := unitsCommand("stop"); err != nil {
-			log.Infof("failed to stop units: %v", err)
+		if err := stopUnits(context.TODO()); err != nil {
+			log.WithError(err).Warn("Failed to stop units.")
 		}
 	})
 
@@ -176,16 +175,16 @@ func startLeaderClient(conf *LeaderConfig, agent agent.Agent, errorC chan error)
 	if conf.Role == RoleMaster {
 		switch conf.ElectionEnabled {
 		case true:
-			log.Infof("adding voter for IP %v", conf.PublicIP)
+			log.Infof("Adding voter for IP %v.", conf.PublicIP)
 			ctx, cancelVoter = context.WithCancel(context.TODO())
 			if err = client.AddVoter(ctx, conf.LeaderKey, conf.PublicIP, conf.Term); err != nil {
 				return nil, trace.Wrap(err)
 			}
 		case false:
-			log.Info("shutting down services until election has been re-enabled")
+			log.Info("Shut down services until election has been re-enabled.")
 			// Shut down services at startup if running as master
-			if err := unitsCommand("stop"); err != nil {
-				log.Infof("failed to stop units: %v", err)
+			if err := stopUnits(context.TODO()); err != nil {
+				log.WithError(err).Warn("Failed to stop units.")
 			}
 		}
 	}
@@ -249,23 +248,46 @@ func updateDNS(conf *LeaderConfig, hostname string, newMasterIP string) error {
 	return nil
 }
 
-var electedUnits = []string{
+var controlPlaneUnits = []string{
 	"kube-controller-manager.service",
 	"kube-scheduler.service",
 	"kube-apiserver.service",
 }
 
-func unitsCommand(command string) error {
-	log.Debugf("executing %v on %v", command, electedUnits)
+func startUnits(ctx context.Context) error {
+	log.Debug("Start control plane units.")
 	var errors []error
-	for _, unit := range electedUnits {
-		cmd := exec.Command("/bin/systemctl", command, unit)
-		log.Debugf("executing %v", cmd)
-		out, err := cmd.CombinedOutput()
+	for _, unit := range controlPlaneUnits {
+		logger := log.WithField("unit", unit)
+		err := systemctlCmd(ctx, "start", unit)
 		if err != nil {
 			errors = append(errors, err)
 			// Instead of failing immediately, complete start of other units
-			log.Warningf("failed to execute %v: %s\n%v", cmd, out, trace.DebugReport(err))
+			logger.WithError(err).Warn("Failed to start unit.")
+		}
+	}
+	return trace.NewAggregate(errors...)
+}
+
+func stopUnits(ctx context.Context) error {
+	log.Debug("Stop control plane units.")
+	var errors []error
+	for _, unit := range controlPlaneUnits {
+		logger := log.WithField("unit", unit)
+		err := systemctlCmd(ctx, "stop", unit)
+		if err != nil {
+			errors = append(errors, err)
+			// Instead of failing immediately, complete stop of other units
+			logger.WithError(err).Warn("Failed to stop unit.")
+		}
+		// Even if 'systemctl stop' did not fail, the service could have failed stopping
+		// even though 'stop' is blocking, it does not return an error upon service failing.
+		// See github.com/gravitational/gravity/issues/1209 for more details
+		if err := systemctlCmd(ctx, "is-failed", unit); err == nil {
+			logger.Info("Reset failed unit.")
+			if err := systemctlCmd(ctx, "reset-failed", unit); err != nil {
+				logger.WithError(err).Warn("Failed to reset failed unit.")
+			}
 		}
 	}
 	return trace.NewAggregate(errors...)
