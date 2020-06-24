@@ -281,6 +281,17 @@ func addToMaster(node agent.Agent, config *Config, etcdConfig *monitoring.ETCDCo
 	}
 	node.AddChecker(nethealthChecker)
 
+	systemPodsChecker, err := monitoring.NewSystemPodsChecker(
+		monitoring.SystemPodsConfig{
+			NodeName:   config.NodeName,
+			KubeConfig: &kubeConfig,
+		},
+	)
+	if err != nil {
+		return trace.Wrap(err)
+	}
+	node.AddChecker(systemPodsChecker)
+
 	return nil
 }
 
@@ -345,6 +356,17 @@ func addToNode(node agent.Agent, config *Config, etcdConfig *monitoring.ETCDConf
 		return trace.Wrap(err)
 	}
 	node.AddChecker(nethealthChecker)
+
+	systemPodsChecker, err := monitoring.NewSystemPodsChecker(
+		monitoring.SystemPodsConfig{
+			NodeName:   config.NodeName,
+			KubeConfig: &nodeConfig,
+		},
+	)
+	if err != nil {
+		return trace.Wrap(err)
+	}
+	node.AddChecker(systemPodsChecker)
 
 	return nil
 }
