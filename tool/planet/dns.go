@@ -20,6 +20,7 @@ import (
 	"context"
 	"fmt"
 	"math"
+	"net"
 	"os"
 	"strings"
 	"time"
@@ -34,12 +35,13 @@ import (
 	v1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/apimachinery/pkg/util/intstr"
 	"k8s.io/client-go/kubernetes"
 )
 
 // setupResolver finds the kube-dns service address, and writes an environment file accordingly
-func setupResolver(ctx context.Context, role agent.Role) error {
+func setupResolver(ctx context.Context, role agent.Role, serviceCIDR net.IPNet) error {
 	client, err := cmd.GetKubeClientFromPath(constants.KubeletConfigPath)
 	if err != nil {
 		return trace.Wrap(err)
@@ -56,7 +58,7 @@ func setupResolver(ctx context.Context, role agent.Role) error {
 			}
 		}
 
-		err = updateEnvDNSAddresses(client, role)
+		err = updateEnvDNSAddresses(client, role, serviceCIDR)
 		if err != nil {
 			log.Warn("Error updating DNS env: ", err)
 			return trace.Wrap(err)
@@ -79,24 +81,28 @@ func writeEnvDNSAddresses(addr []string, overwrite bool) error {
 	return trace.Wrap(err)
 }
 
-func updateEnvDNSAddresses(client *kubernetes.Clientset, role agent.Role) error {
-	// try and locate the kube-dns svc clusterIP
-	svcMaster, err := client.CoreV1().Services(metav1.NamespaceSystem).Get("kube-dns", metav1.GetOptions{})
+func updateEnvDNSAddresses(client *kubernetes.Clientset, role agent.Role, serviceCIDR net.IPNet) error {
+	// locate the cluster IP of the kube-dns service
+	masterServices, err := client.CoreV1().Services(metav1.NamespaceSystem).List(metav1.ListOptions{
+		LabelSelector: dnsServiceSelector.String(),
+	})
+	if err != nil {
+		return trace.Wrap(err)
+	}
+	svcMaster, err := getDNSService(masterServices.Items, serviceCIDR)
 	if err != nil {
 		return trace.Wrap(err)
 	}
 
-	if svcMaster.Spec.ClusterIP == "" {
-		return trace.BadParameter("service/kube-dns Spec.ClusterIP is empty")
-	}
-
-	svcWorker, err := client.CoreV1().Services(metav1.NamespaceSystem).Get("kube-dns-worker", metav1.GetOptions{})
+	workerServices, err := client.CoreV1().Services(metav1.NamespaceSystem).List(metav1.ListOptions{
+		LabelSelector: dnsWorkerServiceSelector.String(),
+	})
 	if err != nil {
 		return trace.Wrap(err)
 	}
-
-	if svcWorker.Spec.ClusterIP == "" {
-		return trace.BadParameter("service/kube-dns-worker Spec.ClusterIP is empty")
+	svcWorker, err := getDNSService(workerServices.Items, serviceCIDR)
+	if err != nil {
+		return trace.Wrap(err)
 	}
 
 	// If we're a master server, only use the master servers as a resolver.
@@ -118,7 +124,6 @@ func createService(name string) error {
 	if err != nil {
 		return trace.Wrap(err)
 	}
-
 	service := &v1.Service{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      name,
@@ -155,3 +160,54 @@ func createService(name string) error {
 	}
 	return nil
 }
+
+func getDNSService(services []v1.Service, serviceCIDR net.IPNet) (*v1.Service, error) {
+	for _, service := range services {
+		logger := log.WithFields(log.Fields{
+			"service":      fmt.Sprintf("%v/%v", service.Name, service.Namespace),
+			"service-cidr": serviceCIDR.String(),
+		})
+		if service.Spec.ClusterIP == "" {
+			logger.Warn("Service does not have ClusterIP - will skip.")
+			continue
+		}
+		ipAddr := net.ParseIP(service.Spec.ClusterIP)
+		if ipAddr == nil {
+			logger.WithField("addr", service.Spec.ClusterIP).Warn("Invalid ClusterIP - will skip.")
+			continue
+		}
+		if !serviceCIDR.Contains(ipAddr) {
+			logger.Warn("Service has ClusterIP not from service CIDR.")
+			continue
+		}
+		return &service, nil
+	}
+	return nil, trace.NotFound("no DNS service matched")
+}
+
+func mustLabelSelector(labels ...string) labels.Selector {
+	if len(labels)%2 != 0 {
+		panic("must have even number of labels")
+	}
+	m := make(map[string]string)
+	for i := 0; i < len(labels); i += 2 {
+		m[labels[i]] = labels[i+1]
+	}
+	selector, err := metav1.LabelSelectorAsSelector(
+		&metav1.LabelSelector{
+			MatchLabels: map[string]string{
+				"k8s-app": "kube-dns",
+			},
+		},
+	)
+	if err != nil {
+		panic(err.Error())
+	}
+	return selector
+}
+
+// dnsServiceSelector defines label selector to query DNS service
+var dnsServiceSelector = mustLabelSelector("k8s-app", "kube-dns")
+
+// dnsWorkerServiceSelector defines label selector to query DNS worker service
+var dnsWorkerServiceSelector = mustLabelSelector("k8s-app", "kube-dns-worker")

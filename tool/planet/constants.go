@@ -60,9 +60,6 @@ const (
 	// EnvPublicIP names the environment variable that specifies
 	// the public IP address of the node
 	EnvPublicIP = "PLANET_PUBLIC_IP"
-	// EnvClusterDNSIP names the environment variable that specifies
-	// the IP address of the k8s DNS service
-	EnvClusterDNSIP = "KUBE_CLUSTER_DNS_IP"
 	// EnvAPIServerName names the environment variable that specifies
 	// the address of the API server
 	EnvAPIServerName = "KUBE_APISERVER"

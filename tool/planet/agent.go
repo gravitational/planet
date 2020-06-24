@@ -22,6 +22,7 @@ import (
 	"fmt"
 	"io"
 	"io/ioutil"
+	"net"
 	"os"
 	"os/signal"
 	"strconv"
@@ -294,27 +295,35 @@ func stopUnits(ctx context.Context) error {
 	return trace.NewAggregate(errors...)
 }
 
+type agentConfig struct {
+	agent       *agent.Config
+	monitoring  *monitoring.Config
+	leader      *LeaderConfig
+	peers       []string
+	serviceCIDR net.IPNet
+}
+
 // runAgent starts the master election / health check loops in background and
 // blocks until a signal has been received.
-func runAgent(conf *agent.Config, monitoringConf *monitoring.Config, leaderConf *LeaderConfig, peers []string) error {
+func runAgent(config agentConfig) error {
 	ctx, cancelCtx := context.WithCancel(context.Background())
 	defer cancelCtx()
 
-	if conf.Tags == nil {
-		conf.Tags = make(map[string]string)
+	if config.agent.Tags == nil {
+		config.agent.Tags = make(map[string]string)
 	}
-	conf.Tags["role"] = string(monitoringConf.Role)
-	monitoringAgent, err := agent.New(conf)
+	config.agent.Tags["role"] = string(config.monitoring.Role)
+	monitoringAgent, err := agent.New(config.agent)
 	if err != nil {
 		return trace.Wrap(err)
 	}
 	defer monitoringAgent.Close()
 
-	err = monitoring.AddMetrics(monitoringAgent, monitoringConf)
+	err = monitoring.AddMetrics(monitoringAgent, config.monitoring)
 	if err != nil {
 		return trace.Wrap(err)
 	}
-	err = monitoring.AddCheckers(monitoringAgent, monitoringConf)
+	err = monitoring.AddCheckers(monitoringAgent, config.monitoring)
 	if err != nil {
 		return trace.Wrap(err)
 	}
@@ -325,9 +334,9 @@ func runAgent(conf *agent.Config, monitoringConf *monitoring.Config, leaderConf 
 
 	// only join to the initial seed list if not member already,
 	// as the initial peer could be gone
-	if !monitoringAgent.IsMember() && len(peers) > 0 {
-		log.Infof("joining the cluster: %v", peers)
-		err = monitoringAgent.Join(peers)
+	if !monitoringAgent.IsMember() && len(config.peers) > 0 {
+		log.Infof("joining the cluster: %v", config.peers)
+		err = monitoringAgent.Join(config.peers)
 		if err != nil {
 			return trace.Wrap(err, "failed to join serf cluster")
 		}
@@ -336,20 +345,20 @@ func runAgent(conf *agent.Config, monitoringConf *monitoring.Config, leaderConf 
 	}
 
 	errorC := make(chan error, 10)
-	client, err := startLeaderClient(leaderConf, monitoringAgent, errorC)
+	client, err := startLeaderClient(config.leader, monitoringAgent, errorC)
 	if err != nil {
 		return trace.Wrap(err)
 	}
 	defer client.Close()
 
-	err = setupResolver(ctx, monitoringConf.Role)
+	err = setupResolver(ctx, config.monitoring.Role, config.serviceCIDR)
 	if err != nil {
 		return trace.Wrap(err)
 	}
 
 	// Only non-masters run etcd gateway service
-	if leaderConf.Role != RoleMaster {
-		err = startWatchingEtcdMasters(ctx, monitoringConf)
+	if config.leader.Role != RoleMaster {
+		err = startWatchingEtcdMasters(ctx, config.monitoring)
 		if err != nil {
 			return trace.Wrap(err)
 		}
