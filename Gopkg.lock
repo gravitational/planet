@@ -364,8 +364,7 @@
   version = "v1.0.0"
 
 [[projects]]
-  branch = "bernard/6.1.x/system-pods"
-  digest = "1:1ba7aa6c02540d3a9c1db97c087876ec969ce8356a6f08e3f9b0a6b6359e79e2"
+  digest = "1:e7d1176ae96242fb93bebebf253e54cda05ad706616716ba49012b25b69c5ab5"
   name = "github.com/gravitational/satellite"
   packages = [
     "agent",
@@ -385,7 +384,8 @@
     "utils",
   ]
   pruneopts = "UT"
-  revision = "0bc3a49462ca2539798edd50fe475e6cc5639509"
+  revision = "8ccc7df4e6b4583ec52e3a58faed3b723cc7154b"
+  version = "6.1.13"
 
 [[projects]]
   digest = "1:dc84545f9f2a442b14864f2f7e54ae556cae53bd437a05a456572fea9e73cc87"
