@@ -439,6 +439,12 @@ const (
 
 	// EtcdUpgradeTimeout is the amount of time to wait for operations during the etcd upgrade
 	EtcdUpgradeTimeout = 15 * time.Minute
+
+	// LowWatermark is the warning disk usage percentage
+	LowWatermark = 80
+
+	// HighWatermark is the critical disk usage percentage
+	HighWatermark = 90
 )
 
 // K8sSearchDomains are default k8s search domain settings
