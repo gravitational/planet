@@ -364,7 +364,6 @@
   version = "v1.0.0"
 
 [[projects]]
-  branch = "bernard/6.1.x/watermark"
   digest = "1:127911915864da1bec49a5dd9cc84c8dcee68b122735b9e78063d2a92bec2e60"
   name = "github.com/gravitational/satellite"
   packages = [
@@ -385,7 +384,8 @@
     "utils",
   ]
   pruneopts = "UT"
-  revision = "65972b33fded0cb4d485a9126a08c7393ffdf1a2"
+  revision = "bfd2f0e6a954aaa4b28ae8937ad1ffb26c584ff5"
+  version = "6.1.14"
 
 [[projects]]
   digest = "1:dc84545f9f2a442b14864f2f7e54ae556cae53bd437a05a456572fea9e73cc87"
