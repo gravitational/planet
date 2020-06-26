@@ -32,4 +32,5 @@ ExecStart=/usr/bin/planet agent \
         --etcd-keyfile=/var/state/etcd.key \
         --nameservers=${PLANET_DNS_UPSTREAM_NAMESERVERS} \
         --local-nameservers=${PLANET_DNS_LOCAL_NAMESERVERS} \
-        --dns-zones=${PLANET_DNS_ZONES}
+        --dns-zones=${PLANET_DNS_ZONES} \
+        --service-subnet=${PLANET_SERVICE_SUBNET}

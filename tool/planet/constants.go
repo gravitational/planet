@@ -250,6 +250,9 @@ const (
 	// privileged containers are allowed.
 	EnvPlanetAllowPrivileged = "PLANET_ALLOW_PRIVILEGED"
 
+	// EnvPlanetServiceSubnet specifies the service subnet
+	EnvPlanetServiceSubnet = "PLANET_SERVICE_SUBNET"
+
 	// DefaultDNSListenAddr is the default IP address CoreDNS will listen on
 	DefaultDNSListenAddr = "127.0.0.2"
 

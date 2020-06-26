@@ -96,7 +96,7 @@ func run() error {
 		cstartDevices        = Devices(cstart.Flag("device", "Device to create inside container").OverrideDefaultFromEnvar("PLANET_DEVICE"))
 		cstartRoles          = List(cstart.Flag("role", "Roles such as 'master' or 'node'").OverrideDefaultFromEnvar("PLANET_ROLE"))
 		cstartSecretsDir     = cstart.Flag("secrets-dir", "Directory with master secrets - certificate authority and certificates").OverrideDefaultFromEnvar("PLANET_SECRETS_DIR").ExistingDir()
-		cstartServiceCIDR    = kv.CIDRFlag(cstart.Flag("service-subnet", "IP range from which to assign service cluster IPs. This must not overlap with any IP ranges assigned to nodes for pods.").Default(DefaultServiceSubnet).OverrideDefaultFromEnvar("PLANET_SERVICE_SUBNET"))
+		cstartServiceCIDR    = kv.CIDRFlag(cstart.Flag("service-subnet", "IP range from which to assign service cluster IPs. This must not overlap with any IP ranges assigned to nodes for pods.").Default(DefaultServiceSubnet).Envar(EnvPlanetServiceSubnet))
 		cstartPodCIDR        = kv.CIDRFlag(cstart.Flag("pod-subnet", "subnet dedicated to the pods in the cluster").Default(DefaultPodSubnet).OverrideDefaultFromEnvar("PLANET_POD_SUBNET"))
 		cstartProxyPortRange = cstart.Flag("proxy-portrange", "Range of host ports (beginPort-endPort, single port or beginPort+offset, inclusive) that may be consumed in order to proxy service traffic. If (unspecified, 0, or 0-0) then ports will be randomly chosen.").
 					OverrideDefaultFromEnvar(EnvPlanetProxyPortRange).String()
@@ -170,7 +170,7 @@ func run() error {
 		cagentHighWatermark          = cagent.Flag("high-watermark", "High disk usage percentage of monitored directories").Default(strconv.Itoa(HighWatermark)).OverrideDefaultFromEnvar("PLANET_HIGH_WATERMARK").Uint64()
 		cagentTimelineDir            = cagent.Flag("timeline-dir", "Directory to be used for timeline storage").Default("/tmp/timeline").String()
 		cagentRetention              = cagent.Flag("retention", "Window to retain timeline as a Go duration").Duration()
-		cagentServiceCIDR            = cidrFlag(cstart.Flag("service-subnet", "IP range from which to assign service cluster IPs. This must not overlap with any IP ranges assigned to nodes for pods.").Default(DefaultServiceSubnet).Envar("PLANET_SERVICE_SUBNET"))
+		cagentServiceCIDR            = cidrFlag(cstart.Flag("service-subnet", "IP range from which to assign service cluster IPs. This must not overlap with any IP ranges assigned to nodes for pods.").Default(DefaultServiceSubnet).Envar(EnvPlanetServiceSubnet))
 
 		// stop a running container
 		cstop = app.Command("stop", "Stop planet container")
