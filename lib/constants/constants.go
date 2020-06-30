@@ -63,6 +63,8 @@ const (
 	APIServerDNSName = "leader.telekube.local"
 	// APIServerDNSNameGravity is the domain name of the current leader server.
 	APIServerDNSNameGravity = "leader.gravity.local"
+	// APIServerPort is the default secure port for the api server
+	APIServerPort = "6443"
 	// RegistryDNSName is the domain name of the cluster local registry.
 	RegistryDNSName = "registry.local"
 

@@ -22,6 +22,7 @@ import (
 	"fmt"
 	"io"
 	"io/ioutil"
+	"math"
 	"net"
 	"os"
 	"os/signal"
@@ -31,15 +32,20 @@ import (
 
 	"github.com/gravitational/planet/lib/constants"
 	"github.com/gravitational/planet/lib/monitoring"
+	"github.com/gravitational/planet/lib/utils"
 
 	etcd "github.com/coreos/etcd/client"
 	etcdconf "github.com/gravitational/coordinate/config"
 	"github.com/gravitational/coordinate/leader"
 	"github.com/gravitational/satellite/agent"
 	pb "github.com/gravitational/satellite/agent/proto/agentpb"
+	"github.com/gravitational/satellite/cmd"
 	"github.com/gravitational/satellite/lib/rpc/client"
 	"github.com/gravitational/trace"
 	log "github.com/sirupsen/logrus"
+	"k8s.io/apimachinery/pkg/api/errors"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	corev1 "k8s.io/client-go/kubernetes/typed/core/v1"
 )
 
 // LeaderConfig represents configuration for the master election task
@@ -82,7 +88,8 @@ func (conf LeaderConfig) String() string {
 // Otherwise, the services are stopped to avoid interfering with the active master instance.
 // Also, every time a new master is elected, the node modifies its /etc/hosts file
 // to reflect the change of the kubernetes API server.
-func startLeaderClient(conf *LeaderConfig, agent agent.Agent, errorC chan error) (leaderClient io.Closer, err error) {
+func startLeaderClient(config agentConfig, agent agent.Agent, errorC chan error) (leaderClient io.Closer, err error) {
+	conf := config.leader
 	log.Infof("%v start", conf)
 	var hostname string
 	hostname, err = os.Hostname()
@@ -135,17 +142,20 @@ func startLeaderClient(conf *LeaderConfig, agent agent.Agent, errorC chan error)
 
 	// Add a callback to watch for changes to the leader key.
 	// If this node becomes the leader, start a number of additional
-	// services as a master
-	client.AddWatchCallback(conf.LeaderKey, conf.Term/3, func(key, prevVal, newVal string) {
-		log.Infof("new leader: %v", newVal)
-		if newVal == conf.PublicIP {
-			if err := startUnits(context.TODO()); err != nil {
-				log.WithError(err).Warn("Failed to start units.")
+	// services as a leader.
+	client.AddWatchCallback(conf.LeaderKey, conf.Term/3, func(key, prevLeaderAddr, newLeaderAddr string) {
+		log.WithField("addr", newLeaderAddr).Info("New leader.")
+		if newLeaderAddr != conf.PublicIP {
+			if err := stopUnits(context.TODO()); err != nil {
+				log.WithError(err).Warn("Failed to stop units.")
 			}
 			return
 		}
-		if err := stopUnits(context.TODO()); err != nil {
-			log.WithError(err).Warn("Failed to stop units.")
+		if err := startUnits(context.TODO()); err != nil {
+			log.WithError(err).Warn("Failed to start units.")
+		}
+		if err := validateKubernetesService(context.TODO(), config.serviceCIDR); err != nil {
+			log.WithError(err).Warn("Failed to validate kubernetes service.")
 		}
 	})
 
@@ -345,7 +355,7 @@ func runAgent(config agentConfig) error {
 	}
 
 	errorC := make(chan error, 10)
-	client, err := startLeaderClient(config.leader, monitoringAgent, errorC)
+	client, err := startLeaderClient(config, monitoringAgent, errorC)
 	if err != nil {
 		return trace.Wrap(err)
 	}
@@ -484,6 +494,47 @@ func status(c statusConfig) (ok bool, err error) {
 		return ok, trace.Wrap(err, "failed to output status")
 	}
 	return ok, nil
+}
+
+func validateKubernetesService(ctx context.Context, serviceCIDR net.IPNet) error {
+	return utils.Retry(ctx, math.MaxInt64, 5*time.Second, func() error {
+		client, err := cmd.GetKubeClientFromPath(constants.SchedulerConfigPath)
+		if err != nil {
+			return trace.Wrap(err)
+		}
+		services := client.CoreV1().Services(metav1.NamespaceDefault)
+		svc, err := services.Get(KubernetesServiceName, metav1.GetOptions{})
+		if err != nil {
+			return trace.Wrap(err)
+		}
+		if svc.Spec.ClusterIP == "" {
+			// not a clusterIP service?
+			log.Info("kubernetes service clusterIP is empty.")
+			return nil
+		}
+		clusterIP := net.ParseIP(svc.Spec.ClusterIP)
+		if !serviceCIDR.Contains(clusterIP) {
+			log.WithField("cluster-ip", svc.Spec.ClusterIP).
+				Warn("kubernetes service clusterIP is invalid, will recreate service.")
+			return removeKubernetesService(services)
+		}
+		log.Info("kubernetes service clusterIP is valid.")
+		return nil
+	})
+}
+
+// Kubernetes defaults to the first IP in service range for the kubernetes service
+// See https://github.com/kubernetes/kubernetes/blob/v1.15.12/pkg/master/services.go#L41
+//
+// This checks the existing kubernetes services against the active service IP range
+// and removes it if it's invalid letting the kubernetes api server to recreate it.
+// Note, this only runs on the leader node
+func removeKubernetesService(services corev1.ServiceInterface) error {
+	err := services.Delete(KubernetesServiceName, &metav1.DeleteOptions{})
+	if err != nil && !errors.IsNotFound(err) {
+		return trace.Wrap(err)
+	}
+	return nil
 }
 
 func rpcAddr(port int) string {
