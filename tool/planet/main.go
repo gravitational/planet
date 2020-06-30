@@ -170,7 +170,7 @@ func run() error {
 		cagentHighWatermark          = cagent.Flag("high-watermark", "High disk usage percentage of monitored directories").Default(strconv.Itoa(HighWatermark)).OverrideDefaultFromEnvar("PLANET_HIGH_WATERMARK").Uint64()
 		cagentTimelineDir            = cagent.Flag("timeline-dir", "Directory to be used for timeline storage").Default("/tmp/timeline").String()
 		cagentRetention              = cagent.Flag("retention", "Window to retain timeline as a Go duration").Duration()
-		cagentServiceCIDR            = cidrFlag(cstart.Flag("service-subnet", "IP range from which to assign service cluster IPs. This must not overlap with any IP ranges assigned to nodes for pods.").Default(DefaultServiceSubnet).Envar(EnvPlanetServiceSubnet))
+		cagentServiceCIDR            = cidrFlag(cagent.Flag("service-subnet", "IP range from which to assign service cluster IPs. This must not overlap with any IP ranges assigned to nodes for pods.").Default(DefaultServiceSubnet).Envar(EnvServiceSubnet))
 
 		// stop a running container
 		cstop = app.Command("stop", "Stop planet container")
