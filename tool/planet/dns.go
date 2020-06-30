@@ -26,6 +26,7 @@ import (
 	"time"
 
 	"github.com/gravitational/planet/lib/constants"
+	"github.com/gravitational/planet/lib/ipallocator"
 	"github.com/gravitational/planet/lib/utils"
 
 	"github.com/gravitational/satellite/agent"
@@ -47,10 +48,11 @@ func setupResolver(ctx context.Context, role agent.Role, serviceCIDR net.IPNet) 
 		return trace.Wrap(err)
 	}
 
+	ipalloc := ipallocator.NewAllocatorCIDRRange(&serviceCIDR)
 	err = utils.Retry(ctx, math.MaxInt64, 1*time.Second, func() error {
 		if role == agent.RoleMaster {
 			for _, name := range []string{"kube-dns", "kube-dns-worker"} {
-				err := createService(name)
+				err := createDNSService(name, ipalloc)
 				if err != nil {
 					log.Warnf("Error creating service %v: %v.", name, err)
 					return trace.Wrap(err)
@@ -116,11 +118,15 @@ func updateEnvDNSAddresses(client *kubernetes.Clientset, role agent.Role, servic
 	return trace.Wrap(writeEnvDNSAddresses([]string{svcWorker.Spec.ClusterIP, svcMaster.Spec.ClusterIP}, true))
 }
 
-// createService creates the kubernetes DNS service if it doesn't already exist.
+// createDNSService creates the kubernetes DNS service if it doesn't already exist.
 // The service object is managed by gravity, but we create a placeholder here, so that we can read the IP address
 // of the service, and configure kubelet with the correct DNS addresses before starting
-func createService(name string) error {
+func createDNSService(name string, alloc *ipallocator.Range) error {
 	client, err := cmd.GetKubeClientFromPath(constants.SchedulerConfigPath)
+	if err != nil {
+		return trace.Wrap(err)
+	}
+	ip, err := alloc.AllocateNext()
 	if err != nil {
 		return trace.Wrap(err)
 	}
@@ -150,12 +156,15 @@ func createService(name string) error {
 					Protocol:   "TCP",
 					Name:       "dns-tcp",
 					TargetPort: intstr.FromString("dns-tcp"),
-				}},
+				},
+			},
 			SessionAffinity: "None",
+			ClusterIP:       ip.String(),
 		},
 	}
 	_, err = client.CoreV1().Services(metav1.NamespaceSystem).Create(service)
 	if err != nil && !errors.IsAlreadyExists(err) {
+		alloc.Release(ip)
 		return trace.Wrap(err)
 	}
 	return nil
@@ -164,7 +173,7 @@ func createService(name string) error {
 func getDNSService(services []v1.Service, serviceCIDR net.IPNet) (*v1.Service, error) {
 	for _, service := range services {
 		logger := log.WithFields(log.Fields{
-			"service":      fmt.Sprintf("%v/%v", service.Name, service.Namespace),
+			"service":      fmt.Sprintf("%v/%v", service.Namespace, service.Name),
 			"service-cidr": serviceCIDR.String(),
 		})
 		if service.Spec.ClusterIP == "" {
@@ -177,7 +186,7 @@ func getDNSService(services []v1.Service, serviceCIDR net.IPNet) (*v1.Service, e
 			continue
 		}
 		if !serviceCIDR.Contains(ipAddr) {
-			logger.Warn("Service has ClusterIP not from service CIDR.")
+			logger.WithField("cluster-ip", service.Spec.ClusterIP).Warn("Service has ClusterIP not from service CIDR.")
 			continue
 		}
 		return &service, nil

@@ -63,6 +63,9 @@ const (
 	// EnvAPIServerName names the environment variable that specifies
 	// the address of the API server
 	EnvAPIServerName = "KUBE_APISERVER"
+	// EnvAPIServerPort names the environment variable that specifies
+	// the default secure port of the API server
+	EnvAPIServerPort = "KUBE_APISERVER_PORT"
 	// EnvEtcdProxy names the environment variable that specifies
 	// the value of the proxy mode setting
 	// See https://coreos.com/etcd/docs/latest/v2/configuration.html
@@ -451,6 +454,11 @@ const (
 
 	// StateDir is a location within the planet container that can hold persistent state
 	StateDir = "/ext/state"
+
+	// KubernetesServiceName defines the name of the kubernetes service
+	// Unfortunately, it is an implementation detail in v1.15.12
+	// See https://github.com/kubernetes/kubernetes/blob/v1.15.12/pkg/master/controller.go#L46
+	KubernetesServiceName = "kubernetes"
 )
 
 // DefaultDNSAddress is the default listen address for local DNS server.
