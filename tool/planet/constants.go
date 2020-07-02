@@ -450,8 +450,11 @@ const (
 	// EtcdUpgradeTimeout is the amount of time to wait for operations during the etcd upgrade
 	EtcdUpgradeTimeout = 15 * time.Minute
 
-	// HighWatermark is the disk usage percentage that is considered degrading
-	HighWatermark = 80
+	// LowWatermark is the warning disk usage percentage
+	LowWatermark = 80
+
+	// HighWatermark is the critical disk usage percentage
+	HighWatermark = 90
 
 	// StateDir is a location within the planet container that can hold persistent state
 	StateDir = "/ext/state"

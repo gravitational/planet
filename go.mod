@@ -38,7 +38,7 @@ require (
 	github.com/gravitational/coordinate v0.0.0-20200227044100-12af3c0f9593
 	github.com/gravitational/etcd-backup v0.0.0-20200227044745-5751e027911a
 	github.com/gravitational/go-udev v0.0.0-20160615210516-4cc8baba3689
-	github.com/gravitational/satellite v0.0.9-0.20200609100618-407fa02c6dce
+	github.com/gravitational/satellite v0.0.9-0.20200702164053-52ff9d5d7ad2
 	github.com/gravitational/trace v1.1.11
 	github.com/gravitational/version v0.0.2-0.20170324200323-95d33ece5ce1
 	github.com/grpc-ecosystem/go-grpc-middleware v1.2.0 // indirect
@@ -71,7 +71,7 @@ require (
 	go.uber.org/zap v1.14.0 // indirect
 	golang.org/x/lint v0.0.0-20200130185559-910be7a94367 // indirect
 	golang.org/x/oauth2 v0.0.0-20200107190931-bf48bf16ab8d // indirect
-	golang.org/x/sys v0.0.0-20200602225109-6fdc65e7d980
+	golang.org/x/sys v0.0.0-20200625212154-ddb9806d33ae
 	golang.org/x/tools v0.0.0-20200225230052-807dcd883420 // indirect
 	google.golang.org/genproto v0.0.0-20200513103714-09dca8ec2884 // indirect
 	google.golang.org/grpc v1.26.0 // indirect
