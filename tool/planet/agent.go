@@ -361,6 +361,13 @@ func runAgent(config agentConfig) error {
 	}
 	defer client.Close()
 
+	if config.monitoring.Role == agent.RoleMaster {
+		err = createDNSServices(ctx, config.serviceCIDR)
+		if err != nil {
+			return trace.Wrap(err)
+		}
+	}
+
 	err = setupResolver(ctx, config.monitoring.Role, config.serviceCIDR)
 	if err != nil {
 		return trace.Wrap(err)
