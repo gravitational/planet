@@ -19,7 +19,6 @@ package main
 import (
 	"context"
 	"fmt"
-	"math"
 	"net"
 	"os"
 	"strings"
@@ -29,6 +28,7 @@ import (
 	"github.com/gravitational/planet/lib/ipallocator"
 	"github.com/gravitational/planet/lib/utils"
 
+	"github.com/cenkalti/backoff"
 	"github.com/gravitational/satellite/agent"
 	"github.com/gravitational/satellite/cmd"
 	"github.com/gravitational/trace"
@@ -39,6 +39,7 @@ import (
 	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/apimachinery/pkg/util/intstr"
 	"k8s.io/client-go/kubernetes"
+	corev1 "k8s.io/client-go/kubernetes/typed/core/v1"
 )
 
 // setupResolver finds the kube-dns service address, and writes an environment file accordingly
@@ -47,19 +48,7 @@ func setupResolver(ctx context.Context, role agent.Role, serviceCIDR net.IPNet) 
 	if err != nil {
 		return trace.Wrap(err)
 	}
-
-	ipalloc := ipallocator.NewAllocatorCIDRRange(&serviceCIDR)
-	err = utils.Retry(ctx, math.MaxInt64, 1*time.Second, func() error {
-		if role == agent.RoleMaster {
-			for _, name := range []string{"kube-dns", "kube-dns-worker"} {
-				err := createDNSService(name, ipalloc)
-				if err != nil {
-					log.Warnf("Error creating service %v: %v.", name, err)
-					return trace.Wrap(err)
-				}
-			}
-		}
-
+	err = utils.RetryWithInterval(ctx, newUnlimitedExponentialBackoff(5*time.Second), func() error {
 		err = updateEnvDNSAddresses(client, role, serviceCIDR)
 		if err != nil {
 			log.Warn("Error updating DNS env: ", err)
@@ -118,19 +107,48 @@ func updateEnvDNSAddresses(client *kubernetes.Clientset, role agent.Role, servic
 	return trace.Wrap(writeEnvDNSAddresses([]string{svcWorker.Spec.ClusterIP, svcMaster.Spec.ClusterIP}, true))
 }
 
-// createDNSService creates the kubernetes DNS service if it doesn't already exist.
-// The service object is managed by gravity, but we create a placeholder here, so that we can read the IP address
-// of the service, and configure kubelet with the correct DNS addresses before starting
-func createDNSService(name string, alloc *ipallocator.Range) error {
+func createDNSServices(ctx context.Context, serviceCIDR net.IPNet) error {
 	client, err := cmd.GetKubeClientFromPath(constants.SchedulerConfigPath)
 	if err != nil {
 		return trace.Wrap(err)
 	}
-	ip, err := alloc.AllocateNext()
-	if err != nil {
-		return trace.Wrap(err)
+	ipalloc := ipallocator.NewAllocatorCIDRRange(&serviceCIDR)
+	services := client.CoreV1().Services(metav1.NamespaceSystem)
+	for _, name := range []string{"kube-dns", "kube-dns-worker"} {
+		if err := createDNSService(ctx, name, services, ipalloc); err != nil {
+			return trace.Wrap(err)
+		}
 	}
-	service := &v1.Service{
+	return nil
+}
+
+// createDNSService creates the kubernetes DNS service if it doesn't already exist.
+// The service object is managed by gravity, but we create a placeholder here, so that we can read the IP address
+// of the service, and configure kubelet with the correct DNS addresses before starting
+func createDNSService(ctx context.Context, name string, services corev1.ServiceInterface, ipalloc *ipallocator.Range) error {
+	ip, err := ipalloc.AllocateNext()
+	if err != nil && err != ipallocator.ErrFull {
+		return &backoff.PermanentError{Err: err}
+	}
+	return utils.RetryWithInterval(ctx, newUnlimitedExponentialBackoff(5*time.Second), func() error {
+		_, err = services.Create(newDNSService(name, ip.String()))
+		if err == nil || errors.IsAlreadyExists(err) {
+			return nil
+		}
+		if isIPAlreadyAllocatedError(err) {
+			ipalloc.Release(ip)
+			ip, err = ipalloc.AllocateNext()
+			if err != nil {
+				return &backoff.PermanentError{Err: err}
+			}
+		}
+		log.Warnf("Error creating service %v: %v.", name, err)
+		return trace.Wrap(err)
+	})
+}
+
+func newDNSService(name, clusterIP string) *v1.Service {
+	return &v1.Service{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      name,
 			Namespace: metav1.NamespaceSystem,
@@ -159,15 +177,9 @@ func createDNSService(name string, alloc *ipallocator.Range) error {
 				},
 			},
 			SessionAffinity: "None",
-			ClusterIP:       ip.String(),
+			ClusterIP:       clusterIP,
 		},
 	}
-	_, err = client.CoreV1().Services(metav1.NamespaceSystem).Create(service)
-	if err != nil && !errors.IsAlreadyExists(err) {
-		alloc.Release(ip)
-		return trace.Wrap(err)
-	}
-	return nil
 }
 
 func getDNSService(services []v1.Service, serviceCIDR net.IPNet) (*v1.Service, error) {
@@ -194,6 +206,13 @@ func getDNSService(services []v1.Service, serviceCIDR net.IPNet) (*v1.Service, e
 	return nil, trace.NotFound("no DNS service matched")
 }
 
+func newUnlimitedExponentialBackoff(maxInterval time.Duration) *backoff.ExponentialBackOff {
+	b := backoff.NewExponentialBackOff()
+	b.MaxElapsedTime = 0
+	b.MaxInterval = maxInterval
+	return b
+}
+
 func mustLabelSelector(labels ...string) labels.Selector {
 	if len(labels)%2 != 0 {
 		panic("must have even number of labels")
@@ -213,6 +232,42 @@ func mustLabelSelector(labels ...string) labels.Selector {
 		panic(err.Error())
 	}
 	return selector
+}
+
+// isIPRangeMistmatchError detects whether the given error indicates that the suggested cluster IP
+// is from an unexpected service IP range. This can happen as long as the apiserver's repair
+// step did not commit the new service IP range configuration to the store (eg etcd)
+func isIPRangeMistmatchError(err error) bool {
+	switch err := err.(type) {
+	case *errors.StatusError:
+		return err.ErrStatus.Status == "Failure" && statusHasCause(err.ErrStatus,
+			"spec.clusterIP", "provided range does not match the current range")
+	}
+	return false
+}
+
+// isIPAlreadyAllocatedError detects whether the given error indicates that the specified
+// cluster IP is already allocated.
+// This can happen since we are not syncing the IP allocation with the apiserver
+func isIPAlreadyAllocatedError(err error) bool {
+	switch err := err.(type) {
+	case *errors.StatusError:
+		return err.ErrStatus.Status == "Failure" && statusHasCause(err.ErrStatus,
+			"spec.clusterIP", "provided IP is already allocated")
+	}
+	return false
+}
+
+func statusHasCause(status metav1.Status, field, messagePattern string) bool {
+	if status.Details == nil {
+		return false
+	}
+	for _, cause := range status.Details.Causes {
+		if cause.Field == field && strings.Contains(cause.Message, messagePattern) {
+			return true
+		}
+	}
+	return false
 }
 
 // dnsServiceSelector defines label selector to query DNS service
