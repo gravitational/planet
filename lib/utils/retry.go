@@ -70,3 +70,13 @@ func NewUnlimitedExponentialBackOff() backoff.BackOff {
 	b.MaxElapsedTime = 0
 	return b
 }
+
+// Error returns the contents of this value.
+// Implements error
+func (r Continue) Error() string {
+	return string(r)
+}
+
+// Continue is an artificial error value that indicates that a retry
+// loop should be re-executed with the specified message
+type Continue string
