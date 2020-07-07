@@ -107,7 +107,7 @@ func updateEnvDNSAddresses(client *kubernetes.Clientset, role agent.Role, servic
 	return trace.Wrap(writeEnvDNSAddresses([]string{svcWorker.Spec.ClusterIP, svcMaster.Spec.ClusterIP}, true))
 }
 
-func createDNSServices(ctx context.Context, serviceCIDR net.IPNet) error {
+func ensureDNSServices(ctx context.Context, serviceCIDR net.IPNet) error {
 	client, err := cmd.GetKubeClientFromPath(constants.SchedulerConfigPath)
 	if err != nil {
 		return trace.Wrap(err)
@@ -115,24 +115,26 @@ func createDNSServices(ctx context.Context, serviceCIDR net.IPNet) error {
 	ipalloc := ipallocator.NewAllocatorCIDRRange(&serviceCIDR)
 	services := client.CoreV1().Services(metav1.NamespaceSystem)
 	for _, name := range []string{"kube-dns", "kube-dns-worker"} {
-		if err := createDNSService(ctx, name, services, ipalloc); err != nil {
+		if err := ensureDNSService(ctx, name, services, ipalloc); err != nil {
 			return trace.Wrap(err)
 		}
 	}
 	return nil
 }
 
-// createDNSService creates the kubernetes DNS service if it doesn't already exist.
+// ensureDNSService creates the kubernetes DNS service if it doesn't already exist.
 // The service object is managed by gravity, but we create a placeholder here, so that we can read the IP address
 // of the service, and configure kubelet with the correct DNS addresses before starting
-func createDNSService(ctx context.Context, name string, services corev1.ServiceInterface, ipalloc *ipallocator.Range) error {
+func ensureDNSService(ctx context.Context, name string, services corev1.ServiceInterface, ipalloc *ipallocator.Range) error {
 	ip, err := ipalloc.AllocateNext()
 	if err != nil && err != ipallocator.ErrFull {
-		return &backoff.PermanentError{Err: err}
+		return trace.Wrap(err)
 	}
+	logger := log.WithField("dns-service", name)
 	return utils.RetryWithInterval(ctx, newUnlimitedExponentialBackoff(5*time.Second), func() error {
 		_, err = services.Create(newDNSService(name, ip.String()))
 		if err == nil || errors.IsAlreadyExists(err) {
+			logger.Info("Service exists.")
 			return nil
 		}
 		if isIPAlreadyAllocatedError(err) {
@@ -142,7 +144,7 @@ func createDNSService(ctx context.Context, name string, services corev1.ServiceI
 				return &backoff.PermanentError{Err: err}
 			}
 		}
-		log.Warnf("Error creating service %v: %v.", name, err)
+		logger.Warnf("Error creating service %v.", err)
 		return trace.Wrap(err)
 	})
 }
@@ -232,18 +234,6 @@ func mustLabelSelector(labels ...string) labels.Selector {
 		panic(err.Error())
 	}
 	return selector
-}
-
-// isIPRangeMistmatchError detects whether the given error indicates that the suggested cluster IP
-// is from an unexpected service IP range. This can happen as long as the apiserver's repair
-// step did not commit the new service IP range configuration to the store (eg etcd)
-func isIPRangeMistmatchError(err error) bool {
-	switch err := err.(type) {
-	case *errors.StatusError:
-		return err.ErrStatus.Status == "Failure" && statusHasCause(err.ErrStatus,
-			"spec.clusterIP", "provided range does not match the current range")
-	}
-	return false
 }
 
 // isIPAlreadyAllocatedError detects whether the given error indicates that the specified

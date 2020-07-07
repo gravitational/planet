@@ -22,7 +22,6 @@ import (
 	"fmt"
 	"io"
 	"io/ioutil"
-	"math"
 	"net"
 	"os"
 	"os/signal"
@@ -140,24 +139,26 @@ func startLeaderClient(config agentConfig, agent agent.Agent, errorC chan error)
 		}
 	}()
 
-	// Add a callback to watch for changes to the leader key.
-	// If this node becomes the leader, start a number of additional
-	// services as a leader.
-	client.AddWatchCallback(conf.LeaderKey, conf.Term/3, func(key, prevLeaderAddr, newLeaderAddr string) {
-		log.WithField("addr", newLeaderAddr).Info("New leader.")
-		if newLeaderAddr != conf.PublicIP {
-			if err := stopUnits(context.TODO()); err != nil {
-				log.WithError(err).Warn("Failed to stop units.")
+	if conf.Role == RoleMaster {
+		// Add a callback to watch for changes to the leader key.
+		// If this node becomes the leader, start a number of additional
+		// services as a leader.
+		client.AddWatchCallback(conf.LeaderKey, conf.Term/3, func(key, prevLeaderAddr, newLeaderAddr string) {
+			log.WithField("addr", newLeaderAddr).Info("New leader.")
+			if newLeaderAddr != conf.PublicIP {
+				if err := stopUnits(context.TODO()); err != nil {
+					log.WithError(err).Warn("Failed to stop units.")
+				}
+				return
 			}
-			return
-		}
-		if err := startUnits(context.TODO()); err != nil {
-			log.WithError(err).Warn("Failed to start units.")
-		}
-		if err := validateKubernetesService(context.TODO(), config.serviceCIDR); err != nil {
-			log.WithError(err).Warn("Failed to validate kubernetes service.")
-		}
-	})
+			if err := startUnits(context.TODO()); err != nil {
+				log.WithError(err).Warn("Failed to start units.")
+			}
+			if err := validateKubernetesService(context.TODO(), config.serviceCIDR); err != nil {
+				log.WithError(err).Warn("Failed to validate kubernetes service.")
+			}
+		})
+	}
 
 	// Add a callback to watch for changes to the leader key.
 	// If this node becomes the leader, record a LeaderElected event to the
@@ -345,13 +346,13 @@ func runAgent(config agentConfig) error {
 	// only join to the initial seed list if not member already,
 	// as the initial peer could be gone
 	if !monitoringAgent.IsMember() && len(config.peers) > 0 {
-		log.Infof("joining the cluster: %v", config.peers)
+		log.Infof("Joining the cluster: %v.", config.peers)
 		err = monitoringAgent.Join(config.peers)
 		if err != nil {
 			return trace.Wrap(err, "failed to join serf cluster")
 		}
 	} else {
-		log.Info("this agent is already a member of the cluster")
+		log.Info("This agent is already a member of the cluster.")
 	}
 
 	errorC := make(chan error, 10)
@@ -362,7 +363,7 @@ func runAgent(config agentConfig) error {
 	defer client.Close()
 
 	if config.monitoring.Role == agent.RoleMaster {
-		err = createDNSServices(ctx, config.serviceCIDR)
+		err = ensureDNSServices(ctx, config.serviceCIDR)
 		if err != nil {
 			return trace.Wrap(err)
 		}
@@ -504,7 +505,8 @@ func status(c statusConfig) (ok bool, err error) {
 }
 
 func validateKubernetesService(ctx context.Context, serviceCIDR net.IPNet) error {
-	return utils.Retry(ctx, math.MaxInt64, 5*time.Second, func() error {
+	logger := log.WithField("service-cidr", serviceCIDR.String())
+	return utils.RetryWithInterval(ctx, newUnlimitedExponentialBackoff(5*time.Second), func() error {
 		client, err := cmd.GetKubeClientFromPath(constants.SchedulerConfigPath)
 		if err != nil {
 			return trace.Wrap(err)
@@ -516,26 +518,29 @@ func validateKubernetesService(ctx context.Context, serviceCIDR net.IPNet) error
 		}
 		if svc.Spec.ClusterIP == "" {
 			// not a clusterIP service?
-			log.Info("kubernetes service clusterIP is empty.")
+			logger.Info("API server service clusterIP is empty.")
 			return nil
 		}
 		clusterIP := net.ParseIP(svc.Spec.ClusterIP)
+		// Kubernetes defaults to the first IP in service range for the API server service
+		// See https://github.com/kubernetes/kubernetes/blob/v1.15.12/pkg/master/services.go#L41
+		//
+		// Check the existing service against the active service IP range
+		// and remove it if it's invalid letting the kubernetes API server recreate the service.
+		// Note, this only runs on the leader node
 		if !serviceCIDR.Contains(clusterIP) {
-			log.WithField("cluster-ip", svc.Spec.ClusterIP).
-				Warn("kubernetes service clusterIP is invalid, will recreate service.")
-			return removeKubernetesService(services)
+			logger.WithField("cluster-ip", svc.Spec.ClusterIP).
+				Warn("API server service clusterIP is invalid, will reset service.")
+			if err := removeKubernetesService(services); err != nil {
+				return trace.Wrap(err)
+			}
+			return utils.Continue("wait for API server service to become available")
 		}
-		log.Info("kubernetes service clusterIP is valid.")
+		logger.Info("API server service clusterIP is valid.")
 		return nil
 	})
 }
 
-// Kubernetes defaults to the first IP in service range for the kubernetes service
-// See https://github.com/kubernetes/kubernetes/blob/v1.15.12/pkg/master/services.go#L41
-//
-// This checks the existing kubernetes services against the active service IP range
-// and removes it if it's invalid letting the kubernetes api server to recreate it.
-// Note, this only runs on the leader node
 func removeKubernetesService(services corev1.ServiceInterface) error {
 	err := services.Delete(KubernetesServiceName, &metav1.DeleteOptions{})
 	if err != nil && !errors.IsNotFound(err) {
