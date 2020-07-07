@@ -47,8 +47,10 @@ ignored = ["github.com/Sirupsen/logrus", "github.com/gravitational/planet/build/
   version = "v1.1.1"
 
 [[override]]
+  # pin the version from opencontainers/runc
+  # make sure to update in sync!
   name = "golang.org/x/sys"
-  revision = "78d5f264b493f125018180c204871ecf58a2dce1"
+  revision = "9eafafc0a87e0fd0aeeba439a4573537970c44c7"
 
 [[override]]
   name = "github.com/syndtr/gocapability"
@@ -157,6 +159,28 @@ ignored = ["github.com/Sirupsen/logrus", "github.com/gravitational/planet/build/
   name = "gopkg.in/yaml.v2"
   version = "v2.2.2"
 
+[[constraint]]
+  name = "github.com/golang/protobuf"
+  version = "v1.4.2"
+
+[[override]]
+  # pinned to match opencontainers/runc
+  # make sure to update in sync!
+  name = "github.com/checkpoint-restore/go-criu"
+  revision = "17b0214f6c48980c45dc47ecb0cfd6d9e02df723"
+
+[[override]]
+  # pinned to match opencontainers/runc
+  # make sure to update in sync!
+  name = "github.com/opencontainers/selinux"
+  revision = "5215b1806f52b1fcc2070a8826c542c9d33cd3cf"
+
 [[override]]
   name = "github.com/opencontainers/runtime-spec"
   revision = "29686dbc5559d93fb1ef402eeda3e35c38d75af4"
+
+[[override]]
+  # pinned to match opencontainers/runc
+  # make sure to update in sync!
+  name = "github.com/cilium/ebpf"
+  revision = "95b36a581eed7b0f127306ed1d16cc0ddc06cf67"
