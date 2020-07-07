@@ -100,6 +100,28 @@
   version = "v2.0.0"
 
 [[projects]]
+  digest = "1:96ad99fcd7b4c3217477dd39582c917fca640dd9d2459d9129e73dd12cd75ad8"
+  name = "github.com/checkpoint-restore/go-criu"
+  packages = ["rpc"]
+  pruneopts = "UT"
+  revision = "0bfb6cc5cacc4bdca3856026478cf15078e5e067"
+  version = "v4.0.2"
+
+[[projects]]
+  branch = "master"
+  digest = "1:28af0a70f09739dce2b452a1dbbe51705258bc9414e6534300ad48cfee38f104"
+  name = "github.com/cilium/ebpf"
+  packages = [
+    ".",
+    "asm",
+    "internal",
+    "internal/btf",
+    "internal/unix",
+  ]
+  pruneopts = "UT"
+  revision = "1c8d4c9ef7759622653a1d319284a44652333b28"
+
+[[projects]]
   branch = "master"
   digest = "1:5aaec2559dbb1fde897fd21b4165881391d7f7e069700bef640802068c8e7988"
   name = "github.com/cloudfoundry/gosigar"
@@ -162,23 +184,12 @@
   version = "v0.2.0"
 
 [[projects]]
-  digest = "1:23b153950e96615981a18dfee3b3c85070eacd9f4432257f093c42f4a2bed406"
+  digest = "1:d5286d88d5620c43617ecec0ec188ded033bf7a434b0c708cd16cd9a40545d04"
   name = "github.com/coreos/go-systemd"
-  packages = [
-    "dbus",
-    "util",
-  ]
+  packages = ["dbus"]
   pruneopts = "UT"
   revision = "40e2722dffead74698ca12a750f64ef313ddce05"
   version = "v16"
-
-[[projects]]
-  digest = "1:6e2ff82d2fe11ee35ec8dceb4346b8144a761f1c8655592c4ebe99a92fcec327"
-  name = "github.com/coreos/pkg"
-  packages = ["dlopen"]
-  pruneopts = "UT"
-  revision = "97fdf19511ea361ae1c100dd393cc47f8dcfa1e1"
-  version = "v4"
 
 [[projects]]
   digest = "1:ec66ad050342a3573ed2f5a4337d51b4c6d5d2a717cc6c9ecf86b081235a5759"
@@ -656,20 +667,24 @@
   revision = "7d4729fb36185a7c1719923406c9d40e54fb93c7"
 
 [[projects]]
-  digest = "1:3a7b076f85f7786b280e7b06017cfa7f9379dfde983ac5280eb471d0f8a14baa"
+  digest = "1:4159b851c4878ce551077c9978e0c726fd527bba045f6a9915abb786e74bf0ae"
   name = "github.com/opencontainers/runc"
   packages = [
     "libcontainer",
     "libcontainer/apparmor",
     "libcontainer/cgroups",
+    "libcontainer/cgroups/ebpf",
+    "libcontainer/cgroups/ebpf/devicefilter",
     "libcontainer/cgroups/fs",
+    "libcontainer/cgroups/fs2",
+    "libcontainer/cgroups/fscommon",
     "libcontainer/cgroups/systemd",
     "libcontainer/configs",
     "libcontainer/configs/validate",
-    "libcontainer/criurpc",
     "libcontainer/devices",
     "libcontainer/intelrdt",
     "libcontainer/keys",
+    "libcontainer/logs",
     "libcontainer/mount",
     "libcontainer/nsenter",
     "libcontainer/seccomp",
@@ -677,10 +692,11 @@
     "libcontainer/system",
     "libcontainer/user",
     "libcontainer/utils",
+    "types",
   ]
   pruneopts = "UT"
-  revision = "ccb5efd37fb7c86364786e9137e22948751de7ed"
-  version = "v1.0.0-rc6"
+  revision = "dc9208a3303feef5b3839f4323d9beb36df0a9dd"
+  version = "v1.0.0-rc90"
 
 [[projects]]
   digest = "1:7a58202c5cdf3d2c1eb0621fe369315561cea7f036ad10f0f0479ac36bcc95eb"

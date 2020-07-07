@@ -100,7 +100,7 @@ ignored = ["github.com/Sirupsen/logrus", "github.com/gravitational/planet/build/
 
 [[constraint]]
   name = "github.com/opencontainers/runc"
-  version = "v1.0.0-rc6"
+  version = "v1.0.0-rc10"
 
 [[constraint]]
   name = "github.com/prometheus/client_golang"
