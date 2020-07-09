@@ -22,6 +22,7 @@ import (
 	"fmt"
 	"io"
 	"io/ioutil"
+	"net"
 	"os"
 	"os/signal"
 	"strconv"
@@ -30,15 +31,20 @@ import (
 
 	"github.com/gravitational/planet/lib/constants"
 	"github.com/gravitational/planet/lib/monitoring"
+	"github.com/gravitational/planet/lib/utils"
 
 	etcd "github.com/coreos/etcd/client"
 	etcdconf "github.com/gravitational/coordinate/config"
 	"github.com/gravitational/coordinate/leader"
 	"github.com/gravitational/satellite/agent"
 	pb "github.com/gravitational/satellite/agent/proto/agentpb"
+	"github.com/gravitational/satellite/cmd"
 	"github.com/gravitational/satellite/lib/rpc/client"
 	"github.com/gravitational/trace"
 	log "github.com/sirupsen/logrus"
+	"k8s.io/apimachinery/pkg/api/errors"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	corev1 "k8s.io/client-go/kubernetes/typed/core/v1"
 )
 
 // LeaderConfig represents configuration for the master election task
@@ -81,7 +87,8 @@ func (conf LeaderConfig) String() string {
 // Otherwise, the services are stopped to avoid interfering with the active master instance.
 // Also, every time a new master is elected, the node modifies its /etc/hosts file
 // to reflect the change of the kubernetes API server.
-func startLeaderClient(conf *LeaderConfig, agent agent.Agent, errorC chan error) (leaderClient io.Closer, err error) {
+func startLeaderClient(config agentConfig, agent agent.Agent, errorC chan error) (leaderClient io.Closer, err error) {
+	conf := config.leader
 	log.Infof("%v start", conf)
 	var hostname string
 	hostname, err = os.Hostname()
@@ -132,21 +139,26 @@ func startLeaderClient(conf *LeaderConfig, agent agent.Agent, errorC chan error)
 		}
 	}()
 
-	// Add a callback to watch for changes to the leader key.
-	// If this node becomes the leader, start a number of additional
-	// services as a master
-	client.AddWatchCallback(conf.LeaderKey, conf.Term/3, func(key, prevVal, newVal string) {
-		log.Infof("new leader: %v", newVal)
-		if newVal == conf.PublicIP {
+	if conf.Role == RoleMaster {
+		// Add a callback to watch for changes to the leader key.
+		// If this node becomes the leader, start a number of additional
+		// services as a leader.
+		client.AddWatchCallback(conf.LeaderKey, conf.Term/3, func(key, prevLeaderAddr, newLeaderAddr string) {
+			log.WithField("addr", newLeaderAddr).Info("New leader.")
+			if newLeaderAddr != conf.PublicIP {
+				if err := stopUnits(context.TODO()); err != nil {
+					log.WithError(err).Warn("Failed to stop units.")
+				}
+				return
+			}
 			if err := startUnits(context.TODO()); err != nil {
 				log.WithError(err).Warn("Failed to start units.")
 			}
-			return
-		}
-		if err := stopUnits(context.TODO()); err != nil {
-			log.WithError(err).Warn("Failed to stop units.")
-		}
-	})
+			if err := validateKubernetesService(context.TODO(), config.serviceCIDR); err != nil {
+				log.WithError(err).Warn("Failed to validate kubernetes service.")
+			}
+		})
+	}
 
 	// Add a callback to watch for changes to the leader key.
 	// If this node becomes the leader, record a LeaderElected event to the
@@ -294,27 +306,35 @@ func stopUnits(ctx context.Context) error {
 	return trace.NewAggregate(errors...)
 }
 
+type agentConfig struct {
+	agent       *agent.Config
+	monitoring  *monitoring.Config
+	leader      *LeaderConfig
+	peers       []string
+	serviceCIDR net.IPNet
+}
+
 // runAgent starts the master election / health check loops in background and
 // blocks until a signal has been received.
-func runAgent(conf *agent.Config, monitoringConf *monitoring.Config, leaderConf *LeaderConfig, peers []string) error {
+func runAgent(config agentConfig) error {
 	ctx, cancelCtx := context.WithCancel(context.Background())
 	defer cancelCtx()
 
-	if conf.Tags == nil {
-		conf.Tags = make(map[string]string)
+	if config.agent.Tags == nil {
+		config.agent.Tags = make(map[string]string)
 	}
-	conf.Tags["role"] = string(monitoringConf.Role)
-	monitoringAgent, err := agent.New(conf)
+	config.agent.Tags["role"] = string(config.monitoring.Role)
+	monitoringAgent, err := agent.New(config.agent)
 	if err != nil {
 		return trace.Wrap(err)
 	}
 	defer monitoringAgent.Close()
 
-	err = monitoring.AddMetrics(monitoringAgent, monitoringConf)
+	err = monitoring.AddMetrics(monitoringAgent, config.monitoring)
 	if err != nil {
 		return trace.Wrap(err)
 	}
-	err = monitoring.AddCheckers(monitoringAgent, monitoringConf)
+	err = monitoring.AddCheckers(monitoringAgent, config.monitoring)
 	if err != nil {
 		return trace.Wrap(err)
 	}
@@ -325,31 +345,38 @@ func runAgent(conf *agent.Config, monitoringConf *monitoring.Config, leaderConf 
 
 	// only join to the initial seed list if not member already,
 	// as the initial peer could be gone
-	if !monitoringAgent.IsMember() && len(peers) > 0 {
-		log.Infof("joining the cluster: %v", peers)
-		err = monitoringAgent.Join(peers)
+	if !monitoringAgent.IsMember() && len(config.peers) > 0 {
+		log.Infof("Joining the cluster: %v.", config.peers)
+		err = monitoringAgent.Join(config.peers)
 		if err != nil {
 			return trace.Wrap(err, "failed to join serf cluster")
 		}
 	} else {
-		log.Info("this agent is already a member of the cluster")
+		log.Info("This agent is already a member of the cluster.")
 	}
 
 	errorC := make(chan error, 10)
-	client, err := startLeaderClient(leaderConf, monitoringAgent, errorC)
+	client, err := startLeaderClient(config, monitoringAgent, errorC)
 	if err != nil {
 		return trace.Wrap(err)
 	}
 	defer client.Close()
 
-	err = setupResolver(ctx, monitoringConf.Role)
+	if config.monitoring.Role == agent.RoleMaster {
+		err = ensureDNSServices(ctx, config.serviceCIDR)
+		if err != nil {
+			return trace.Wrap(err)
+		}
+	}
+
+	err = setupResolver(ctx, config.monitoring.Role, config.serviceCIDR)
 	if err != nil {
 		return trace.Wrap(err)
 	}
 
 	// Only non-masters run etcd gateway service
-	if leaderConf.Role != RoleMaster {
-		err = startWatchingEtcdMasters(ctx, monitoringConf)
+	if config.leader.Role != RoleMaster {
+		err = startWatchingEtcdMasters(ctx, config.monitoring)
 		if err != nil {
 			return trace.Wrap(err)
 		}
@@ -475,6 +502,54 @@ func status(c statusConfig) (ok bool, err error) {
 		return ok, trace.Wrap(err, "failed to output status")
 	}
 	return ok, nil
+}
+
+// validateKubernetesService ensures that API server service has the IP from the
+// currently active service CIDR. In case of this not being the case (eg during service CIDR updates),
+// the function will remove the service and wait for Kubernetes API server to recreate it.
+func validateKubernetesService(ctx context.Context, serviceCIDR net.IPNet) error {
+	logger := log.WithField("service-cidr", serviceCIDR.String())
+	return utils.RetryWithInterval(ctx, newUnlimitedExponentialBackoff(5*time.Second), func() error {
+		client, err := cmd.GetKubeClientFromPath(constants.SchedulerConfigPath)
+		if err != nil {
+			return trace.Wrap(err)
+		}
+		services := client.CoreV1().Services(metav1.NamespaceDefault)
+		svc, err := services.Get(KubernetesServiceName, metav1.GetOptions{})
+		if err != nil {
+			return trace.Wrap(err)
+		}
+		if svc.Spec.ClusterIP == "" {
+			// not a clusterIP service?
+			logger.Info("API server service clusterIP is empty.")
+			return nil
+		}
+		clusterIP := net.ParseIP(svc.Spec.ClusterIP)
+		// Kubernetes defaults to the first IP in service range for the API server service
+		// See https://github.com/kubernetes/kubernetes/blob/v1.15.12/pkg/master/services.go#L41
+		//
+		// Check the existing service against the active service IP range
+		// and remove it if it's invalid letting the kubernetes API server recreate the service.
+		// Note, this only runs on the leader node
+		if !serviceCIDR.Contains(clusterIP) {
+			logger.WithField("cluster-ip", svc.Spec.ClusterIP).
+				Warn("API server service clusterIP is invalid, will reset service.")
+			if err := removeKubernetesService(services); err != nil {
+				return trace.Wrap(err)
+			}
+			return utils.Continue("wait for API server service to become available")
+		}
+		logger.Info("API server service clusterIP is valid.")
+		return nil
+	})
+}
+
+func removeKubernetesService(services corev1.ServiceInterface) error {
+	err := services.Delete(KubernetesServiceName, &metav1.DeleteOptions{})
+	if err != nil && !errors.IsNotFound(err) {
+		return trace.Wrap(err)
+	}
+	return nil
 }
 
 func rpcAddr(port int) string {

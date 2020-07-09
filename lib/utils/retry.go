@@ -35,10 +35,10 @@ func Retry(ctx context.Context, times int, period time.Duration, fn func() error
 		if err == nil {
 			return nil
 		}
-		log.Debugf("attempt %v, result: %v, retry in %v", i+1, err, period)
+		log.Debugf("Attempt %v, result: %v, retry in %v", i+1, err, period)
 		select {
 		case <-ctx.Done():
-			log.Debugf("context is closing, return")
+			log.Debug("Context is closing, return.")
 			return err
 		case <-time.After(period):
 		}
@@ -58,7 +58,7 @@ func RetryWithInterval(ctx context.Context, interval backoff.BackOff, fn func() 
 		log.Debugf("Retrying: %v (time %v).", trace.UserMessage(err), d)
 	})
 	if err != nil {
-		log.Errorf("All attempts failed: %v.", trace.DebugReport(err))
+		log.WithError(err).Warn("All attempts failed.")
 		return trace.Wrap(err)
 	}
 	return nil
@@ -70,3 +70,13 @@ func NewUnlimitedExponentialBackOff() backoff.BackOff {
 	b.MaxElapsedTime = 0
 	return b
 }
+
+// Error returns the contents of this value.
+// Implements error
+func (r Continue) Error() string {
+	return string(r)
+}
+
+// Continue is an artificial error value that indicates that a retry
+// loop should be re-executed with the specified message
+type Continue string

@@ -60,12 +60,12 @@ const (
 	// EnvPublicIP names the environment variable that specifies
 	// the public IP address of the node
 	EnvPublicIP = "PLANET_PUBLIC_IP"
-	// EnvClusterDNSIP names the environment variable that specifies
-	// the IP address of the k8s DNS service
-	EnvClusterDNSIP = "KUBE_CLUSTER_DNS_IP"
 	// EnvAPIServerName names the environment variable that specifies
 	// the address of the API server
 	EnvAPIServerName = "KUBE_APISERVER"
+	// EnvAPIServerPort names the environment variable that specifies
+	// the default secure port of the API server
+	EnvAPIServerPort = "KUBE_APISERVER_PORT"
 	// EnvEtcdProxy names the environment variable that specifies
 	// the value of the proxy mode setting
 	// See https://coreos.com/etcd/docs/latest/v2/configuration.html
@@ -252,6 +252,9 @@ const (
 	// EnvPlanetAllowPrivileged is an environment variable that indicates whether
 	// privileged containers are allowed.
 	EnvPlanetAllowPrivileged = "PLANET_ALLOW_PRIVILEGED"
+
+	// EnvPlanetServiceSubnet specifies the service subnet
+	EnvPlanetServiceSubnet = "PLANET_SERVICE_SUBNET"
 
 	// DefaultDNSListenAddr is the default IP address CoreDNS will listen on
 	DefaultDNSListenAddr = "127.0.0.2"
@@ -451,6 +454,11 @@ const (
 
 	// StateDir is a location within the planet container that can hold persistent state
 	StateDir = "/ext/state"
+
+	// KubernetesServiceName defines the name of the kubernetes service
+	// Unfortunately, it is an implementation detail in v1.15.12
+	// See https://github.com/kubernetes/kubernetes/blob/v1.15.12/pkg/master/controller.go#L46
+	KubernetesServiceName = "kubernetes"
 )
 
 // DefaultDNSAddress is the default listen address for local DNS server.
