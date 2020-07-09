@@ -29,15 +29,23 @@ import (
 )
 
 var (
-	ErrFull              = errors.New("range is full")
-	ErrAllocated         = errors.New("provided IP is already allocated")
+	// ErrFull indicates that the IP address range is full - e.g. no address can be allocated in it
+	ErrFull = errors.New("range is full")
+	// ErrAllocated indicates that a given IP has already been allocated
+	ErrAllocated = errors.New("provided IP is already allocated")
+	// ErrMismatchedNetwork indicates that the specified IP is from a different IP range than the currently
+	// active one
 	ErrMismatchedNetwork = errors.New("the provided network does not match the current range")
 )
 
+// ErrNotInRange indicates whether a given IP is not from the valid range.
 type ErrNotInRange struct {
+	// ValidRange specifies the valid IP range
 	ValidRange string
 }
 
+// Error returns this error's message.
+// Implements error
 func (e *ErrNotInRange) Error() string {
 	return fmt.Sprintf("provided IP is not in the valid range. The range of valid IPs is %s", e.ValidRange)
 }

@@ -504,6 +504,9 @@ func status(c statusConfig) (ok bool, err error) {
 	return ok, nil
 }
 
+// validateKubernetesService ensures that API server service has the IP from the
+// currently active service CIDR. In case of this not being the case (eg during service CIDR updates),
+// the function will remove the service and wait for Kubernetes API server to recreate it.
 func validateKubernetesService(ctx context.Context, serviceCIDR net.IPNet) error {
 	logger := log.WithField("service-cidr", serviceCIDR.String())
 	return utils.RetryWithInterval(ctx, newUnlimitedExponentialBackoff(5*time.Second), func() error {
