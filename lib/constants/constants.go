@@ -16,7 +16,11 @@ limitations under the License.
 
 package constants
 
-import "time"
+import (
+	"time"
+
+	"github.com/gravitational/satellite/monitoring"
+)
 
 const (
 	// KubectlConfigPath is the path to kubectl configuration file
@@ -98,4 +102,12 @@ const (
 var (
 	// GravityDataDir is the directory where gravity data is stored in planet
 	GravityDataDir = "/var/lib/gravity"
+
+	// MinKernelVersion is the minimum supported Linux kernel version -- 3.10.0-1127
+	MinKernelVersion = monitoring.KernelVersion{
+		Release: 3,
+		Major:   10,
+		Minor:   0,
+		Patch:   1127,
+	}
 )
