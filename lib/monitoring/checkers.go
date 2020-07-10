@@ -292,6 +292,14 @@ func addToMaster(node agent.Agent, config *Config, etcdConfig *monitoring.ETCDCo
 	}
 	node.AddChecker(systemPodsChecker)
 
+	// Minimum required Linux kernel version 3.10.0
+	node.AddChecker(monitoring.NewKernelChecker(monitoring.KernelVersion{
+		Release: 3,
+		Major:   10,
+		Minor:   0,
+		Patch:   1127,
+	}))
+
 	return nil
 }
 
@@ -367,6 +375,14 @@ func addToNode(node agent.Agent, config *Config, etcdConfig *monitoring.ETCDConf
 		return trace.Wrap(err)
 	}
 	node.AddChecker(systemPodsChecker)
+
+	// Minimum required Linux kernel version 3.10.0
+	node.AddChecker(monitoring.NewKernelChecker(monitoring.KernelVersion{
+		Release: 3,
+		Major:   10,
+		Minor:   0,
+		Patch:   1127,
+	}))
 
 	return nil
 }
