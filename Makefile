@@ -41,7 +41,7 @@ DOCKER_VER ?= 18.06.2
 # we currently use our own flannel fork: gravitational/flannel
 FLANNEL_VER := v0.10.1-gravitational
 HELM_VER := v2.12.3
-COREDNS_VER := 1.3.1
+COREDNS_VER := 1.7.0
 SERF_VER := v0.8.5
 
 # ETCD Versions to include in the release
