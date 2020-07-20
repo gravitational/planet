@@ -103,7 +103,11 @@ var (
 	// GravityDataDir is the directory where gravity data is stored in planet
 	GravityDataDir = "/var/lib/gravity"
 
-	// MinKernelVersion is the minimum supported Linux kernel version -- 3.10.0-1127
+	// MinKernelVersion is the minimum supported Linux kernel version -- 3.10.0-1127.
+	//
+	// Some clusters running on an older CentOS/RHEL kernel have experienced
+	// instability and memory allocation failures.
+	// See https://github.com/gravitational/gravity/issues/1818 for more information.
 	MinKernelVersion = monitoring.KernelVersion{
 		Release: 3,
 		Major:   10,
