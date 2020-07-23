@@ -422,6 +422,14 @@
                 }
             },
             {
+                "type": "Bool",
+                "name": "tillerenabled",
+                "env": "PLANET_TILLER_ENABLED",
+                "cli": {
+                    "name": "tiller-enabled"
+                }
+            },
+            {
                 "type": "String",
                 "name": "kubelet-config",
                 "env": "PLANET_KUBELET_CONFIG",

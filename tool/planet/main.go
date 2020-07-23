@@ -139,6 +139,7 @@ func run() error {
 		cstartDisableFlannel = cstart.Flag("disable-flannel", "Disable flannel within the planet container").OverrideDefaultFromEnvar(EnvDisableFlannel).Bool()
 		cstartKubeletConfig  = cstart.Flag("kubelet-config", "Kubelet configuration as base64-encoded JSON payload").OverrideDefaultFromEnvar(EnvPlanetKubeletConfig).String()
 		cstartCloudConfig    = cstart.Flag("cloud-config", "Cloud configuration as base64-encoded payload").OverrideDefaultFromEnvar(EnvPlanetCloudConfig).String()
+		cstartTillerEnabled  = cstart.Flag("tiller-enabled", "Whether tiller server is installed in the cluster").OverrideDefaultFromEnvar(EnvPlanetTillerEnabled).Bool()
 
 		// start the planet agent
 		cagent                 = app.Command("agent", "Start Planet Agent")
@@ -172,6 +173,7 @@ func run() error {
 		cagentHTTPTimeout            = cagent.Flag("http-timeout", "Timeout for HTTP requests, formatted as Go duration.").OverrideDefaultFromEnvar(EnvPlanetAgentHTTPTimeout).Default(constants.HTTPTimeout.String()).Duration()
 		cagentTimelineDir            = cagent.Flag("timeline-dir", "Directory to be used for timeline storage").Default("/tmp/timeline").String()
 		cagentRetention              = cagent.Flag("retention", "Window to retain timeline as a Go duration").Duration()
+		cagentTillerEnabled          = cagent.Flag("tiller-enabled", "Whether tiller server is installed in the cluster").Bool()
 
 		// stop a running container
 		cstop = app.Command("stop", "Stop planet container")
@@ -357,6 +359,7 @@ func run() error {
 			HighWatermark:         uint(*cagentHighWatermark),
 			NodeName:              *cagentNodeName,
 			HTTPTimeout:           *cagentHTTPTimeout,
+			TillerEnabled:         *cagentTillerEnabled,
 		}
 		leaderConf := &LeaderConfig{
 			PublicIP:        cagentPublicIP.String(),
@@ -455,6 +458,7 @@ func run() error {
 			DisableFlannel:   *cstartDisableFlannel,
 			KubeletConfig:    *cstartKubeletConfig,
 			CloudConfig:      *cstartCloudConfig,
+			TillerEnabled:    *cstartTillerEnabled,
 		}
 		if *cstartSelfTest {
 			err = selfTest(config, *cstartTestKubeRepoPath, *cstartTestSpec, extraArgs)

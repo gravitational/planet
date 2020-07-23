@@ -246,6 +246,10 @@ const (
 	// This is external configuration for the container
 	EnvPlanetCloudConfig = "PLANET_CLOUD_CONFIG"
 
+	// EnvPlanetTillerEnabled is the environment varible indicating whether
+	// tiller server is installed in the cluster.
+	EnvPlanetTillerEnabled = "PLANET_TILLER_ENABLED"
+
 	// DefaultDNSListenAddr is the default IP address CoreDNS will listen on
 	DefaultDNSListenAddr = "127.0.0.2"
 

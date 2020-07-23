@@ -159,6 +159,7 @@ func start(config *Config, monitorc chan<- bool) (*runtimeContext, error) {
 		box.EnvPair{Name: EnvClusterID, Val: config.ClusterID},
 		box.EnvPair{Name: EnvNodeName, Val: config.NodeName},
 		box.EnvPair{Name: EnvElectionEnabled, Val: strconv.FormatBool(config.ElectionEnabled)},
+		box.EnvPair{Name: EnvPlanetTillerEnabled, Val: strconv.FormatBool(config.TillerEnabled)},
 		box.EnvPair{Name: EnvDNSHosts, Val: config.DNS.Hosts.String()},
 		box.EnvPair{Name: EnvDNSZones, Val: config.DNS.Zones.String()},
 	)

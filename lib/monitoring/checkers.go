@@ -74,6 +74,8 @@ type Config struct {
 	HighWatermark uint
 	// HTTPTimeout specifies the HTTP timeout for checks
 	HTTPTimeout time.Duration
+	// TillerEnabled indicates whether tiller server is installed in the cluster
+	TillerEnabled bool
 }
 
 // CheckAndSetDefaults validates monitoring configuration and sets defaults
@@ -289,6 +291,10 @@ func addToMaster(node agent.Agent, config *Config, etcdConfig *monitoring.ETCDCo
 		return trace.Wrap(err)
 	}
 	node.AddChecker(systemPodsChecker)
+
+	if config.TillerEnabled {
+		node.AddChecker(monitoring.NewTillerChecker())
+	}
 
 	return nil
 }

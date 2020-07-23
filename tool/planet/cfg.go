@@ -133,6 +133,8 @@ type Config struct {
 	KubeletConfig string
 	// CloudConfig specifies the cloud configuration as JSON-encoded payload
 	CloudConfig string
+	// TillerEnabled indicates whether tiller server is installed in the cluster
+	TillerEnabled bool
 }
 
 // DNS describes DNS server configuration
