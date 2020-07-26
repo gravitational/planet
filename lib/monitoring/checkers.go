@@ -292,6 +292,8 @@ func addToMaster(node agent.Agent, config *Config, etcdConfig *monitoring.ETCDCo
 	}
 	node.AddChecker(systemPodsChecker)
 
+	node.AddChecker(monitoring.NewKernelChecker(constants.MinKernelVersion))
+
 	return nil
 }
 
@@ -367,6 +369,8 @@ func addToNode(node agent.Agent, config *Config, etcdConfig *monitoring.ETCDConf
 		return trace.Wrap(err)
 	}
 	node.AddChecker(systemPodsChecker)
+
+	node.AddChecker(monitoring.NewKernelChecker(constants.MinKernelVersion))
 
 	return nil
 }
