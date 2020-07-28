@@ -59,6 +59,14 @@ RUN curl https://download.docker.com/linux/static/stable/x86_64/docker-$DOCKER_V
     cp /tmp/docker/* /usr/bin && \
     rm -rf /tmp/docker*
 
+# Replace containerd shipped with docker to avoid deadlocks / hangs due to missing exit result
+# https://github.com/gravitational/gravity/issues/1842
+# https://github.com/containerd/containerd/issues/3572#issuecomment-528293369
+RUN curl -L https://github.com/containerd/containerd/releases/download/v1.2.10/containerd-1.2.10.linux-amd64.tar.gz -o /tmp/containerd.tgz && \
+    mkdir -p /tmp/containerd && tar -xvzf /tmp/containerd.tgz -C /tmp/containerd && \
+    cp /tmp/containerd/bin/containerd /tmp/containerd/bin/containerd-shim /tmp/containerd/bin/ctr /usr/bin/ && \
+    rm -rf /tmp/containerd
+
 RUN curl https://storage.googleapis.com/kubernetes-helm/helm-$HELM_VER-linux-amd64.tar.gz -o /tmp/helm-$HELM_VER.tar.gz && \
     mkdir -p /tmp/helm && tar -xvzf /tmp/helm-$HELM_VER.tar.gz -C /tmp/helm && \
     cp /tmp/helm/linux-amd64/helm /usr/bin && \
