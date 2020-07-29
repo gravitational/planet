@@ -422,7 +422,6 @@
   version = "v1.0.0"
 
 [[projects]]
-  branch = "bernard/7.0.x/kernel-check"
   digest = "1:4cdae4d9f06bfb96ecd163b62de476b1c4bd06cefb9a5816c1ff37abf7e838a8"
   name = "github.com/gravitational/satellite"
   packages = [
@@ -443,7 +442,8 @@
     "utils",
   ]
   pruneopts = "UT"
-  revision = "cec197ff535c73fab6ca592e36e386255d39a604"
+  revision = "46cabd4ca677d91e9740e3b06d403147156badbc"
+  version = "7.0.17"
 
 [[projects]]
   digest = "1:5639168299375c369a68748214586e3b25bbc17e7ec9c64564f43f4635097bfc"
