@@ -306,10 +306,6 @@ const (
 	// DefaultPlanetReleaseFile is the planet file that indicates the latest available etcd version
 	DefaultPlanetReleaseFile = "/etc/planet-release"
 
-	// AssumeEtcdVersion is the etcd version we assume we're using if we're unable to locate the running version
-	// This should be the least available version among the releases we can directly upgrade
-	AssumeEtcdVersion = "v3.3.22"
-
 	// LegacyAPIServerDNSName is the domain name of a current leader server
 	// as used to be in previous versions.
 	// This is kept for backwards-compatibility

@@ -38,7 +38,7 @@ func (*EtcdSuite) TestEtcdParseFile(c *check.C) {
 	defer os.Remove(file.Name())
 
 	// reading a missing file should return an error
-	_, _, err = readEtcdVersion("/this/file/doesnt/exist")
+	_, _, err = readEtcdVersions("/this/file/doesnt/exist")
 	c.Assert(trace.IsNotFound(err), check.Equals, true)
 
 	// try writing the etcd environment
@@ -47,7 +47,7 @@ func (*EtcdSuite) TestEtcdParseFile(c *check.C) {
 	err = writeEtcdEnvironment(file.Name(), current, prev)
 	c.Assert(err, check.IsNil)
 
-	cu, pr, err := readEtcdVersion(file.Name())
+	cu, pr, err := readEtcdVersions(file.Name())
 	c.Assert(err, check.IsNil)
 	c.Assert(cu, check.Equals, current)
 	c.Assert(pr, check.Equals, prev)

@@ -232,15 +232,14 @@ func run() error {
 		cetcdDisableUpgrade = cetcdDisable.Flag("upgrade", "disable the upgrade service").Bool()
 		cetcdStopApiserver  = cetcdDisable.Flag("stop-api", "stops the kubernetes API service").Bool()
 
-		cetcdEnable           = cetcd.Command("enable", "Enable etcd on this node")
-		cetcdEnableUpgrade    = cetcdEnable.Flag("upgrade", "enable the upgrade service").Bool()
-		cetcdEnableJoinMaster = cetcdEnable.Flag("join-master", "join this node to an existing master node").String()
+		cetcdEnable        = cetcd.Command("enable", "Enable etcd on this node")
+		cetcdEnableUpgrade = cetcdEnable.Flag("upgrade", "enable the upgrade service").Bool()
 
 		cetcdUpgrade  = cetcd.Command("upgrade", "Upgrade etcd to the latest version")
 		cetcdRollback = cetcd.Command("rollback", "Rollback etcd to the previous release")
 
-		cetcdMigrate = cetcd.Command("migrate", "Migrate data directory from older version")
-		cetcdMigrateFrom = cetcdMigrate.Flag("from", "From version").String()
+		cetcdMigrate     = cetcd.Command("migrate", "Migrate data directory from older version")
+		cetcdMigrateFrom = cetcdMigrate.Flag("from", "From version").Required().String()
 		cetcdMigrateTo   = cetcdMigrate.Flag("to", "To version").Required().String()
 
 		cetcdRestore     = cetcd.Command("restore", "Restore etcd backup as part of the upgrade")
@@ -533,7 +532,7 @@ func run() error {
 		if *cetcdEnableUpgrade {
 			err = etcdEnableUpgrade()
 		} else {
-			err = etcdEnable(*cetcdEnableJoinMaster)
+			err = etcdEnable()
 		}
 
 	case cetcdDisable.FullCommand():
