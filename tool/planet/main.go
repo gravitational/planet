@@ -239,6 +239,10 @@ func run() error {
 		cetcdUpgrade  = cetcd.Command("upgrade", "Upgrade etcd to the latest version")
 		cetcdRollback = cetcd.Command("rollback", "Rollback etcd to the previous release")
 
+		cetcdMigrate = cetcd.Command("migrate", "Migrate data directory from older version")
+		cetcdMigrateFrom = cetcdMigrate.Flag("from", "From version").String()
+		cetcdMigrateTo   = cetcdMigrate.Flag("to", "To version").Required().String()
+
 		cetcdRestore     = cetcd.Command("restore", "Restore etcd backup as part of the upgrade")
 		cetcdRestoreFile = cetcdRestore.Arg("file", "A previously taken backup file to use during upgrade").Required().ExistingFile()
 
@@ -526,10 +530,18 @@ func run() error {
 		err = etcdBackup(*cetcdBackupFile, *cetcdBackupPrefix)
 
 	case cetcdEnable.FullCommand():
-		err = etcdEnable(*cetcdEnableUpgrade, *cetcdEnableJoinMaster)
+		if *cetcdEnableUpgrade {
+			err = etcdEnableUpgrade()
+		} else {
+			err = etcdEnable(*cetcdEnableJoinMaster)
+		}
 
 	case cetcdDisable.FullCommand():
-		err = etcdDisable(*cetcdDisableUpgrade, *cetcdStopApiserver)
+		if *cetcdDisableUpgrade {
+			err = etcdDisableUpgrade()
+		} else {
+			err = etcdDisable(*cetcdStopApiserver)
+		}
 
 	case cetcdUpgrade.FullCommand():
 		err = etcdUpgrade(false)
@@ -539,6 +551,9 @@ func run() error {
 
 	case cetcdRestore.FullCommand():
 		err = etcdRestore(*cetcdRestoreFile)
+
+	case cetcdMigrate.FullCommand():
+		err = etcdMigrate(*cetcdMigrateFrom, *cetcdMigrateTo)
 
 	case cetcdWipe.FullCommand():
 		err = etcdWipe(*cetcdWipeConfirmed)

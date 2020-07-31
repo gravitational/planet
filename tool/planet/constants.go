@@ -307,7 +307,8 @@ const (
 	DefaultPlanetReleaseFile = "/etc/planet-release"
 
 	// AssumeEtcdVersion is the etcd version we assume we're using if we're unable to locate the running version
-	AssumeEtcdVersion = "v2.3.8"
+	// This should be the least available version among the releases we can directly upgrade
+	AssumeEtcdVersion = "v3.3.22"
 
 	// LegacyAPIServerDNSName is the domain name of a current leader server
 	// as used to be in previous versions.
@@ -350,6 +351,9 @@ const (
 
 	// SharedDirMask is a permissions mask for a shared directory
 	SharedDirMask = 0755
+
+	// PrivateDirMask is a mask for private directories
+	PrivateDirMask = 0700
 
 	// SharedReadWriteMask is a mask for a shared file with read/write access for everyone
 	SharedReadWriteMask = 0666

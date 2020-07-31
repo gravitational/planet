@@ -49,13 +49,6 @@ import (
 	etcdv3 "go.etcd.io/etcd/clientv3"
 )
 
-var (
-	etcdUpgradeService = true
-	etcdService        = false
-	stopApiserverTrue  = true
-	stopApiserverFalse = false
-)
-
 // etcdInit detects which version of etcd should be running, and sets symlinks to point
 // to the correct version
 func etcdInit() error {
@@ -110,10 +103,8 @@ func etcdInit() error {
 	// create a symlink for the etcd data
 	// this way we can easily support upgrade/rollback by simply changing
 	// the pointer to where the data lives
-	// Note: in order to support rollback to version 2.3.8, we need to link
-	// to /ext/data
 	dest := getBaseEtcdDir(currentVersion)
-	err = os.MkdirAll(dest, 0700)
+	err = os.MkdirAll(dest, PrivateDirMask)
 	if err != nil && !os.IsExist(err) {
 		return trace.ConvertSystemError(err)
 	}
@@ -163,9 +154,30 @@ func etcdBackup(backupFile string, backupPrefix []string) (err error) {
 	return nil
 }
 
+func etcdMigrate(fromVersion, toVersion string) (err error) {
+	if fromVersion == "" {
+		fromVersion, _, err = readEtcdVersion(DefaultEtcdCurrentVersionFile)
+		if err != nil {
+			if !trace.IsNotFound(err) {
+				return trace.Wrap(err)
+			}
+			fromVersion = AssumeEtcdVersion
+		}
+	}
+	srcDir := getBaseEtcdDir(fromVersion)
+	dstDir := getBaseEtcdDir(toVersion)
+	return trace.Wrap(utils.CopyDirContents(srcDir, dstDir))
+}
+
 // etcdDisable disables etcd on this machine
 // Used during upgrades
-func etcdDisable(upgradeService, stopAPIServer bool) error {
+func etcdDisableUpgrade() error {
+	ctx, cancel := context.WithTimeout(context.Background(), EtcdUpgradeTimeout)
+	defer cancel()
+	return trace.Wrap(disableService(ctx, ETCDUpgradeServiceName))
+}
+
+func etcdDisable(stopAPIServer bool) error {
 	ctx, cancel := context.WithTimeout(context.Background(), EtcdUpgradeTimeout)
 	defer cancel()
 
@@ -179,31 +191,11 @@ func etcdDisable(upgradeService, stopAPIServer bool) error {
 		}
 	}
 
-	if upgradeService {
-		return trace.Wrap(disableService(ctx, ETCDUpgradeServiceName))
-	}
-
 	return trace.Wrap(disableService(ctx, ETCDServiceName))
 }
 
-// etcdEnable enables a disabled etcd node
-func etcdEnable(upgradeService bool, joinToMaster string) error {
-	ctx, cancel := context.WithTimeout(context.Background(), EtcdUpgradeTimeout)
-	defer cancel()
-
-	if !upgradeService {
-		ctx, cancel := context.WithTimeout(context.Background(), 120*time.Minute)
-		defer cancel()
-		err := etcdInitJoin(ctx, joinToMaster)
-		if err != nil {
-			return trace.Wrap(err)
-		}
-
-		// restart the clients of the etcd service when the etcd service is brought online, which usually will be post
-		// upgrade. This will ensure clients running inside planet are restarted, which will refresh any local state
-		restartEtcdClients(ctx)
-		return trace.Wrap(enableService(ctx, ETCDServiceName))
-	}
+// etcdEnableUpgrade enables a disabled etcd upgrade service
+func etcdEnableUpgrade() error {
 	// don't actually enable the service if this is a proxy
 	env, err := box.ReadEnvironment(ContainerEnvironmentFile)
 	if err != nil {
@@ -211,11 +203,28 @@ func etcdEnable(upgradeService bool, joinToMaster string) error {
 	}
 
 	if env.Get(EnvEtcdProxy) == EtcdProxyOn {
-		log.Info("etcd is in proxy mode, nothing to do")
+		log.Info("Etcd is in proxy mode, nothing to do.")
 		return nil
 	}
 
+	ctx, cancel := context.WithTimeout(context.Background(), EtcdUpgradeTimeout)
+	defer cancel()
 	return trace.Wrap(enableService(ctx, ETCDUpgradeServiceName))
+}
+
+// etcdEnable enables a disabled etcd node
+func etcdEnable(joinToMaster string) error {
+	ctx, cancel := context.WithTimeout(context.Background(), 120*time.Minute)
+	defer cancel()
+	err := etcdInitJoin(ctx, joinToMaster)
+	if err != nil {
+		return trace.Wrap(err)
+	}
+
+	// restart the clients of the etcd service when the etcd service is brought online, which usually will be post
+	// upgrade. This will ensure clients running inside planet are restarted, which will refresh any local state
+	restartEtcdClients(ctx)
+	return trace.Wrap(enableService(ctx, ETCDServiceName))
 }
 
 // etcdInitJoin ensures this particular node is part of an etcd cluster.
@@ -241,7 +250,7 @@ func etcdInitJoin(ctx context.Context, initMaster string) error {
 		return nil
 	}
 
-	log.WithField("master", initMaster).Info("Joining etcd to existing cluster")
+	log.WithField("master", initMaster).Info("Joining etcd to existing cluster.")
 
 	return trace.Wrap(utils.Retry(ctx, math.MaxInt64, 1*time.Second, func() error {
 		return trace.Wrap(etcdInitJoinImpl(ctx, initMaster, env))
@@ -308,18 +317,18 @@ func etcdMemberPeerList(ctx context.Context, client *etcdv3.Client, advertisePee
 			if advertisePeerURL == url {
 				log.WithFields(logrus.Fields{
 					"advertise_peer_url": advertisePeerURL,
-				}).Info("This node is already member of cluster")
+				}).Info("This node is already member of cluster.")
 				isMember = true
 			}
 		}
 	}
-	return
+	return isMember, peerURLs, nil
 }
 
-// etcdUpgrade upgrades / rollbacks the etcd upgrade
+// etcdUpgrade upgrades / rolls back the etcd upgrade
 // the procedure is basically the same for an upgrade or rollback, just with some paths reversed
 func etcdUpgrade(rollback bool) error {
-	log.Info("Updating etcd")
+	log.Info("Updating etcd.")
 
 	env, err := box.ReadEnvironment(ContainerEnvironmentFile)
 	if err != nil {
@@ -327,22 +336,19 @@ func etcdUpgrade(rollback bool) error {
 	}
 
 	if env.Get(EnvEtcdProxy) == EtcdProxyOn {
-		log.Info("etcd is in proxy mode, nothing to do")
+		log.Info("Etcd is in proxy mode, nothing to do.")
 		return nil
 	}
 
-	log.Info("Checking etcd service status")
-	services := []string{ETCDServiceName, ETCDUpgradeServiceName}
-	for _, service := range services {
-		status, err := getServiceStatus(service)
-		if err != nil {
-			log.Warnf("Failed to query status of service %v. Continuing upgrade. Error: %v", service, err)
-			continue
-		}
-		log.Infof("%v service status: %v", service, status)
+	log.Info("Checking etcd service status.")
+	status, err := getServiceStatus(ETCDServiceName)
+	if err == nil {
+		log.Infof("%v service status: %v.", ETCDServiceName, status)
 		if status != "inactive" && status != "failed" {
-			return trace.BadParameter("%v must be disabled in order to run the upgrade. current status: %v", service, status)
+			return trace.BadParameter("%v must be disabled in order to run the upgrade. current status: %v", ETCDServiceName, status)
 		}
+	} else {
+		log.Warnf("Failed to query status of service %v. Continuing upgrade. Error: %v.", ETCDServiceName, err)
 	}
 
 	// In order to upgrade in a re-entrant way
@@ -401,7 +407,7 @@ func etcdUpgrade(rollback bool) error {
 		}
 	}
 
-	log.Info("Upgrade complete")
+	log.Info("Upgrade complete.")
 
 	return nil
 }
@@ -529,7 +535,7 @@ func getBaseEtcdDir(version string) string {
 }
 
 func etcdRestore(file string) error {
-	log.Info("Initializing new etcd database")
+	log.Info("Initializing new etcd database.")
 
 	datadir, err := getEtcdDataDir()
 	if err != nil {
@@ -537,7 +543,7 @@ func etcdRestore(file string) error {
 	}
 
 	// To be re-entrant, shutdown the etcd server if its already running
-	err = etcdDisable(etcdUpgradeService, stopApiserverFalse)
+	err = etcdDisableUpgrade()
 	if err != nil {
 		return trace.Wrap(err)
 	}
@@ -548,7 +554,7 @@ func etcdRestore(file string) error {
 		return trace.Wrap(err)
 	}
 
-	err = etcdEnable(etcdUpgradeService, "")
+	err = etcdEnableUpgrade()
 	if err != nil {
 		return trace.Wrap(err)
 	}
@@ -565,15 +571,15 @@ func etcdRestore(file string) error {
 	}
 
 	// wait for the temporary etcd instance to complete startup
-	log.Info("Waiting for etcd initialization to complete")
+	log.Info("Waiting for etcd initialization to complete.")
 	err = waitEtcdHealthyTimeout(context.TODO(), 2*time.Minute, client)
 	if err != nil {
 		return trace.Wrap(err)
 	}
 
 	// stop etcd now that its DB is initialized but empty, to run offline restore to the empty database
-	log.Info("Etcd initialization complete, stopping")
-	err = etcdDisable(etcdUpgradeService, stopApiserverFalse)
+	log.Info("Etcd initialization complete, stopping.")
+	err = etcdDisableUpgrade()
 	if err != nil {
 		return trace.Wrap(err)
 	}
@@ -585,20 +591,20 @@ func etcdRestore(file string) error {
 	log.Info("Offline RestoreConfig: ", spew.Sdump(restoreConf))
 	restoreConf.Log = log.StandardLogger()
 
-	log.Info("Starting offline etcd restoration")
+	log.Info("Starting offline etcd restoration.")
 	err = backup.OfflineRestore(context.TODO(), restoreConf, datadir)
 	if err != nil {
 		return trace.Wrap(err)
 	}
 
 	// start etcd for running online restoration of v2 database
-	log.Info("Starting temporary etcd cluster for online restoration")
-	err = etcdEnable(etcdUpgradeService, "")
+	log.Info("Starting temporary etcd cluster for online restoration.")
+	err = etcdEnableUpgrade()
 	if err != nil {
 		return trace.Wrap(err)
 	}
 
-	log.Info("Waiting for temporary etcd service to start")
+	log.Info("Waiting for temporary etcd service to start.")
 	err = waitEtcdHealthyTimeout(context.TODO(), 1*time.Minute, client)
 	if err != nil {
 		return trace.Wrap(err)
@@ -621,13 +627,13 @@ func etcdRestore(file string) error {
 	}
 
 	// stop etcd now that the restoration is completed, gravity will coordinate the restart of the cluster
-	log.Info("Stopping temporary etcd cluster")
-	err = etcdDisable(etcdUpgradeService, stopApiserverFalse)
+	log.Info("Stopping temporary etcd cluster.")
+	err = etcdDisableUpgrade()
 	if err != nil {
 		return trace.Wrap(err)
 	}
 
-	log.Info("Restore complete")
+	log.Info("Restore complete.")
 	return nil
 }
 
