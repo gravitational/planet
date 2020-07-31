@@ -162,6 +162,7 @@ func OfflineRestore(ctx context.Context, conf RestoreConfig, dir string) error {
 	defer be.Close()
 
 	// Restore the DB
+	var maxRevision int64
 	for {
 		var node etcdBackupNode
 		err := decoder.Decode(&node)
@@ -173,8 +174,13 @@ func OfflineRestore(ctx context.Context, conf RestoreConfig, dir string) error {
 
 		if node.V3 != nil {
 			writeV3KV(be, node.V3)
+			if node.V3.ModRevision > maxRevision {
+				maxRevision = node.V3.ModRevision
+			}
 		}
 	}
+
+	mvcc.UpdateConsistentIndex(be, uint64(maxRevision))
 
 	conf.Log.Info("Completed etcd offline restore.")
 
