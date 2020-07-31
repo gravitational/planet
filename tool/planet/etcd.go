@@ -166,6 +166,10 @@ func etcdMigrate(fromVersion, toVersion string) (err error) {
 	}
 	srcDir := getBaseEtcdDir(fromVersion)
 	dstDir := getBaseEtcdDir(toVersion)
+	log.WithFields(log.Fields{
+		"from": srcDir,
+		"to":   dstDir,
+	}).Info("Copy etcd data.")
 	return trace.Wrap(utils.CopyDirContents(srcDir, dstDir))
 }
 
@@ -526,14 +530,6 @@ func collectClientURLs(memberList *etcdv3.MemberListResponse) ([]string, error) 
 	return newClientURLs, nil
 }
 
-func getBaseEtcdDir(version string) string {
-	p := DefaultEtcdStoreBase
-	if version != AssumeEtcdVersion {
-		p = filepath.Join(DefaultEtcdStoreBase, version)
-	}
-	return p
-}
-
 func etcdRestore(file string) error {
 	log.Info("Initializing new etcd database.")
 
@@ -704,6 +700,10 @@ func getEtcdDataDir() (string, error) {
 		version = AssumeEtcdVersion
 	}
 	return getBaseEtcdDir(version), nil
+}
+
+func getBaseEtcdDir(version string) string {
+	return filepath.Join(DefaultEtcdStoreBase, version)
 }
 
 // getConfirmation obtains action confirmation from the user
