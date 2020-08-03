@@ -260,7 +260,7 @@ func startUnits(ctx context.Context) error {
 	var errors []error
 	for _, unit := range controlPlaneUnits {
 		logger := log.WithField("unit", unit)
-		err := systemctlCmd(ctx, "start", unit)
+		_, err := systemctlCmd(ctx, "start", unit)
 		if err != nil {
 			errors = append(errors, err)
 			// Instead of failing immediately, complete start of other units
@@ -275,7 +275,7 @@ func stopUnits(ctx context.Context) error {
 	var errors []error
 	for _, unit := range controlPlaneUnits {
 		logger := log.WithField("unit", unit)
-		err := systemctlCmd(ctx, "stop", unit)
+		_, err := systemctlCmd(ctx, "stop", unit)
 		if err != nil {
 			errors = append(errors, err)
 			// Instead of failing immediately, complete stop of other units
@@ -284,9 +284,11 @@ func stopUnits(ctx context.Context) error {
 		// Even if 'systemctl stop' did not fail, the service could have failed stopping
 		// even though 'stop' is blocking, it does not return an error upon service failing.
 		// See github.com/gravitational/gravity/issues/1209 for more details
-		if err := systemctlCmd(ctx, "is-failed", unit); err == nil {
+		_, err = systemctlCmd(ctx, "is-failed", unit)
+		if err == nil {
 			logger.Info("Reset failed unit.")
-			if err := systemctlCmd(ctx, "reset-failed", unit); err != nil {
+			_, err := systemctlCmd(ctx, "reset-failed", unit)
+			if err != nil {
 				logger.WithError(err).Warn("Failed to reset failed unit.")
 			}
 		}

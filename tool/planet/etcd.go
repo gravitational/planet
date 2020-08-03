@@ -42,7 +42,6 @@ import (
 	etcdconf "github.com/gravitational/coordinate/config"
 	backup "github.com/gravitational/etcd-backup/lib/etcd"
 	"github.com/gravitational/trace"
-	ps "github.com/mitchellh/go-ps"
 	"github.com/sirupsen/logrus"
 	log "github.com/sirupsen/logrus"
 	etcd "go.etcd.io/etcd/client"
@@ -757,14 +756,14 @@ func systemctlCmd(ctx context.Context, operation, service string, args ...string
 			"service":   service,
 		})
 	}
-	return out
+	return string(out), nil
 }
 
 // systemctlGetPropertyValue returns the value of the systemctl unit/job/manager property
 // https://www.freedesktop.org/software/systemd/man/systemctl.html#-p
 // Note(Sergei): from the source code looks like the return code is always 0
 func systemctlGetPropertyValue(ctx context.Context, property, service string) (string, error) {
-	out, err := systemctl(ctx, "show", "--property", property, "--value", service)
+	out, err := systemctlCmd(ctx, "show", service, "--no-block", "--property", property, "--value")
 	if err != nil {
 		return "", trace.Wrap(err)
 	}
