@@ -71,6 +71,7 @@ planet-image:
 	sed -i "s/REPLACE_HELM_LATEST_VERSION/$(HELM_VER)/g" $(TARGETDIR)/orbit.manifest.json
 	sed -i "s/REPLACE_COREDNS_LATEST_VERSION/$(COREDNS_VER)/g" $(TARGETDIR)/orbit.manifest.json
 	sed -i "s/REPLACE_NODE_PROBLEM_DETECTOR_LATEST_VERSION/$(NODE_PROBLEM_DETECTOR_VER)/g" $(TARGETDIR)/orbit.manifest.json
+	cp $(TARGETDIR)/orbit.manifest.json $(ROOTFS)/etc/planet/
 	@echo -e "\n---> Creating Planet image...\n"
 	cd $(TARGETDIR) && fakeroot -- sh -c ' \
 		chown -R $(PLANET_UID):$(PLANET_GID) . ; \
