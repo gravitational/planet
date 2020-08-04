@@ -42,11 +42,11 @@ import (
 	etcdconf "github.com/gravitational/coordinate/config"
 	backup "github.com/gravitational/etcd-backup/lib/etcd"
 	"github.com/gravitational/trace"
-	ps "github.com/mitchellh/go-ps"
 	"github.com/sirupsen/logrus"
 	log "github.com/sirupsen/logrus"
 	etcd "go.etcd.io/etcd/client"
 	etcdv3 "go.etcd.io/etcd/clientv3"
+	"strconv"
 )
 
 var (
@@ -173,7 +173,7 @@ func etcdDisable(upgradeService, stopAPIServer bool) error {
 	// the API server as well (passed as flag from gravity to prevent accidental usage).
 	// TODO: This fix needs to be revisited to include a permanent solution.
 	if stopAPIServer {
-		err := systemctl(ctx, "stop", APIServerServiceName)
+		_, err := systemctl(ctx, "stop", APIServerServiceName)
 		if err != nil {
 			return trace.Wrap(err)
 		}
@@ -492,7 +492,7 @@ func (e *etcdGateway) resyncEtcdMasters(ctx context.Context, client *etcdv3.Clie
 		return trace.Wrap(err, "failed to update etcd environment file").AddField("file", DefaultEtcdSyncedEnvFile)
 	}
 
-	err = systemctl(ctx, "restart", ETCDServiceName)
+	_, err = systemctl(ctx, "restart", ETCDServiceName)
 	if err != nil {
 		return trace.Wrap(err, "failed to restart etcd service").AddField("service", ETCDServiceName)
 	}
@@ -738,11 +738,11 @@ func convertError(err error) error {
 // systemctl runs a local systemctl command in non-blocking mode.
 // TODO(knisbet): I'm using systemctl here, because using go-systemd and dbus appears to be unreliable, with
 // masking unit files not working. Ideally, this will use dbus at some point in the future.
-func systemctl(ctx context.Context, operation, service string) error {
+func systemctl(ctx context.Context, operation, service string) (string, error) {
 	return systemctlCmd(ctx, operation, service, "--no-block")
 }
 
-func systemctlCmd(ctx context.Context, operation, service string, args ...string) error {
+func systemctlCmd(ctx context.Context, operation, service string, args ...string) (string, error) {
 	args = append([]string{operation, service}, args...)
 	out, err := exec.CommandContext(ctx, "/bin/systemctl", args...).CombinedOutput()
 	log.WithFields(log.Fields{
@@ -751,12 +751,38 @@ func systemctlCmd(ctx context.Context, operation, service string, args ...string
 		"service":   service,
 	}).Info("Execute systemctl.")
 	if err != nil {
-		return trace.Wrap(err, "failed to execute systemctl: %s", out).AddFields(map[string]interface{}{
+		return "", trace.Wrap(err, "failed to execute systemctl: %s", out).AddFields(map[string]interface{}{
 			"operation": operation,
 			"service":   service,
 		})
 	}
-	return nil
+	return string(out), nil
+}
+
+// systemctlGetPropertyValue returns the value of the systemctl unit/job/manager property
+// https://www.freedesktop.org/software/systemd/man/systemctl.html#-p
+// Note(Sergei): from the source code looks like the return code is always 0
+func systemctlGetPropertyValue(ctx context.Context, property, service string) (string, error) {
+	out, err := systemctlCmd(ctx, "show", service, "--no-block", "--property", property, "--value")
+	if err != nil {
+		return "", trace.Wrap(err)
+	}
+	return out, nil
+	
+}
+
+// systemctlGetPID returns the PID of the service
+// Note(Sergei): from manual testing for a stopped process MainPID is always 0
+func systemctlGetPID(ctx context.Context, service string) (int, error) {
+	out, err := systemctlGetPropertyValue(ctx, "MainPID", "etcd")
+	if err != nil {
+		return 0, trace.Wrap(err)
+	}
+	mainPID, err := strconv.Atoi(string(out))
+	if err != nil {
+		return 0, trace.Wrap(err)
+	}
+	return mainPID, nil
 }
 
 // waitForEtcdStopped waits for etcd to not be present in the process list
@@ -773,14 +799,12 @@ loop:
 		case <-ticker.C:
 		}
 
-		procs, err := ps.Processes()
+		pid, err := systemctlGetPID(ctx, "etcd")
 		if err != nil {
 			return trace.Wrap(err)
 		}
-		for _, proc := range procs {
-			if proc.Executable() == "etcd" {
-				continue loop
-			}
+		if pid > 0 {
+			continue loop
 		}
 		return nil
 	}
@@ -789,18 +813,18 @@ loop:
 // tryResetService will request for systemd to restart a system service
 func tryResetService(ctx context.Context, service string) {
 	// ignoring error results is intentional
-	err := systemctl(ctx, "restart", service)
+	_, err := systemctl(ctx, "restart", service)
 	if err != nil {
 		log.Warn("error attempting to restart service", err)
 	}
 }
 
 func disableService(ctx context.Context, service string) error {
-	err := systemctl(ctx, "mask", service)
+	_, err := systemctl(ctx, "mask", service)
 	if err != nil {
 		return trace.Wrap(err)
 	}
-	err = systemctl(ctx, "stop", service)
+	_, err = systemctl(ctx, "stop", service)
 	if err != nil {
 		return trace.Wrap(err)
 	}
@@ -808,11 +832,12 @@ func disableService(ctx context.Context, service string) error {
 }
 
 func enableService(ctx context.Context, service string) error {
-	err := systemctl(ctx, "unmask", service)
+	_, err := systemctl(ctx, "unmask", service)
 	if err != nil {
 		return trace.Wrap(err)
 	}
-	return trace.Wrap(systemctl(ctx, "start", service))
+	_, err = systemctl(ctx, "start", service)
+	return trace.Wrap(err)
 }
 
 func getServiceStatus(service string) (string, error) {
