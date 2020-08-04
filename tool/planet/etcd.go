@@ -173,7 +173,7 @@ func etcdDisable(upgradeService, stopAPIServer bool) error {
 	// the API server as well (passed as flag from gravity to prevent accidental usage).
 	// TODO: This fix needs to be revisited to include a permanent solution.
 	if stopAPIServer {
-		_, err := systemctl(ctx, "stop", APIServerServiceName)
+		err := systemctl(ctx, "stop", APIServerServiceName)
 		if err != nil {
 			return trace.Wrap(err)
 		}
@@ -492,7 +492,7 @@ func (e *etcdGateway) resyncEtcdMasters(ctx context.Context, client *etcdv3.Clie
 		return trace.Wrap(err, "failed to update etcd environment file").AddField("file", DefaultEtcdSyncedEnvFile)
 	}
 
-	_, err = systemctl(ctx, "restart", ETCDServiceName)
+	err = systemctl(ctx, "restart", ETCDServiceName)
 	if err != nil {
 		return trace.Wrap(err, "failed to restart etcd service").AddField("service", ETCDServiceName)
 	}
@@ -738,8 +738,9 @@ func convertError(err error) error {
 // systemctl runs a local systemctl command in non-blocking mode.
 // TODO(knisbet): I'm using systemctl here, because using go-systemd and dbus appears to be unreliable, with
 // masking unit files not working. Ideally, this will use dbus at some point in the future.
-func systemctl(ctx context.Context, operation, service string) (string, error) {
-	return systemctlCmd(ctx, operation, service, "--no-block")
+func systemctl(ctx context.Context, operation, service string) error {
+	_, err := systemctlCmd(ctx, operation, service, "--no-block")
+	return err
 }
 
 func systemctlCmd(ctx context.Context, operation, service string, args ...string) (string, error) {
@@ -813,18 +814,18 @@ loop:
 // tryResetService will request for systemd to restart a system service
 func tryResetService(ctx context.Context, service string) {
 	// ignoring error results is intentional
-	_, err := systemctl(ctx, "restart", service)
+	err := systemctl(ctx, "restart", service)
 	if err != nil {
 		log.Warn("error attempting to restart service", err)
 	}
 }
 
 func disableService(ctx context.Context, service string) error {
-	_, err := systemctl(ctx, "mask", service)
+	err := systemctl(ctx, "mask", service)
 	if err != nil {
 		return trace.Wrap(err)
 	}
-	_, err = systemctl(ctx, "stop", service)
+	err = systemctl(ctx, "stop", service)
 	if err != nil {
 		return trace.Wrap(err)
 	}
@@ -832,11 +833,11 @@ func disableService(ctx context.Context, service string) error {
 }
 
 func enableService(ctx context.Context, service string) error {
-	_, err := systemctl(ctx, "unmask", service)
+	err := systemctl(ctx, "unmask", service)
 	if err != nil {
 		return trace.Wrap(err)
 	}
-	_, err = systemctl(ctx, "start", service)
+	err = systemctl(ctx, "start", service)
 	return trace.Wrap(err)
 }
 
