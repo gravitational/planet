@@ -321,8 +321,6 @@ const (
 
 	// ETCDServiceName names the service unit for etcd
 	ETCDServiceName = "etcd.service"
-	// ETCDUpgradeServiceName is a temporary etcd service used only during upgrades
-	ETCDUpgradeServiceName = "etcd-upgrade.service"
 	// APIServerServiceName names the service unit for k8s apiserver
 	APIServerServiceName = "kube-apiserver.service"
 	// ProxyServiceName is the name of the k8s proxy systemd service

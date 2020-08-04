@@ -162,14 +162,6 @@ func etcdMigrate(fromVersion, toVersion string) (err error) {
 	return trace.Wrap(utils.CopyDirContents(srcDir, dstDir))
 }
 
-// etcdDisable disables etcd on this machine
-// Used during upgrades
-func etcdDisableUpgrade() error {
-	ctx, cancel := context.WithTimeout(context.Background(), EtcdUpgradeTimeout)
-	defer cancel()
-	return trace.Wrap(disableService(ctx, ETCDUpgradeServiceName))
-}
-
 func etcdDisable(stopAPIServer bool) error {
 	ctx, cancel := context.WithTimeout(context.Background(), EtcdUpgradeTimeout)
 	defer cancel()
@@ -187,27 +179,9 @@ func etcdDisable(stopAPIServer bool) error {
 	return trace.Wrap(disableService(ctx, ETCDServiceName))
 }
 
-// etcdEnableUpgrade enables a disabled etcd upgrade service
-func etcdEnableUpgrade() error {
-	// don't actually enable the service if this is a proxy
-	env, err := box.ReadEnvironment(ContainerEnvironmentFile)
-	if err != nil {
-		return trace.Wrap(err)
-	}
-
-	if env.Get(EnvEtcdProxy) == EtcdProxyOn {
-		log.Info("Etcd is in proxy mode, nothing to do.")
-		return nil
-	}
-
-	ctx, cancel := context.WithTimeout(context.Background(), EtcdUpgradeTimeout)
-	defer cancel()
-	return trace.Wrap(enableService(ctx, ETCDUpgradeServiceName))
-}
-
 // etcdEnable enables a disabled etcd node
 func etcdEnable() error {
-	ctx, cancel := context.WithTimeout(context.Background(), 120*time.Minute)
+	ctx, cancel := context.WithTimeout(context.Background(), EtcdUpgradeTimeout)
 	defer cancel()
 	// restart the clients of the etcd service when the etcd service is brought online, which usually will be post
 	// upgrade. This will ensure clients running inside planet are restarted, which will refresh any local state
@@ -403,109 +377,6 @@ func collectClientURLs(memberList *etcdv3.MemberListResponse) ([]string, error) 
 		newClientURLs = append(newClientURLs, u.Host)
 	}
 	return newClientURLs, nil
-}
-
-func etcdRestore(file string) error {
-	log.Info("Initializing new etcd database.")
-
-	datadir, err := getEtcdDataDir()
-	if err != nil {
-		return trace.Wrap(err)
-	}
-
-	// To be re-entrant, shutdown the etcd server if its already running
-	err = etcdDisableUpgrade()
-	if err != nil {
-		return trace.Wrap(err)
-	}
-
-	// For the restore operation to be re-entrant, delete the data directory in-case the step is being re-run
-	err = os.RemoveAll(datadir)
-	if err != nil {
-		return trace.Wrap(err)
-	}
-
-	err = etcdEnableUpgrade()
-	if err != nil {
-		return trace.Wrap(err)
-	}
-
-	etcdConf := etcdconf.Config{
-		Endpoints: []string{DefaultEtcdUpgradeEndpoints},
-		KeyFile:   DefaultEtcdctlKeyFile,
-		CertFile:  DefaultEtcdctlCertFile,
-		CAFile:    DefaultEtcdctlCAFile,
-	}
-	client, err := etcdConf.NewClient()
-	if err != nil {
-		return trace.Wrap(err)
-	}
-
-	// wait for the temporary etcd instance to complete startup
-	log.Info("Waiting for etcd initialization to complete.")
-	err = waitEtcdHealthyTimeout(context.TODO(), 2*time.Minute, client)
-	if err != nil {
-		return trace.Wrap(err)
-	}
-
-	// stop etcd now that its DB is initialized but empty, to run offline restore to the empty database
-	log.Info("Etcd initialization complete, stopping.")
-	err = etcdDisableUpgrade()
-	if err != nil {
-		return trace.Wrap(err)
-	}
-
-	restoreConf := backup.RestoreConfig{
-		Prefix: []string{""}, // Restore all etcd data
-		File:   file,
-	}
-	log.Info("Offline RestoreConfig: ", spew.Sdump(restoreConf))
-	restoreConf.Log = log.StandardLogger()
-
-	log.Info("Starting offline etcd restoration.")
-	err = backup.OfflineRestore(context.TODO(), restoreConf, datadir)
-	if err != nil {
-		return trace.Wrap(err)
-	}
-
-	// start etcd for running online restoration of v2 database
-	log.Info("Starting temporary etcd cluster for online restoration.")
-	err = etcdEnableUpgrade()
-	if err != nil {
-		return trace.Wrap(err)
-	}
-
-	log.Info("Waiting for temporary etcd service to start.")
-	err = waitEtcdHealthyTimeout(context.TODO(), 1*time.Minute, client)
-	if err != nil {
-		return trace.Wrap(err)
-	}
-
-	restoreConf = backup.RestoreConfig{
-		EtcdConfig:    etcdConf,
-		Prefix:        []string{"/"},                // Restore all etcd data
-		MigratePrefix: []string{ETCDRegistryPrefix}, // migrate kubernetes data to etcd3 datastore
-		File:          file,
-		SkipV3:        true, // do not restore v3 data, as it was restored in the offline restore
-	}
-	log.Info("Online RestoreConfig: ", spew.Sdump(restoreConf))
-	restoreConf.Log = log.StandardLogger()
-
-	log.Info("Starting online restoration.")
-	err = backup.Restore(context.TODO(), restoreConf)
-	if err != nil {
-		return trace.Wrap(err)
-	}
-
-	// stop etcd now that the restoration is completed, gravity will coordinate the restart of the cluster
-	log.Info("Stopping temporary etcd cluster.")
-	err = etcdDisableUpgrade()
-	if err != nil {
-		return trace.Wrap(err)
-	}
-
-	log.Info("Restore complete.")
-	return nil
 }
 
 func waitEtcdHealthyTimeout(ctx context.Context, timeout time.Duration, client etcd.Client) error {

@@ -209,7 +209,7 @@ func CopyFileWithPerms(dst, src string, perm os.FileMode) error {
 // If the copy fails, CopyReaderWithPerms aborts and dst is preserved.
 // Adopted with modifications from https://go-review.googlesource.com/#/c/1591/9/src/io/ioutil/ioutil.go
 func CopyReaderWithPerms(dst string, src io.Reader, perm os.FileMode) error {
-	return CopyReaderWithOptions(dst, src, PermOption(perm))
+	return CopyReaderWithOptions(dst, src, WithFileMode(perm))
 }
 
 // CopyReaderWithOptions copies the contents from src to dst atomically.
@@ -255,9 +255,9 @@ func CopyReaderWithOptions(dst string, src io.Reader, options ...FileOption) err
 // FileOption defines a functional option to apply to specified path
 type FileOption func(path string) error
 
-// PermOption changes the file permissions on the specified file
+// WithFileMode changes the file permissions on the specified file
 // to perm
-func PermOption(perm os.FileMode) FileOption {
+func WithFileMode(perm os.FileMode) FileOption {
 	return func(path string) error {
 		return os.Chmod(path, perm)
 	}
