@@ -236,10 +236,6 @@ func run() error {
 		cetcdUpgrade  = cetcd.Command("upgrade", "Upgrade etcd to the latest version")
 		cetcdRollback = cetcd.Command("rollback", "Rollback etcd to the previous release")
 
-		cetcdMigrate     = cetcd.Command("migrate", "Migrate data directory from older version")
-		cetcdMigrateFrom = cetcdMigrate.Flag("from", "From version").Required().String()
-		cetcdMigrateTo   = cetcdMigrate.Flag("to", "To version").Required().String()
-
 		cetcdWipe          = cetcd.Command("wipe", "Wipe out all local etcd data").Hidden()
 		cetcdWipeConfirmed = cetcdWipe.Flag("confirm", "Auto-confirm the action").Bool()
 
@@ -534,9 +530,6 @@ func run() error {
 
 	case cetcdRollback.FullCommand():
 		err = etcdUpgrade(true)
-
-	case cetcdMigrate.FullCommand():
-		err = etcdMigrate(*cetcdMigrateFrom, *cetcdMigrateTo)
 
 	case cetcdWipe.FullCommand():
 		err = etcdWipe(*cetcdWipeConfirmed)

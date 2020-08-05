@@ -152,16 +152,6 @@ func etcdBackup(backupFile string, backupPrefix []string) (err error) {
 	return nil
 }
 
-func etcdMigrate(fromVersion, toVersion string) (err error) {
-	srcDir := getBaseEtcdDir(fromVersion)
-	dstDir := getBaseEtcdDir(toVersion)
-	log.WithFields(log.Fields{
-		"from": srcDir,
-		"to":   dstDir,
-	}).Info("Copy etcd data.")
-	return trace.Wrap(utils.CopyDirContents(srcDir, dstDir))
-}
-
 func etcdDisable(stopAPIServer bool) error {
 	ctx, cancel := context.WithTimeout(context.Background(), EtcdUpgradeTimeout)
 	defer cancel()

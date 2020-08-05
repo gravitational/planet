@@ -24,7 +24,6 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
-	"strings"
 	"syscall"
 	"unicode"
 
@@ -32,7 +31,6 @@ import (
 
 	"github.com/ghodss/yaml"
 	"github.com/gravitational/trace"
-	log "github.com/sirupsen/logrus"
 )
 
 // WriteHosts formats entries in hosts file format to writer
@@ -140,135 +138,6 @@ func ToJSON(data []byte) ([]byte, error) {
 		return data, nil
 	}
 	return yaml.YAMLToJSON(data)
-}
-
-// CopyFile copies contents of src to dst atomically
-// using SharedReadWriteMask as permissions.
-func CopyFile(dst, src string) error {
-	return CopyFileWithPerms(dst, src, constants.SharedReadWriteMask)
-}
-
-// CopyDirContents copies all contents of the source directory to the destination
-// directory
-func CopyDirContents(srcDir, dstDir string) error {
-	// create dest directory if it doesn't exist
-	err := os.MkdirAll(dstDir, constants.SharedDirMask)
-	if err != nil {
-		return trace.Wrap(err)
-	}
-	srcDir = filepath.Clean(srcDir)
-	err = filepath.Walk(srcDir, func(path string, fi os.FileInfo, err error) error {
-		if err != nil {
-			return trace.Wrap(err)
-		}
-
-		// ignore root directory
-		if path == srcDir {
-			return nil
-		}
-
-		if fi.IsDir() {
-			// create directory for the target file
-			targetDir := filepath.Join(dstDir, strings.TrimPrefix(path, srcDir))
-			err = os.MkdirAll(targetDir, constants.SharedDirMask)
-			if err != nil {
-				return trace.ConvertSystemError(err)
-			}
-			// copy sub-directories recursively
-			return nil
-		}
-
-		relativePath := strings.TrimPrefix(filepath.Dir(path), srcDir)
-		targetDir := filepath.Join(dstDir, relativePath)
-
-		// copy file, preserve permissions
-		toFileName := filepath.Join(targetDir, filepath.Base(fi.Name()))
-		err = CopyFileWithPerms(toFileName, path, fi.Mode())
-		if err != nil {
-			return trace.Wrap(err)
-		}
-		return nil
-	})
-	return trace.Wrap(err)
-}
-
-// CopyFileWithPerms copies the contents from src to dst atomically.
-// Uses CopyReaderWithPerms for its implementation - see function documentation
-// for details of operation
-func CopyFileWithPerms(dst, src string, perm os.FileMode) error {
-	in, err := os.Open(src)
-	if err != nil {
-		return trace.ConvertSystemError(err)
-	}
-	defer in.Close()
-	return CopyReaderWithPerms(dst, in, perm)
-}
-
-// CopyReaderWithPerms copies the contents from src to dst atomically.
-// If dst does not exist, CopyReaderWithPerms creates it with permissions perm.
-// If the copy fails, CopyReaderWithPerms aborts and dst is preserved.
-// Adopted with modifications from https://go-review.googlesource.com/#/c/1591/9/src/io/ioutil/ioutil.go
-func CopyReaderWithPerms(dst string, src io.Reader, perm os.FileMode) error {
-	return CopyReaderWithOptions(dst, src, WithFileMode(perm))
-}
-
-// CopyReaderWithOptions copies the contents from src to dst atomically.
-// If dst does not exist, CopyReaderWithOptions creates it.
-// Callers choose the options to apply on the resulting file with options
-func CopyReaderWithOptions(dst string, src io.Reader, options ...FileOption) error {
-	tmp, err := ioutil.TempFile(filepath.Dir(dst), "")
-	if err != nil {
-		return trace.ConvertSystemError(err)
-	}
-
-	cleanup := func() {
-		err := os.Remove(tmp.Name())
-		if err != nil {
-			log.WithError(err).Warnf("Failed to remove %q.", tmp.Name())
-		}
-	}
-
-	_, err = io.Copy(tmp, src)
-	if err != nil {
-		tmp.Close()
-		cleanup()
-		return trace.ConvertSystemError(err)
-	}
-	if err = tmp.Close(); err != nil {
-		cleanup()
-		return trace.ConvertSystemError(err)
-	}
-	for _, option := range options {
-		if err = option(tmp.Name()); err != nil {
-			cleanup()
-			return trace.ConvertSystemError(err)
-		}
-	}
-	err = os.Rename(tmp.Name(), dst)
-	if err != nil {
-		cleanup()
-		return trace.ConvertSystemError(err)
-	}
-	return nil
-}
-
-// FileOption defines a functional option to apply to specified path
-type FileOption func(path string) error
-
-// WithFileMode changes the file permissions on the specified file
-// to perm
-func WithFileMode(perm os.FileMode) FileOption {
-	return func(path string) error {
-		return os.Chmod(path, perm)
-	}
-}
-
-// OwnerOption changes the owner on the specified file
-// to (uid, gid)
-func OwnerOption(uid, gid int) FileOption {
-	return func(path string) error {
-		return os.Chown(path, uid, gid)
-	}
 }
 
 var jsonPrefix = []byte("{")
