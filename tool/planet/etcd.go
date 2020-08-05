@@ -555,7 +555,9 @@ loop:
 			return trace.Wrap(err)
 		}
 		for _, proc := range procs {
-			if proc.Executable() == "etcd" {
+			// we are checking ppid here to distinguish between etcd started from systemd
+			// and inside container(s)
+			if proc.Executable() == "etcd" && proc.PPid() == 1 {
 				continue loop
 			}
 		}
