@@ -47,8 +47,6 @@ type Config struct {
 	AdvertiseIP string
 	// KubeAddr is the address of the kubernetes API server
 	KubeAddr string
-	// ClusterDNS is the IP of the kubernetes DNS service
-	ClusterDNS string
 	// UpstreamNameservers lists additional upstream nameserver added to the DNS configuration
 	UpstreamNameservers []string
 	// LocalNameservers is a list of addresses local nameserver listens on
