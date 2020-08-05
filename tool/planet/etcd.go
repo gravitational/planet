@@ -46,7 +46,6 @@ import (
 	log "github.com/sirupsen/logrus"
 	etcd "go.etcd.io/etcd/client"
 	etcdv3 "go.etcd.io/etcd/clientv3"
-	"strconv"
 )
 
 var (
@@ -739,11 +738,18 @@ func convertError(err error) error {
 // TODO(knisbet): I'm using systemctl here, because using go-systemd and dbus appears to be unreliable, with
 // masking unit files not working. Ideally, this will use dbus at some point in the future.
 func systemctl(ctx context.Context, operation, service string) error {
-	_, err := systemctlCmd(ctx, operation, service, "--no-block")
-	return err
+	return systemctlCmd(ctx, operation, service, "--no-block")
 }
 
-func systemctlCmd(ctx context.Context, operation, service string, args ...string) (string, error) {
+func systemctlCmd(ctx context.Context, operation, service string, args ...string) error {
+	_, err := systemctlCmdWithOutput(ctx, operation, service, args...)
+	if err != nil {
+		return trace.Wrap(err)
+	}
+	return nil
+}
+
+func systemctlCmdWithOutput(ctx context.Context, operation, service string, args ...string) (output string, err error) {
 	args = append([]string{operation, service}, args...)
 	out, err := exec.CommandContext(ctx, "/bin/systemctl", args...).CombinedOutput()
 	log.WithFields(log.Fields{
@@ -763,27 +769,22 @@ func systemctlCmd(ctx context.Context, operation, service string, args ...string
 // systemctlGetPropertyValue returns the value of the systemctl unit/job/manager property
 // https://www.freedesktop.org/software/systemd/man/systemctl.html#-p
 // Note(Sergei): from the source code looks like the return code is always 0
-func systemctlGetPropertyValue(ctx context.Context, property, service string) (string, error) {
-	out, err := systemctlCmd(ctx, "show", service, "--no-block", "--property", property, "--value")
+func systemctlGetPropertyValue(ctx context.Context, service, property string) (string, error) {
+	out, err := systemctlCmdWithOutput(ctx, "show", service, "--no-block", "--property", property, "--value")
 	if err != nil {
 		return "", trace.Wrap(err)
 	}
 	return out, nil
-	
 }
 
 // systemctlGetPID returns the PID of the service
 // Note(Sergei): from manual testing for a stopped process MainPID is always 0
-func systemctlGetPID(ctx context.Context, service string) (int, error) {
-	out, err := systemctlGetPropertyValue(ctx, "MainPID", "etcd")
+func systemctlGetPID(ctx context.Context, service string) (string, error) {
+	out, err := systemctlGetPropertyValue(ctx, "etcd", "MainPID")
 	if err != nil {
-		return 0, trace.Wrap(err)
+		return "", trace.Wrap(err)
 	}
-	mainPID, err := strconv.Atoi(string(out))
-	if err != nil {
-		return 0, trace.Wrap(err)
-	}
-	return mainPID, nil
+	return out, nil
 }
 
 // waitForEtcdStopped waits for etcd to not be present in the process list
@@ -792,7 +793,6 @@ func systemctlGetPID(ctx context.Context, service string) (int, error) {
 func waitForEtcdStopped(ctx context.Context) error {
 	ticker := time.NewTicker(WaitInterval)
 	defer ticker.Stop()
-loop:
 	for {
 		select {
 		case <-ctx.Done():
@@ -804,8 +804,8 @@ loop:
 		if err != nil {
 			return trace.Wrap(err)
 		}
-		if pid > 0 {
-			continue loop
+		if pid != "0" {
+			continue
 		}
 		return nil
 	}
@@ -837,8 +837,7 @@ func enableService(ctx context.Context, service string) error {
 	if err != nil {
 		return trace.Wrap(err)
 	}
-	err = systemctl(ctx, "start", service)
-	return trace.Wrap(err)
+	return trace.Wrap(systemctl(ctx, "start", service))
 }
 
 func getServiceStatus(service string) (string, error) {
