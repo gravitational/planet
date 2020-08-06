@@ -778,14 +778,20 @@ loop:
 			return trace.Wrap(err)
 		}
 		for _, proc := range procs {
-			// we are checking ppid here to distinguish between etcd started from systemd
-			// and inside container(s)
-			if proc.Executable() == "etcd" && proc.PPid() == 1 {
+			if proc.Executable() == "etcd" && isOwnedBySystemd(proc) {
 				continue loop
 			}
 		}
 		return nil
 	}
+}
+
+// isOwnedBySystemd checks whether the process is owned by systemd
+func isOwnedBySystemd(proc ps.Process) bool {
+	if proc.PPid() == 1 {
+		return true
+	}
+	return false
 }
 
 // tryResetService will request for systemd to restart a system service
