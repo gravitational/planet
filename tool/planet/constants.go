@@ -306,9 +306,6 @@ const (
 	// DefaultPlanetReleaseFile is the planet file that indicates the latest available etcd version
 	DefaultPlanetReleaseFile = "/etc/planet-release"
 
-	// AssumeEtcdVersion is the etcd version we assume we're using if we're unable to locate the running version
-	AssumeEtcdVersion = "v2.3.8"
-
 	// LegacyAPIServerDNSName is the domain name of a current leader server
 	// as used to be in previous versions.
 	// This is kept for backwards-compatibility
@@ -324,8 +321,6 @@ const (
 
 	// ETCDServiceName names the service unit for etcd
 	ETCDServiceName = "etcd.service"
-	// ETCDUpgradeServiceName is a temporary etcd service used only during upgrades
-	ETCDUpgradeServiceName = "etcd-upgrade.service"
 	// APIServerServiceName names the service unit for k8s apiserver
 	APIServerServiceName = "kube-apiserver.service"
 	// ProxyServiceName is the name of the k8s proxy systemd service
@@ -350,6 +345,9 @@ const (
 
 	// SharedDirMask is a permissions mask for a shared directory
 	SharedDirMask = 0755
+
+	// PrivateDirMask is a mask for private directories
+	PrivateDirMask = 0700
 
 	// SharedReadWriteMask is a mask for a shared file with read/write access for everyone
 	SharedReadWriteMask = 0666

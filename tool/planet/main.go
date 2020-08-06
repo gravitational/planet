@@ -228,19 +228,13 @@ func run() error {
 		cetcdBackupFile   = cetcdBackup.Arg("file", "The file to store the backup").String()
 		cetcdBackupPrefix = cetcdBackup.Flag("prefix", "Optional etcd prefix to backup (e.g. /gravity). Can be supplied multiple times").Default(ETCDBackupPrefix).Strings()
 
-		cetcdDisable        = cetcd.Command("disable", "Disable etcd on this node")
-		cetcdDisableUpgrade = cetcdDisable.Flag("upgrade", "disable the upgrade service").Bool()
-		cetcdStopApiserver  = cetcdDisable.Flag("stop-api", "stops the kubernetes API service").Bool()
+		cetcdDisable       = cetcd.Command("disable", "Disable etcd on this node")
+		cetcdStopApiserver = cetcdDisable.Flag("stop-api", "stops the kubernetes API service").Bool()
 
-		cetcdEnable           = cetcd.Command("enable", "Enable etcd on this node")
-		cetcdEnableUpgrade    = cetcdEnable.Flag("upgrade", "enable the upgrade service").Bool()
-		cetcdEnableJoinMaster = cetcdEnable.Flag("join-master", "join this node to an existing master node").String()
+		cetcdEnable = cetcd.Command("enable", "Enable etcd on this node")
 
 		cetcdUpgrade  = cetcd.Command("upgrade", "Upgrade etcd to the latest version")
 		cetcdRollback = cetcd.Command("rollback", "Rollback etcd to the previous release")
-
-		cetcdRestore     = cetcd.Command("restore", "Restore etcd backup as part of the upgrade")
-		cetcdRestoreFile = cetcdRestore.Arg("file", "A previously taken backup file to use during upgrade").Required().ExistingFile()
 
 		cetcdWipe          = cetcd.Command("wipe", "Wipe out all local etcd data").Hidden()
 		cetcdWipeConfirmed = cetcdWipe.Flag("confirm", "Auto-confirm the action").Bool()
@@ -526,19 +520,16 @@ func run() error {
 		err = etcdBackup(*cetcdBackupFile, *cetcdBackupPrefix)
 
 	case cetcdEnable.FullCommand():
-		err = etcdEnable(*cetcdEnableUpgrade, *cetcdEnableJoinMaster)
+		err = etcdEnable()
 
 	case cetcdDisable.FullCommand():
-		err = etcdDisable(*cetcdDisableUpgrade, *cetcdStopApiserver)
+		err = etcdDisable(*cetcdStopApiserver)
 
 	case cetcdUpgrade.FullCommand():
 		err = etcdUpgrade(false)
 
 	case cetcdRollback.FullCommand():
 		err = etcdUpgrade(true)
-
-	case cetcdRestore.FullCommand():
-		err = etcdRestore(*cetcdRestoreFile)
 
 	case cetcdWipe.FullCommand():
 		err = etcdWipe(*cetcdWipeConfirmed)
