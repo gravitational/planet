@@ -517,12 +517,20 @@ loop:
 			return trace.Wrap(err)
 		}
 		for _, proc := range procs {
-			if proc.Executable() == "etcd" {
+			if proc.Executable() == "etcd" && isOwnedBySystemd(proc) {
 				continue loop
 			}
 		}
 		return nil
 	}
+}
+
+// isOwnedBySystemd checks whether the process is owned by systemd
+func isOwnedBySystemd(proc ps.Process) bool {
+	if proc.PPid() == 1 {
+		return true
+	}
+	return false
 }
 
 // tryResetService will request for systemd to restart a system service
