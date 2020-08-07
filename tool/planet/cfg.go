@@ -165,10 +165,6 @@ type serviceUser struct {
 	UID string
 }
 
-func (cfg *Config) KubeDNSResolverIP() string {
-	return cfg.ServiceCIDR.RelativeIP(3).String()
-}
-
 // APIServerIP returns the IP of the "kubernetes" service which is the first IP
 // of the configured service subnet
 func (cfg *Config) APIServerIP() net.IP {
