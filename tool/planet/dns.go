@@ -144,7 +144,7 @@ func ensureDNSService(ctx context.Context, name string, services corev1.ServiceI
 				return &backoff.PermanentError{Err: err}
 			}
 		}
-		logger.Warnf("Error creating service %v.", err)
+		logger.WithError(err).Warn("Error creating service.")
 		return trace.Wrap(err)
 	})
 }

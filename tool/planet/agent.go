@@ -552,6 +552,9 @@ func removeKubernetesService(services corev1.ServiceInterface) error {
 	if err != nil && !errors.IsNotFound(err) {
 		return trace.Wrap(err)
 	}
+	if errors.IsNotFound(err) {
+		log.Info("API server service not found and will be recreated shortly.")
+	}
 	return nil
 }
 
