@@ -365,7 +365,8 @@
   version = "v1.0.0"
 
 [[projects]]
-  digest = "1:859861c28476a5986cedaa2f9c5d6d9342e4987ffc979160549d3578f9e1506a"
+  branch = "dmitri/5.5.x/serf-client"
+  digest = "1:19860428ce4d46c7d334e8251bb712ec434a60e9295935cdabe51f2830ab3510"
   name = "github.com/gravitational/satellite"
   packages = [
     "agent",
@@ -387,8 +388,7 @@
     "utils",
   ]
   pruneopts = "UT"
-  revision = "4f1e28e8c0fa4369a425bd70c6d0224f4c36275d"
-  version = "5.5.24"
+  revision = "df4915f54697c8624cb6abbc7bf32cb6822290ac"
 
 [[projects]]
   digest = "1:488b046f7e099afaa97b0596967f96c54a0c8f85bb02d155931982fed2275851"

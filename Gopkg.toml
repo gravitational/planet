@@ -88,7 +88,8 @@ name = "golang.org/x/net"
 
 [[constraint]]
 name = "github.com/gravitational/satellite"
-version = "=5.5.24"
+#version = "=5.5.24"
+branch = "dmitri/5.5.x/serf-client"
 
 [[constraint]]
 name = "github.com/gravitational/trace"
