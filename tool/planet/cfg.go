@@ -161,6 +161,7 @@ func (cfg *Config) checkAndSetDefaults() (err error) {
 type serviceUser struct {
 	*user.User
 	UID string
+	GID string
 }
 
 func (cfg *Config) KubeDNSResolverIP() string {

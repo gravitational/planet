@@ -191,7 +191,7 @@ const (
 	// timeout for monitoring checks
 	EnvPlanetAgentHTTPTimeout = "PLANET_AGENT_HTTP_TIMEOUT"
 
-	// EnvServiceGID names the environment variable that specifies the service user ID
+	// EnvServiceUID names the environment variable that specifies the service user ID
 	EnvServiceUID = "PLANET_SERVICE_UID"
 	// EnvServiceGID names the environment variable that specifies the service group ID
 	EnvServiceGID = "PLANET_SERVICE_GID"
