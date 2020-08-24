@@ -753,7 +753,7 @@ func readHostResolv() (*utils.DNSConfig, error) {
 		return nil, trace.Wrap(err)
 	}
 	defer f.Close()
-	cfg, err := utils.DNSReadConfig(f)
+	cfg, err := utils.DNSReadConfig(f, true)
 	if err != nil {
 		return nil, trace.Wrap(err)
 	}
