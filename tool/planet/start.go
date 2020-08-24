@@ -705,10 +705,10 @@ var coreDNSTemplate = `
   proxy {{$zone}} {{range $server := $servers}}{{$server}} {{end}}{
     policy sequential
   }{{end}}
-  forward . {{range $server := .UpstreamNameservers}}{{$server}} {{end}}{
+  {{if .UpstreamNameservers}}forward . {{range $server := .UpstreamNameservers}}{{$server}} {{end}}{
     {{if .Rotate}}policy random{{else}}policy sequential{{end}}
     health_check 0
-  }
+  }{{end}}
 }
 `
 
