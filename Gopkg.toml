@@ -23,132 +23,132 @@
 ignored = ["github.com/Sirupsen/logrus", "github.com/gravitational/planet/build/*"]
 
 [prune]
-  go-tests = true
-  unused-packages = true
+go-tests = true
+unused-packages = true
 
 [[override]]
-  name = "github.com/coreos/go-systemd"
-  version = "v16"
+name = "github.com/coreos/go-systemd"
+version = "v16"
 
 [[override]]
-  name = "bitbucket.org/ww/goautoneg"
-  # Bitbucket doesn't support git protocol, which causes dep to timeout trying to connect
-  # force to https url instead
-  source = "https://bitbucket.org/ww/goautoneg.git"
+name = "bitbucket.org/ww/goautoneg"
+# Bitbucket doesn't support git protocol, which causes dep to timeout trying to connect
+# force to https url instead
+source = "https://bitbucket.org/ww/goautoneg.git"
 
 [[override]]
-  name = "github.com/hashicorp/serf"
-  revision = "11bb88abf7b17f0b794b51416a9107d781e95f35"
+name = "github.com/hashicorp/serf"
+revision = "11bb88abf7b17f0b794b51416a9107d781e95f35"
 
 [[override]]
-  # target codec version from etcd, since dep doesn't seem to grab it correctly
-  # https://github.com/coreos/etcd/issues/8715#issuecomment-377013707
-  name = "github.com/ugorji/go"
-  version = "v1.1.1"
+# target codec version from etcd, since dep doesn't seem to grab it correctly
+# https://github.com/coreos/etcd/issues/8715#issuecomment-377013707
+name = "github.com/ugorji/go"
+version = "v1.1.1"
 
 [[override]]
-  name = "golang.org/x/sys"
-  revision = "78d5f264b493f125018180c204871ecf58a2dce1"
+name = "golang.org/x/sys"
+revision = "78d5f264b493f125018180c204871ecf58a2dce1"
 
 [[override]]
-  name = "github.com/syndtr/gocapability"
-  revision = "33e07d32887e1e06b7c025f27ce52f62c7990bc0"
+name = "github.com/syndtr/gocapability"
+revision = "33e07d32887e1e06b7c025f27ce52f62c7990bc0"
 
 [[constraint]]
-  name = "github.com/containerd/console"
-  revision = "cb7008ab3d8359b78c5f464cb7cf160107ad5925"
+name = "github.com/containerd/console"
+revision = "cb7008ab3d8359b78c5f464cb7cf160107ad5925"
 
 [[constraint]]
-  name = "github.com/cenkalti/backoff"
-  version = "2.0.0"
+name = "github.com/cenkalti/backoff"
+version = "2.0.0"
 
 [[constraint]]
-  name = "github.com/coreos/etcd"
-  version = "3.3.3"
+name = "github.com/coreos/etcd"
+version = "3.3.3"
 
 [[constraint]]
-  name = "github.com/docker/docker"
-  version = "=1.9.1"
+name = "github.com/docker/docker"
+version = "=1.9.1"
 
 [[constraint]]
-  branch = "master"
-  name = "github.com/gravitational/configure"
+branch = "master"
+name = "github.com/gravitational/configure"
 
 [[constraint]]
-  branch = "master"
-  name = "github.com/gravitational/coordinate"
+branch = "master"
+name = "github.com/gravitational/coordinate"
 
 [[constraint]]
-  branch = "master"
-  name = "github.com/gravitational/go-udev"
+branch = "master"
+name = "github.com/gravitational/go-udev"
 
 [[constraint]]
-  name = "golang.org/x/net"
-  branch = "release-branch.go1.9"
+branch = "release-branch.go1.9"
+name = "golang.org/x/net"
 
 [[constraint]]
-  name = "github.com/gravitational/satellite"
-  version = "=5.5.22"
+name = "github.com/gravitational/satellite"
+version = "=5.5.24"
 
 [[constraint]]
-  name = "github.com/gravitational/trace"
-  version = "=1.1.10"
+name = "github.com/gravitational/trace"
+version = "=1.1.10"
 
 [[constraint]]
-  name = "github.com/julienschmidt/httprouter"
-  version = "1.1.0"
+name = "github.com/julienschmidt/httprouter"
+version = "1.1.0"
 
 [[constraint]]
-  name = "github.com/opencontainers/runc"
-  version = "v1.0.0-rc5"
+name = "github.com/opencontainers/runc"
+version = "v1.0.0-rc5"
 
 [[constraint]]
-  name = "github.com/prometheus/client_golang"
-  version = ">=0.7.0, <=64.0.0-g275368f"
+name = "github.com/prometheus/client_golang"
+version = ">=0.7.0, <=64.0.0-g275368f"
 
 [[constraint]]
-  name = "github.com/sirupsen/logrus"
-  source = "github.com/gravitational/logrus"
-  version = "1.0.6"
+name = "github.com/sirupsen/logrus"
+source = "github.com/gravitational/logrus"
+version = "1.0.6"
 
 [[constraint]]
-  name = "gopkg.in/alecthomas/kingpin.v2"
-  source = "github.com/gravitational/kingpin"
-  #version = "=v2.2.7"
-  branch = "telekube"
+name = "gopkg.in/alecthomas/kingpin.v2"
+source = "github.com/gravitational/kingpin"
+#version = "=v2.2.7"
+branch = "telekube"
 
 [[constraint]]
-  name = "k8s.io/client-go"
-  version = "=v10.0.0"
+name = "k8s.io/client-go"
+version = "=v10.0.0"
 
 [[constraint]]
-  name = "k8s.io/apimachinery"
-  version = "kubernetes-1.13.3"
+name = "k8s.io/apimachinery"
+version = "kubernetes-1.13.3"
 
 [[constraint]]
-  name = "k8s.io/api"
-  version = "kubernetes-1.13.3"
+name = "k8s.io/api"
+version = "kubernetes-1.13.3"
 
 [[constraint]]
-  name = "k8s.io/kubelet"
-  version = "kubernetes-1.13.3"
+name = "k8s.io/kubelet"
+version = "kubernetes-1.13.3"
 
 [[constraint]]
-  name = "github.com/fatih/color"
-  version = "v1.7.0"
+name = "github.com/fatih/color"
+version = "v1.7.0"
 
 [[constraint]]
-  name = "github.com/ghodss/yaml"
-  revision = "73d445a93680fa1a78ae23a5839bad48f32ba1ee"
+name = "github.com/ghodss/yaml"
+revision = "73d445a93680fa1a78ae23a5839bad48f32ba1ee"
 
 [[constraint]]
-  name = "github.com/mattn/go-isatty"
-  version = "=v0.0.9"
+name = "github.com/mattn/go-isatty"
+version = "=v0.0.9"
 
 [[constraint]]
-  version = "=0.0.2"
-  name = "github.com/gravitational/etcd-backup"
+name = "github.com/gravitational/etcd-backup"
+version = "=0.0.2"
 
 [[override]]
-  name = "github.com/json-iterator/go"
-  version = "1.1.5"
+name = "github.com/json-iterator/go"
+version = "1.1.5"
