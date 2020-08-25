@@ -163,6 +163,7 @@ func (cfg *Config) checkAndSetDefaults() (err error) {
 type serviceUser struct {
 	*user.User
 	UID string
+	GID string
 }
 
 // APIServerIP returns the IP of the "kubernetes" service which is the first IP
