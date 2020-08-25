@@ -35,7 +35,6 @@ ExecStart=/usr/bin/etcd \
         --auto-compaction-retention=24h \
         --heartbeat-interval=250 \
         --election-timeout=4000 \
-        --enable-v2=true \
         $ETCD_OPTS
 User=planet
 Group=planet
