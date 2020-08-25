@@ -24,6 +24,7 @@ import (
 	"io"
 	"io/ioutil"
 	"net/http"
+	"strconv"
 	"strings"
 	"time"
 
@@ -70,6 +71,10 @@ type Config struct {
 	LowWatermark uint
 	// HighWatermark is the disk usage critical limit percentage of monitored directories
 	HighWatermark uint
+	// ServiceUID is the UID of the service (planet) user.
+	ServiceUID string
+	// ServiceGID is the GID of the service (planet) user.
+	ServiceGID string
 	// HTTPTimeout specifies the HTTP timeout for checks
 	HTTPTimeout time.Duration
 }
@@ -118,6 +123,31 @@ func (c *Config) LocalTransport() (*http.Transport, error) {
 			MinVersion:   tls.VersionTLS10,
 			RootCAs:      roots,
 		}}, nil
+}
+
+// storageCheckerConfig returns checker config for the state directory.
+func (c *Config) storageCheckerConfig() (config *monitoring.StorageConfig, err error) {
+	config = &monitoring.StorageConfig{
+		Path:          constants.GravityDataDir,
+		LowWatermark:  c.LowWatermark,
+		HighWatermark: c.HighWatermark,
+	}
+	var uid, gid uint64
+	if c.ServiceUID != "" {
+		if uid, err = strconv.ParseUint(c.ServiceUID, 10, 32); err != nil {
+			return nil, trace.Wrap(err)
+		}
+		uid32 := uint32(uid)
+		config.UID = &uid32
+	}
+	if c.ServiceGID != "" {
+		if gid, err = strconv.ParseUint(c.ServiceGID, 10, 32); err != nil {
+			return nil, trace.Wrap(err)
+		}
+		gid32 := uint32(gid)
+		config.GID = &gid32
+	}
+	return config, nil
 }
 
 // GetKubeClient returns a Kubernetes client that uses kubectl certificate
@@ -215,13 +245,11 @@ func addToMaster(node agent.Agent, config *Config, etcdConfig *monitoring.ETCDCo
 		}, config.LocalNameservers...))
 	}
 
-	storageChecker, err := monitoring.NewStorageChecker(
-		monitoring.StorageConfig{
-			Path:          constants.GravityDataDir,
-			LowWatermark:  config.LowWatermark,
-			HighWatermark: config.HighWatermark,
-		},
-	)
+	storageCheckerConfig, err := config.storageCheckerConfig()
+	if err != nil {
+		return trace.Wrap(err)
+	}
+	storageChecker, err := monitoring.NewStorageChecker(*storageCheckerConfig)
 	if err != nil {
 		return trace.Wrap(err)
 	}
@@ -328,13 +356,11 @@ func addToNode(node agent.Agent, config *Config, etcdConfig *monitoring.ETCDConf
 		CheckCondition: monitoring.CheckNodeCondition,
 	}))
 
-	storageChecker, err := monitoring.NewStorageChecker(
-		monitoring.StorageConfig{
-			Path:          constants.GravityDataDir,
-			LowWatermark:  config.LowWatermark,
-			HighWatermark: config.HighWatermark,
-		},
-	)
+	storageCheckerConfig, err := config.storageCheckerConfig()
+	if err != nil {
+		return trace.Wrap(err)
+	}
+	storageChecker, err := monitoring.NewStorageChecker(*storageCheckerConfig)
 	if err != nil {
 		return trace.Wrap(err)
 	}
