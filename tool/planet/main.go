@@ -109,7 +109,8 @@ func run() error {
 					OverrideDefaultFromEnvar(EnvPlanetFeatureGates).
 					String()
 		cstartVxlanPort               = cstart.Flag("vxlan-port", "overlay network port").Default(strconv.Itoa(DefaultVxlanPort)).OverrideDefaultFromEnvar(EnvVxlanPort).Int()
-		cstartServiceUID              = cstart.Flag("service-uid", "service user ID. Service user is used for services that do not require elevated permissions").OverrideDefaultFromEnvar(EnvServiceUID).String()
+		cstartServiceUID              = cstart.Flag("service-uid", "Service user ID. Service user is used for services that do not require elevated permissions").OverrideDefaultFromEnvar(EnvServiceUID).String()
+		cstartServiceGID              = cstart.Flag("service-gid", "Service user group ID").OverrideDefaultFromEnvar(EnvServiceGID).String()
 		cstartEtcdProxy               = cstart.Flag("etcd-proxy", "Etcd proxy mode: 'off', 'on' or 'readonly'").OverrideDefaultFromEnvar("PLANET_ETCD_PROXY").String()
 		cstartEtcdMemberName          = cstart.Flag("etcd-member-name", "Etcd member name").OverrideDefaultFromEnvar("PLANET_ETCD_MEMBER_NAME").String()
 		cstartEtcdInitialCluster      = KeyValueList(cstart.Flag("etcd-initial-cluster", "Initial etcd cluster configuration (list of peers)").OverrideDefaultFromEnvar("PLANET_ETCD_INITIAL_CLUSTER"))
@@ -168,6 +169,8 @@ func run() error {
 		cagentLowWatermark           = cagent.Flag("low-watermark", "Low disk usage percentage of monitored directories").Default(strconv.Itoa(LowWatermark)).OverrideDefaultFromEnvar("PLANET_LOW_WATERMARK").Uint64()
 		cagentHighWatermark          = cagent.Flag("high-watermark", "High disk usage percentage of monitored directories").Default(strconv.Itoa(HighWatermark)).OverrideDefaultFromEnvar("PLANET_HIGH_WATERMARK").Uint64()
 		cagentHTTPTimeout            = cagent.Flag("http-timeout", "Timeout for HTTP requests, formatted as Go duration.").OverrideDefaultFromEnvar(EnvPlanetAgentHTTPTimeout).Default(constants.HTTPTimeout.String()).Duration()
+		cagentServiceUID             = cagent.Flag("service-uid", "UID of the service user (planet)").OverrideDefaultFromEnvar(EnvServiceUID).String()
+		cagentServiceGID             = cagent.Flag("service-gid", "GID of the service user (planet)").OverrideDefaultFromEnvar(EnvServiceGID).String()
 		cagentTimelineDir            = cagent.Flag("timeline-dir", "Directory to be used for timeline storage").Default("/tmp/timeline").String()
 		cagentRetention              = cagent.Flag("retention", "Window to retain timeline as a Go duration").Duration()
 
@@ -349,7 +352,10 @@ func run() error {
 			HighWatermark:         uint(*cagentHighWatermark),
 			NodeName:              *cagentNodeName,
 			HTTPTimeout:           *cagentHTTPTimeout,
+			ServiceUID:            *cagentServiceUID,
+			ServiceGID:            *cagentServiceGID,
 		}
+
 		leaderConf := &LeaderConfig{
 			PublicIP:        cagentPublicIP.String(),
 			LeaderKey:       *cagentLeaderKey,
@@ -424,6 +430,7 @@ func run() error {
 			InitialCluster:       *cstartInitialCluster,
 			ServiceUser: serviceUser{
 				UID: *cstartServiceUID,
+				GID: *cstartServiceGID,
 			},
 			EtcdProxy:               *cstartEtcdProxy,
 			EtcdMemberName:          *cstartEtcdMemberName,
