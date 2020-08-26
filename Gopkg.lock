@@ -422,7 +422,6 @@
   version = "v1.0.0"
 
 [[projects]]
-  branch = "roman/7.0/uidgid"
   digest = "1:93012c841f94b036f009af259eda90207d6a6b14ed42e56e5b13b26e05aeefb4"
   name = "github.com/gravitational/satellite"
   packages = [
@@ -443,7 +442,8 @@
     "utils",
   ]
   pruneopts = "UT"
-  revision = "70a9c676a40d946b75ee388062d7b7ded6b53ddc"
+  revision = "2e85c3f8024f2e1d79d0fb202f10eb3a4ce2f1b8"
+  version = "7.0.19"
 
 [[projects]]
   digest = "1:5639168299375c369a68748214586e3b25bbc17e7ec9c64564f43f4635097bfc"

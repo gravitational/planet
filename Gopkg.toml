@@ -94,8 +94,7 @@ ignored = ["github.com/gravitational/planet/build/*"]
 
 [[constraint]]
   name = "github.com/gravitational/satellite"
-  # version = "=7.0.17"
-  branch = "roman/7.0/uidgid"
+  version = "=7.0.19"
 
 [[override]]
   name = "github.com/gravitational/trace"
