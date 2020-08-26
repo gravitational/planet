@@ -422,7 +422,7 @@
   version = "v1.0.0"
 
 [[projects]]
-  digest = "1:4cdae4d9f06bfb96ecd163b62de476b1c4bd06cefb9a5816c1ff37abf7e838a8"
+  digest = "1:93012c841f94b036f009af259eda90207d6a6b14ed42e56e5b13b26e05aeefb4"
   name = "github.com/gravitational/satellite"
   packages = [
     "agent",
@@ -442,8 +442,8 @@
     "utils",
   ]
   pruneopts = "UT"
-  revision = "46cabd4ca677d91e9740e3b06d403147156badbc"
-  version = "7.0.17"
+  revision = "2e85c3f8024f2e1d79d0fb202f10eb3a4ce2f1b8"
+  version = "7.0.19"
 
 [[projects]]
   digest = "1:5639168299375c369a68748214586e3b25bbc17e7ec9c64564f43f4635097bfc"
@@ -1487,9 +1487,11 @@
     "k8s.io/api/core/v1",
     "k8s.io/apimachinery/pkg/api/errors",
     "k8s.io/apimachinery/pkg/apis/meta/v1",
+    "k8s.io/apimachinery/pkg/labels",
     "k8s.io/apimachinery/pkg/runtime/schema",
     "k8s.io/apimachinery/pkg/util/intstr",
     "k8s.io/client-go/kubernetes",
+    "k8s.io/client-go/kubernetes/typed/core/v1",
     "k8s.io/client-go/tools/clientcmd",
     "k8s.io/kubelet/config/v1beta1",
   ]

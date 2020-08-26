@@ -353,6 +353,14 @@
             },
             {
                 "type": "String",
+                "name": "servicegid",
+                "env": "PLANET_SERVICE_GID",
+                "cli": {
+                    "name": "service-gid"
+                }
+            },
+            {
+                "type": "String",
                 "name": "gcenodetags",
                 "env": "PLANET_GCE_NODE_TAGS",
                 "cli": {
