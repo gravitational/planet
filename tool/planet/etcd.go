@@ -75,6 +75,18 @@ func etcdInit() error {
 		}
 		currentVersion = desiredVersion
 	}
+
+	env, err := box.ReadEnvironment(ContainerEnvironmentFile)
+	if err != nil {
+		return trace.Wrap(err)
+	}
+
+	// The etcd gateway is not version dependent (it's an L4 load balancer). We can always use the latest version when
+	// planet rolls.
+	if env.Get(EnvEtcdProxy) == EtcdProxyOn {
+		currentVersion = desiredVersion
+	}
+
 	log.Info("Current etcd version: ", currentVersion)
 
 	// symlink /usr/bin/etcd to the version we expect to be running
