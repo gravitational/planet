@@ -8,7 +8,7 @@ rules:
   # so drop them.
   - level: None
     users: ["system:kube-proxy"]
-    verbs: ["watch"]
+    verbs: ["get", "list", "watch"]
     resources:
       - group: "" # core
         resources: ["endpoints", "services", "services/status"]
