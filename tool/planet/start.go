@@ -707,7 +707,7 @@ var coreDNSTemplate = `
   }{{end}}
   {{if .UpstreamNameservers}}forward . {{range $server := .UpstreamNameservers}}{{$server}} {{end}}{
     {{if .Rotate}}policy random{{else}}policy sequential{{end}}
-    health_check 0
+    health_check 5s
   }{{end}}
 }
 `
