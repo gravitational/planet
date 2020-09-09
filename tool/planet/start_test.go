@@ -70,7 +70,7 @@ func (_ *StartSuite) TestCoreDNSConf(c *check.C) {
   }
   forward . 1.1.1.1 8.8.8.8 {
     policy sequential
-    health_check 0
+    health_check 5s
   }
 }
 `,
@@ -98,8 +98,32 @@ func (_ *StartSuite) TestCoreDNSConf(c *check.C) {
   }
   forward . 1.1.1.1 {
     policy random
-    health_check 0
+    health_check 5s
   }
+}
+`,
+		},
+		{
+			coreDNSConfig{
+				Port:        55,
+				ListenAddrs: []string{"127.0.0.2"},
+				Rotate:      true,
+			},
+			`
+.:55 {
+  reload
+  bind 127.0.0.2
+  errors
+  hosts /etc/coredns/coredns.hosts {
+    fallthrough
+  }
+  kubernetes cluster.local in-addr.arpa ip6.arpa {
+    endpoint https://leader.telekube.local:6443
+    tls /var/state/coredns.cert /var/state/coredns.key /var/state/root.cert
+    pods verified
+    fallthrough in-addr.arpa ip6.arpa
+  }
+  
 }
 `,
 		},
