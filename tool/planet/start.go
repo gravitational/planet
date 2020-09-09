@@ -707,10 +707,10 @@ var coreDNSTemplate = `
   proxy {{$zone}} {{range $server := $servers}}{{$server}} {{end}}{
     policy sequential
   }{{end}}
-  forward . {{range $server := .UpstreamNameservers}}{{$server}} {{end}}{
+  {{if .UpstreamNameservers}}forward . {{range $server := .UpstreamNameservers}}{{$server}} {{end}}{
     {{if .Rotate}}policy random{{else}}policy sequential{{end}}
-    health_check 0
-  }
+    health_check 5s
+  }{{end}}
 }
 `
 
@@ -753,7 +753,7 @@ func readHostResolv() (*utils.DNSConfig, error) {
 		return nil, trace.Wrap(err)
 	}
 	defer f.Close()
-	cfg, err := utils.DNSReadConfig(f)
+	cfg, err := utils.DNSReadConfig(f, true)
 	if err != nil {
 		return nil, trace.Wrap(err)
 	}

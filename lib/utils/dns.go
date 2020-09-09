@@ -89,7 +89,8 @@ func (d *DNSConfig) String() string {
 // See resolv.conf(5) on a Linux machine.
 // TODO(rsc): Supposed to call uname() and chop the beginning
 // of the host name to get the default search domain.
-func DNSReadConfig(rdr io.Reader) (*DNSConfig, error) {
+// noDefaultNameservers indicates we should not emulate libc behaviour and include a localhost resolver.
+func DNSReadConfig(rdr io.Reader, noDefaultNameservers bool) (*DNSConfig, error) {
 	conf := &DNSConfig{
 		Ndots:    1,
 		Timeout:  5,
@@ -169,8 +170,10 @@ func DNSReadConfig(rdr io.Reader) (*DNSConfig, error) {
 		return nil, err
 	}
 
-	if len(conf.Servers) == 0 {
-		conf.Servers = append(conf.Servers, defaultNS...)
+	if !noDefaultNameservers {
+		if len(conf.Servers) == 0 {
+			conf.Servers = append(conf.Servers, defaultNS...)
+		}
 	}
 
 	return conf, nil
