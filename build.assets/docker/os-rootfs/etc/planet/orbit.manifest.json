@@ -312,14 +312,6 @@
                 }
             },
             {
-                "type": "Bool",
-                "name": "electionenabled",
-                "env": "PLANET_ELECTION_ENABLED",
-                "cli": {
-                    "name": "election-enabled"
-                }
-            },
-            {
                 "type": "String",
                 "name": "dnshosts",
                 "env": "PLANET_DNS_HOSTS",

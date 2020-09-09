@@ -17,14 +17,16 @@ limitations under the License.
 package main
 
 import (
+	"bytes"
 	"context"
 	"encoding/json"
 	"fmt"
-	"io"
 	"io/ioutil"
 	"os"
 	"os/signal"
-	"strconv"
+	"path/filepath"
+	"runtime"
+	"strings"
 	"syscall"
 	"time"
 
@@ -32,222 +34,110 @@ import (
 	"github.com/gravitational/planet/lib/monitoring"
 
 	etcdconf "github.com/gravitational/coordinate/config"
-	"github.com/gravitational/coordinate/leader"
 	"github.com/gravitational/satellite/agent"
 	pb "github.com/gravitational/satellite/agent/proto/agentpb"
+	"github.com/gravitational/satellite/lib/ctxgroup"
 	"github.com/gravitational/satellite/lib/rpc/client"
 	agentutils "github.com/gravitational/satellite/utils"
 	"github.com/gravitational/trace"
 	log "github.com/sirupsen/logrus"
 	etcd "go.etcd.io/etcd/client"
+	"go.etcd.io/etcd/clientv3"
+	"go.etcd.io/etcd/clientv3/concurrency"
+	"go.etcd.io/etcd/mvcc/mvccpb"
 	"k8s.io/client-go/tools/clientcmd"
 )
 
-// LeaderConfig represents configuration for the master election task
-type LeaderConfig struct {
-	// PublicIP is the IP used for inter-host communication
-	PublicIP string
-	// LeaderKey is the EtcdKey of the leader
-	LeaderKey string
-	// ElectionKey is the name of the key that controls if this node
-	// is participating in leader election. The value is a boolean with
-	// `true` meaning active participation.
-	// It is enough to update the value of this key to change the node
-	// participation mode.
-	ElectionKey string
-	// ElectionEnabled defines the initial state of election participation
-	// for this node (true == participation is on)
-	ElectionEnabled bool
-	// Role is the server role (e.g. node, or master)
-	Role string
-	// Term is the TTL of the lease before it expires if the server
-	// fails to renew it
-	Term time.Duration
-	// ETCD defines etcd configuration
-	ETCD etcdconf.Config
-	// APIServerDNS is a name of the API server entry to lookup
-	// for the currently active API server
-	APIServerDNS string
-}
-
-// String returns string representation of the agent leader configuration
-func (conf LeaderConfig) String() string {
-	return fmt.Sprintf("LeaderConfig(key=%v, ip=%v, role=%v, term=%v, endpoints=%v, apiserverDNS=%v)",
-		conf.LeaderKey, conf.PublicIP, conf.Role, conf.Term, conf.ETCD.Endpoints, conf.APIServerDNS)
-}
-
-// startLeaderClient starts the master election loop and sets up callbacks
-// that handle state (master <-> node) changes.
-//
-// When a node becomes the active master, it starts a set of services specific to a master.
-// Otherwise, the services are stopped to avoid interfering with the active master instance.
-// Also, every time a new master is elected, the node modifies its /etc/hosts file
-// to reflect the change of the kubernetes API server.
-func startLeaderClient(conf *LeaderConfig, agent agent.Agent, errorC chan error) (leaderClient io.Closer, err error) {
-	log.Infof("%v start", conf)
-	var hostname string
-	hostname, err = os.Hostname()
-	if err != nil {
-		return nil, trace.Wrap(err)
-	}
-
-	if conf.Role == RoleMaster {
-		err = upsertCgroups(true)
-	} else {
-		err = upsertCgroups(false)
-	}
-	if err != nil {
-		return nil, trace.Wrap(err)
-	}
-
-	if err = conf.ETCD.CheckAndSetDefaults(); err != nil {
-		return nil, trace.Wrap(err)
-	}
-	var etcdClient etcd.Client
-	etcdClient, err = conf.ETCD.NewClient()
-	if err != nil {
-		return nil, trace.Wrap(err)
-	}
-
-	if conf.Role == RoleMaster {
-		etcdapi := etcd.NewKeysAPI(etcdClient)
-		// Set initial value of election participation mode
-		_, err = etcdapi.Set(context.TODO(), conf.ElectionKey,
-			strconv.FormatBool(conf.ElectionEnabled),
-			&etcd.SetOptions{PrevExist: etcd.PrevNoExist})
-		if err != nil {
-			if err = convertError(err); !trace.IsAlreadyExists(err) {
-				return nil, trace.Wrap(err)
-			}
-		}
-	}
-
-	client, err := leader.NewClient(leader.Config{Client: etcdClient})
-	if err != nil {
-		return nil, trace.Wrap(err)
-	}
-	defer func() {
-		if err != nil {
-			log.Infof("closing client: %v", err)
-			client.Close()
-		}
-	}()
-
-	// Add a callback to watch for changes to the leader key.
-	// If this node becomes the leader, start a number of additional
-	// services as a master
-	client.AddWatchCallback(conf.LeaderKey, conf.Term/3, func(key, prevVal, newVal string) {
-		log.Infof("new leader: %v", newVal)
-		if newVal == conf.PublicIP {
-			if err := startUnits(context.TODO()); err != nil {
-				log.WithError(err).Warn("Failed to start units.")
-			}
-			return
-		}
-		if err := stopUnits(context.TODO()); err != nil {
-			log.WithError(err).Warn("Failed to stop units.")
-		}
-	})
-
-	// Add a callback to watch for changes to the leader key.
-	// If this node becomes the leader, record a LeaderElected event to the
-	// local timeline.
-	client.AddWatchCallback(conf.LeaderKey, conf.Term/3, func(key, prevVal, newVal string) {
-		// recordEventTimeout specifies the max timeout to record an event
-		const recordEventTimeout = 10 * time.Second
-
-		if newVal != conf.PublicIP {
-			return
-		}
-		// Ignore if same leader is re-elected
-		if newVal == prevVal {
-			return
-		}
-
-		ctx, cancel := context.WithTimeout(context.Background(), recordEventTimeout)
-		defer cancel()
-
-		agent.RecordLocalEvents(ctx, []*pb.TimelineEvent{
-			pb.NewLeaderElected(agent.GetConfig().Clock.Now(), prevVal, newVal),
-		})
-	})
-
-	var cancelVoter context.CancelFunc
-	var ctx context.Context
-	if conf.Role == RoleMaster {
-		switch conf.ElectionEnabled {
-		case true:
-			log.Infof("Adding voter for IP %v.", conf.PublicIP)
-			ctx, cancelVoter = context.WithCancel(context.TODO())
-			if err = client.AddVoter(ctx, conf.LeaderKey, conf.PublicIP, conf.Term); err != nil {
-				return nil, trace.Wrap(err)
-			}
-		case false:
-			log.Info("Shut down services until election has been re-enabled.")
-			// Shut down services at startup if running as master
-			if err := stopUnits(context.TODO()); err != nil {
-				log.WithError(err).Warn("Failed to stop units.")
-			}
-		}
-	}
-	// watch the election mode status and start/stop participation
-	// depending on the value of the election mode key
-	client.AddWatchCallback(conf.ElectionKey, conf.Term, func(key, prevVal, newVal string) {
-		var err error
-		enabled, _ := strconv.ParseBool(newVal)
-		switch enabled {
-		case true:
-			if cancelVoter != nil {
-				log.Infof("voter is already active")
-				return
-			}
-			// start election participation
-			ctx, cancelVoter = context.WithCancel(context.TODO())
-			if err = client.AddVoter(ctx, conf.LeaderKey, conf.PublicIP, conf.Term); err != nil {
-				log.Errorf("failed to add voter for %v: %v", conf.PublicIP, trace.DebugReport(err))
-				errorC <- err
-			}
-		case false:
-			if cancelVoter == nil {
-				log.Info("no voter active")
-				return
-			}
-			// stop election participation
-			cancelVoter()
-			cancelVoter = nil
-		}
-	})
-	// modify /etc/hosts upon election of a new leader node
-	client.AddWatchCallback(conf.LeaderKey, conf.Term/3, func(key, prevVal, newLeaderIP string) {
-		if err := updateDNS(conf, hostname, newLeaderIP); err != nil {
-			log.Error(trace.DebugReport(err))
-		}
-	})
-
-	return client, nil
-}
-
-func writeLocalLeader(target string, masterIP string) error {
-	contents := fmt.Sprint(masterIP, " ",
-		constants.APIServerDNSName, " ",
-		constants.APIServerDNSNameGravity, " ",
-		constants.RegistryDNSName, " ",
-		LegacyAPIServerDNSName, "\n")
-	err := ioutil.WriteFile(
-		target,
-		[]byte(contents),
-		SharedFileMask,
-	)
-	return trace.Wrap(err)
-}
-
-func updateDNS(conf *LeaderConfig, hostname string, newMasterIP string) error {
-	log.Infof("Setting new leader address to %v in %v", newMasterIP, CoreDNSHosts)
-	err := writeLocalLeader(CoreDNSHosts, newMasterIP)
+// TODO: startEtcdLoop ...
+func startEtcdLoop(ctx context.Context, client *clientv3.Client, addr string, g *ctxgroup.Group) error {
+	hostname, err := os.Hostname()
 	if err != nil {
 		return trace.Wrap(err)
 	}
+
+	// TODO: recover an active session by persisting s.Lease()
+	// to a file.
+	// TODO: recreate the session if interrupted due to an etcd error
+	s, err := concurrency.NewSession(client, concurrency.WithContext(ctx), concurrency.WithTTL(nodeTTLSeconds))
+	if err != nil {
+		return trace.Wrap(err, "failed to create session")
+	}
+
+	nodePath := filepath.Join(masterPrefix, addr)
+
+	// TODO: relist watch in case of errors
+	wchan := client.Watch(clientv3.WithRequireLeader(ctx), masterPrefix,
+		clientv3.WithPrefix(),
+	)
+
+	g.GoCtx(func(ctx context.Context) error {
+		defer s.Close()
+		m := concurrency.NewLocker(s, nodePath)
+		m.Lock()
+		<-ctx.Done()
+		m.Unlock()
+		return nil
+	})
+
+	g.GoCtx(func(ctx context.Context) error {
+		for {
+			select {
+			case u := <-wchan:
+				for _, ev := range u.Events {
+					if ev.Type != mvccpb.PUT && ev.Type != mvccpb.DELETE {
+						continue
+					}
+					// TODO: implement proper skip if no relevant events
+				}
+				// modify CoreDNS hosts when masters are added/removed or get partitioned
+				// TODO: for simplicity, requery the masters tree and snapshot the value into the hosts file
+				resp, err := client.Get(ctx, "/planet/cluster/masters/", clientv3.WithPrefix(), clientv3.WithKeysOnly())
+				if err != nil {
+					log.WithError(err).Warn("Failed to query master nodes.")
+					// TODO: retry
+					continue
+				}
+				var addrs []string
+				for _, kv := range resp.Kvs {
+					key := strings.TrimPrefix(string(kv.Key), masterPrefix)
+					logger := log.WithField("key", key)
+					logger.Info("Look at master keys.")
+					addr := strings.SplitN(key, "/", 2)[0]
+					addrs = append(addrs, addr)
+				}
+				log.WithField("addrs", addrs).Info("Update DNS configuration.")
+				if err := updateDNS(hostname, addrs); err != nil {
+					log.WithError(err).Error("Failed to update DNS configuration.")
+				}
+
+			case <-ctx.Done():
+				return nil
+			}
+		}
+	})
+
 	return nil
+}
+
+const (
+	masterPrefix = "/planet/cluster/masters/"
+
+	// nodeTTLSeconds specifies the maximum amount of time when the node lease
+	// expires after the agent is shut down
+	nodeTTLSeconds = 15
+)
+
+func updateDNS(hostname string, masterIPs []string) error {
+	log.Infof("Setting master addresses to %v in %v", masterIPs, CoreDNSHosts)
+	var buf bytes.Buffer
+	for _, addr := range masterIPs {
+		fmt.Fprint(&buf, addr, " ",
+			constants.APIServerDNSName, " ",
+			constants.APIServerDNSNameGravity, " ",
+			constants.RegistryDNSName, " ",
+			LegacyAPIServerDNSName, "\n")
+	}
+	return trace.ConvertSystemError(ioutil.WriteFile(CoreDNSHosts, buf.Bytes(), SharedFileMask))
 }
 
 var controlPlaneUnits = []string{
@@ -297,30 +187,31 @@ func stopUnits(ctx context.Context) error {
 
 // runAgent starts the master election / health check loops in background and
 // blocks until a signal has been received.
-func runAgent(conf *agent.Config, monitoringConf *monitoring.Config, leaderConf *LeaderConfig, peers []string) error {
-	ctx, cancelCtx := context.WithCancel(context.Background())
-	defer cancelCtx()
-
+func runAgent(conf agent.Config, monitoringConf monitoring.Config, etcdConf etcdconf.Config, peers []string) error {
+	if err := etcdConf.CheckAndSetDefaults(); err != nil {
+		return trace.Wrap(err)
+	}
 	err := monitoringConf.CheckAndSetDefaults()
 	if err != nil {
 		return trace.Wrap(err)
 	}
+
 	if conf.Tags == nil {
 		conf.Tags = make(map[string]string)
 	}
 	conf.Tags["role"] = string(monitoringConf.Role)
-	monitoringAgent, err := agent.New(conf)
+	monitoringAgent, err := agent.New(&conf)
 	if err != nil {
 		return trace.Wrap(err)
 	}
 	defer monitoringAgent.Close()
 
-	err = monitoring.AddMetrics(monitoringAgent, monitoringConf)
+	err = monitoring.AddMetrics(monitoringAgent, &monitoringConf)
 	if err != nil {
 		return trace.Wrap(err)
 	}
 
-	err = monitoring.AddCheckers(monitoringAgent, monitoringConf)
+	err = monitoring.AddCheckers(monitoringAgent, &monitoringConf)
 	if err != nil {
 		return trace.Wrap(err)
 	}
@@ -328,6 +219,7 @@ func runAgent(conf *agent.Config, monitoringConf *monitoring.Config, leaderConf 
 	if err != nil {
 		return trace.Wrap(err)
 	}
+	defer monitoringAgent.Close()
 
 	// only join to the initial seed list if not member already,
 	// as the initial peer could be gone
@@ -345,26 +237,25 @@ func runAgent(conf *agent.Config, monitoringConf *monitoring.Config, leaderConf 
 		log.Info("this agent is already a member of the cluster")
 	}
 
-	errorC := make(chan error, 10)
-	client, err := startLeaderClient(leaderConf, monitoringAgent, errorC)
+	if monitoringConf.Role == RoleMaster {
+		err = upsertCgroups(defaultCgroupConfigMaster(runtime.NumCPU()))
+	} else {
+		err = upsertCgroups(defaultCgroupConfig(runtime.NumCPU()))
+	}
+	if err != nil {
+		return trace.Wrap(err)
+	}
+
+	client, err := etcdConf.NewClientV3()
 	if err != nil {
 		return trace.Wrap(err)
 	}
 	defer client.Close()
 
-	err = setupResolver(ctx, monitoringConf.Role)
-	if err != nil {
-		return trace.Wrap(err)
-	}
+	go runSystemdCgroupCleaner(ctx)
 
-	// Only non-masters run etcd gateway service
-	if leaderConf.Role != RoleMaster {
-		err = startWatchingEtcdMasters(ctx, monitoringConf)
-		if err != nil {
-			return trace.Wrap(err)
-		}
-	}
-
+	// FIXME: integrate
+	/* 
 	if leaderConf.Role == RoleMaster {
 		kubeconfig, err := clientcmd.BuildConfigFromFlags("", constants.KubeletConfigPath)
 		if err != nil {
@@ -373,49 +264,53 @@ func runAgent(conf *agent.Config, monitoringConf *monitoring.Config, leaderConf 
 		go startSerfReconciler(ctx, kubeconfig, &conf.SerfConfig)
 	}
 	go runSystemdCgroupCleaner(ctx)
+	*/
 
-	signalc := make(chan os.Signal, 2)
-	signal.Notify(signalc, os.Interrupt, syscall.SIGTERM)
-
-	select {
-	case <-signalc:
-	case err := <-errorC:
+	if err := startEtcdLoop(ctx, client, monitoringConf.AdvertiseIP, &g); err != nil {
 		return trace.Wrap(err)
 	}
 
-	return nil
-}
+	if monitoringConf.Role == RoleMaster {
+		log.Info("Start control plane units.")
+		if err := startUnits(ctx); err != nil {
+			log.WithError(err).Warn("Failed to start control plane units.")
+		}
+	}
 
-func leaderPause(publicIP, electionKey string, etcd *etcdconf.Config) error {
-	log.Infof("disable election participation for %v", publicIP)
-	return enableElection(publicIP, electionKey, false, etcd)
-}
-
-func leaderResume(publicIP, electionKey string, etcd *etcdconf.Config) error {
-	log.Infof("enable election participation for %v", publicIP)
-	return enableElection(publicIP, electionKey, true, etcd)
-}
-
-func leaderView(leaderKey string, etcd *etcdconf.Config) error {
-	client, err := getEtcdClient(etcd)
+	err = setupResolver(ctx, monitoringConf.Role)
 	if err != nil {
 		return trace.Wrap(err)
 	}
-	resp, err := client.Get(context.TODO(), leaderKey, nil)
-	if err != nil {
-		return trace.Wrap(err)
+
+	// Only non-masters run etcd gateway service
+	if monitoringConf.Role != RoleMaster {
+		err = startWatchingEtcdMasters(ctx, monitoringConf, &g)
+		if err != nil {
+			return trace.Wrap(err)
+		}
 	}
-	fmt.Println(resp.Node.Value)
-	return nil
+
+	g.Go(monitoringAgent.Run)
+	g.GoCtx(func(ctx context.Context) error {
+		runSystemdCgroupCleaner(ctx)
+		return nil
+	})
+	g.Go(func() error {
+		watchSignals(cancel)
+		return nil
+	})
+
+	return trace.Wrap(g.Wait())
 }
 
-func enableElection(publicIP, electionKey string, enabled bool, etcd *etcdconf.Config) error {
-	client, err := getEtcdClient(etcd)
-	if err != nil {
-		return trace.Wrap(err)
+func watchSignals(cancel context.CancelFunc) {
+	defer cancel()
+	signalC := make(chan os.Signal, 1)
+	signal.Notify(signalC, os.Interrupt, syscall.SIGTERM, syscall.SIGUSR1)
+	for sig := range signalC {
+		log.WithField("signal", sig).Info("Received termination signal, will exit.")
+		return
 	}
-	_, err = client.Set(context.TODO(), electionKey, strconv.FormatBool(enabled), nil)
-	return trace.Wrap(err)
 }
 
 func getEtcdClient(conf *etcdconf.Config) (etcd.KeysAPI, error) {

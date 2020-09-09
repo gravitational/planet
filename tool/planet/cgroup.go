@@ -43,7 +43,6 @@ import (
 	"os"
 	"path"
 	"path/filepath"
-	"runtime"
 	"strings"
 	"text/template"
 	"time"
@@ -87,9 +86,9 @@ type CgroupEntry struct {
 }
 
 // upsertCgroups reads/updates the cgroup configuration and applies it to the system
-func upsertCgroups(isMaster bool) error {
+func upsertCgroups(defaultConfig CgroupConfig) error {
 	log := logrus.WithField(trace.Component, "cgroup")
-	log.WithField("master", isMaster).Info("Upsert cgroup configuration")
+	log.Info("Upsert cgroup configuration.")
 
 	// Cgroup namespaces aren't currently available in redhat/centos based kernels
 	// only enable resource starvation prevention on kernels that have cgroup namespaces that is needed to enact our
@@ -109,15 +108,15 @@ func upsertCgroups(isMaster bool) error {
 		return trace.Wrap(err)
 	}
 	if trace.IsNotFound(err) {
-		config = defaultCgroupConfig(runtime.NumCPU(), isMaster)
+		config = &defaultConfig
 	}
 	if config.Enabled && config.Auto {
 		// if the configuration is automatically generated, regenerate it each start to pick up any changes
 		// with new planet releases
-		config = defaultCgroupConfig(runtime.NumCPU(), isMaster)
+		config = &defaultConfig
 	}
 
-	log.Info("cgroup configuration: ", spew.Sdump(config))
+	log.Info("Cgroup configuration: ", spew.Sdump(config))
 
 	if !config.Enabled {
 		return nil
@@ -128,8 +127,8 @@ func upsertCgroups(isMaster bool) error {
 	if err != nil {
 		return trace.Wrap(err)
 	}
-	var errors []error
 
+	var errors []error
 	// try and set the cgroups
 	for _, entry := range config.Cgroups {
 		if len(entry.Path) == 0 {
@@ -138,13 +137,15 @@ func upsertCgroups(isMaster bool) error {
 
 		switch {
 		case strings.HasSuffix(entry.Path, ".slice"):
-			errors = append(errors, trace.Wrap(upsertSystemd(entry)))
+			errors = append(errors, upsertSystemd(entry))
 		default:
-			errors = append(errors, trace.Wrap(upsertCgroupV1(entry)))
+			errors = append(errors, upsertCgroupV1(entry))
 		}
 	}
 
-	errors = append(errors, trace.Wrap(writeKubeReservedEnvironment(config)))
+	if err := writeKubeReservedEnvironment(config); err != nil {
+		errors = append(errors, err)
+	}
 
 	return trace.NewAggregate(errors...)
 }
@@ -185,7 +186,15 @@ func upsertCgroupV1(entry CgroupEntry) error {
 // DefaultCgroupCPUPeriod in us (100000us = 100ms)
 const DefaultCgroupCPUPeriod = 100000
 
-func defaultCgroupConfig(numCPU int, isMaster bool) *CgroupConfig {
+func defaultCgroupConfigMaster(numCPU int) CgroupConfig {
+	config := defaultCgroupConfig(numCPU)
+	// reserve 1 additional core when master.
+	// this is just an educated guess at this point
+	config.KubeReservedCPUMillicores = 1800
+	return config
+}
+
+func defaultCgroupConfig(numCPU int) CgroupConfig {
 	// calculate 10% of system for user cgroups
 	totalQuota := numCPU * DefaultCgroupCPUPeriod
 	userQuota := totalQuota / 10
@@ -240,23 +249,16 @@ func defaultCgroupConfig(numCPU int, isMaster bool) *CgroupConfig {
 				},
 			},
 		},
+		// The amount of resources to reserve for kubelet + docker on a busy system
+		// Reference: http://node-perf-dash.k8s.io/#/builds
+		KubeReservedCPUMillicores: 800,
 	}
 
 	// if the system has limited CPU power, we only set the cgroup hierarchy
 	// and don't set kube-reserved / system reserved
 	if numCPU <= 4 {
-		return &config
+		return config
 	}
-
-	// The amount of resources to reserve for kubelet + docker on a busy system
-	// Reference: http://node-perf-dash.k8s.io/#/builds
-	nodeReservedMilli := 800
-	if isMaster {
-		// reserve 1 additional core when master.
-		// this is just an educated guess at this point
-		nodeReservedMilli = 1800
-	}
-	config.KubeReservedCPUMillicores = nodeReservedMilli
 
 	// 1 CPU = 1000 millicores
 	totalMillis := numCPU * 1000
@@ -266,7 +268,7 @@ func defaultCgroupConfig(numCPU int, isMaster bool) *CgroupConfig {
 	// - 200 millicores (serf/coredns/satellite/systemd etc services)
 	config.KubeSystemCPUMillicores = (totalMillis / 10) + 200
 
-	return &config
+	return config
 }
 
 func readCgroupConfig(path string) (*CgroupConfig, error) {

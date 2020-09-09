@@ -41,6 +41,7 @@ import (
 	"github.com/davecgh/go-spew/spew"
 	etcdconf "github.com/gravitational/coordinate/config"
 	backup "github.com/gravitational/etcd-backup/lib/etcd"
+	"github.com/gravitational/satellite/lib/ctxgroup"
 	"github.com/gravitational/trace"
 	ps "github.com/mitchellh/go-ps"
 	"github.com/sirupsen/logrus"
@@ -443,13 +444,16 @@ func restartEtcdClients(ctx context.Context) {
 
 // startWatchingEtcdMasters creates a control loop which polls etcd for the etcd cluster member list, and updates the
 // etcd gateway configuration with any changes. This keeps the etcd gateway load balancing in sync with the cluster.
-func startWatchingEtcdMasters(ctx context.Context, config *monitoring.Config) error {
+func startWatchingEtcdMasters(ctx context.Context, config monitoring.Config, g *ctxgroup.Group) error {
 	cli, err := config.ETCDConfig.NewClientV3()
 	if err != nil {
 		return trace.Wrap(err)
 	}
 
-	go watchEtcdMasters(ctx, cli)
+	g.GoCtx(func(ctx context.Context) error {
+		watchEtcdMasters(ctx, cli)
+		return nil
+	})
 	return nil
 }
 

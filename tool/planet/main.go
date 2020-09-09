@@ -142,11 +142,8 @@ func run() error {
 		// start the planet agent
 		cagent                 = app.Command("agent", "Start Planet Agent")
 		cagentPublicIP         = cagent.Flag("public-ip", "IP accessible by other nodes for inter-host communication").OverrideDefaultFromEnvar(EnvPublicIP).IP()
-		cagentLeaderKey        = cagent.Flag("leader-key", "Etcd key holding the new leader").Required().String()
-		cagentElectionKey      = cagent.Flag("election-key", "Etcd key to control if the current node is participating in leader election. Contains list of IPs of nodes currently participating in election. To have a node stop participating in election, remove its IP from this list.").Required().String()
 		cagentRole             = cagent.Flag("role", "Server role").OverrideDefaultFromEnvar(EnvRole).String()
 		cagentKubeAPIServerDNS = cagent.Flag("apiserver-dns", "Kubernetes API server DNS entry").OverrideDefaultFromEnvar(EnvAPIServerName).String()
-		cagentTerm             = cagent.Flag("term", "Leader lease duration").Default(DefaultLeaderTerm.String()).Duration()
 		cagentRPCAddrs         = List(cagent.Flag("rpc-addr", "Address to bind the RPC listener to.  Can be specified multiple times").Default("127.0.0.1:7575"))
 		cagentMetricsAddr      = cagent.Flag("metrics-addr", "Address to listen on for web interface and telemetry for Prometheus metrics").Default("127.0.0.1:7580").String()
 		cagentKubeAddr         = cagent.Flag("kube-addr", "Address of the kubernetes API server.  Will default to apiserver-dns:8080").String()
@@ -161,7 +158,6 @@ func run() error {
 		cagentEtcdCAFile             = cagent.Flag("etcd-cafile", "Certificate Authority file used to secure etcd communication").String()
 		cagentEtcdCertFile           = cagent.Flag("etcd-certfile", "TLS certificate file used to secure etcd communication").String()
 		cagentEtcdKeyFile            = cagent.Flag("etcd-keyfile", "TLS key file used to secure etcd communication").String()
-		cagentElectionEnabled        = Bool(cagent.Flag("election-enabled", "Boolean flag to control if the agent initially starts with election participation on").OverrideDefaultFromEnvar(EnvElectionEnabled))
 		cagentDNSUpstreamNameservers = List(cagent.Flag("nameservers", "List of additional upstream nameservers to add to DNS configuration as a comma-separated list of IPs").OverrideDefaultFromEnvar(EnvDNSUpstreamNameservers))
 		cagentDNSLocalNameservers    = List(cagent.Flag("local-nameservers", "List of node-local nameserver addresses").OverrideDefaultFromEnvar(EnvDNSLocalNameservers).Default(DefaultDNSAddress))
 		cagentDNSZones               = DNSOverrides(cagent.Flag("dns-zones", "Comma-separated list of DNS zone to nameserver IP mappings as 'zone/nameserver' pairs").OverrideDefaultFromEnvar(EnvDNSZones))
@@ -247,19 +243,6 @@ func run() error {
 
 		cetcdWipe          = cetcd.Command("wipe", "Wipe out all local etcd data").Hidden()
 		cetcdWipeConfirmed = cetcdWipe.Flag("confirm", "Auto-confirm the action").Bool()
-
-		// leader election commands
-		cleader              = app.Command("leader", "Leader election control")
-		cleaderPublicIP      = cleader.Flag("public-ip", "IP accessible by other nodes for inter-host communication").OverrideDefaultFromEnvar(EnvPublicIP).IP()
-		cleaderElectionKey   = cleader.Flag("election-key", "Etcd key that defines the state of election participation for this node").String()
-		cleaderEtcdCAFile    = cleader.Flag("etcd-cafile", "Certificate Authority file used to secure etcd communication").String()
-		cleaderEtcdCertFile  = cleader.Flag("etcd-certfile", "TLS certificate file used to secure etcd communication").String()
-		cleaderEtcdKeyFile   = cleader.Flag("etcd-keyfile", "TLS key file used to secure etcd communication").String()
-		cleaderEtcdEndpoints = List(cleader.Flag("etcd-endpoints", "List of comma-separated etcd endpoints").Default(DefaultEtcdEndpoints))
-		cleaderPause         = cleader.Command("pause", "Pause leader election participation for this node")
-		cleaderResume        = cleader.Command("resume", "Resume leader election participation for this node")
-		cleaderView          = cleader.Command("view", "Display the IP address of the active master")
-		cleaderViewKey       = cleaderView.Flag("leader-key", "Etcd key holding the new leader").Required().String()
 	)
 
 	args, extraArgs := cstrings.SplitAt(os.Args[1:], "--")
@@ -298,7 +281,7 @@ func run() error {
 		}
 		log.Infof("Kubernetes API server: %v", *cagentKubeAddr)
 		log.Infof("Private docker registry: %v", *cagentRegistryAddr)
-		conf := &agent.Config{
+		conf := agent.Config{
 			Name:        *cagentName,
 			RPCAddrs:    *cagentRPCAddrs,
 			SerfConfig:  serf.Config{Addr: *cagentSerfRPCAddr},
@@ -335,7 +318,7 @@ func run() error {
 		// if *cagentInitialCluster != nil && len(*cagentInitialCluster) > 2 {
 		// 	disableInterPodCheck = false
 		// }
-		monitoringConf := &monitoring.Config{
+		monitoringConf := monitoring.Config{
 			Role:                  agent.Role(*cagentRole),
 			AdvertiseIP:           cagentPublicIP.String(),
 			KubeAddr:              *cagentKubeAddr,
@@ -355,40 +338,7 @@ func run() error {
 			ServiceUID:            *cagentServiceUID,
 			ServiceGID:            *cagentServiceGID,
 		}
-
-		leaderConf := &LeaderConfig{
-			PublicIP:        cagentPublicIP.String(),
-			LeaderKey:       *cagentLeaderKey,
-			Role:            *cagentRole,
-			Term:            *cagentTerm,
-			ETCD:            etcdConf,
-			APIServerDNS:    *cagentKubeAPIServerDNS,
-			ElectionKey:     fmt.Sprintf("%v/%v", *cagentElectionKey, cagentPublicIP.String()),
-			ElectionEnabled: bool(*cagentElectionEnabled),
-		}
-		err = runAgent(conf, monitoringConf, leaderConf, toAddrList(*cagentInitialCluster))
-
-	case cleaderPause.FullCommand(), cleaderResume.FullCommand():
-		etcdConf := &etcdconf.Config{
-			Endpoints: *cleaderEtcdEndpoints,
-			CAFile:    *cleaderEtcdCAFile,
-			CertFile:  *cleaderEtcdCertFile,
-			KeyFile:   *cleaderEtcdKeyFile,
-		}
-		memberKey := fmt.Sprintf("%v/%v", *cleaderElectionKey, *cleaderPublicIP)
-		if cmd == cleaderPause.FullCommand() {
-			err = leaderPause(cleaderPublicIP.String(), memberKey, etcdConf)
-		} else {
-			err = leaderResume(cleaderPublicIP.String(), memberKey, etcdConf)
-		}
-	case cleaderView.FullCommand():
-		etcdConf := &etcdconf.Config{
-			Endpoints: *cleaderEtcdEndpoints,
-			CAFile:    *cleaderEtcdCAFile,
-			CertFile:  *cleaderEtcdCertFile,
-			KeyFile:   *cleaderEtcdKeyFile,
-		}
-		err = leaderView(*cleaderViewKey, etcdConf)
+		err = runAgent(conf, monitoringConf, etcdConf, toAddrList(*cagentInitialCluster))
 
 	// "start" command
 	case cstart.FullCommand():

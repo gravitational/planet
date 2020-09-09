@@ -147,7 +147,6 @@ github.com/gravitational/configure
 github.com/gravitational/configure/cstrings
 # github.com/gravitational/coordinate v0.0.0-20200227044100-12af3c0f9593
 github.com/gravitational/coordinate/config
-github.com/gravitational/coordinate/leader
 # github.com/gravitational/etcd-backup v0.0.0-20200227044745-5751e027911a
 github.com/gravitational/etcd-backup/lib/etcd
 # github.com/gravitational/go-udev v0.0.0-20160615210516-4cc8baba3689
@@ -325,6 +324,7 @@ go.etcd.io/etcd/clientv3/balancer
 go.etcd.io/etcd/clientv3/balancer/connectivity
 go.etcd.io/etcd/clientv3/balancer/picker
 go.etcd.io/etcd/clientv3/balancer/resolver/endpoint
+go.etcd.io/etcd/clientv3/concurrency
 go.etcd.io/etcd/clientv3/credentials
 go.etcd.io/etcd/etcdserver/api/v3rpc/rpctypes
 go.etcd.io/etcd/etcdserver/etcdserverpb

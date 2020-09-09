@@ -87,8 +87,6 @@ func start(config *Config) (*runtimeContext, error) {
 		return nil, trace.CompareFailed("must be run as root")
 	}
 
-	var err error
-
 	// see if the kernel version is supported:
 	v, err := check.KernelVersion()
 	if err != nil {
@@ -693,6 +691,7 @@ var coreDNSTemplate = `
   reload
   bind{{range $bind := .ListenAddrs}} {{$bind}}{{- end}}
   errors
+  loadbalance
   hosts /etc/coredns/coredns.hosts {
     {{- range $hostname, $ips := .Hosts}}{{range $ip := $ips}}
     {{$ip}} {{$hostname}}{{end}}{{end}}

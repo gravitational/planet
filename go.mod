@@ -14,8 +14,6 @@ require (
 	github.com/containerd/cgroups v0.0.0-20200608084758-56813a8f106c
 	github.com/containerd/console v0.0.0-20180307192801-cb7008ab3d83
 	github.com/containerd/containerd v1.3.3 // indirect
-	github.com/coreos/bbolt v1.3.2 // indirect
-	github.com/coreos/etcd v3.3.22+incompatible // indirect
 	github.com/coreos/go-semver v0.3.0 // indirect
 	github.com/coreos/go-systemd v0.0.0-20190321100706-95778dfbb74e // indirect
 	github.com/coreos/go-systemd/v22 v22.1.0
