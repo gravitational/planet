@@ -21,6 +21,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"io"
 	"io/ioutil"
 	"os"
 	"os/signal"
@@ -204,7 +205,6 @@ func runAgent(conf agent.Config, monitoringConf monitoring.Config, etcdConf etcd
 	if err != nil {
 		return trace.Wrap(err)
 	}
-	defer monitoringAgent.Close()
 
 	err = monitoring.AddMetrics(monitoringAgent, &monitoringConf)
 	if err != nil {
@@ -215,11 +215,22 @@ func runAgent(conf agent.Config, monitoringConf monitoring.Config, etcdConf etcd
 	if err != nil {
 		return trace.Wrap(err)
 	}
+
+	var closers []io.Closer
+	defer func() {
+		if err == nil {
+			return
+		}
+		for _, c := range closers {
+			c.Close() //nolint:errcheck
+		}
+	}()
+
 	err = monitoringAgent.Start()
 	if err != nil {
 		return trace.Wrap(err)
 	}
-	defer monitoringAgent.Close()
+	closers = append(closers, monitoringAgent)
 
 	// only join to the initial seed list if not member already,
 	// as the initial peer could be gone
@@ -250,7 +261,7 @@ func runAgent(conf agent.Config, monitoringConf monitoring.Config, etcdConf etcd
 	if err != nil {
 		return trace.Wrap(err)
 	}
-	defer client.Close()
+	closers = append(closers, client)
 
 	go runSystemdCgroupCleaner(ctx)
 
@@ -297,6 +308,9 @@ func runAgent(conf agent.Config, monitoringConf monitoring.Config, etcdConf etcd
 	})
 	g.Go(func() error {
 		watchSignals(cancel)
+		for _, c := range closers {
+			c.Close() //nolint:errcheck
+		}
 		return nil
 	})
 
