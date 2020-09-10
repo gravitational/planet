@@ -15,7 +15,6 @@ RUN export DEBIAN_FRONTEND=noninteractive && set -ex && \
         bash-completion \
         kmod \
         libip4tc0=1.6.0+snapshot20161117-6 \
-        iptables \
         ebtables \
         libsqlite3-0 \
         e2fsprogs \
@@ -53,6 +52,35 @@ RUN export DEBIAN_FRONTEND=noninteractive && set -ex && \
         strace \
         netbase \
         && apt-get -y autoclean && apt-get -y clean && apt-get autoremove \
+        && rm -rf /var/lib/apt/lists/*;
+
+# We need to use a newer version of iptables than debian has available
+RUN export DEBIAN_FRONTEND=noninteractive && set -ex \
+        && apt-get update \
+        && apt-get install -q -y --allow-downgrades --no-install-recommends \
+        git \
+        autoconf \
+        libtool \
+        automake \
+        pkg-config \
+        libmnl-dev \
+        make \
+        && mkdir /tmp/iptables.build \
+        && git clone git://git.netfilter.org/iptables.git --branch v1.6.2 --single-branch /tmp/iptables.build \
+        && cd /tmp/iptables.build \
+        && ./autogen.sh \
+        && ./configure --disable-nftables \
+        && make \
+        && make install \
+        && apt-get remove -y \
+        git \
+        autoconf \
+        libtool \
+        automake \
+        pkg-config \
+        libmnl-dev \
+        make \
+        && apt-get -y autoclean && apt-get -y clean && apt-get autoremove -y \
         && rm -rf /var/lib/apt/lists/*;
 
 RUN set -ex && \
