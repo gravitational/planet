@@ -7,7 +7,7 @@ rules:
   # The following requests were manually identified as high-volume and low-risk,
   # so drop them.
   - level: None
-    users: ["system:kube-proxy"]
+    users: ["system:kube-proxier"]
     verbs: ["get", "list", "watch"]
     resources:
       - group: "discovery.k8s.io"
