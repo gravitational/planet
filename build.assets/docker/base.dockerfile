@@ -2,6 +2,7 @@ ARG PLANET_OS_IMAGE=planet/os
 FROM $PLANET_OS_IMAGE
 
 ARG SECCOMP_VER
+ARG IPTABLES_VER
 ARG PLANET_UID
 ARG PLANET_GID
 
@@ -55,6 +56,7 @@ RUN export DEBIAN_FRONTEND=noninteractive && set -ex && \
         && rm -rf /var/lib/apt/lists/*;
 
 # We need to use a newer version of iptables than debian has available
+# not ideal, but it's easier to run `make install` if we run this inline instead of a multi-stage build
 RUN export DEBIAN_FRONTEND=noninteractive && set -ex \
         && apt-get update \
         && apt-get install -q -y --allow-downgrades --no-install-recommends \
@@ -66,7 +68,7 @@ RUN export DEBIAN_FRONTEND=noninteractive && set -ex \
         libmnl-dev \
         make \
         && mkdir /tmp/iptables.build \
-        && git clone git://git.netfilter.org/iptables.git --branch v1.6.2 --single-branch /tmp/iptables.build \
+        && git clone git://git.netfilter.org/iptables.git --branch ${IPTABLES_VER} --single-branch /tmp/iptables.build \
         && cd /tmp/iptables.build \
         && ./autogen.sh \
         && ./configure --disable-nftables \
