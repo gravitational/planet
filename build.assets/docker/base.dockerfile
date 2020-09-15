@@ -2,6 +2,7 @@ ARG PLANET_OS_IMAGE=planet/os
 FROM $PLANET_OS_IMAGE
 
 ARG SECCOMP_VER
+ARG IPTABLES_VER
 ARG DOCKER_VER
 ARG HELM_VER
 ARG COREDNS_VER
@@ -13,7 +14,6 @@ RUN apt-get update && apt-get install -q -y --allow-downgrades bridge-utils \
         bash-completion \
         kmod \
         libip4tc0=1.6.0+snapshot20161117-6 \
-        iptables \
         ebtables \
         libdevmapper1.02.1 \
         libsqlite3-0 \
@@ -52,6 +52,36 @@ RUN apt-get update && apt-get install -q -y --allow-downgrades bridge-utils \
         strace ; \
     apt-get -t testing install -y lvm2; \
     apt-get -y autoclean; apt-get -y clean
+
+# We need to use a newer version of iptables than debian has available
+# not ideal, but it's easier to run `make install` if we run this inline instead of a multi-stage build
+RUN export DEBIAN_FRONTEND=noninteractive && set -ex \
+        && apt-get update \
+        && apt-get install -q -y --allow-downgrades --no-install-recommends \
+        git \
+        autoconf \
+        libtool \
+        automake \
+        pkg-config \
+        libmnl-dev \
+        make \
+        && mkdir /tmp/iptables.build \
+        && git clone git://git.netfilter.org/iptables.git --branch ${IPTABLES_VER} --single-branch /tmp/iptables.build \
+        && cd /tmp/iptables.build \
+        && ./autogen.sh \
+        && ./configure --disable-nftables \
+        && make \
+        && make install \
+        && apt-get remove -y \
+        git \
+        autoconf \
+        libtool \
+        automake \
+        pkg-config \
+        libmnl-dev \
+        make \
+        && apt-get -y autoclean && apt-get -y clean && apt-get autoremove -y \
+        && rm -rf /var/lib/apt/lists/*;
 
 # do not install docker from Debian repositories but rather download static binaries for seccomp support
 RUN curl https://download.docker.com/linux/static/stable/x86_64/docker-$DOCKER_VER.tgz -o /tmp/docker-$DOCKER_VER.tgz && \
