@@ -330,7 +330,11 @@ func runAgent(conf *agent.Config, monitoringConf *monitoring.Config, leaderConf 
 
 	// only join to the initial seed list if not member already,
 	// as the initial peer could be gone
-	if !monitoringAgent.IsMember() && len(peers) > 0 {
+	isMember, err := monitoringAgent.IsMember()
+	if err != nil {
+		return trace.Wrap(err)
+	}
+	if !isMember && len(peers) > 0 {
 		log.Infof("joining the cluster: %v", peers)
 		err = monitoringAgent.Join(peers)
 		if err != nil {
