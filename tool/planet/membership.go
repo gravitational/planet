@@ -31,7 +31,8 @@ import (
 // startSerfReconciler creates a control loop that periodically attempts to
 // reconcile serf cluster.
 func startSerfReconciler(ctx context.Context, kubeconfig *rest.Config, serfConfig *serf.Config) {
-	ticker := time.NewTicker(30 * time.Second)
+	const reconcileInterval = time.Minute * 10
+	ticker := time.NewTicker(reconcileInterval)
 	defer ticker.Stop()
 	for {
 		select {
