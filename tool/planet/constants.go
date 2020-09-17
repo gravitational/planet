@@ -361,8 +361,11 @@ const (
 	// and updated via k8s configmap
 	CoreDNSClusterConf = "/etc/coredns/configmaps/overlay.conf"
 
-	// CoreDNSHosts is the location of a hosts file to be served by CoreDNS
+	// CoreDNSHosts is the location of the hosts file to be served by CoreDNS
 	CoreDNSHosts = "/etc/coredns/coredns.hosts"
+
+	// CoreDNSRegistryHosts is the location of the registry hosts file to be served by CoreDNS
+	CoreDNSRegistryHosts = "/etc/coredns/coredns.registry"
 
 	// HostsFile specifies the location of the hosts configuration file
 	HostsFile = "/etc/hosts"

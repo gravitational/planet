@@ -25,9 +25,7 @@ import (
 	"io/ioutil"
 	"os"
 	"os/signal"
-	"path/filepath"
 	"runtime"
-	"strings"
 	"syscall"
 	"time"
 
@@ -37,6 +35,7 @@ import (
 	etcdconf "github.com/gravitational/coordinate/config"
 	"github.com/gravitational/satellite/agent"
 	pb "github.com/gravitational/satellite/agent/proto/agentpb"
+	"github.com/gravitational/satellite/cmd"
 	"github.com/gravitational/satellite/lib/ctxgroup"
 	"github.com/gravitational/satellite/lib/rpc/client"
 	agentutils "github.com/gravitational/satellite/utils"
@@ -49,92 +48,28 @@ import (
 	"k8s.io/client-go/tools/clientcmd"
 )
 
-// TODO: startEtcdLoop ...
-func startEtcdLoop(ctx context.Context, client *clientv3.Client, addr string, g *ctxgroup.Group) error {
-	hostname, err := os.Hostname()
+func startAPIServerWatcher(ctx context.Context, addr string, g *ctxgroup.Group) error {
+	client, err := cmd.GetKubeClientFromPath(constants.ProxyConfigPath)
 	if err != nil {
 		return trace.Wrap(err)
 	}
 
-	// TODO: recover an active session by persisting s.Lease()
-	// to a file.
-	// TODO: recreate the session if interrupted due to an etcd error
-	s, err := concurrency.NewSession(client, concurrency.WithContext(ctx), concurrency.WithTTL(nodeTTLSeconds))
-	if err != nil {
-		return trace.Wrap(err, "failed to create session")
-	}
-
-	nodePath := filepath.Join(masterPrefix, addr)
-
-	// TODO: relist watch in case of errors
-	wchan := client.Watch(clientv3.WithRequireLeader(ctx), masterPrefix,
-		clientv3.WithPrefix(),
-	)
-
 	g.GoCtx(func(ctx context.Context) error {
-		defer s.Close()
-		m := concurrency.NewLocker(s, nodePath)
-		m.Lock()
-		<-ctx.Done()
-		m.Unlock()
+		runAPIServerEndpointsWatcher(ctx, client, 15*time.Minute)
 		return nil
-	})
-
-	g.GoCtx(func(ctx context.Context) error {
-		for {
-			select {
-			case u := <-wchan:
-				for _, ev := range u.Events {
-					if ev.Type != mvccpb.PUT && ev.Type != mvccpb.DELETE {
-						continue
-					}
-					// TODO: implement proper skip if no relevant events
-				}
-				// modify CoreDNS hosts when masters are added/removed or get partitioned
-				// TODO: for simplicity, requery the masters tree and snapshot the value into the hosts file
-				resp, err := client.Get(ctx, "/planet/cluster/masters/", clientv3.WithPrefix(), clientv3.WithKeysOnly())
-				if err != nil {
-					log.WithError(err).Warn("Failed to query master nodes.")
-					// TODO: retry
-					continue
-				}
-				var addrs []string
-				for _, kv := range resp.Kvs {
-					key := strings.TrimPrefix(string(kv.Key), masterPrefix)
-					logger := log.WithField("key", key)
-					logger.Info("Look at master keys.")
-					addr := strings.SplitN(key, "/", 2)[0]
-					addrs = append(addrs, addr)
-				}
-				log.WithField("addrs", addrs).Info("Update DNS configuration.")
-				if err := updateDNS(hostname, addrs); err != nil {
-					log.WithError(err).Error("Failed to update DNS configuration.")
-				}
-
-			case <-ctx.Done():
-				return nil
-			}
-		}
 	})
 
 	return nil
 }
 
-const (
-	masterPrefix = "/planet/cluster/masters/"
-
-	// nodeTTLSeconds specifies the maximum amount of time when the node lease
-	// expires after the agent is shut down
-	nodeTTLSeconds = 15
-)
-
-func updateDNS(hostname string, masterIPs []string) error {
-	log.Infof("Setting master addresses to %v in %v", masterIPs, CoreDNSHosts)
+func updateDNS(masterIPs []string) error {
+	log.Infof("Set master addresses to %v in %v", masterIPs, CoreDNSHosts)
 	var buf bytes.Buffer
 	for _, addr := range masterIPs {
 		fmt.Fprint(&buf, addr, " ",
 			constants.APIServerDNSName, " ",
 			constants.APIServerDNSNameGravity, " ",
+			// TODO(dmitri): move to separate registry hosts file
 			constants.RegistryDNSName, " ",
 			LegacyAPIServerDNSName, "\n")
 	}
@@ -277,7 +212,7 @@ func runAgent(conf agent.Config, monitoringConf monitoring.Config, etcdConf etcd
 	go runSystemdCgroupCleaner(ctx)
 	*/
 
-	if err := startEtcdLoop(ctx, client, monitoringConf.AdvertiseIP, &g); err != nil {
+	if err := startAPIServerWatcher(ctx, monitoringConf.AdvertiseIP, &g); err != nil {
 		return trace.Wrap(err)
 	}
 

@@ -5,7 +5,9 @@ Wants=kube-apiserver.service
 
 [Service]
 EnvironmentFile=/etc/container-environment
-ExecStartPre=/bin/systemctl is-active kube-apiserver.service
+#TODO(dmitri): this seems to trigger spurious NOTIMPLEMENTED errors when the services are
+#retarted or started initially
+#ExecStartPre=/bin/systemctl is-active kube-apiserver.service
 ExecStart=/usr/bin/kube-controller-manager \
         --service-account-private-key-file=/var/state/apiserver.key \
         --cluster-signing-cert-file=/var/state/root.cert \
