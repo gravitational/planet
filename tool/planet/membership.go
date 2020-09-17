@@ -20,51 +20,25 @@ import (
 	"context"
 	"time"
 
-	"github.com/gravitational/planet/lib/monitoring"
-
 	"github.com/gravitational/trace"
 	serf "github.com/hashicorp/serf/client"
 	log "github.com/sirupsen/logrus"
-	v1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/client-go/kubernetes"
+	"k8s.io/client-go/rest"
 )
 
 // startSerfReconciler creates a control loop that periodically attempts to
 // reconcile serf cluster.
-func startSerfReconciler(ctx context.Context, serfConfig *serf.Config) {
+func startSerfReconciler(ctx context.Context, kubeconfig *rest.Config, serfConfig *serf.Config) {
 	ticker := time.NewTicker(30 * time.Second)
 	defer ticker.Stop()
-
 	for {
 		select {
 		case <-ticker.C:
-			k8sPeers, err := getK8sPeers()
-			if err != nil {
-				log.WithError(err).Warn("Failed to query kubernetes peers.")
-				break
-			}
-
-			serfPeers, err := getSerfPeers(serfConfig)
-			if err != nil {
-				log.WithError(err).Warn("Failed to query serf peers.")
-				break
-			}
-
-			if !shouldReconcileSerf(k8sPeers, serfPeers) {
-				break
-			}
-
-			log.WithField("k8s-peers", k8sPeers).
-				WithField("serf-peers", serfPeers).
-				Info("Reconciling serf cluster.")
-
-			numJoined, err := reconcileSerfCluster(serfConfig, k8sPeers)
-			if err != nil {
+			if err := reconcileSerfCluster(kubeconfig, serfConfig); err != nil {
 				log.WithError(err).Warn("Failed to reconcile serf cluster.")
-				break
 			}
-			log.WithField("num-joined", numJoined).Info("Reconciled serf cluster.")
-
 		case <-ctx.Done():
 			log.Debug("Stopping serf reconciler")
 			return
@@ -72,13 +46,50 @@ func startSerfReconciler(ctx context.Context, serfConfig *serf.Config) {
 	}
 }
 
+// reconcileSerfCluster reconciles ther serf cluster if any members are missing
+// from the serf cluster.
+func reconcileSerfCluster(kubeconfig *rest.Config, serfConfig *serf.Config) error {
+	k8sClient, err := kubernetes.NewForConfig(kubeconfig)
+	if err != nil {
+		return trace.Wrap(err, "failed to create kubernetes clientset")
+	}
+
+	serfClient, err := serf.ClientFromConfig(serfConfig)
+	if err != nil {
+		return trace.Wrap(err, "failed to create serf client")
+	}
+	defer serfClient.Close()
+
+	return reconcileSerf(k8sClient, serfClient)
+}
+
+// reconcileSerf reconciles the serf cluster if any members are missing from the
+// cluster.
+func reconcileSerf(k8sClient kubernetes.Interface, serfClient serfClient) error {
+	k8sPeers, err := getK8sPeers(k8sClient)
+	if err != nil {
+		return trace.Wrap(err, "failed to get k8s peers")
+	}
+
+	serfPeers, err := getSerfPeers(serfClient)
+	if err != nil {
+		return trace.Wrap(err, "failed to get serf peers")
+	}
+
+	if !shouldReconcileSerf(k8sPeers, serfPeers) {
+		return nil
+	}
+
+	if _, err := serfClient.Join(k8sPeers, false); err != nil {
+		return trace.Wrap(err, "failed to join nodes")
+	}
+
+	return nil
+}
+
 // getK8sPeers returns advertised IP addresses of all nodes in the kubernetes
 // cluster.
-func getK8sPeers() (peers []string, err error) {
-	client, err := monitoring.GetKubeClient()
-	if err != nil {
-		return peers, trace.Wrap(err, "failed to get kubernetes clientset")
-	}
+func getK8sPeers(client kubernetes.Interface) (peers []string, err error) {
 	nodes, err := client.CoreV1().Nodes().List(metav1.ListOptions{
 		LabelSelector: advertiseIPKey,
 	})
@@ -87,33 +98,18 @@ func getK8sPeers() (peers []string, err error) {
 	}
 
 	for _, node := range nodes.Items {
-		addr, err := getAddr(node)
-		if err != nil {
-			return peers, trace.Wrap(err, "failed to get advertised IP address of %s", node.Name)
+		addr, exists := node.Labels[advertiseIPKey]
+		if !exists {
+			return peers, trace.NotFound("node %s does not have %s label", node.Name, advertiseIPKey)
 		}
 		peers = append(peers, addr)
 	}
 	return peers, nil
 }
 
-// getAddr returns the advertised IP address of the node.
-func getAddr(node v1.Node) (addr string, err error) {
-	addr, exists := node.Labels[advertiseIPKey]
-	if !exists {
-		return addr, trace.NotFound("node %s does not have %s label", node.Name, advertiseIPKey)
-	}
-	return addr, nil
-}
-
 // getSerfPeers returns the advertised IP address of all nodes in the serf
 // cluster.
-func getSerfPeers(config *serf.Config) (peers []string, err error) {
-	client, err := serf.ClientFromConfig(config)
-	if err != nil {
-		return peers, trace.Wrap(err, "failed to create serf client")
-	}
-	defer client.Close()
-
+func getSerfPeers(client serfClient) (peers []string, err error) {
 	members, err := client.Members()
 	if err != nil {
 		return peers, trace.Wrap(err, "failed to list serf members")
@@ -138,19 +134,14 @@ func shouldReconcileSerf(k8sPeers, serfPeers []string) bool {
 	return len(missing) != 0
 }
 
-// reconcileSerfCluster attempts to reconcile the serf cluster.
-func reconcileSerfCluster(config *serf.Config, peers []string) (joined int, err error) {
-	client, err := serf.ClientFromConfig(config)
-	if err != nil {
-		return joined, trace.Wrap(err, "failed to create serf client")
-	}
-	defer client.Close()
-
-	joined, err = client.Join(peers, false)
-	if err != nil {
-		return joined, trace.Wrap(err, "failed to join serf cluster")
-	}
-	return joined, nil
+// serfClient interface can be used to query the members of the cluster.
+// This interface is defined so that a mock serf client implementation
+// can be provided for unit tests.
+type serfClient interface {
+	// Members lists the members of the cluster.
+	Members() ([]serf.Member, error)
+	// Join joins the peers' clusters.
+	Join(peers []string, replay bool) (int, error)
 }
 
 // advertiseIPKey specifies the key mapped to the advertised IP address.

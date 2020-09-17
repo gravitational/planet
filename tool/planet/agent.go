@@ -40,6 +40,7 @@ import (
 	"github.com/gravitational/trace"
 	log "github.com/sirupsen/logrus"
 	etcd "go.etcd.io/etcd/client"
+	"k8s.io/client-go/tools/clientcmd"
 )
 
 // LeaderConfig represents configuration for the master election task
@@ -364,7 +365,13 @@ func runAgent(conf *agent.Config, monitoringConf *monitoring.Config, leaderConf 
 		}
 	}
 
-	go startSerfReconciler(ctx, &conf.SerfConfig)
+	if leaderConf.Role == RoleMaster {
+		kubeconfig, err := clientcmd.BuildConfigFromFlags("", constants.KubeletConfigPath)
+		if err != nil {
+			return trace.Wrap(err, "failed to build kubeconfig")
+		}
+		go startSerfReconciler(ctx, kubeconfig, &conf.SerfConfig)
+	}
 	go runSystemdCgroupCleaner(ctx)
 
 	signalc := make(chan os.Signal, 2)
