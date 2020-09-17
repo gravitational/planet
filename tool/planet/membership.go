@@ -91,9 +91,7 @@ func reconcileSerf(k8sClient kubernetes.Interface, serfClient serfClient) error 
 // getK8sPeers returns advertised IP addresses of all nodes in the kubernetes
 // cluster.
 func getK8sPeers(client kubernetes.Interface) (peers []string, err error) {
-	nodes, err := client.CoreV1().Nodes().List(metav1.ListOptions{
-		LabelSelector: advertiseIPKey,
-	})
+	nodes, err := client.CoreV1().Nodes().List(metav1.ListOptions{})
 	if err != nil {
 		return peers, trace.Wrap(err, "failed to list kubernetes nodes")
 	}
