@@ -85,6 +85,15 @@ func reconcileSerf(k8sClient kubernetes.Interface, serfClient serfClient) error 
 		return trace.Wrap(err, "failed to join nodes")
 	}
 
+	newPeers, err := getSerfPeers(serfClient)
+	if err != nil {
+		return trace.Wrap(err, "failed to get serf peers")
+	}
+
+	log.WithField("prev-cluster", serfPeers).
+		WithField("new-cluster", newPeers).
+		Info("Successfully reconciled serf cluster.")
+
 	return nil
 }
 
@@ -128,6 +137,11 @@ func shouldReconcileSerf(k8sPeers, serfPeers []string) bool {
 		missing[k8sPeer] = struct{}{}
 	}
 	for _, serfPeer := range serfPeers {
+		if _, exists := missing[serfPeer]; !exists {
+			log.WithField("addr", serfPeer).
+				Warn("Serf member is no longer a member of the gravity cluster and should be removed from the serf cluster.")
+			continue
+		}
 		delete(missing, serfPeer)
 	}
 	return len(missing) != 0
