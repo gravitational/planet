@@ -30,12 +30,12 @@ import (
 
 	"github.com/gravitational/planet/lib/constants"
 	"github.com/gravitational/planet/lib/monitoring"
-	"github.com/gravitational/satellite/lib/rpc/client"
 
 	etcdconf "github.com/gravitational/coordinate/config"
 	"github.com/gravitational/coordinate/leader"
 	"github.com/gravitational/satellite/agent"
 	pb "github.com/gravitational/satellite/agent/proto/agentpb"
+	"github.com/gravitational/satellite/lib/rpc/client"
 	agentutils "github.com/gravitational/satellite/utils"
 	"github.com/gravitational/trace"
 	log "github.com/sirupsen/logrus"

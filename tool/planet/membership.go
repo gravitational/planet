@@ -67,14 +67,14 @@ func reconcileSerfCluster(kubeconfig *rest.Config, serfConfig *serf.Config) erro
 // reconcileSerf reconciles the serf cluster if any members are missing from the
 // cluster.
 func reconcileSerf(k8sClient kubernetes.Interface, serfClient serfClient) error {
-	k8sPeers, err := getK8sPeers(k8sClient)
-	if err != nil {
-		return trace.Wrap(err, "failed to get k8s peers")
-	}
-
 	serfPeers, err := getSerfPeers(serfClient)
 	if err != nil {
 		return trace.Wrap(err, "failed to get serf peers")
+	}
+
+	k8sPeers, err := getK8sPeers(k8sClient)
+	if err != nil {
+		return trace.Wrap(err, "failed to get k8s peers")
 	}
 
 	if !shouldReconcileSerf(k8sPeers, serfPeers) {
