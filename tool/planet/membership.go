@@ -77,21 +77,17 @@ func reconcileSerf(k8sClient kubernetes.Interface, serfClient serfClient) error 
 		return trace.Wrap(err, "failed to get k8s peers")
 	}
 
-	if !shouldReconcileSerf(k8sPeers, serfPeers) {
+	missingPeers := getMissing(k8sPeers, serfPeers)
+	if len(missingPeers) == 0 {
 		return nil
 	}
 
-	if _, err := serfClient.Join(k8sPeers, false); err != nil {
+	if _, err := serfClient.Join(missingPeers, false); err != nil {
 		return trace.Wrap(err, "failed to join nodes")
 	}
 
-	newPeers, err := getSerfPeers(serfClient)
-	if err != nil {
-		return trace.Wrap(err, "failed to get serf peers")
-	}
-
 	log.WithField("prev-cluster", serfPeers).
-		WithField("new-cluster", newPeers).
+		WithField("joined-peers", missingPeers).
 		Info("Successfully reconciled serf cluster.")
 
 	return nil
@@ -128,9 +124,9 @@ func getSerfPeers(client serfClient) (peers []string, err error) {
 	return peers, nil
 }
 
-// shouldReconcileSerf returns true if a member has been partitioned off the
-// serf cluster.
-func shouldReconcileSerf(k8sPeers, serfPeers []string) bool {
+// getMissing returns the list of peers that should be joined to the serf
+// cluster.
+func getMissing(k8sPeers, serfPeers []string) []string {
 	// missing tracks the members missing from the serf cluster.
 	missing := make(map[string]struct{})
 	for _, k8sPeer := range k8sPeers {
@@ -144,7 +140,11 @@ func shouldReconcileSerf(k8sPeers, serfPeers []string) bool {
 		}
 		delete(missing, serfPeer)
 	}
-	return len(missing) != 0
+	missingPeers := make([]string, 0, len(missing))
+	for missingPeer := range missing {
+		missingPeers = append(missingPeers, missingPeer)
+	}
+	return missingPeers
 }
 
 // serfClient interface can be used to query the members of the cluster.
