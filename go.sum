@@ -190,6 +190,8 @@ github.com/gravitational/satellite v0.0.9-0.20200915185602-5f78daf69e77 h1:Rc28M
 github.com/gravitational/satellite v0.0.9-0.20200915185602-5f78daf69e77/go.mod h1:gqyBdtaefi/t7Mw//N/eoC4c3YriZZssmOiZ6NPvuek=
 github.com/gravitational/satellite v0.0.9-0.20200922030426-b4cdbbd13922 h1:Sit9CQPcMAf9F1PzWJuA2C2E6QTADDqToHkB8cijRn4=
 github.com/gravitational/satellite v0.0.9-0.20200922030426-b4cdbbd13922/go.mod h1:gqyBdtaefi/t7Mw//N/eoC4c3YriZZssmOiZ6NPvuek=
+github.com/gravitational/satellite v0.0.9-0.20200922035717-72df43de52a1 h1:O5f+9O1Qd/mO7GQt8M8zfHTNLGP1LlxDlhnMlF9Q+A4=
+github.com/gravitational/satellite v0.0.9-0.20200922035717-72df43de52a1/go.mod h1:gqyBdtaefi/t7Mw//N/eoC4c3YriZZssmOiZ6NPvuek=
 github.com/gravitational/trace v1.1.11 h1:c+saoho5rBdj5lPEGzfHaYjh4Do4d+jX7hh4BgQtKc0=
 github.com/gravitational/trace v1.1.11/go.mod h1:RvdOUHE4SHqR3oXlFFKnGzms8a5dugHygGw1bqDstYI=
 github.com/gravitational/ttlmap/v2 v2.0.0-20200702161230-1bbfd908876d h1:vIgmA0qBCUgDSip4Gf0iqYCRv6fxsfHEJ2WHPVI35PQ=
