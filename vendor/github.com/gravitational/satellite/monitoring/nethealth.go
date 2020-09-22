@@ -30,6 +30,7 @@ import (
 	"github.com/gravitational/satellite/agent"
 	"github.com/gravitational/satellite/agent/health"
 	pb "github.com/gravitational/satellite/agent/proto/agentpb"
+	"github.com/gravitational/satellite/lib/nethealth"
 	"github.com/gravitational/satellite/utils"
 
 	"github.com/gravitational/trace"
@@ -40,10 +41,6 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/fields"
-)
-
-const (
-	DefaultNethealthSocket = "/run/nethealth/nethealth.sock"
 )
 
 // NethealthConfig specifies configuration for a nethealth checker.
@@ -328,28 +325,10 @@ func nethealthFailureProbe(name, peer string, packetLoss float64) *pb.Probe {
 // fetchNethealthMetrics collects the network metrics from the nethealth pod
 // specified by addr. Returns the resp as an array of bytes.
 func (c *nethealthChecker) fetchNethealthMetrics(ctx context.Context) (res []byte, err error) {
-	/*if c.cachedNethealthAddress != "" {
-		c.cachedNethealthAddress, err = c.getNethealthAddr()
-		if trace.IsNotFound(err) {
-			log.Debug("Nethealth pod was not found.")
-			return nil, nil // pod was not found, log and treat gracefully
-		}
-
-		if err != nil {
-			return nil, trace.Wrap(err) // received unexpected error, maybe network-related, will add error probe above
-		}
-	}*/
-	/*
-		client, err := roundtrip.NewClient(c.cachedNethealthAddress, "")
-		if err != nil {
-			return nil, trace.Wrap(err, "failed to connect to nethealth service at %s.", c.cachedNethealthAddress)
-		}
-	*/
-
 	client := http.Client{
 		Transport: &http.Transport{
 			DialContext: func(_ context.Context, _, _ string) (net.Conn, error) {
-				return net.Dial("unix", DefaultNethealthSocket)
+				return net.Dial("unix", nethealth.DefaultNethealthSocket)
 			},
 		},
 	}
@@ -365,7 +344,7 @@ func (c *nethealthChecker) fetchNethealthMetrics(ctx context.Context) (res []byt
 	//      # TYPE nethealth_echo_timeout_total counter
 	//      nethealth_echo_timeout_total{node_name="10.128.0.96",peer_name="10.128.0.70"} 37
 	//      nethealth_echo_timeout_total{node_name="10.128.0.96",peer_name="10.128.0.97"} 0
-	req, err := http.NewRequestWithContext(ctx, http.MethodGet, "unix/metrics", nil)
+	req, err := http.NewRequestWithContext(ctx, http.MethodGet, "http://unix/metrics", nil)
 	if err != nil {
 		return nil, trace.Wrap(err)
 	}
@@ -385,7 +364,7 @@ func (c *nethealthChecker) fetchNethealthMetrics(ctx context.Context) (res []byt
 		return buffer, nil
 	}
 
-	return nil, trace.BadParameter("unexpected response from %s: %v", DefaultNethealthSocket, resp.Status)
+	return nil, trace.BadParameter("unexpected response from %s: %v", nethealth.DefaultNethealthSocket, resp.Status)
 }
 
 // parseMetrics parses the provided data and returns the structured network
