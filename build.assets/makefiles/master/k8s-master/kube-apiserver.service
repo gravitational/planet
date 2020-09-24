@@ -56,6 +56,8 @@ ExecStart=/usr/bin/kube-apiserver \
         --audit-log-maxage=30 \
         --audit-log-maxbackup=10 \
         --audit-log-maxsize=100 \
+        --max-requests-inflight=2000 \
+        --max-mutating-requests-inflight=1000 \
         $KUBE_APISERVER_FLAGS \
         $KUBE_CLOUD_FLAGS \
         $KUBE_COMPONENT_FLAGS
