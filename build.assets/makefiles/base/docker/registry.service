@@ -3,7 +3,10 @@ Description=Local Docker Registry
 Wants=docker.service
 
 [Service]
-ExecStart=/usr/bin/registry serve /etc/docker/registry/config.yml
+EnvironmentFile=/etc/container-environment
+ExecStart=/usr/bin/registry serve \
+	-bind-addr=${PLANET_PUBLIC_IP} \
+	-config=/etc/docker/registry/config.yml
 Restart=always
 RestartSec=5
 StartLimitInterval=3600

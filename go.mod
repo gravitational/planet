@@ -7,6 +7,8 @@ require (
 	github.com/Microsoft/go-winio v0.4.14 // indirect
 	github.com/alecthomas/template v0.0.0-20190718012654-fb15b899a751 // indirect
 	github.com/alecthomas/units v0.0.0-20190924025748-f65c72e2690d // indirect
+	github.com/bugsnag/bugsnag-go v1.5.3 // indirect
+	github.com/bugsnag/panicwrap v1.2.0 // indirect
 	github.com/cenkalti/backoff v2.0.0+incompatible
 	github.com/checkpoint-restore/go-criu v0.0.0-20181120144056-17b0214f6c48 // indirect
 	github.com/cilium/ebpf v0.0.0-20200224172853-0b019ed01187 // indirect
@@ -20,38 +22,41 @@ require (
 	github.com/coreos/pkg v0.0.0-20180928190104-399ea9e2e55f // indirect
 	github.com/cyphar/filepath-securejoin v0.2.2 // indirect
 	github.com/davecgh/go-spew v1.1.1
-	github.com/docker/distribution v2.7.1+incompatible // indirect
+	github.com/denverdino/aliyungo v0.0.0-20200917033234-0ea80e6da0d4 // indirect
+	github.com/docker/distribution v0.0.0-20200826222420-2800ab02245e
 	github.com/docker/docker v0.0.0-00010101000000-000000000000
 	github.com/docker/go-connections v0.4.0
+	github.com/docker/libtrust v0.0.0-20160708172513-aabc10ec26b7 // indirect
 	github.com/dustin/go-humanize v1.0.0 // indirect
 	github.com/fatih/color v1.9.0
+	github.com/garyburd/redigo v1.6.2 // indirect
 	github.com/ghodss/yaml v1.0.0
 	github.com/godbus/dbus v4.1.0+incompatible // indirect
 	github.com/godbus/dbus/v5 v5.0.3
+	github.com/gofrs/uuid v3.3.0+incompatible // indirect
 	github.com/golang/groupcache v0.0.0-20190129154638-5b532d6fd5ef // indirect
 	github.com/golang/protobuf v1.3.3 // indirect
-	github.com/gorilla/mux v1.7.1 // indirect
+	github.com/gorilla/handlers v1.5.1 // indirect
 	github.com/gorilla/websocket v1.4.0 // indirect
 	github.com/gravitational/configure v0.0.0-20180808141939-c3428bd84c23
 	github.com/gravitational/coordinate v0.0.0-20200227044100-12af3c0f9593
 	github.com/gravitational/etcd-backup v0.0.0-20200227044745-5751e027911a
 	github.com/gravitational/go-udev v0.0.0-20160615210516-4cc8baba3689
-	github.com/gravitational/satellite v0.0.9-0.20200922194151-c87e17725fd6
+	github.com/gravitational/satellite v0.0.9-0.20200925194116-41ac9d661e79
 	github.com/gravitational/trace v1.1.11
 	github.com/gravitational/version v0.0.2-0.20170324200323-95d33ece5ce1
 	github.com/grpc-ecosystem/go-grpc-middleware v1.2.0 // indirect
 	github.com/grpc-ecosystem/grpc-gateway v1.14.5 // indirect
 	github.com/hashicorp/serf v0.9.2
 	github.com/imdario/mergo v0.3.6
-	github.com/jonboulle/clockwork v0.2.0 // indirect
+	github.com/jonboulle/clockwork v0.2.0
+	github.com/kardianos/osext v0.0.0-20190222173326-2bc1f35cddc0 // indirect
 	github.com/konsorten/go-windows-terminal-sequences v1.0.3 // indirect
 	github.com/kylelemons/godebug v0.0.0-20170820004349-d65d576e9348
 	github.com/magefile/mage v1.10.0
 	github.com/mitchellh/go-ps v1.0.0
 	github.com/morikuni/aec v1.0.0 // indirect
 	github.com/mrunalp/fileutils v0.0.0-20171103030105-7d4729fb3618 // indirect
-	github.com/opencontainers/go-digest v1.0.0-rc1 // indirect
-	github.com/opencontainers/image-spec v1.0.1 // indirect
 	github.com/opencontainers/runc v1.0.0-rc10
 	github.com/opencontainers/runtime-spec v1.0.2
 	github.com/opencontainers/selinux v1.4.0
@@ -59,11 +64,15 @@ require (
 	github.com/prometheus/client_golang v1.1.0
 	github.com/seccomp/libseccomp-golang v0.9.0 // indirect
 	github.com/sirupsen/logrus v1.6.0
+	github.com/spf13/cobra v0.0.3
 	github.com/stretchr/testify v1.6.1
 	github.com/syndtr/gocapability v0.0.0-20180223013746-33e07d32887e
 	github.com/tmc/grpc-websocket-proxy v0.0.0-20190109142713-0ad062ec5ee5 // indirect
 	github.com/vishvananda/netlink v1.0.0 // indirect
 	github.com/vishvananda/netns v0.0.0-20180720170159-13995c7128cc // indirect
+	github.com/yvasiyarov/go-metrics v0.0.0-20150112132944-c25f46c4b940 // indirect
+	github.com/yvasiyarov/gorelic v0.0.7 // indirect
+	github.com/yvasiyarov/newrelic_platform_go v0.0.0-20160601141957-9c099fbc30e9 // indirect
 	go.etcd.io/bbolt v1.3.4 // indirect
 	go.etcd.io/etcd v3.3.22+incompatible
 	go.uber.org/multierr v1.5.0 // indirect
@@ -85,12 +94,14 @@ require (
 	k8s.io/apimachinery v0.17.6
 	k8s.io/client-go v0.17.6
 	k8s.io/kubelet v0.17.6
+	k8s.io/utils v0.0.0-20200912215256-4140de9c8800
 )
 
 replace (
 	github.com/alecthomas/units => github.com/alecthomas/units v0.0.0-20151022065526-2efee857e7cf
 	github.com/coreos/go-systemd => github.com/coreos/go-systemd v0.0.0-20180202092358-40e2722dffea
 	github.com/coreos/pkg => github.com/coreos/pkg v0.0.0-20180108230652-97fdf19511ea
+	github.com/docker/distribution => github.com/gravitational/distribution v0.0.0-20200918161025-99595cbf183f
 	github.com/docker/docker => github.com/docker/engine v17.12.0-ce-rc1.0.20200204220554-5f6d6f3f2203+incompatible
 	github.com/gogo/protobuf => github.com/gogo/protobuf v1.1.1
 	github.com/golang/protobuf => github.com/golang/protobuf v1.2.0
