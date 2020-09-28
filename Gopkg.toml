@@ -94,7 +94,7 @@ ignored = ["github.com/gravitational/planet/build/*"]
 
 [[constraint]]
   name = "github.com/gravitational/satellite"
-  version = "=7.0.20"
+  version = "=7.0.21"
 
 [[override]]
   name = "github.com/gravitational/trace"
