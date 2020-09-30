@@ -102,6 +102,7 @@ github.com/elazarl/goproxy v0.0.0-20170405201442-c4fc26588b6e/go.mod h1:/Zj4wYkg
 github.com/emicklei/go-restful v0.0.0-20170410110728-ff4f55a20633/go.mod h1:otzb+WCGbkyDHkqmQmT5YD2WR4BBwUdeQoFo8l/7tVs=
 github.com/envoyproxy/go-control-plane v0.9.1-0.20191026205805-5f8ba28d4473/go.mod h1:YTl/9mNaCwkRvm6d1a2C3ymFceY/DCBVvsKhRF0iEA4=
 github.com/envoyproxy/protoc-gen-validate v0.1.0/go.mod h1:iSmxcyjqTsJpI2R4NaDN7+kN2VEUnK/pcBlmesArF7c=
+github.com/evanphx/json-patch v4.2.0+incompatible h1:fUDGZCv/7iAN7u0puUVhvKCcsR6vRfwrJatElLBEf0I=
 github.com/evanphx/json-patch v4.2.0+incompatible/go.mod h1:50XU6AFN0ol/bzJsmQLiYLvXMP4fmwYFNcr97nuDLSk=
 github.com/fatih/color v1.7.0 h1:DkWD4oS2D8LGGgTQ6IvwJJXSL5Vp2ffcQg58nFV38Ys=
 github.com/fatih/color v1.7.0/go.mod h1:Zm6kSWBoL9eyXnKyktHP6abPY2pDugNf5KwzbycvMj4=
@@ -178,12 +179,6 @@ github.com/gravitational/logrus v1.4.3 h1:gdyMN/zLd4R/kATybKzG1I6gjrbCqNJOl1Xiix
 github.com/gravitational/logrus v1.4.3/go.mod h1:+F7Ogzej0PZc/94MaYx/nvG9jOFMD2osvC3s+Squfpo=
 github.com/gravitational/roundtrip v1.0.0 h1:eb+0EABfSKC8607CQ4oOyWCm9zVIfio/wW78TjQqLSc=
 github.com/gravitational/roundtrip v1.0.0/go.mod h1:qccpLd30tAJVSpx7aOEEnws4ZT3njPwdbtT8lNQxbAs=
-github.com/gravitational/satellite v0.0.9-0.20200720191657-4877c91ae81f h1:iVq37Tg0pbl8hwCVPw1IYw/Bd23e1cGHHGxeFIUd/C0=
-github.com/gravitational/satellite v0.0.9-0.20200720191657-4877c91ae81f/go.mod h1:gqyBdtaefi/t7Mw//N/eoC4c3YriZZssmOiZ6NPvuek=
-github.com/gravitational/satellite v0.0.9-0.20200825155435-feccb39a021d h1:FBTLBRsvpIIUobNzFGbNxAednHvyeo1EQcmOh5pcPLk=
-github.com/gravitational/satellite v0.0.9-0.20200825155435-feccb39a021d/go.mod h1:gqyBdtaefi/t7Mw//N/eoC4c3YriZZssmOiZ6NPvuek=
-github.com/gravitational/satellite v0.0.9-0.20200826203500-ad8030ab3ddb h1:XF4a8LC+T3e59ZczOkJopPL57p2/3zVmlfVcrneIOdc=
-github.com/gravitational/satellite v0.0.9-0.20200826203500-ad8030ab3ddb/go.mod h1:gqyBdtaefi/t7Mw//N/eoC4c3YriZZssmOiZ6NPvuek=
 github.com/gravitational/satellite v0.0.9-0.20200912031740-ed6bca08a485 h1:P3y0wr2ctYUvS0034CWro5GUiixdoV14akmlMpNVBSg=
 github.com/gravitational/satellite v0.0.9-0.20200912031740-ed6bca08a485/go.mod h1:gqyBdtaefi/t7Mw//N/eoC4c3YriZZssmOiZ6NPvuek=
 github.com/gravitational/satellite v0.0.9-0.20200915185602-5f78daf69e77 h1:Rc28MFXnReqS+xo4abUqLUxHW5W+qPOj14bRna1S/rk=
@@ -579,6 +574,7 @@ k8s.io/klog v0.0.0-20181102134211-b9b56d5dfc92/go.mod h1:Gq+BEi5rUBO/HRz0bTSXDUc
 k8s.io/klog v0.3.0/go.mod h1:Gq+BEi5rUBO/HRz0bTSXDUcqjScdoY3a9IHpCEIOOfk=
 k8s.io/klog v1.0.0 h1:Pt+yjF5aB1xDSVbau4VsWe+dQNzA0qv1LlXdC2dF6Q8=
 k8s.io/klog v1.0.0/go.mod h1:4Bi6QPql/J/LkTDqv7R/cd3hPo4k2DG6Ptcz060Ez5I=
+k8s.io/kube-openapi v0.0.0-20200410145947-bcb3869e6f29 h1:NeQXVJ2XFSkRoPzRo8AId01ZER+j8oV4SZADT4iBOXQ=
 k8s.io/kube-openapi v0.0.0-20200410145947-bcb3869e6f29/go.mod h1:F+5wygcW0wmRTnM3cOgIqGivxkwSWIWT5YdsDbeAOaU=
 k8s.io/kubelet v0.17.6 h1:PCFzlxfwehcdj0T+1+ypidkBDSJk7EFM1JuH7BrUNos=
 k8s.io/kubelet v0.17.6/go.mod h1:H7KZAYjmw/M8LkZq14BfLcvOTOWWocOv8H4dGkkipLM=

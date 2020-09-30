@@ -30,16 +30,17 @@ import (
 
 	"github.com/gravitational/planet/lib/constants"
 	"github.com/gravitational/planet/lib/monitoring"
-	"github.com/gravitational/satellite/lib/rpc/client"
 
 	etcdconf "github.com/gravitational/coordinate/config"
 	"github.com/gravitational/coordinate/leader"
 	"github.com/gravitational/satellite/agent"
 	pb "github.com/gravitational/satellite/agent/proto/agentpb"
+	"github.com/gravitational/satellite/lib/rpc/client"
 	agentutils "github.com/gravitational/satellite/utils"
 	"github.com/gravitational/trace"
 	log "github.com/sirupsen/logrus"
 	etcd "go.etcd.io/etcd/client"
+	"k8s.io/client-go/tools/clientcmd"
 )
 
 // LeaderConfig represents configuration for the master election task
@@ -364,6 +365,13 @@ func runAgent(conf *agent.Config, monitoringConf *monitoring.Config, leaderConf 
 		}
 	}
 
+	if leaderConf.Role == RoleMaster {
+		kubeconfig, err := clientcmd.BuildConfigFromFlags("", constants.KubeletConfigPath)
+		if err != nil {
+			return trace.Wrap(err, "failed to build kubeconfig")
+		}
+		go startSerfReconciler(ctx, kubeconfig, &conf.SerfConfig)
+	}
 	go runSystemdCgroupCleaner(ctx)
 
 	signalc := make(chan os.Signal, 2)
