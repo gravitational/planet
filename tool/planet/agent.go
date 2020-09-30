@@ -45,6 +45,7 @@ import (
 	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	corev1 "k8s.io/client-go/kubernetes/typed/core/v1"
+	"k8s.io/client-go/tools/clientcmd"
 )
 
 // LeaderConfig represents configuration for the master election task
@@ -385,6 +386,13 @@ func runAgent(config agentConfig) error {
 		}
 	}
 
+	if config.leader.Role == RoleMaster {
+		kubeconfig, err := clientcmd.BuildConfigFromFlags("", constants.KubeletConfigPath)
+		if err != nil {
+			return trace.Wrap(err, "failed to build kubeconfig")
+		}
+		go startSerfReconciler(ctx, kubeconfig, &config.agent.SerfConfig)
+	}
 	go runSystemdCgroupCleaner(ctx)
 
 	signalc := make(chan os.Signal, 2)
