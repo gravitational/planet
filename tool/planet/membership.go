@@ -102,11 +102,11 @@ func getK8sPeers(client kubernetes.Interface) (peers []string, err error) {
 	}
 
 	for _, node := range nodes.Items {
-		addr, exists := node.Labels[advertiseIPKey]
-		if !exists {
-			return peers, trace.NotFound("node %s does not have %s label", node.Name, advertiseIPKey)
+		if addr, exists := node.Labels[advertiseIPKey]; exists {
+			peers = append(peers, addr)
+			continue
 		}
-		peers = append(peers, addr)
+		log.Warnf("%s does not have %s label", node.Name, advertiseIPKey)
 	}
 	return peers, nil
 }
