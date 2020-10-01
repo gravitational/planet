@@ -1,6 +1,7 @@
 package main
 
 import (
+	"context"
 	_ "net/http/pprof"
 	"os"
 
@@ -43,7 +44,7 @@ var serveCmd = &cobra.Command{
 	Short: "`serve` stores and distributes Docker images",
 	Long:  "`serve` stores and distributes Docker images.",
 	RunE: func(cmd *cobra.Command, args []string) error {
-		var g ctxgroup.Group
+		g := ctxgroup.WithContext(context.Background())
 		startEndpointsReconciler(addr, &g)
 
 		g.Go(func() error {

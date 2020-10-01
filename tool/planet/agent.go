@@ -31,25 +31,22 @@ import (
 
 	"github.com/gravitational/planet/lib/constants"
 	"github.com/gravitational/planet/lib/monitoring"
+	"k8s.io/client-go/kubernetes"
+	"k8s.io/client-go/tools/clientcmd"
 
 	etcdconf "github.com/gravitational/coordinate/config"
 	"github.com/gravitational/satellite/agent"
 	pb "github.com/gravitational/satellite/agent/proto/agentpb"
-	"github.com/gravitational/satellite/cmd"
 	"github.com/gravitational/satellite/lib/ctxgroup"
 	"github.com/gravitational/satellite/lib/rpc/client"
 	agentutils "github.com/gravitational/satellite/utils"
 	"github.com/gravitational/trace"
 	log "github.com/sirupsen/logrus"
 	etcd "go.etcd.io/etcd/client"
-	"go.etcd.io/etcd/clientv3"
-	"go.etcd.io/etcd/clientv3/concurrency"
-	"go.etcd.io/etcd/mvcc/mvccpb"
-	"k8s.io/client-go/tools/clientcmd"
 )
 
 func startAPIServerWatcher(ctx context.Context, addr string, g *ctxgroup.Group) error {
-	client, err := cmd.GetKubeClientFromPath(constants.ProxyConfigPath)
+	client, err := getKubeClient(masterURL(addr), constants.ProxyConfigPath)
 	if err != nil {
 		return trace.Wrap(err)
 	}
@@ -198,20 +195,11 @@ func runAgent(conf agent.Config, monitoringConf monitoring.Config, etcdConf etcd
 	}
 	closers = append(closers, client)
 
-	go runSystemdCgroupCleaner(ctx)
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+	g := ctxgroup.WithContext(ctx)
 
-	// FIXME: integrate
-	/* 
-	if leaderConf.Role == RoleMaster {
-		kubeconfig, err := clientcmd.BuildConfigFromFlags("", constants.KubeletConfigPath)
-		if err != nil {
-			return trace.Wrap(err, "failed to build kubeconfig")
-		}
-		go startSerfReconciler(ctx, kubeconfig, &conf.SerfConfig)
-	}
-	go runSystemdCgroupCleaner(ctx)
-	*/
-
+	log.Info("Start API server watcher.")
 	if err := startAPIServerWatcher(ctx, monitoringConf.AdvertiseIP, &g); err != nil {
 		return trace.Wrap(err)
 	}
@@ -221,6 +209,14 @@ func runAgent(conf agent.Config, monitoringConf monitoring.Config, etcdConf etcd
 		if err := startUnits(ctx); err != nil {
 			log.WithError(err).Warn("Failed to start control plane units.")
 		}
+		kubeconfig, err := clientcmd.BuildConfigFromFlags("", constants.KubeletConfigPath)
+		if err != nil {
+			return trace.Wrap(err, "failed to build kubeconfig")
+		}
+		g.GoCtx(func(ctx context.Context) error {
+			startSerfReconciler(ctx, kubeconfig, &conf.SerfConfig)
+			return nil
+		})
 	}
 
 	err = setupResolver(ctx, monitoringConf.Role)
@@ -338,8 +334,26 @@ func status(c statusConfig) (ok bool, err error) {
 	return ok, nil
 }
 
+func getKubeClient(masterURL, configPath string) (*kubernetes.Clientset, error) {
+	config, err := clientcmd.BuildConfigFromFlags(masterURL, configPath)
+	if err != nil {
+		return nil, trace.Wrap(err)
+	}
+	client, err := kubernetes.NewForConfig(config)
+	log.WithField("config", fmt.Sprintf("%#v", config)).Warn("Kube client for API server watcher.")
+	if err != nil {
+		return nil, trace.Wrap(err)
+	}
+	return client, nil
+}
+
 func rpcAddr(port int) string {
 	return fmt.Sprintf("127.0.0.1:%d", port)
+}
+
+func masterURL(addr string) string {
+	// FIXME: factor port out to consts
+	return fmt.Sprintf("https://%v:6443", addr)
 }
 
 func newAgentUnavailableError() error {

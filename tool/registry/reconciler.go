@@ -2,6 +2,8 @@ package main
 
 import (
 	"context"
+	"fmt"
+	"strings"
 	"time"
 
 	"github.com/gravitational/planet/lib/constants"
@@ -77,7 +79,7 @@ func (r *endpointReconciler) sync(ctx context.Context) error {
 
 func (r *endpointReconciler) reconcile(ctx context.Context) error {
 	addrList, err := r.leaseClient.Leases(leaseNamespace).List(metav1.ListOptions{
-		LabelSelector: selector.String(),
+		LabelSelector: leaseSelector.String(),
 	})
 	if err != nil {
 		return trace.Wrap(err)
@@ -142,7 +144,7 @@ func (r *leaseReconciler) sync(ctx context.Context) error {
 
 func (r *leaseReconciler) reconcile(ctx context.Context) (lease *coordinationv1.Lease, err error) {
 	b := backoff.NewExponentialBackOff()
-	b.MaxInterval = 1 * time.Minute
+	b.MaxInterval = 10 * time.Second
 	b.MaxElapsedTime = 0 // unlimited
 	err = utils.RetryWithInterval(ctx, b, func() error {
 		lease, err = r.ensureLease()
@@ -172,8 +174,9 @@ func (r *leaseReconciler) newLease(base *coordinationv1.Lease) (lease *coordinat
 	if base == nil {
 		lease = &coordinationv1.Lease{
 			ObjectMeta: metav1.ObjectMeta{
-				Name:      r.addr,
+				Name:      leaseName(r.addr),
 				Namespace: leaseNamespace,
+				Labels:    leaseLabels,
 			},
 			Spec: coordinationv1.LeaseSpec{
 				HolderIdentity:       pointer.StringPtr(r.addr),
@@ -210,7 +213,7 @@ func newEndpointSlice(addrs []string) *discovery.EndpointSlice {
 	return &discovery.EndpointSlice{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:   "registry",
-			Labels: selectorLabels,
+			Labels: leaseLabels,
 		},
 		AddressType: discovery.AddressTypeIPv4,
 		Endpoints: []discovery.Endpoint{
@@ -225,9 +228,13 @@ func newEndpointSlice(addrs []string) *discovery.EndpointSlice {
 	}
 }
 
+func leaseName(addr string) string {
+	return fmt.Sprintf("registry-%v", strings.ReplaceAll(addr, ".", "-"))
+}
+
 var (
-	selectorLabels         = labels.Set{"gravitational.io/service": "registry"}
-	selector               = labels.SelectorFromSet(selectorLabels)
+	leaseLabels            = labels.Set{"gravitational.io/service": "registry"}
+	leaseSelector          = labels.SelectorFromSet(leaseLabels)
 	leaseNamespace         = metav1.NamespaceSystem
 	endpointSliceNamespace = metav1.NamespaceSystem
 )
@@ -237,5 +244,5 @@ const (
 	renewIntervalFraction = 0.25
 
 	leaseTTLSeconds        = 30
-	endpointResyncInterval = 30
+	endpointResyncInterval = 30 * time.Second
 )

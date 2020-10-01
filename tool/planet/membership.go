@@ -41,7 +41,7 @@ func startSerfReconciler(ctx context.Context, kubeconfig *rest.Config, serfConfi
 				log.WithError(err).Warn("Failed to reconcile serf cluster.")
 			}
 		case <-ctx.Done():
-			log.Debug("Stopping serf reconciler")
+			log.Debug("Stopping serf reconciler.")
 			return
 		}
 	}
