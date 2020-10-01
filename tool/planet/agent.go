@@ -364,12 +364,15 @@ func runAgent(conf *agent.Config, monitoringConf *monitoring.Config, leaderConf 
 	g.Go(monitoringAgent.Run)
 	g.GoCtx(func(ctx context.Context) error {
 		runSystemdCgroupCleaner(ctx)
+		return nil
+	})
+	g.GoCtx(func(ctx context.Context) error {
 		if leaderConf.Role == RoleMaster {
 			kubeconfig, err := clientcmd.BuildConfigFromFlags("", constants.KubeletConfigPath)
 			if err != nil {
 				return trace.Wrap(err, "failed to build kubeconfig")
 			}
-			go startSerfReconciler(ctx, kubeconfig, &conf.SerfConfig)
+			startSerfReconciler(ctx, kubeconfig, &conf.SerfConfig)
 		}
 		return nil
 	})
