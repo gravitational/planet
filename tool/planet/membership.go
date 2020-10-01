@@ -47,7 +47,7 @@ func startSerfReconciler(ctx context.Context, kubeconfig *rest.Config, serfConfi
 	}
 }
 
-// reconcileSerfCluster reconciles ther serf cluster if any members are missing
+// reconcileSerfCluster reconciles the serf cluster if any members are missing
 // from the serf cluster.
 func reconcileSerfCluster(kubeconfig *rest.Config, serfConfig *serf.Config) error {
 	k8sClient, err := kubernetes.NewForConfig(kubeconfig)
