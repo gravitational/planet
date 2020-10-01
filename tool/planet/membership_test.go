@@ -98,7 +98,6 @@ func (r *MembershipSuite) TestReconcile(c *check.C) {
 // the provided addr.
 func (r *MembershipSuite) newK8sNode(addr string) v1.Node {
 	return v1.Node{
-
 		ObjectMeta: metav1.ObjectMeta{
 			Name:   addr, // Node names must be unique but is not needed for tests.
 			Labels: map[string]string{advertiseIPKey: addr},
