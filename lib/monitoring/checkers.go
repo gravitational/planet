@@ -274,7 +274,6 @@ func addToMaster(node agent.Agent, config *Config, etcdConfig *monitoring.ETCDCo
 
 	systemPodsChecker, err := monitoring.NewSystemPodsChecker(
 		monitoring.SystemPodsConfig{
-			NodeName:   config.NodeName,
 			KubeConfig: &kubeConfig,
 		},
 	)
@@ -344,7 +343,6 @@ func addToNode(node agent.Agent, config *Config, etcdConfig *monitoring.ETCDConf
 
 	systemPodsChecker, err := monitoring.NewSystemPodsChecker(
 		monitoring.SystemPodsConfig{
-			NodeName:   config.NodeName,
 			KubeConfig: &nodeConfig,
 		},
 	)

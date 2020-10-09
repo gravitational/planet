@@ -380,7 +380,7 @@
   version = "v1.0.0"
 
 [[projects]]
-  digest = "1:96c4771750b2561bb22a880b5ad999786f5fcc236d0145e7404484e997aab6af"
+  digest = "1:554a173359d02ee6b34576f5fdf7a6c03d9da2180ad53126dbea3f4e202a36a5"
   name = "github.com/gravitational/satellite"
   packages = [
     "agent",
@@ -393,6 +393,7 @@
     "lib/history/sqlite",
     "lib/kubernetes",
     "lib/membership",
+    "lib/nethealth",
     "lib/rpc",
     "lib/rpc/client",
     "monitoring",
@@ -400,8 +401,8 @@
     "utils",
   ]
   pruneopts = "UT"
-  revision = "af64aedc7c2db513aa1e96ce22fea57be8732d29"
-  version = "6.1.16"
+  revision = "59fb383cc5792e9c597e44f413b30722c57fc19b"
+  version = "6.1.17"
 
 [[projects]]
   digest = "1:dc84545f9f2a442b14864f2f7e54ae556cae53bd437a05a456572fea9e73cc87"
@@ -880,7 +881,7 @@
 
 [[projects]]
   branch = "release-branch.go1.9"
-  digest = "1:04205e69d81f7a8272a9c62d9561803ac123fa33da001b2bb97ce373e0f100ca"
+  digest = "1:b4d070fda67d375ad0bc890dc6f80583e0939afc621aaf935e71d02a1d1f465d"
   name = "golang.org/x/net"
   packages = [
     "bpf",
@@ -888,6 +889,7 @@
     "context/ctxhttp",
     "http2",
     "http2/hpack",
+    "icmp",
     "idna",
     "internal/iana",
     "internal/socket",
