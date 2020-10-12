@@ -96,7 +96,7 @@ func run() error {
 		cstartDevices        = Devices(cstart.Flag("device", "Device to create inside container").OverrideDefaultFromEnvar("PLANET_DEVICE"))
 		cstartRoles          = List(cstart.Flag("role", "Roles such as 'master' or 'node'").OverrideDefaultFromEnvar("PLANET_ROLE"))
 		cstartSecretsDir     = cstart.Flag("secrets-dir", "Directory with master secrets - certificate authority and certificates").OverrideDefaultFromEnvar("PLANET_SECRETS_DIR").ExistingDir()
-		cstartServiceCIDR    = kv.CIDRFlag(cstart.Flag("service-subnet", "IP range from which to assign service cluster IPs. This must not overlap with any IP ranges assigned to nodes for pods.").Default(DefaultServiceSubnet).OverrideDefaultFromEnvar("PLANET_SERVICE_SUBNET"))
+		cstartServiceCIDR    = kv.CIDRFlag(cstart.Flag("service-subnet", "IP range from which to assign service cluster IPs. This must not overlap with any IP ranges assigned to nodes for pods.").Default(DefaultServiceSubnet).Envar(EnvPlanetServiceSubnet))
 		cstartPodCIDR        = kv.CIDRFlag(cstart.Flag("pod-subnet", "subnet dedicated to the pods in the cluster").Default(DefaultPodSubnet).OverrideDefaultFromEnvar("PLANET_POD_SUBNET"))
 		cstartProxyPortRange = cstart.Flag("proxy-portrange", "Range of host ports (beginPort-endPort, single port or beginPort+offset, inclusive) that may be consumed in order to proxy service traffic. If (unspecified, 0, or 0-0) then ports will be randomly chosen.").
 					OverrideDefaultFromEnvar(EnvPlanetProxyPortRange).String()
@@ -154,7 +154,6 @@ func run() error {
 		cagentNodeName         = cagent.Flag("node-name", "Kubernetes node name").OverrideDefaultFromEnvar(EnvNodeName).String()
 		cagentSerfRPCAddr      = cagent.Flag("serf-rpc-addr", "RPC address of the local serf node").Default("127.0.0.1:7373").String()
 		cagentInitialCluster   = KeyValueList(cagent.Flag("initial-cluster", "Initial planet cluster configuration as a comma-separated list of peers").OverrideDefaultFromEnvar(EnvInitialCluster))
-		cagentClusterDNS       = cagent.Flag("cluster-dns", "IP for a cluster DNS server.").OverrideDefaultFromEnvar(EnvClusterDNSIP).IP()
 		cagentRegistryAddr     = cagent.Flag("docker-registry-addr",
 			"Address of the private docker registry.  Will default to apiserver-dns:5000").String()
 		cagentEtcdEndpoints          = List(cagent.Flag("etcd-endpoints", "List of comma-separated etcd endpoints").Default(DefaultEtcdEndpoints))
@@ -173,6 +172,7 @@ func run() error {
 		cagentServiceGID             = cagent.Flag("service-gid", "GID of the service user (planet)").OverrideDefaultFromEnvar(EnvServiceGID).String()
 		cagentTimelineDir            = cagent.Flag("timeline-dir", "Directory to be used for timeline storage").Default("/tmp/timeline").String()
 		cagentRetention              = cagent.Flag("retention", "Window to retain timeline as a Go duration").Duration()
+		cagentServiceCIDR            = cidrFlag(cagent.Flag("service-subnet", "IP range from which to assign service cluster IPs. This must not overlap with any IP ranges assigned to nodes for pods.").Default(DefaultServiceSubnet).Envar(EnvServiceSubnet))
 
 		// stop a running container
 		cstop        = app.Command("stop", "Stop planet container")
@@ -298,27 +298,6 @@ func run() error {
 		}
 		log.Infof("Kubernetes API server: %v", *cagentKubeAddr)
 		log.Infof("Private docker registry: %v", *cagentRegistryAddr)
-		conf := &agent.Config{
-			Name:        *cagentName,
-			RPCAddrs:    *cagentRPCAddrs,
-			SerfConfig:  serf.Config{Addr: *cagentSerfRPCAddr},
-			MetricsAddr: *cagentMetricsAddr,
-			Cache:       cache,
-			CAFile:      *cagentEtcdCAFile,
-			CertFile:    *cagentEtcdCertFile,
-			KeyFile:     *cagentEtcdKeyFile,
-			TimelineConfig: sqlite.Config{
-				DBPath:            *cagentTimelineDir,
-				RetentionDuration: *cagentRetention,
-			},
-		}
-		etcdConf := etcdconf.Config{
-			Endpoints: *cagentEtcdEndpoints,
-			CAFile:    *cagentEtcdCAFile,
-			CertFile:  *cagentEtcdCertFile,
-			KeyFile:   *cagentEtcdKeyFile,
-		}
-		disableInterPodCheck := true
 		// Leave the inter-pod communication test disabled.
 		// Planet uses a custom networking plugin (with calico implementating the plugin).
 		// The configuration is two-fold:
@@ -335,38 +314,61 @@ func run() error {
 		// if *cagentInitialCluster != nil && len(*cagentInitialCluster) > 2 {
 		// 	disableInterPodCheck = false
 		// }
-		monitoringConf := &monitoring.Config{
-			Role:                  agent.Role(*cagentRole),
-			AdvertiseIP:           cagentPublicIP.String(),
-			KubeAddr:              *cagentKubeAddr,
-			ClusterDNS:            cagentClusterDNS.String(),
-			UpstreamNameservers:   *cagentDNSUpstreamNameservers,
-			LocalNameservers:      *cagentDNSLocalNameservers,
-			DNSZones:              (map[string][]string)(*cagentDNSZones),
-			RegistryAddr:          fmt.Sprintf("https://%v", *cagentRegistryAddr),
-			NettestContainerImage: fmt.Sprintf("%v/gcr.io/google_containers/nettest:1.8", *cagentRegistryAddr),
-			ETCDConfig:            etcdConf,
-			DisableInterPodCheck:  disableInterPodCheck,
-			CloudProvider:         *cagentCloudProvider,
-			LowWatermark:          uint(*cagentLowWatermark),
-			HighWatermark:         uint(*cagentHighWatermark),
-			NodeName:              *cagentNodeName,
-			HTTPTimeout:           *cagentHTTPTimeout,
-			ServiceUID:            *cagentServiceUID,
-			ServiceGID:            *cagentServiceGID,
+		disableInterPodCheck := true
+		etcdConf := etcdconf.Config{
+			Endpoints: *cagentEtcdEndpoints,
+			CAFile:    *cagentEtcdCAFile,
+			CertFile:  *cagentEtcdCertFile,
+			KeyFile:   *cagentEtcdKeyFile,
 		}
-
-		leaderConf := &LeaderConfig{
-			PublicIP:        cagentPublicIP.String(),
-			LeaderKey:       *cagentLeaderKey,
-			Role:            *cagentRole,
-			Term:            *cagentTerm,
-			ETCD:            etcdConf,
-			APIServerDNS:    *cagentKubeAPIServerDNS,
-			ElectionKey:     fmt.Sprintf("%v/%v", *cagentElectionKey, cagentPublicIP.String()),
-			ElectionEnabled: bool(*cagentElectionEnabled),
+		config := agentConfig{
+			agent: &agent.Config{
+				Name:        *cagentName,
+				RPCAddrs:    *cagentRPCAddrs,
+				SerfConfig:  serf.Config{Addr: *cagentSerfRPCAddr},
+				MetricsAddr: *cagentMetricsAddr,
+				Cache:       cache,
+				CAFile:      *cagentEtcdCAFile,
+				CertFile:    *cagentEtcdCertFile,
+				KeyFile:     *cagentEtcdKeyFile,
+				TimelineConfig: sqlite.Config{
+					DBPath:            *cagentTimelineDir,
+					RetentionDuration: *cagentRetention,
+				},
+			},
+			monitoring: &monitoring.Config{
+				Role:                  agent.Role(*cagentRole),
+				AdvertiseIP:           cagentPublicIP.String(),
+				KubeAddr:              *cagentKubeAddr,
+				UpstreamNameservers:   *cagentDNSUpstreamNameservers,
+				LocalNameservers:      *cagentDNSLocalNameservers,
+				DNSZones:              (map[string][]string)(*cagentDNSZones),
+				RegistryAddr:          fmt.Sprintf("https://%v", *cagentRegistryAddr),
+				NettestContainerImage: fmt.Sprintf("%v/gcr.io/google_containers/nettest:1.8", *cagentRegistryAddr),
+				ETCDConfig:            etcdConf,
+				DisableInterPodCheck:  disableInterPodCheck,
+				CloudProvider:         *cagentCloudProvider,
+				LowWatermark:          uint(*cagentLowWatermark),
+				HighWatermark:         uint(*cagentHighWatermark),
+				NodeName:              *cagentNodeName,
+				HTTPTimeout:           *cagentHTTPTimeout,
+				ServiceUID:            *cagentServiceUID,
+				ServiceGID:            *cagentServiceGID,
+			},
+			leader: &LeaderConfig{
+				PublicIP:        cagentPublicIP.String(),
+				LeaderKey:       *cagentLeaderKey,
+				Role:            *cagentRole,
+				Term:            *cagentTerm,
+				ETCD:            etcdConf,
+				APIServerDNS:    *cagentKubeAPIServerDNS,
+				ElectionKey:     fmt.Sprintf("%v/%v", *cagentElectionKey, cagentPublicIP.String()),
+				ElectionEnabled: bool(*cagentElectionEnabled),
+			},
+			peers:       toAddrList(*cagentInitialCluster),
+			serviceCIDR: cagentServiceCIDR.ipNet,
 		}
-		err = runAgent(conf, monitoringConf, leaderConf, toAddrList(*cagentInitialCluster))
+		err = runAgent(config)
 
 	case cleaderPause.FullCommand(), cleaderResume.FullCommand():
 		etcdConf := &etcdconf.Config{
@@ -667,36 +669,6 @@ func setupSignalHandlers(seLinux bool) {
 
 func emptyIP(addr *net.IP) bool {
 	return len(*addr) == 0
-}
-
-// toAddrList interprets each key/value as domain=addr and extracts
-// just the address part.
-func toAddrList(store kv.KeyVal) (addrs []string) {
-	for _, addr := range store {
-		addrs = append(addrs, addr)
-	}
-	return addrs
-}
-
-// toEctdPeerList interprets each key/value pair as domain=addr,
-// decorates each in etcd peer format.
-func toEtcdPeerList(list kv.KeyVal) (peers string) {
-	var addrs []string
-	for domain, addr := range list {
-		addrs = append(addrs, fmt.Sprintf("%v=https://%v:2380", domain, addr))
-	}
-	return strings.Join(addrs, ",")
-}
-
-// toEtcdGatewayList interprets each key/value pair, and
-// formats it as a list of endpoints the etcd gateway can
-// proxy to
-func toEtcdGatewayList(list kv.KeyVal) (peers string) {
-	var addrs []string
-	for _, addr := range list {
-		addrs = append(addrs, fmt.Sprintf("%v:2379", addr))
-	}
-	return strings.Join(addrs, ",")
 }
 
 // InitLogger configures the global logger for a given purpose / verbosity level
