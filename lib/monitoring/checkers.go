@@ -341,16 +341,6 @@ func addToNode(node agent.Agent, config *Config, etcdConfig *monitoring.ETCDConf
 	}
 	node.AddChecker(nethealthChecker)
 
-	systemPodsChecker, err := monitoring.NewSystemPodsChecker(
-		monitoring.SystemPodsConfig{
-			KubeConfig: &nodeConfig,
-		},
-	)
-	if err != nil {
-		return trace.Wrap(err)
-	}
-	node.AddChecker(systemPodsChecker)
-
 	return nil
 }
 
