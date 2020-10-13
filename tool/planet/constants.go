@@ -21,6 +21,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/gravitational/planet/lib/constants"
 	"github.com/gravitational/planet/lib/utils"
 
 	"github.com/syndtr/gocapability/capability"
@@ -269,10 +270,6 @@ const (
 	// DNSPort is the default DNS port
 	DNSPort = 53
 
-	// DefaultEnvPath defines the default value for PATH environment variable
-	// when executing commands inside the container
-	DefaultEnvPath = "/usr/local/bin:/usr/local/sbin:/usr/bin:/usr/sbin:/bin:/sbin"
-
 	// PlanetRoleMaster specifies the value of the node role to be master.
 	// A master node runs additional runtime tests as well as additional
 	// set of services
@@ -472,6 +469,10 @@ const (
 	// See https://github.com/kubernetes/kubernetes/blob/v1.17.9/pkg/master/controller.go#L44
 	KubernetesServiceName = "kubernetes"
 )
+
+// DefaultEnvPath defines the default value for PATH environment variable
+// when executing commands inside the container
+var DefaultEnvPath = strings.Join(constants.ContainerEnvPath, ":")
 
 // DefaultDNSAddress is the default listen address for local DNS server.
 var DefaultDNSAddress = fmt.Sprintf("%v:%v", DefaultDNSListenAddr, DNSPort)

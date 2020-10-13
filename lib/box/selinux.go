@@ -18,6 +18,7 @@ package box
 
 import (
 	"bytes"
+	"os"
 	"os/exec"
 	"path/filepath"
 
@@ -33,19 +34,25 @@ import (
 // if the domain cannot be determined.
 // Assumes SELinux support is on
 func getSELinuxProcLabel(rootfs, cmd string) (label string) {
+	logger := log.WithField("path", cmd)
+	if !filepath.IsAbs(cmd) {
+		abspath, err := getAbsPathForCommand(rootfs, cmd)
+		if err != nil {
+			log.WithError(err).Warn("Failed to find absolute path to command in rootfs.")
+		} else {
+			cmd = abspath
+		}
+	}
 	label, err := getProcLabel(filepath.Join(rootfs, cmd))
 	if err != nil {
-		log.WithFields(log.Fields{
-			log.ErrorKey: err,
-			"path":       cmd,
-		}).Warn("Failed to compute process label.")
+		logger.WithError(err).Warn("Failed to compute process label.")
 		label = defaults.ContainerProcessLabel
 	}
 	return label
 }
 
 // getProcLabel computes the label for the new process initiating from the file
-// given wih path. The label is computed in the context of the init process.
+// given with path. The label is computed in the context of the init process.
 func getProcLabel(path string) (label string, err error) {
 	out, err := exec.Command("selinuxexeccon", path, constants.ContainerInitProcessLabel).CombinedOutput()
 	if err != nil {
@@ -53,4 +60,20 @@ func getProcLabel(path string) (label string, err error) {
 			path, out)
 	}
 	return string(bytes.TrimSpace(out)), nil
+}
+
+// getAbsPathForCommand returns a match for the specified command cmd
+// in the context of the given rootfs using default container PATH configuration.
+// Returns the suffix including the command but without the rootfs prefix
+func getAbsPathForCommand(rootfs, cmd string) (path string, err error) {
+	isFile := func(prefix string) bool {
+		fi, err := os.Lstat(filepath.Join(rootfs, prefix, cmd))
+		return err == nil && (fi.Mode()&os.ModeType) == 0
+	}
+	for _, prefix := range constants.ContainerEnvPath {
+		if isFile(prefix) {
+			return filepath.Join(prefix, cmd), nil
+		}
+	}
+	return "", trace.NotFound("executable %v not found in PATH", cmd)
 }
