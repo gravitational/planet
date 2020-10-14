@@ -11,6 +11,7 @@ require (
 	github.com/checkpoint-restore/go-criu v0.0.0-20181120144056-17b0214f6c48 // indirect
 	github.com/cilium/ebpf v0.0.0-20200224172853-0b019ed01187 // indirect
 	github.com/cloudfoundry/gosigar v1.1.1-0.20180907192854-50ddd08d81d7 // indirect
+	github.com/codahale/hdrhistogram v0.0.0-20161010025455-3a0bb77429bd // indirect
 	github.com/containerd/cgroups v0.0.0-20200608084758-56813a8f106c
 	github.com/containerd/console v0.0.0-20180307192801-cb7008ab3d83
 	github.com/containerd/containerd v1.3.3 // indirect
@@ -38,7 +39,7 @@ require (
 	github.com/gravitational/coordinate v0.0.0-20200227044100-12af3c0f9593
 	github.com/gravitational/etcd-backup v0.0.0-20200227044745-5751e027911a
 	github.com/gravitational/go-udev v0.0.0-20160615210516-4cc8baba3689
-	github.com/gravitational/satellite v0.0.9-0.20201013231504-a3e3a82943b5
+	github.com/gravitational/satellite v0.0.9-0.20201014222156-a2f019847345
 	github.com/gravitational/trace v1.1.11
 	github.com/gravitational/version v0.0.2-0.20170324200323-95d33ece5ce1
 	github.com/grpc-ecosystem/go-grpc-middleware v1.2.0 // indirect
