@@ -33,7 +33,9 @@ import (
 	etcdconf "github.com/gravitational/coordinate/config"
 	"github.com/gravitational/satellite/agent"
 	"github.com/gravitational/satellite/agent/health"
+	"github.com/gravitational/satellite/lib/nethealth"
 	"github.com/gravitational/satellite/monitoring"
+	"github.com/gravitational/satellite/monitoring/latency"
 	"github.com/gravitational/trace"
 	serf "github.com/hashicorp/serf/client"
 	"k8s.io/client-go/kubernetes"
@@ -255,15 +257,17 @@ func addToMaster(node agent.Agent, config *Config, etcdConfig *monitoring.ETCDCo
 	}
 	node.AddChecker(storageChecker)
 
-	pingChecker, err := monitoring.NewPingChecker(
-		monitoring.PingCheckerConfig{
-			SerfRPCAddr:    node.GetConfig().SerfConfig.Addr,
-			SerfMemberName: node.GetConfig().Name,
-		})
+	latencyChecker, err := latency.NewChecker(
+		&latency.Config{
+			NodeName:      config.NodeName,
+			KubeClient:    client,
+			LatencyClient: nethealth.NewClient(nethealth.DefaultNethealthSocket),
+		},
+	)
 	if err != nil {
 		return trace.Wrap(err)
 	}
-	node.AddChecker(pingChecker)
+	node.AddChecker(latencyChecker)
 
 	serfClient, err := agent.NewSerfClient(serf.Config{
 		Addr: node.GetConfig().SerfConfig.Addr,
