@@ -148,7 +148,7 @@ github.com/gravitational/configure/cstrings
 # github.com/gravitational/coordinate v0.0.0-20200227044100-12af3c0f9593
 github.com/gravitational/coordinate/config
 github.com/gravitational/coordinate/leader
-# github.com/gravitational/etcd-backup v0.0.0-20200227044745-5751e027911a
+# github.com/gravitational/etcd-backup v0.0.0-20201012185408-87328521981c
 github.com/gravitational/etcd-backup/lib/etcd
 # github.com/gravitational/go-udev v0.0.0-20160615210516-4cc8baba3689
 github.com/gravitational/go-udev
