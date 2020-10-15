@@ -1,14 +1,30 @@
+/*
+Copyright 2018 Gravitational, Inc.
+
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+
+	http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
+*/
+
 package etcd
 
 import (
 	"context"
 	"time"
 
-	etcdv2 "github.com/coreos/etcd/client"
-	etcdv3 "github.com/coreos/etcd/clientv3"
 	"github.com/coreos/go-semver/semver"
 	etcdconf "github.com/gravitational/coordinate/config"
 	"github.com/gravitational/trace"
+	etcdv2 "go.etcd.io/etcd/client"
+	etcdv3 "go.etcd.io/etcd/clientv3"
 )
 
 func getClients(config etcdconf.Config) (etcdv2.KeysAPI, *etcdv3.Client, error) {
@@ -73,5 +89,5 @@ type KeyValue struct {
 	Lease int64 `protobuf:"varint,6,opt,name=lease,proto3" json:"lease,omitempty"`
 	// TTL (not from etcd datastructure)
 	// This is the TTL of the key, which we look up during the backup, because etcd3 stores these separatly from the key
-	TTL int64 `json:ttl,omitempty`
+	TTL int64 `json:"ttl,omitempty"`
 }

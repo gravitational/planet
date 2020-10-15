@@ -32,13 +32,13 @@ import (
 
 	"github.com/gravitational/planet/lib/monitoring"
 
-	etcd "github.com/coreos/etcd/client"
 	etcdconf "github.com/gravitational/coordinate/config"
 	"github.com/gravitational/coordinate/leader"
 	"github.com/gravitational/satellite/agent"
 	pb "github.com/gravitational/satellite/agent/proto/agentpb"
 	"github.com/gravitational/trace"
 	log "github.com/sirupsen/logrus"
+	etcd "go.etcd.io/etcd/client"
 )
 
 // LeaderConfig represents configuration for the master election task

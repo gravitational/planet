@@ -1,22 +1,40 @@
+/*
+Copyright 2018 Gravitational, Inc.
+
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+
+	http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
+*/
+
 package etcd
 
 import (
 	"context"
 	"encoding/json"
+	"io"
 	"os"
+	"time"
 
-	etcdv2 "github.com/coreos/etcd/client"
-	etcdv3 "github.com/coreos/etcd/clientv3"
 	etcdconf "github.com/gravitational/coordinate/config"
 	"github.com/gravitational/trace"
 	log "github.com/sirupsen/logrus"
+	etcdv2 "go.etcd.io/etcd/client"
+	etcdv3 "go.etcd.io/etcd/clientv3"
 )
 
 // BackupConfig are the settings to use for running a backup of the etcd database
 type BackupConfig struct {
 	EtcdConfig etcdconf.Config
 	Prefix     []string
-	File       string
+	Writer     io.Writer
 	Log        log.FieldLogger
 }
 
@@ -24,6 +42,17 @@ func (b *BackupConfig) CheckAndSetDefaults() error {
 	if b.Prefix == nil {
 		b.Prefix = []string{"/"}
 	}
+	if b.Writer == nil {
+		b.Writer = os.Stdout
+	}
+
+	// Etcd server might take longer than normal to respond to the large queries used for backup
+	// Coordinate library doesn't accept a 0 value, and will instead overwrite 0 to 1 second.
+	if b.EtcdConfig.HeaderTimeoutPerRequest == 0 {
+		const headerTimeout = 15 * time.Minute
+		b.EtcdConfig.HeaderTimeoutPerRequest = headerTimeout
+	}
+
 	return nil
 }
 
@@ -42,13 +71,7 @@ func Backup(ctx context.Context, conf BackupConfig) error {
 		defer clientv3.Close()
 	}
 
-	file, err := os.OpenFile(conf.File, os.O_WRONLY|os.O_CREATE, 0666)
-	if err != nil {
-		return trace.Wrap(err)
-	}
-	defer file.Close()
-
-	enc := json.NewEncoder(file)
+	enc := json.NewEncoder(conf.Writer)
 	enc.Encode(&backupVersion{Version: FileVersion})
 
 	for _, prefix := range conf.Prefix {

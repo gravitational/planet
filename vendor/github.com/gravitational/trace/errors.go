@@ -26,7 +26,7 @@ import (
 )
 
 // NotFound returns new instance of not found error
-func NotFound(message string, args ...interface{}) error {
+func NotFound(message string, args ...interface{}) Error {
 	return WrapWithMessage(&NotFoundError{
 		Message: fmt.Sprintf(message, args...),
 	}, message, args...)
@@ -56,20 +56,19 @@ func (e *NotFoundError) OrigError() error {
 }
 
 // IsNotFound returns whether this error is of NotFoundError type
-func IsNotFound(e error) bool {
-	type nf interface {
+func IsNotFound(err error) bool {
+	err = Unwrap(err)
+	_, ok := err.(interface {
 		IsNotFoundError() bool
-	}
-	err := Unwrap(e)
-	_, ok := err.(nf)
+	})
 	if !ok {
 		return os.IsNotExist(err)
 	}
-	return ok
+	return true
 }
 
 // AlreadyExists returns a new instance of AlreadyExists error
-func AlreadyExists(message string, args ...interface{}) error {
+func AlreadyExists(message string, args ...interface{}) Error {
 	return WrapWithMessage(&AlreadyExistsError{
 		fmt.Sprintf(message, args...),
 	}, message, args...)
@@ -110,7 +109,7 @@ func IsAlreadyExists(e error) bool {
 }
 
 // BadParameter returns a new instance of BadParameterError
-func BadParameter(message string, args ...interface{}) error {
+func BadParameter(message string, args ...interface{}) Error {
 	return WrapWithMessage(&BadParameterError{
 		Message: fmt.Sprintf(message, args...),
 	}, message, args...)
@@ -146,8 +145,45 @@ func IsBadParameter(e error) bool {
 	return ok
 }
 
+// NotImplemented returns a new instance of NotImplementedError
+func NotImplemented(message string, args ...interface{}) Error {
+	return WrapWithMessage(&NotImplementedError{
+		Message: fmt.Sprintf(message, args...),
+	}, message, args...)
+}
+
+// NotImplementedError defines an error condition to describe the result
+// of a call to an unimplemented API
+type NotImplementedError struct {
+	Message string `json:"message"`
+}
+
+// Error returns log friendly description of an error
+func (e *NotImplementedError) Error() string {
+	return e.Message
+}
+
+// OrigError returns original error
+func (e *NotImplementedError) OrigError() error {
+	return e
+}
+
+// IsNotImplementedError indicates that this error is of NotImplementedError type
+func (e *NotImplementedError) IsNotImplementedError() bool {
+	return true
+}
+
+// IsNotImplemented returns whether this error is of NotImplementedError type
+func IsNotImplemented(e error) bool {
+	type ni interface {
+		IsNotImplementedError() bool
+	}
+	err, ok := Unwrap(e).(ni)
+	return ok && err.IsNotImplementedError()
+}
+
 // CompareFailed returns new instance of CompareFailedError
-func CompareFailed(message string, args ...interface{}) error {
+func CompareFailed(message string, args ...interface{}) Error {
 	return WrapWithMessage(&CompareFailedError{Message: fmt.Sprintf(message, args...)}, message, args...)
 }
 
@@ -185,7 +221,7 @@ func IsCompareFailed(e error) bool {
 }
 
 // AccessDenied returns new instance of AccessDeniedError
-func AccessDenied(message string, args ...interface{}) error {
+func AccessDenied(message string, args ...interface{}) Error {
 	return WrapWithMessage(&AccessDeniedError{
 		Message: fmt.Sprintf(message, args...),
 	}, message, args...)
@@ -215,11 +251,10 @@ func (e *AccessDeniedError) OrigError() error {
 }
 
 // IsAccessDenied detects if this error is of AccessDeniedError type
-func IsAccessDenied(e error) bool {
-	type ad interface {
+func IsAccessDenied(err error) bool {
+	_, ok := Unwrap(err).(interface {
 		IsAccessDeniedError() bool
-	}
-	_, ok := Unwrap(e).(ad)
+	})
 	return ok
 }
 
@@ -228,6 +263,9 @@ func IsAccessDenied(e error) bool {
 func ConvertSystemError(err error) error {
 	innerError := Unwrap(err)
 
+	if os.IsExist(innerError) {
+		return WrapWithMessage(&AlreadyExistsError{Message: innerError.Error()}, innerError.Error())
+	}
 	if os.IsNotExist(innerError) {
 		return WrapWithMessage(&NotFoundError{Message: innerError.Error()}, innerError.Error())
 	}
@@ -245,7 +283,7 @@ func ConvertSystemError(err error) error {
 			Message: message,
 		}, message)
 	case x509.SystemRootsError, x509.UnknownAuthorityError:
-		return wrapWithDepth(&TrustError{Err: innerError}, 2)
+		return newTrace(&TrustError{Err: innerError}, 2)
 	}
 	if _, ok := innerError.(net.Error); ok {
 		return WrapWithMessage(&ConnectionProblemError{
@@ -256,7 +294,7 @@ func ConvertSystemError(err error) error {
 }
 
 // ConnectionProblem returns new instance of ConnectionProblemError
-func ConnectionProblem(err error, message string, args ...interface{}) error {
+func ConnectionProblem(err error, message string, args ...interface{}) Error {
 	return WrapWithMessage(&ConnectionProblemError{
 		Message: fmt.Sprintf(message, args...),
 		Err:     err,
@@ -297,7 +335,7 @@ func IsConnectionProblem(e error) bool {
 }
 
 // LimitExceeded returns whether new instance of LimitExceededError
-func LimitExceeded(message string, args ...interface{}) error {
+func LimitExceeded(message string, args ...interface{}) Error {
 	return WrapWithMessage(&LimitExceededError{
 		Message: fmt.Sprintf(message, args...),
 	}, message, args...)
@@ -335,8 +373,8 @@ func IsLimitExceeded(e error) bool {
 // TrustError indicates trust-related validation error (e.g. untrusted cert)
 type TrustError struct {
 	// Err is original error
-	Err     error `json:"error"`
-	Message string
+	Err     error  `json:"-"`
+	Message string `json:"message"`
 }
 
 // Error returns log-friendly error description
@@ -404,7 +442,7 @@ func IsEOF(e error) bool {
 }
 
 // Retry return new instance of RetryError which indicates a transient error type
-func Retry(err error, message string, args ...interface{}) error {
+func Retry(err error, message string, args ...interface{}) Error {
 	return WrapWithMessage(&RetryError{
 		Message: fmt.Sprintf(message, args...),
 		Err:     err,
