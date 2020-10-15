@@ -85,7 +85,7 @@ ignored = ["github.com/gravitational/planet/build/*"]
   version = "=2.0.0"
 
 [[constraint]]
-  version = "=0.0.3"
+  version = "=0.0.4"
   name = "github.com/gravitational/etcd-backup"
 
 [[constraint]]
