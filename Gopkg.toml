@@ -75,7 +75,6 @@ ignored = ["github.com/Sirupsen/logrus", "github.com/gravitational/planet/build/
   name = "github.com/gravitational/configure"
 
 [[constraint]]
-  #branch = "master"
   revision = "12af3c0f95932fb6be66ca4e104c0701b256717a"
   name = "github.com/gravitational/coordinate"
 
