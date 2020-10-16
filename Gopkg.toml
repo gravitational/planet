@@ -64,7 +64,7 @@ version = "2.0.0"
 
 [[constraint]]
 name = "github.com/coreos/etcd"
-version = "3.3.3"
+version = "3.3.25"
 
 [[constraint]]
 name = "github.com/docker/docker"
@@ -75,7 +75,7 @@ branch = "master"
 name = "github.com/gravitational/configure"
 
 [[constraint]]
-branch = "master"
+revision = "12af3c0f95932fb6be66ca4e104c0701b256717a"
 name = "github.com/gravitational/coordinate"
 
 [[constraint]]
@@ -147,8 +147,12 @@ version = "=v0.0.9"
 
 [[constraint]]
 name = "github.com/gravitational/etcd-backup"
-version = "=0.0.2"
+version = "=0.0.4"
 
 [[override]]
 name = "github.com/json-iterator/go"
 version = "1.1.5"
+
+[[override]]
+  name = "google.golang.org/grpc"
+  version = "=v1.26.0" 

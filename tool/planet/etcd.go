@@ -36,8 +36,6 @@ import (
 	"github.com/gravitational/planet/lib/monitoring"
 	"github.com/gravitational/planet/lib/utils"
 
-	etcd "github.com/coreos/etcd/client"
-	etcdv3 "github.com/coreos/etcd/clientv3"
 	"github.com/coreos/go-systemd/dbus"
 	"github.com/davecgh/go-spew/spew"
 	etcdconf "github.com/gravitational/coordinate/config"
@@ -45,6 +43,8 @@ import (
 	"github.com/gravitational/trace"
 	ps "github.com/mitchellh/go-ps"
 	log "github.com/sirupsen/logrus"
+	etcd "go.etcd.io/etcd/client"
+	etcdv3 "go.etcd.io/etcd/clientv3"
 )
 
 // etcdInit detects which version of etcd should be running, and sets symlinks to point

@@ -26,9 +26,9 @@ import (
 	"github.com/gravitational/trace"
 
 	ebackoff "github.com/cenkalti/backoff"
-	"github.com/coreos/etcd/client"
 	"github.com/jonboulle/clockwork"
 	log "github.com/sirupsen/logrus"
+	"go.etcd.io/etcd/client"
 )
 
 // Config sets leader election configuration options

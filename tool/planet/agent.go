@@ -31,7 +31,6 @@ import (
 	"github.com/gravitational/planet/lib/constants"
 	"github.com/gravitational/planet/lib/monitoring"
 
-	etcd "github.com/coreos/etcd/client"
 	etcdconf "github.com/gravitational/coordinate/config"
 	"github.com/gravitational/coordinate/leader"
 	"github.com/gravitational/satellite/agent"
@@ -43,6 +42,7 @@ import (
 	"github.com/gravitational/trace"
 	"github.com/gravitational/trace/trail"
 	log "github.com/sirupsen/logrus"
+	etcd "go.etcd.io/etcd/client"
 	"k8s.io/client-go/tools/clientcmd"
 )
 

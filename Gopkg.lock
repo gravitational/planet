@@ -126,25 +126,15 @@
   revision = "cb7008ab3d8359b78c5f464cb7cf160107ad5925"
 
 [[projects]]
-  digest = "1:4f618dd2213260a992922925a03349430af6994d8a481c53280703732e5bc4ab"
+  digest = "1:fa4b63c5b8cfe5d9016aca1be3084379d754e8391d279d0be58e3be5fd947968"
   name = "github.com/coreos/etcd"
   packages = [
-    "auth/authpb",
     "client",
     "clientv3",
-    "etcdserver/api/v3rpc/rpctypes",
-    "etcdserver/etcdserverpb",
-    "mvcc/mvccpb",
-    "pkg/pathutil",
-    "pkg/srv",
-    "pkg/tlsutil",
-    "pkg/transport",
-    "pkg/types",
-    "version",
   ]
   pruneopts = "UT"
-  revision = "27fc7e2296f506182f58ce846e48f36b34fe6842"
-  version = "v3.3.10"
+  revision = "ae9734ed278b7a1a7dfc82e800471ebbf9fce56f"
+  version = "v3.4.13"
 
 [[projects]]
   digest = "1:0ef770954bca104ee99b3b6b7f9b240605ac03517d9f98cbc1893daa03f3c038"
@@ -155,10 +145,11 @@
   version = "v0.2.0"
 
 [[projects]]
-  digest = "1:23b153950e96615981a18dfee3b3c85070eacd9f4432257f093c42f4a2bed406"
+  digest = "1:535e93bf23e41f2cf50a6d7a86a39375565f3c3c980df7ae45d38884c979faff"
   name = "github.com/coreos/go-systemd"
   packages = [
     "dbus",
+    "journal",
     "util",
   ]
   pruneopts = "UT"
@@ -166,9 +157,12 @@
   version = "v16"
 
 [[projects]]
-  digest = "1:6e2ff82d2fe11ee35ec8dceb4346b8144a761f1c8655592c4ebe99a92fcec327"
+  digest = "1:129a158ba1ebf652f53b189d61dcf9fbfca8ac70b36bcb48a501200a21fb6086"
   name = "github.com/coreos/pkg"
-  packages = ["dlopen"]
+  packages = [
+    "capnslog",
+    "dlopen",
+  ]
   pruneopts = "UT"
   revision = "97fdf19511ea361ae1c100dd393cc47f8dcfa1e1"
   version = "v4"
@@ -188,6 +182,14 @@
   pruneopts = "UT"
   revision = "8991bc29aa16c548c550c7ff78260e27b9ab7c73"
   version = "v1.1.1"
+
+[[projects]]
+  digest = "1:76dc72490af7174349349838f2fe118996381b31ea83243812a97e5a0fd5ed55"
+  name = "github.com/dgrijalva/jwt-go"
+  packages = ["."]
+  pruneopts = "UT"
+  revision = "06ea1031745cb8b3dab3f6a236daf2b0aa468b7e"
+  version = "v3.2.0"
 
 [[projects]]
   digest = "1:a30d2758be5d1088a185e3c86266b0592d555a9781fd8e26453ad5e48b500b8a"
@@ -338,23 +340,22 @@
   revision = "c3428bd84c23f0cfcc759f2ef12632be5ff5d95d"
 
 [[projects]]
-  branch = "master"
-  digest = "1:6f323c8ee44a44f7be69a733288612635ac279e07ea1e08815c553599a0543d0"
+  digest = "1:e9719f92f471356932fc96793ac03b3a09f92584d564fb5a9905d7c76eceb56d"
   name = "github.com/gravitational/coordinate"
   packages = [
     "config",
     "leader",
   ]
   pruneopts = "UT"
-  revision = "2bc9a83f6fe22919202fb09bfa01f2ff8b7784cb"
+  revision = "12af3c0f95932fb6be66ca4e104c0701b256717a"
 
 [[projects]]
-  digest = "1:681bbd3ad2b3046b00f8a4985ffeb10bb04216fc5b736d1d9029494224a7c966"
+  digest = "1:554733e772c3436358b7c7e7c064e74bb00b85c7cef7c453c27b7d917b939c32"
   name = "github.com/gravitational/etcd-backup"
   packages = ["lib/etcd"]
   pruneopts = "UT"
-  revision = "960ff557cc74d5ad63a453bc64c0803673c06dd5"
-  version = "0.0.2"
+  revision = "87328521981ce8d9f7aa07fb77642751dafd04e8"
+  version = "0.0.4"
 
 [[projects]]
   branch = "master"
@@ -838,14 +839,6 @@
   revision = "33e07d32887e1e06b7c025f27ce52f62c7990bc0"
 
 [[projects]]
-  digest = "1:03aa6e485e528acb119fb32901cf99582c380225fc7d5a02758e08b180cb56c3"
-  name = "github.com/ugorji/go"
-  packages = ["codec"]
-  pruneopts = "UT"
-  revision = "b4c50a2b199d93b13dc15e78929cfb23bfdf21ab"
-  version = "v1.1.1"
-
-[[projects]]
   digest = "1:2d9d06cb9d46dacfdbb45f8575b39fc0126d083841a29d4fbf8d97708f43107e"
   name = "github.com/vishvananda/netlink"
   packages = [
@@ -865,10 +858,93 @@
   revision = "13995c7128ccc8e51e9a6bd2b551020a27180abd"
 
 [[projects]]
+  digest = "1:42b837a2202ea13bc306fadc76967c9fd670b878b2ee27d0eb36ceaf45f79a64"
+  name = "go.etcd.io/bbolt"
+  packages = ["."]
+  pruneopts = "UT"
+  revision = "232d8fc87f50244f9c808f4745759e08a304c029"
+  version = "v1.3.5"
+
+[[projects]]
+  digest = "1:b7450c3ac856d178e84d05acab99eafad0a16b75130fee0340be1e795ec776d1"
+  name = "go.etcd.io/etcd"
+  packages = [
+    "auth",
+    "auth/authpb",
+    "client",
+    "clientv3",
+    "clientv3/balancer",
+    "clientv3/balancer/connectivity",
+    "clientv3/balancer/picker",
+    "clientv3/balancer/resolver/endpoint",
+    "clientv3/credentials",
+    "etcdserver/api/v3rpc/rpctypes",
+    "etcdserver/etcdserverpb",
+    "lease",
+    "lease/leasepb",
+    "mvcc",
+    "mvcc/backend",
+    "mvcc/mvccpb",
+    "pkg/adt",
+    "pkg/fileutil",
+    "pkg/logutil",
+    "pkg/pathutil",
+    "pkg/schedule",
+    "pkg/srv",
+    "pkg/systemd",
+    "pkg/tlsutil",
+    "pkg/traceutil",
+    "pkg/transport",
+    "pkg/types",
+    "raft",
+    "raft/confchange",
+    "raft/quorum",
+    "raft/raftpb",
+    "raft/tracker",
+    "version",
+  ]
+  pruneopts = "UT"
+  revision = "ae9734ed278b7a1a7dfc82e800471ebbf9fce56f"
+  version = "v3.4.13"
+
+[[projects]]
+  digest = "1:7a3de4371d6b68c6f37a0df2c09905664d9de59026c91cbe275aae55f4fe760f"
+  name = "go.uber.org/atomic"
+  packages = ["."]
+  pruneopts = "UT"
+  revision = "12f27ba2637fa0e13772a4f05fa46a5d18d53182"
+  version = "v1.7.0"
+
+[[projects]]
+  digest = "1:e9eeeabfd025a5e69b9c8e2857d3517ea67e747ae913bcb0a9e1e7bafdb9c298"
+  name = "go.uber.org/multierr"
+  packages = ["."]
+  pruneopts = "UT"
+  revision = "3114a8b704d2d28dbacda34a872690aaef66aeed"
+  version = "v1.6.0"
+
+[[projects]]
+  digest = "1:052a04ff010ec05c33f12909ec2a90492c9d5582d68f87d3275595d0d1bd0d3b"
+  name = "go.uber.org/zap"
+  packages = [
+    ".",
+    "buffer",
+    "internal/bufferpool",
+    "internal/color",
+    "internal/exit",
+    "zapcore",
+  ]
+  pruneopts = "UT"
+  revision = "404189cf44aea95b0cd9bddcb0242dd4cf88c510"
+  version = "v1.16.0"
+
+[[projects]]
   branch = "master"
-  digest = "1:583f2f436bab7b59a7bd3e759f1375b06f460760ed1f9235604d143eaab83009"
+  digest = "1:3196833b172b4c756bd125993f970cdbaa33f09cea679f2a0d15adee29bee1f2"
   name = "golang.org/x/crypto"
   packages = [
+    "bcrypt",
+    "blowfish",
     "ed25519",
     "ed25519/internal/edwards25519",
     "ssh/terminal",
@@ -983,25 +1059,35 @@
   revision = "94acd270e44e65579b9ee3cdab25034d33fed608"
 
 [[projects]]
-  digest = "1:c52f29435ecb5b76c37e7f0098b6a50dbe60f8624d820827d0fede75c40199a1"
+  digest = "1:7bc116a2ccc363ff2d7df0d4fc3211254366dc4792d14685b0b4980becbed2f5"
   name = "google.golang.org/grpc"
   packages = [
     ".",
+    "attributes",
+    "backoff",
     "balancer",
     "balancer/base",
     "balancer/roundrobin",
+    "binarylog/grpc_binarylog_v1",
     "codes",
     "connectivity",
     "credentials",
+    "credentials/internal",
     "encoding",
     "encoding/proto",
     "grpclog",
-    "health/grpc_health_v1",
     "internal",
     "internal/backoff",
+    "internal/balancerload",
+    "internal/binarylog",
+    "internal/buffer",
     "internal/channelz",
     "internal/envconfig",
     "internal/grpcrand",
+    "internal/grpcsync",
+    "internal/resolver/dns",
+    "internal/resolver/passthrough",
+    "internal/syscall",
     "internal/transport",
     "keepalive",
     "metadata",
@@ -1010,13 +1096,14 @@
     "resolver",
     "resolver/dns",
     "resolver/passthrough",
+    "serviceconfig",
     "stats",
     "status",
     "tap",
   ]
   pruneopts = "UT"
-  revision = "8dea3dc473e90c8179e519d91302d0597c0ca1d1"
-  version = "v1.15.0"
+  revision = "f5b0812e6fe574d90da76b205e9eb51f6ddb1919"
+  version = "v1.26.0"
 
 [[projects]]
   branch = "telekube"
