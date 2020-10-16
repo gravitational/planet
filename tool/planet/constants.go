@@ -428,6 +428,10 @@ const (
 
 	// DefaultServiceNodePortRange defines the default IP range for services with NodePort visibility
 	DefaultServiceNodePortRange = "30000-32767"
+
+	// DefaultCriticalNamespaces is the default list of critical namespaces
+	DefaultCriticalNamespaces = "kube-system,monitoring"
+
 	// DNSEnvFile specifies the file location to write information about the overlay network
 	// in use to be picked up by scripts
 	DNSEnvFile = "/run/dns.env"
