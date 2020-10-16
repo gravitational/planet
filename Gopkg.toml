@@ -66,7 +66,7 @@ ignored = ["github.com/Sirupsen/logrus", "github.com/gravitational/planet/build/
 
 [[constraint]]
   name = "github.com/coreos/etcd"
-  version = "3.3.3"
+  version = "3.3.25"
 
 [[constraint]]
   name = "github.com/docker/docker"
@@ -77,7 +77,7 @@ ignored = ["github.com/Sirupsen/logrus", "github.com/gravitational/planet/build/
   name = "github.com/gravitational/configure"
 
 [[constraint]]
-  branch = "master"
+  revision = "12af3c0f95932fb6be66ca4e104c0701b256717a"
   name = "github.com/gravitational/coordinate"
 
 [[constraint]]
@@ -184,3 +184,11 @@ ignored = ["github.com/Sirupsen/logrus", "github.com/gravitational/planet/build/
   # make sure to update in sync!
   name = "github.com/cilium/ebpf"
   revision = "95b36a581eed7b0f127306ed1d16cc0ddc06cf67"
+
+[[constraint]]
+  version = "=0.0.4"
+  name = "github.com/gravitational/etcd-backup"
+
+[[override]]
+  name = "google.golang.org/grpc"
+  version = "=v1.26.0"

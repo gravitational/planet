@@ -33,7 +33,6 @@ import (
 	"github.com/gravitational/planet/lib/monitoring"
 	"github.com/gravitational/planet/lib/utils"
 
-	etcd "github.com/coreos/etcd/client"
 	etcdconf "github.com/gravitational/coordinate/config"
 	"github.com/gravitational/coordinate/leader"
 	"github.com/gravitational/satellite/agent"
@@ -42,6 +41,7 @@ import (
 	"github.com/gravitational/satellite/lib/rpc/client"
 	"github.com/gravitational/trace"
 	log "github.com/sirupsen/logrus"
+	etcd "go.etcd.io/etcd/client"
 	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	corev1 "k8s.io/client-go/kubernetes/typed/core/v1"
