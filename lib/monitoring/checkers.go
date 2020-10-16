@@ -79,6 +79,8 @@ type Config struct {
 	ServiceGID string
 	// HTTPTimeout specifies the HTTP timeout for checks
 	HTTPTimeout time.Duration
+	// CriticalNamespaces lists the namespaces of critical system pods.
+	CriticalNamespaces []string
 }
 
 // CheckAndSetDefaults validates monitoring configuration
@@ -314,6 +316,7 @@ func addToMaster(node agent.Agent, config *Config, etcdConfig *monitoring.ETCDCo
 	systemPodsChecker, err := monitoring.NewSystemPodsChecker(
 		monitoring.SystemPodsConfig{
 			KubeConfig: &kubeConfig,
+			Namespaces: config.CriticalNamespaces,
 		},
 	)
 	if err != nil {

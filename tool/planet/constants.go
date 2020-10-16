@@ -260,6 +260,10 @@ const (
 	// SELinux support has been requested
 	EnvPlanetSELinux = "PLANET_SELINUX"
 
+	// EnvCriticalNamespaces lists the Kubernetes namespaces to search for
+	// critical system pods.
+	EnvCriticalNamespaces = "PLANET_CRITICAL_NAMESPACES"
+
 	// DefaultDNSListenAddr is the default IP address CoreDNS will listen on
 	DefaultDNSListenAddr = "127.0.0.2"
 
