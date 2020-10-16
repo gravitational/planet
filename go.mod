@@ -36,7 +36,7 @@ require (
 	github.com/gorilla/websocket v1.4.0 // indirect
 	github.com/gravitational/configure v0.0.0-20180808141939-c3428bd84c23
 	github.com/gravitational/coordinate v0.0.0-20200227044100-12af3c0f9593
-	github.com/gravitational/etcd-backup v0.0.0-20200227044745-5751e027911a
+	github.com/gravitational/etcd-backup v0.0.0-20201012185408-87328521981c
 	github.com/gravitational/go-udev v0.0.0-20160615210516-4cc8baba3689
 	github.com/gravitational/satellite v0.0.9-0.20201015000214-d4c0c359be82
 	github.com/gravitational/trace v1.1.11
