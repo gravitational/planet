@@ -174,6 +174,7 @@ func run() error {
 		cagentTimelineDir            = cagent.Flag("timeline-dir", "Directory to be used for timeline storage").Default("/tmp/timeline").String()
 		cagentRetention              = cagent.Flag("retention", "Window to retain timeline as a Go duration").Duration()
 		cagentServiceCIDR            = cidrFlag(cagent.Flag("service-subnet", "IP range from which to assign service cluster IPs. This must not overlap with any IP ranges assigned to nodes for pods.").Default(DefaultServiceSubnet).Envar(EnvServiceSubnet))
+		cagentCriticalNamespaces     = List(cagent.Flag("critical-namespaces", "List of Kubernetes namespaces to search for critical system pods").Default(DefaultCriticalNamespaces).OverrideDefaultFromEnvar(EnvCriticalNamespaces))
 
 		// stop a running container
 		cstop = app.Command("stop", "Stop planet container")
@@ -349,6 +350,7 @@ func run() error {
 				ServiceUID:            *cagentServiceUID,
 				ServiceGID:            *cagentServiceGID,
 				NodeName:              *cagentNodeName,
+				CriticalNamespaces:    *cagentCriticalNamespaces,
 			},
 			leader: &LeaderConfig{
 				PublicIP:        cagentPublicIP.String(),
