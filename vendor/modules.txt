@@ -152,7 +152,7 @@ github.com/gravitational/etcd-backup/lib/etcd
 github.com/gravitational/go-udev
 # github.com/gravitational/roundtrip v1.0.0
 github.com/gravitational/roundtrip
-# github.com/gravitational/satellite v0.0.9-0.20201015000214-d4c0c359be82
+# github.com/gravitational/satellite v0.0.9-0.20201016174759-b5b984635eca
 github.com/gravitational/satellite/agent
 github.com/gravitational/satellite/agent/backend/inmemory
 github.com/gravitational/satellite/agent/cache
@@ -366,7 +366,7 @@ golang.org/x/crypto/ssh/terminal
 # golang.org/x/lint v0.0.0-20200130185559-910be7a94367
 golang.org/x/lint
 golang.org/x/lint/golint
-# golang.org/x/net v0.0.0-20201010224723-4f7140c49acb
+# golang.org/x/net v0.0.0-20201016165138-7b1cca2348c0
 golang.org/x/net/bpf
 golang.org/x/net/context
 golang.org/x/net/context/ctxhttp
@@ -388,7 +388,7 @@ golang.org/x/oauth2
 golang.org/x/oauth2/internal
 # golang.org/x/sync v0.0.0-20190423024810-112230192c58
 golang.org/x/sync/errgroup
-# golang.org/x/sys v0.0.0-20201014080544-cc95f250f6bc
+# golang.org/x/sys v0.0.0-20201016160150-f659759dc4ca
 golang.org/x/sys/internal/unsafeheader
 golang.org/x/sys/unix
 golang.org/x/sys/windows

@@ -188,6 +188,8 @@ github.com/gravitational/roundtrip v1.0.0 h1:eb+0EABfSKC8607CQ4oOyWCm9zVIfio/wW7
 github.com/gravitational/roundtrip v1.0.0/go.mod h1:qccpLd30tAJVSpx7aOEEnws4ZT3njPwdbtT8lNQxbAs=
 github.com/gravitational/satellite v0.0.9-0.20201015000214-d4c0c359be82 h1:gWwYTAuszXg15ynbDV4eSa0UQBfI+I/BEMfFTP9Y/8s=
 github.com/gravitational/satellite v0.0.9-0.20201015000214-d4c0c359be82/go.mod h1:OcgAUN5zzYAEiNPcjQ/MS2+YAMX6jTpPrbP6zIg29GI=
+github.com/gravitational/satellite v0.0.9-0.20201016174759-b5b984635eca h1:dFvlq5rg1USKzOBEC5nEHqR0Lwp/srw38TXEXH2R8is=
+github.com/gravitational/satellite v0.0.9-0.20201016174759-b5b984635eca/go.mod h1:OcgAUN5zzYAEiNPcjQ/MS2+YAMX6jTpPrbP6zIg29GI=
 github.com/gravitational/trace v1.1.11 h1:c+saoho5rBdj5lPEGzfHaYjh4Do4d+jX7hh4BgQtKc0=
 github.com/gravitational/trace v1.1.11/go.mod h1:RvdOUHE4SHqR3oXlFFKnGzms8a5dugHygGw1bqDstYI=
 github.com/gravitational/ttlmap/v2 v2.0.0-20200702161230-1bbfd908876d h1:vIgmA0qBCUgDSip4Gf0iqYCRv6fxsfHEJ2WHPVI35PQ=
@@ -476,6 +478,8 @@ golang.org/x/net v0.0.0-20200625001655-4c5254603344 h1:vGXIOMxbNfDTk/aXCmfdLgkrS
 golang.org/x/net v0.0.0-20200625001655-4c5254603344/go.mod h1:/O7V0waA8r7cgGh81Ro3o1hOxt32SMVPicZroKQ2sZA=
 golang.org/x/net v0.0.0-20201010224723-4f7140c49acb h1:mUVeFHoDKis5nxCAzoAi7E8Ghb86EXh/RK6wtvJIqRY=
 golang.org/x/net v0.0.0-20201010224723-4f7140c49acb/go.mod h1:sp8m0HH+o8qH0wwXwYZr8TS3Oi6o0r6Gce1SSxlDquU=
+golang.org/x/net v0.0.0-20201016165138-7b1cca2348c0 h1:5kGOVHlq0euqwzgTC9Vu15p6fV1Wi0ArVi8da2urnVg=
+golang.org/x/net v0.0.0-20201016165138-7b1cca2348c0/go.mod h1:sp8m0HH+o8qH0wwXwYZr8TS3Oi6o0r6Gce1SSxlDquU=
 golang.org/x/oauth2 v0.0.0-20181017192945-9dcd33a902f4 h1:99CA0JJbUX4ozCnLon680Jc9e0T1i8HCaLVJMwtI8Hc=
 golang.org/x/oauth2 v0.0.0-20181017192945-9dcd33a902f4/go.mod h1:N/0e6XlmueqKjAGxoOufVs8QHGRruUQn6yWY3a++T0U=
 golang.org/x/sync v0.0.0-20180314180146-1d60e4601c6f/go.mod h1:RxMgew5VJxzue5/jJTE5uejpjVlOe/izrB70Jof72aM=
@@ -515,6 +519,8 @@ golang.org/x/sys v0.0.0-20200625212154-ddb9806d33ae/go.mod h1:h1NjWce9XRLGQEsW7w
 golang.org/x/sys v0.0.0-20200930185726-fdedc70b468f/go.mod h1:h1NjWce9XRLGQEsW7wpKNCjG9DtNlClVuFLEZdDNbEs=
 golang.org/x/sys v0.0.0-20201014080544-cc95f250f6bc h1:HVFDs9bKvTxP6bh1Rj9MCSo+UmafQtI8ZWDPVwVk9g4=
 golang.org/x/sys v0.0.0-20201014080544-cc95f250f6bc/go.mod h1:h1NjWce9XRLGQEsW7wpKNCjG9DtNlClVuFLEZdDNbEs=
+golang.org/x/sys v0.0.0-20201016160150-f659759dc4ca h1:mLWBs1i4Qi5cHWGEtn2jieJQ2qtwV/gT0A2zLrmzaoE=
+golang.org/x/sys v0.0.0-20201016160150-f659759dc4ca/go.mod h1:h1NjWce9XRLGQEsW7wpKNCjG9DtNlClVuFLEZdDNbEs=
 golang.org/x/text v0.3.0 h1:g61tztE5qeGQ89tm6NTjjM9VPIm088od1l6aSorWRWg=
 golang.org/x/text v0.3.0/go.mod h1:NqM8EUOU14njkJ3fqMW+pc6Ldnwhi/IjpwHt7yyuwOQ=
 golang.org/x/time v0.0.0-20180412165947-fbb02b2291d2 h1:+DCIGbF/swA92ohVg0//6X2IVY3KZs6p9mix0ziNYJM=
