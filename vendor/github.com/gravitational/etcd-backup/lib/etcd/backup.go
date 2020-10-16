@@ -21,6 +21,7 @@ import (
 	"encoding/json"
 	"io"
 	"os"
+	"time"
 
 	etcdconf "github.com/gravitational/coordinate/config"
 	"github.com/gravitational/trace"
@@ -44,6 +45,14 @@ func (b *BackupConfig) CheckAndSetDefaults() error {
 	if b.Writer == nil {
 		b.Writer = os.Stdout
 	}
+
+	// Etcd server might take longer than normal to respond to the large queries used for backup
+	// Coordinate library doesn't accept a 0 value, and will instead overwrite 0 to 1 second.
+	if b.EtcdConfig.HeaderTimeoutPerRequest == 0 {
+		const headerTimeout = 15 * time.Minute
+		b.EtcdConfig.HeaderTimeoutPerRequest = headerTimeout
+	}
+
 	return nil
 }
 
