@@ -259,6 +259,9 @@ const (
 	// EnvPlanetSELinux is an environment variable that indicates whether
 	// SELinux support has been requested
 	EnvPlanetSELinux = "PLANET_SELINUX"
+	// EnvCriticalNamespaces lists the Kubernetes namespaces to search for
+	// critical system pods.
+	EnvCriticalNamespaces = "PLANET_MONITORED_NAMESPACES"
 
 	// DefaultDNSListenAddr is the default IP address CoreDNS will listen on
 	DefaultDNSListenAddr = "127.0.0.2"
@@ -422,6 +425,10 @@ const (
 
 	// DefaultServiceNodePortRange defines the default IP range for services with NodePort visibility
 	DefaultServiceNodePortRange = "30000-32767"
+
+	// DefaultCriticalNamespaces is the default list of namespaces to monitor for pod health.
+	DefaultCriticalNamespaces = "kube-system,monitoring"
+
 	// DNSEnvFile specifies the file location to write information about the overlay network
 	// in use to be picked up by scripts
 	DNSEnvFile = "/run/dns.env"
