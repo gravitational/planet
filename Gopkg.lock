@@ -126,17 +126,6 @@
   revision = "cb7008ab3d8359b78c5f464cb7cf160107ad5925"
 
 [[projects]]
-  digest = "1:fa4b63c5b8cfe5d9016aca1be3084379d754e8391d279d0be58e3be5fd947968"
-  name = "github.com/coreos/etcd"
-  packages = [
-    "client",
-    "clientv3",
-  ]
-  pruneopts = "UT"
-  revision = "ae9734ed278b7a1a7dfc82e800471ebbf9fce56f"
-  version = "v3.4.13"
-
-[[projects]]
   digest = "1:0ef770954bca104ee99b3b6b7f9b240605ac03517d9f98cbc1893daa03f3c038"
   name = "github.com/coreos/go-semver"
   packages = ["semver"]
@@ -374,7 +363,7 @@
   version = "v1.0.0"
 
 [[projects]]
-  digest = "1:0a1f1510e6baad07baef22d5cdc693ae673f48362c28f4ca240a14cef214cf50"
+  digest = "1:0cd2bc7530276353a9e4f87ff983a5d3f9330bb456ee18d186221d5c7cdab7f7"
   name = "github.com/gravitational/satellite"
   packages = [
     "agent",
@@ -396,8 +385,8 @@
     "utils",
   ]
   pruneopts = "UT"
-  revision = "fa179ec12da9075979171f805d50e21fa6ba3701"
-  version = "5.5.25"
+  revision = "698d2c8e4a9047a14daca8692fde570c1225dfbc"
+  version = "5.5.26"
 
 [[projects]]
   digest = "1:488b046f7e099afaa97b0596967f96c54a0c8f85bb02d155931982fed2275851"
@@ -1365,8 +1354,6 @@
   input-imports = [
     "github.com/cenkalti/backoff",
     "github.com/containerd/console",
-    "github.com/coreos/etcd/client",
-    "github.com/coreos/etcd/clientv3",
     "github.com/coreos/go-systemd/dbus",
     "github.com/davecgh/go-spew/spew",
     "github.com/docker/docker/pkg/term",
@@ -1410,6 +1397,8 @@
     "github.com/sirupsen/logrus",
     "github.com/sirupsen/logrus/hooks/syslog",
     "github.com/syndtr/gocapability/capability",
+    "go.etcd.io/etcd/client",
+    "go.etcd.io/etcd/clientv3",
     "golang.org/x/net/websocket",
     "gopkg.in/alecthomas/kingpin.v2",
     "gopkg.in/check.v1",

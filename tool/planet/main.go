@@ -175,6 +175,7 @@ func run() error {
 		cagentHTTPTimeout            = cagent.Flag("http-timeout", "Timeout for HTTP requests, formatted as Go duration.").OverrideDefaultFromEnvar(EnvPlanetAgentHTTPTimeout).Default(constants.HTTPTimeout.String()).Duration()
 		cagentTimelineDir            = cagent.Flag("timeline-dir", "Directory to be used for timeline storage").Default("/tmp/timeline").String()
 		cagentRetention              = cagent.Flag("retention", "Window to retain timeline as a Go duration").Duration()
+		cagentCriticalNamespaces     = List(cagent.Flag("critical-namespaces", "List of Kubernetes namespaces to search for critical system pods").Default(DefaultCriticalNamespaces).OverrideDefaultFromEnvar(EnvCriticalNamespaces))
 
 		// stop a running container
 		cstop = app.Command("stop", "Stop planet container")
@@ -362,6 +363,7 @@ func run() error {
 			HTTPTimeout:           *cagentHTTPTimeout,
 			ServiceUID:            *cagentServiceUID,
 			ServiceGID:            *cagentServiceGID,
+			CriticalNamespaces:    *cagentCriticalNamespaces,
 		}
 		leaderConf := &LeaderConfig{
 			PublicIP:        cagentPublicIP.String(),
