@@ -74,6 +74,8 @@ type Config struct {
 	ServiceUID string
 	// ServiceGID is the GID of the service (planet) user.
 	ServiceGID string
+	// CriticalNamespaces lists the namespaces of critical system pods.
+	CriticalNamespaces []string
 }
 
 // LocalTransport returns http transport that is set up with local certificate authority
@@ -275,6 +277,7 @@ func addToMaster(node agent.Agent, config *Config, etcdConfig *monitoring.ETCDCo
 	systemPodsChecker, err := monitoring.NewSystemPodsChecker(
 		monitoring.SystemPodsConfig{
 			KubeConfig: &kubeConfig,
+			Namespaces: config.CriticalNamespaces,
 		},
 	)
 	if err != nil {
