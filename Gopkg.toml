@@ -88,8 +88,7 @@ name = "golang.org/x/net"
 
 [[constraint]]
 name = "github.com/gravitational/satellite"
-# version = "=5.5.25"
-branch = "bernard/5.5.x/system-pods"
+version = "=5.5.26"
 
 [[constraint]]
 name = "github.com/gravitational/trace"
