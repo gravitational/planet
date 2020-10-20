@@ -64,7 +64,7 @@ ignored = ["github.com/Sirupsen/logrus", "github.com/gravitational/planet/build/
 
 [[constraint]]
   name = "github.com/coreos/etcd"
-  version = "3.3.3"
+  version = "3.3.25"
 
 [[constraint]]
   name = "github.com/docker/docker"
@@ -75,7 +75,7 @@ ignored = ["github.com/Sirupsen/logrus", "github.com/gravitational/planet/build/
   name = "github.com/gravitational/configure"
 
 [[constraint]]
-  branch = "master"
+  revision = "12af3c0f95932fb6be66ca4e104c0701b256717a"
   name = "github.com/gravitational/coordinate"
 
 [[constraint]]
@@ -92,7 +92,7 @@ ignored = ["github.com/Sirupsen/logrus", "github.com/gravitational/planet/build/
 
 [[constraint]]
   name = "github.com/gravitational/trace"
-  version = "1.0.0"
+  version = "=1.1.10"
 
 [[constraint]]
   name = "github.com/julienschmidt/httprouter"
@@ -132,3 +132,11 @@ ignored = ["github.com/Sirupsen/logrus", "github.com/gravitational/planet/build/
 [[override]]
   name = "github.com/json-iterator/go"
   version = "1.1.5"
+
+[[constraint]]
+  name = "github.com/gravitational/etcd-backup"
+  version = "=0.0.4"
+
+[[override]]
+  name = "google.golang.org/grpc"
+  version = "=v1.26.0"  
