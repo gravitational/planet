@@ -22,6 +22,7 @@ ExecStart=/usr/bin/kube-apiserver \
         --allow-privileged=false \
         --apiserver-count=1 \
         --tls-cert-file=/var/state/apiserver.cert \
+        --tls-private-key-file=/var/state/apiserver.key \
         --tls-cipher-suites=TLS_ECDHE_ECDSA_WITH_AES_128_GCM_SHA256,TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256,TLS_ECDHE_ECDSA_WITH_AES_256_GCM_SHA384,TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384,TLS_RSA_WITH_AES_128_GCM_SHA256,TLS_RSA_WITH_AES_256_GCM_SHA384,TLS_RSA_WITH_AES_128_GCM_SHA256,TLS_RSA_WITH_AES_256_GCM_SHA384 \
         --tls-min-version=VersionTLS12 \
         --kubelet-https=true \
