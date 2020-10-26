@@ -116,4 +116,14 @@ var (
 		Minor:   0,
 		Patch:   1127,
 	}
+
+	// ContainerEnvPath defines the default container PATH
+	ContainerEnvPath = []string{
+		"/usr/local/bin",
+		"/usr/local/sbin",
+		"/usr/bin",
+		"/usr/sbin",
+		"/bin",
+		"/sbin",
+	}
 )
