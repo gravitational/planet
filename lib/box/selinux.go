@@ -38,9 +38,10 @@ func getSELinuxProcLabel(rootfs, cmd string) (label string) {
 	if !filepath.IsAbs(cmd) {
 		abspath, err := getAbsPathForCommand(rootfs, cmd)
 		if err != nil {
-			log.WithError(err).Warn("Failed to find absolute path to command in rootfs.")
+			logger.WithError(err).Warn("Failed to find absolute path to command in rootfs.")
 		} else {
 			cmd = abspath
+			logger = logger.WithField("abspath", cmd)
 		}
 	}
 	label, err := getProcLabel(filepath.Join(rootfs, cmd))
