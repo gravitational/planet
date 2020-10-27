@@ -77,6 +77,8 @@ type Config struct {
 	ServiceCIDR kv.CIDR
 	// PodCIDR defines the kubernetes Pod subnet CIDR
 	PodCIDR kv.CIDR
+	// PodSubnetSize defines the size of the subnet allocated to each host.
+	PodSubnetSize int
 	// ProxyPortRange specifies the range of host ports (beginPort-endPort, single port or beginPort+offset, inclusive)
 	// that may be consumed in order to proxy service traffic.
 	// If (unspecified, 0, or 0-0) then ports will be randomly chosen.
@@ -154,9 +156,36 @@ func (cfg *Config) checkAndSetDefaults() (err error) {
 	if err != nil {
 		return trace.Wrap(err)
 	}
+
+	if err := verifyPodSubnetSize(cfg.PodSubnetSize, cfg.PodCIDR); err != nil {
+		return trace.Wrap(err, "failed to verify pod subnet size")
+	}
+
 	if cfg.VxlanPort <= 0 {
 		cfg.VxlanPort = DefaultVxlanPort
 	}
+	return nil
+}
+
+// verifyPodSubnetSize verifies that the subnet size is not too small and verifies
+// that the subnet size is not larger than the network CIDR range.
+func verifyPodSubnetSize(subnetSize int, cidr kv.CIDR) error {
+	// Verify requested subnet size is not too small.
+	if subnetSize > 30 {
+		return trace.BadParameter("max pod subnet size value is /30")
+	}
+
+	// Verify subnet size is not larger than the network CIDR range.
+	_, ipv4Net, err := net.ParseCIDR(cidr.String())
+	if err != nil {
+		return trace.Wrap(err, "failed to parse cidr")
+	}
+
+	prefixSize, _ := ipv4Net.Mask.Size()
+	if subnetSize < prefixSize {
+		return trace.BadParameter("subnet size cannot be larger than the network CIDR range")
+	}
+
 	return nil
 }
 
