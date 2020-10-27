@@ -44,14 +44,6 @@ RUN set -ex && \
 	systemd-remount-fs.service dev-hugepages.mount sys-fs-fuse-connections.mount \
 	getty.target console-getty.service;
 
-# TODO(r0mant): Disable *iscsi* services cause they may be running on host
-#               In the future we will need to enable them conditionally to
-#               be able to support OpenEBS cStor engine out of the box
-RUN systemctl mask iscsi.service && \
-    systemctl mask iscsid.service && \
-    systemctl mask open-iscsi.service && \
-    systemctl mask systemd-udevd.service
-
 ENV LANGUAGE en_US.UTF-8
 ENV LANG en_US.UTF-8
 ENV LC_ALL en_US.UTF-8
