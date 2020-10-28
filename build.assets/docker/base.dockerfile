@@ -6,6 +6,9 @@ ARG IPTABLES_VER
 ARG PLANET_UID
 ARG PLANET_GID
 
+ARG ISCSID_VER
+ARG ISCSID_PKG=open-iscsi_${ISCSID_VER}ubuntu6_amd64.deb
+
 # FIXME: allowing downgrades and pinning the version of libip4tc0 for iptables
 # as the package has a dependency on the older version as the one available.
 RUN export DEBIAN_FRONTEND=noninteractive && set -ex && \
@@ -85,10 +88,9 @@ RUN export DEBIAN_FRONTEND=noninteractive && set -ex \
 
 # Deploy Ubuntu .deb in order to get .socket activated iscsid. Debian's iscsid is not socket activated.
 # Socket activation is needed in order to avoid developing custom service start logic when OpenEBS app is deployed.
-RUN cd /var/lib/dpkg/
-RUN wget  http://mirrors.kernel.org/ubuntu/pool/main/o/open-iscsi/open-iscsi_2.0.874-7.1ubuntu6_amd64.deb
-RUN apt install -y ./open-iscsi_2.0.874-7.1ubuntu6_amd64.deb
-RUN rm -rf open-iscsi_2.0.874-7.1ubuntu6_amd64.deb
+RUN wget http://mirrors.kernel.org/ubuntu/pool/main/o/open-iscsi/${ISCSID_PKG}
+RUN apt install -y ./${ISCSID_PKG}
+RUN rm -rf ${ISCSID_PKG}
 
 RUN apt-get -y autoclean && apt-get -y clean && apt-get autoremove -y \
             && rm -rf /var/lib/apt/lists/*;
