@@ -87,12 +87,12 @@ RUN export DEBIAN_FRONTEND=noninteractive && set -ex \
         make
 
 # Deploy Ubuntu .deb in order to get .socket activated iscsid. Debian's iscsid is not socket activated.
-# Socket activation is needed in order to avoid developing custom service start logic when OpenEBS app is deployed.
-RUN wget http://mirrors.kernel.org/ubuntu/pool/main/o/open-iscsi/${ISCSID_PKG}
-RUN apt install -y ./${ISCSID_PKG}
-RUN rm -rf ${ISCSID_PKG}
-
-RUN apt-get -y autoclean && apt-get -y clean && apt-get autoremove -y \
+# Socket activation is needed in order to avoid developing custom service start logic when OpenEBS enabled app is deployed.
+RUN set -ex && \
+    wget http://mirrors.kernel.org/ubuntu/pool/main/o/open-iscsi/${ISCSID_PKG} && \
+    apt install -y ./${ISCSID_PKG} && \
+    rm -rf ${ISCSID_PKG} && \
+    apt-get -y autoclean && apt-get -y clean && apt-get autoremove -y \
             && rm -rf /var/lib/apt/lists/*;
 
 RUN set -ex && \
