@@ -170,20 +170,23 @@ func (cfg *Config) checkAndSetDefaults() (err error) {
 // verifyPodSubnetSize verifies that the subnet size is not too small and verifies
 // that the subnet size is not larger than the network CIDR range.
 func verifyPodSubnetSize(subnetSize int, cidr kv.CIDR) error {
-	// Verify requested subnet size is not too small.
-	if subnetSize > 30 {
-		return trace.BadParameter("max pod subnet size value is /30")
+	// The minimum subnet size accepted by flannel is /28:
+	// https://github.com/gravitational/flannel/blob/master/subnet/config.go#L70-L74
+	if subnetSize > 28 {
+		return trace.BadParameter("pod subnet is too small. Minimum useful network prefix is /28: %d", subnetSize)
 	}
 
 	// Verify subnet size is not larger than the network CIDR range.
 	_, ipv4Net, err := net.ParseCIDR(cidr.String())
 	if err != nil {
-		return trace.Wrap(err, "failed to parse cidr")
+		return trace.Wrap(err, "failed to parse cidr: %q", cidr.String())
 	}
 
 	prefixSize, _ := ipv4Net.Mask.Size()
 	if subnetSize < prefixSize {
-		return trace.BadParameter("subnet size cannot be larger than the network CIDR range")
+		return trace.BadParameter("pod subnet size cannot be larger than the network CIDR range").
+			AddField("pod-subnet", cidr.String()).
+			AddField("pod-subnet-size", subnetSize)
 	}
 
 	return nil
