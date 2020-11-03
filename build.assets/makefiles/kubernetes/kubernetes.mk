@@ -30,11 +30,11 @@ $(KUBE_OUTPUTS): | $(OUTPUTDIR)
 	chmod +x $@
 
 $(HELM_TARBALL):
-	curl https://kubernetes-helm.storage.googleapis.com/helm-v$(HELM_VER)-linux-amd64.tar.gz \
+	curl https://get.helm.sh/helm-v$(HELM_VER)-linux-amd64.tar.gz \
 		-o $@
 
 $(HELM3_TARBALL):
-	curl https://kubernetes-helm.storage.googleapis.com/helm-v$(HELM3_VER)-linux-amd64.tar.gz \
+	curl https://get.helm.sh/helm-v$(HELM3_VER)-linux-amd64.tar.gz \ \
 		-o $@
 
 $(COREDNS_TARBALL):
