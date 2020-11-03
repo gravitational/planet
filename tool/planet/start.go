@@ -618,12 +618,7 @@ func addKubeConfig(config *Config) error {
 		}
 		// set read-only permissions for kubectl.kubeconfig to avoid annoying warning from Helm 3
 		// 'WARNING: Kubernetes configuration file is group-readable. This is insecure. Location: /etc/kubernetes/kubectl.kubeconfig'
-		// for host's kubeconfig still make it readable for all users
-		permissions := constants.OwnerReadMask
-		if configPath == constants.KubectlHostConfigPath {
-			permissions = constants.SharedReadMask
-		}
-		err = utils.SafeWriteFile(path, kubeConfig, os.FileMode(permissions))
+		err = utils.SafeWriteFile(path, kubeConfig, constants.OwnerReadMask)
 		if err != nil {
 			return trace.Wrap(err)
 		}
