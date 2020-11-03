@@ -43,6 +43,9 @@ const (
 	// EnvPodSubnet names the environment variable that specifies
 	// the subnet CIDR for k8s pods
 	EnvPodSubnet = "KUBE_POD_SUBNET"
+	// EnvPodSubnetSize names the environment variable that specifies the
+	// size of the subnet allocated to each host.
+	EnvPodSubnetSize = "KUBE_POD_SUBNET_SIZE"
 	// EnvServiceNodePortRange defines the range of ports to reserve for services
 	// with NodePort visibility. Inclusive at both ends of the range
 	EnvServiceNodePortRange = "KUBE_SERVICE_NODE_PORT_RANGE"
@@ -413,6 +416,9 @@ const (
 
 	// DefaultPodSubnet specifies the subnet CIDR used for k8s Pods by default
 	DefaultPodSubnet = "10.244.0.0/16"
+
+	// DefaultPodSubnetSize specifies the size of the subnet allocated to each host.
+	DefaultPodSubnetSize = 24
 
 	// DefaultVxlanPort is the default overlay network port
 	DefaultVxlanPort = 8472

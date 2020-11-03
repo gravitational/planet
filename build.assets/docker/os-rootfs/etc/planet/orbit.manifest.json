@@ -161,6 +161,14 @@
             },
             {
                 "type": "String",
+                "name": "podsubnetsize",
+                "env": "PLANET_POD_SUBNET_SIZE",
+                "cli": {
+                    "name": "pod-subnet-size"
+                }
+            },
+            {
+                "type": "String",
                 "name": "servicesubnet",
                 "env": "PLANET_SERVICE_SUBNET",
                 "cli": {
