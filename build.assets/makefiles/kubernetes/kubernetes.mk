@@ -34,7 +34,7 @@ $(HELM_TARBALL):
 		-o $@
 
 $(HELM3_TARBALL):
-	curl https://get.helm.sh/helm-v$(HELM3_VER)-linux-amd64.tar.gz \ \
+	curl https://get.helm.sh/helm-v$(HELM3_VER)-linux-amd64.tar.gz \
 		-o $@
 
 $(COREDNS_TARBALL):
