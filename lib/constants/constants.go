@@ -56,6 +56,9 @@ const (
 	// GroupReadWriteMask is a file mask for owder/group read/write
 	GroupReadWriteMask = 0660
 
+	// OwnerReadMask is a file mask for owner read-only
+	OwnerReadMask = 0400
+
 	// DeviceReadWritePerms specifies the read/write permissions for a device
 	DeviceReadWritePerms = "rwm"
 

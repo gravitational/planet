@@ -616,7 +616,7 @@ func addKubeConfig(config *Config) error {
 		if err != nil {
 			return trace.Wrap(err)
 		}
-		err = utils.SafeWriteFile(path, kubeConfig, constants.SharedReadMask)
+		err = utils.SafeWriteFile(path, kubeConfig, constants.OwnerReadMask)
 		if err != nil {
 			return trace.Wrap(err)
 		}
