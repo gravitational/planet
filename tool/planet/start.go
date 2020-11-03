@@ -623,7 +623,7 @@ func addKubeConfig(config *Config) error {
 		if configPath == constants.KubectlHostConfigPath {
 			permissions = constants.SharedReadMask
 		}
-		err = utils.SafeWriteFile(path, kubeConfig, permissions)
+		err = utils.SafeWriteFile(path, kubeConfig, os.FileMode(permissions))
 		if err != nil {
 			return trace.Wrap(err)
 		}

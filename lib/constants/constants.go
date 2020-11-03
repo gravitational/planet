@@ -45,7 +45,7 @@ const (
 	ExitCodeUnknown = 70
 
 	// SharedReadMask is a file mask with read access for everyone
-	SharedReadMask uint32 = 0644
+	SharedReadMask = 0644
 
 	// SharedReadWriteMask is a mask for a shared file with read/write access for everyone
 	SharedReadWriteMask = 0666
@@ -57,7 +57,7 @@ const (
 	GroupReadWriteMask = 0660
 
 	// OwnerReadMask is a file mask for owner read-only
-	OwnerReadMask uint32 = 0400
+	OwnerReadMask = 0400
 
 	// DeviceReadWritePerms specifies the read/write permissions for a device
 	DeviceReadWritePerms = "rwm"
