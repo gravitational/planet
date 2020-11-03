@@ -77,6 +77,8 @@ type Config struct {
 	ServiceCIDR kv.CIDR
 	// PodCIDR defines the kubernetes Pod subnet CIDR
 	PodCIDR kv.CIDR
+	// PodSubnetSize defines the size of the subnet allocated to each host.
+	PodSubnetSize int
 	// ProxyPortRange specifies the range of host ports (beginPort-endPort, single port or beginPort+offset, inclusive)
 	// that may be consumed in order to proxy service traffic.
 	// If (unspecified, 0, or 0-0) then ports will be randomly chosen.
@@ -154,9 +156,41 @@ func (cfg *Config) checkAndSetDefaults() (err error) {
 	if err != nil {
 		return trace.Wrap(err)
 	}
+
+	if err := verifyPodSubnetSize(cfg.PodSubnetSize, cfg.PodCIDR); err != nil {
+		return trace.Wrap(err, "failed to verify pod subnet size")
+	}
+
 	if cfg.VxlanPort <= 0 {
 		cfg.VxlanPort = DefaultVxlanPort
 	}
+	return nil
+}
+
+// verifyPodSubnetSize verifies that the subnet size is not too small and verifies
+// that the subnet size is not larger than the network CIDR range.
+func verifyPodSubnetSize(subnetSize int, cidr kv.CIDR) error {
+	// The minimum subnet size accepted by flannel is /28:
+	// https://github.com/gravitational/flannel/blob/master/subnet/config.go#L70-L74
+	if subnetSize > 28 {
+		return trace.BadParameter("pod subnet is too small. Minimum useful network prefix is /28").
+			AddField("pod-subnet-size", subnetSize)
+	}
+
+	// Verify subnet size is not larger than the network CIDR range.
+	_, ipv4Net, err := net.ParseCIDR(cidr.String())
+	if err != nil {
+		return trace.Wrap(err, "failed to parse cidr").
+			AddField("pod-subnet", cidr.String())
+	}
+
+	prefixSize, _ := ipv4Net.Mask.Size()
+	if subnetSize < prefixSize {
+		return trace.BadParameter("pod subnet size cannot be larger than the network CIDR range").
+			AddField("pod-subnet", cidr.String()).
+			AddField("pod-subnet-size", subnetSize)
+	}
+
 	return nil
 }
 
