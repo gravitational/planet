@@ -1,0 +1,19 @@
+#!/bin/bash
+set -eu
+
+# find out the real absolute path to this script, it may include the planet rootfs path
+if [ -L $0 ]; then
+    # invoked from host via a helm symlink set up during installation
+    DIR=$(dirname $(readlink $0))
+    KUBE_CONFIG=/etc/kubernetes/kubectl-host.kubeconfig
+else
+    # invoked directly, e.g. from inside the planet
+    DIR=$(dirname $0)
+    KUBE_CONFIG=/etc/kubernetes/kubectl.kubeconfig
+fi
+
+# determine the absolute path to the planet rootfs
+PLANET_ROOT=$(realpath ${DIR}/../../../)
+
+# invoke the real helm binary with a proper config and propagate all arguments as-is
+KUBECONFIG=${PLANET_ROOT}${KUBE_CONFIG} ${PLANET_ROOT}/usr/bin/helm3 "$@"
