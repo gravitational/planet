@@ -25,7 +25,7 @@
             "name": "version-helm",
             "value": "REPLACE_HELM_LATEST_VERSION"
         },
-	{
+        {
             "name": "version-helm3",
             "value": "REPLACE_HELM3_LATEST_VERSION"
         },
