@@ -5,6 +5,7 @@ DOWNLOAD_URL := https://storage.googleapis.com/kubernetes-release/release/$(KUBE
 REPODIR := $(GOPATH)/src/github.com/kubernetes/kubernetes
 OUTPUTDIR := $(ASSETDIR)/k8s-$(KUBE_VER)
 HELM_TARBALL:= $(ASSETDIR)/helm-$(HELM_VER).tgz
+HELM3_TARBALL:= $(ASSETDIR)/helm-$(HELM3_VER).tgz
 COREDNS_TARBALL := $(ASSETDIR)/coredns-$(COREDNS_VER).tgz
 BINARIES := kube-apiserver \
 	kube-controller-manager \
@@ -13,11 +14,12 @@ BINARIES := kube-apiserver \
 	kube-proxy \
 	kubelet
 KUBE_OUTPUTS := $(addprefix $(OUTPUTDIR)/, $(BINARIES))
-OUTPUTS := $(KUBE_OUTPUTS) $(HELM_TARBALL) $(COREDNS_TARBALL)
+OUTPUTS := $(KUBE_OUTPUTS) $(HELM_TARBALL) $(HELM3_TARBALL) $(COREDNS_TARBALL)
 
 all: kubernetes.mk $(OUTPUTS)
 	tar xvzf $(COREDNS_TARBALL) -C $(ROOTFS)/usr/bin coredns
 	tar xvzf $(HELM_TARBALL) --strip-components=1 -C $(ROOTFS)/usr/bin linux-amd64/helm
+	tar --transform='flags=r;s|helm|helm3|' -xvzf $(HELM3_TARBALL) --strip-components=1 -C $(ROOTFS)/usr/bin linux-amd64/helm
 
 $(OUTPUTDIR):
 	mkdir -p $@
@@ -28,7 +30,11 @@ $(KUBE_OUTPUTS): | $(OUTPUTDIR)
 	chmod +x $@
 
 $(HELM_TARBALL):
-	curl https://kubernetes-helm.storage.googleapis.com/helm-v$(HELM_VER)-linux-amd64.tar.gz \
+	curl https://get.helm.sh/helm-v$(HELM_VER)-linux-amd64.tar.gz \
+		-o $@
+
+$(HELM3_TARBALL):
+	curl https://get.helm.sh/helm-v$(HELM3_VER)-linux-amd64.tar.gz \
 		-o $@
 
 $(COREDNS_TARBALL):
