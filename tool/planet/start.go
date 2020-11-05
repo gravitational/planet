@@ -141,6 +141,7 @@ func start(config *Config, monitorc chan<- bool) (*runtimeContext, error) {
 		box.EnvPair{Name: EnvCloudProvider, Val: config.CloudProvider},
 		box.EnvPair{Name: EnvServiceSubnet, Val: config.ServiceCIDR.String()},
 		box.EnvPair{Name: EnvPodSubnet, Val: config.PodCIDR.String()},
+		box.EnvPair{Name: EnvPodSubnetSize, Val: strconv.Itoa(config.PodSubnetSize)},
 		box.EnvPair{Name: EnvServiceNodePortRange, Val: config.ServiceNodePortRange},
 		box.EnvPair{Name: EnvProxyPortRange, Val: config.ProxyPortRange},
 		box.EnvPair{Name: EnvPublicIP, Val: config.PublicIP},

@@ -97,7 +97,8 @@ func run() error {
 		cstartRoles          = List(cstart.Flag("role", "Roles such as 'master' or 'node'").OverrideDefaultFromEnvar("PLANET_ROLE"))
 		cstartSecretsDir     = cstart.Flag("secrets-dir", "Directory with master secrets - certificate authority and certificates").OverrideDefaultFromEnvar("PLANET_SECRETS_DIR").ExistingDir()
 		cstartServiceCIDR    = kv.CIDRFlag(cstart.Flag("service-subnet", "IP range from which to assign service cluster IPs. This must not overlap with any IP ranges assigned to nodes for pods.").Default(DefaultServiceSubnet).Envar(EnvPlanetServiceSubnet))
-		cstartPodCIDR        = kv.CIDRFlag(cstart.Flag("pod-subnet", "subnet dedicated to the pods in the cluster").Default(DefaultPodSubnet).OverrideDefaultFromEnvar("PLANET_POD_SUBNET"))
+		cstartPodCIDR        = cidrFlag(cstart.Flag("pod-subnet", "subnet dedicated to the pods in the cluster").Default(DefaultPodSubnet).OverrideDefaultFromEnvar("PLANET_POD_SUBNET"))
+		cstartPodSubnetSize  = cstart.Flag("pod-subnet-size", "Size of the subnet allocated to each host").Default(strconv.Itoa(DefaultPodSubnetSize)).OverrideDefaultFromEnvar("PLANET_POD_SUBNET_SIZE").Int()
 		cstartProxyPortRange = cstart.Flag("proxy-portrange", "Range of host ports (beginPort-endPort, single port or beginPort+offset, inclusive) that may be consumed in order to proxy service traffic. If (unspecified, 0, or 0-0) then ports will be randomly chosen.").
 					OverrideDefaultFromEnvar(EnvPlanetProxyPortRange).String()
 		cstartServiceNodePortRange = cstart.Flag("service-node-portrange", "A port range to reserve for services with NodePort visibility. Example: '30000-32767'. Inclusive at both ends of the range.").
@@ -419,7 +420,8 @@ func run() error {
 			GCENodeTags:          *cstartGCENodeTags,
 			SecretsDir:           *cstartSecretsDir,
 			ServiceCIDR:          *cstartServiceCIDR,
-			PodCIDR:              *cstartPodCIDR,
+			PodCIDR:              cstartPodCIDR.ipNet,
+			PodSubnetSize:        *cstartPodSubnetSize,
 			ProxyPortRange:       *cstartProxyPortRange,
 			ServiceNodePortRange: *cstartServiceNodePortRange,
 			FeatureGates:         *cstartFeatureGates,
