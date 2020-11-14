@@ -46,7 +46,6 @@ import (
 	"github.com/gravitational/satellite/lib/history/sqlite"
 	"github.com/gravitational/trace"
 	"github.com/gravitational/version"
-	serf "github.com/hashicorp/serf/client"
 	"github.com/opencontainers/runc/libcontainer/configs"
 	"github.com/opencontainers/selinux/go-selinux"
 	log "github.com/sirupsen/logrus"
@@ -151,9 +150,7 @@ func run() error {
 		cagentRPCAddrs         = List(cagent.Flag("rpc-addr", "Address to bind the RPC listener to.  Can be specified multiple times").Default("127.0.0.1:7575"))
 		cagentMetricsAddr      = cagent.Flag("metrics-addr", "Address to listen on for web interface and telemetry for Prometheus metrics").Default("127.0.0.1:7580").String()
 		cagentKubeAddr         = cagent.Flag("kube-addr", "Address of the kubernetes API server.  Will default to apiserver-dns:8080").String()
-		cagentName             = cagent.Flag("name", "Agent name.  Must be the same as the name of the local serf node").OverrideDefaultFromEnvar(EnvAgentName).String()
 		cagentNodeName         = cagent.Flag("node-name", "Kubernetes node name").OverrideDefaultFromEnvar(EnvNodeName).String()
-		cagentSerfRPCAddr      = cagent.Flag("serf-rpc-addr", "RPC address of the local serf node").Default("127.0.0.1:7373").String()
 		cagentInitialCluster   = KeyValueList(cagent.Flag("initial-cluster", "Initial planet cluster configuration as a comma-separated list of peers").OverrideDefaultFromEnvar(EnvInitialCluster))
 		cagentRegistryAddr     = cagent.Flag("docker-registry-addr",
 			"Address of the private docker registry.  Will default to apiserver-dns:5000").String()
@@ -325,9 +322,8 @@ func run() error {
 		}
 		config := agentConfig{
 			agent: &agent.Config{
-				Name:        *cagentName,
+				Name:        *cagentNodeName,
 				RPCAddrs:    *cagentRPCAddrs,
-				SerfConfig:  serf.Config{Addr: *cagentSerfRPCAddr},
 				MetricsAddr: *cagentMetricsAddr,
 				Cache:       cache,
 				CAFile:      *cagentEtcdCAFile,
