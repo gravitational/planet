@@ -43,7 +43,7 @@ require (
 	github.com/gravitational/version v0.0.2-0.20170324200323-95d33ece5ce1
 	github.com/grpc-ecosystem/go-grpc-middleware v1.2.0 // indirect
 	github.com/grpc-ecosystem/grpc-gateway v1.14.5 // indirect
-	github.com/hashicorp/serf v0.9.2
+	github.com/hashicorp/serf v0.9.2 // indirect
 	github.com/imdario/mergo v0.3.6
 	github.com/jonboulle/clockwork v0.2.2 // indirect
 	github.com/konsorten/go-windows-terminal-sequences v1.0.3 // indirect
