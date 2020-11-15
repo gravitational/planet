@@ -229,11 +229,6 @@ func run() error {
 
 		cetcdInit = cetcd.Command("init", "Setup etcd to run the correct version").Hidden()
 
-		// take an etcd backup
-		cetcdBackup       = cetcd.Command("backup", "Backup the etcd datastore to a file")
-		cetcdBackupFile   = cetcdBackup.Arg("file", "The file to store the backup").String()
-		cetcdBackupPrefix = cetcdBackup.Flag("prefix", "Optional etcd prefix to backup (e.g. /gravity). Can be supplied multiple times").Default(ETCDBackupPrefix).Strings()
-
 		// disable etcd service
 		cetcdDisable = cetcd.Command("disable", "Disable etcd on this node")
 
@@ -241,12 +236,11 @@ func run() error {
 		cetcdEnable           = cetcd.Command("enable", "Enable etcd on this node")
 		cetcdEnableJoinMaster = cetcdEnable.Flag("join-master", "join this node to an existing master node").String()
 
-		// restore all kvps taken from a backup
-		cetcdRestore     = cetcd.Command("restore", "Restore etcd backup as part of the upgrade")
-		cetcdRestoreFile = cetcdRestore.Arg("file", "A previously taken backup file to use during upgrade").Required().ExistingFile()
+		cetcdSetVersion          = cetcd.Command("set-version", "Set the requested version of etcd as active").Hidden()
+		cetcdSetVersionToVersion = cetcdSetVersion.Arg("version", "The version string of etcd to use").String()
 
-		cetcdSetVersion              = cetcd.Command("set-version", "Set the version of etcd to use").Hidden()
-		cetcdSetVersionTargetVersion = cetcdBackup.Arg("file", "The file to store the backup").String()
+		cetcdWipe          = cetcd.Command("wipe", "Wipe out all local etcd data").Hidden()
+		cetcdWipeConfirmed = cetcdWipe.Flag("confirm", "Auto-confirm the action").Bool()
 
 		// leader election commands
 		cleader              = app.Command("leader", "Leader election control")
@@ -533,23 +527,14 @@ func run() error {
 	case cetcdInit.FullCommand():
 		err = etcdInit()
 
-	case cetcdBackup.FullCommand():
-		err = etcdBackup(*cetcdBackupFile, *cetcdBackupPrefix)
-
 	case cetcdEnable.FullCommand():
-		err = etcdEnable(*cetcdEnableUpgrade, *cetcdEnableJoinMaster)
+		err = etcdEnable(*cetcdEnableJoinMaster)
 
 	case cetcdDisable.FullCommand():
-		err = etcdDisable(*cetcdDisableUpgrade, *cetcdStopApiserver)
+		err = etcdDisable()
 
-	case cetcdUpgrade.FullCommand():
-		err = etcdUpgrade(false)
-
-	case cetcdRollback.FullCommand():
-		err = etcdUpgrade(true)
-
-	case cetcdRestore.FullCommand():
-		err = etcdRestore(*cetcdRestoreFile)
+	case cetcdSetVersion.FullCommand():
+		err = etcdSetVersion(*cetcdSetVersionToVersion)
 
 	case cetcdWipe.FullCommand():
 		err = etcdWipe(*cetcdWipeConfirmed)
