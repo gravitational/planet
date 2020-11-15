@@ -229,26 +229,24 @@ func run() error {
 
 		cetcdInit = cetcd.Command("init", "Setup etcd to run the correct version").Hidden()
 
+		// take an etcd backup
 		cetcdBackup       = cetcd.Command("backup", "Backup the etcd datastore to a file")
 		cetcdBackupFile   = cetcdBackup.Arg("file", "The file to store the backup").String()
 		cetcdBackupPrefix = cetcdBackup.Flag("prefix", "Optional etcd prefix to backup (e.g. /gravity). Can be supplied multiple times").Default(ETCDBackupPrefix).Strings()
 
-		cetcdDisable        = cetcd.Command("disable", "Disable etcd on this node")
-		cetcdDisableUpgrade = cetcdDisable.Flag("upgrade", "disable the upgrade service").Bool()
-		cetcdStopApiserver  = cetcdDisable.Flag("stop-api", "stops the kubernetes API service").Bool()
+		// disable etcd service
+		cetcdDisable = cetcd.Command("disable", "Disable etcd on this node")
 
+		// enable etcd service
 		cetcdEnable           = cetcd.Command("enable", "Enable etcd on this node")
-		cetcdEnableUpgrade    = cetcdEnable.Flag("upgrade", "enable the upgrade service").Bool()
 		cetcdEnableJoinMaster = cetcdEnable.Flag("join-master", "join this node to an existing master node").String()
 
-		cetcdUpgrade  = cetcd.Command("upgrade", "Upgrade etcd to the latest version")
-		cetcdRollback = cetcd.Command("rollback", "Rollback etcd to the previous release")
-
+		// restore all kvps taken from a backup
 		cetcdRestore     = cetcd.Command("restore", "Restore etcd backup as part of the upgrade")
 		cetcdRestoreFile = cetcdRestore.Arg("file", "A previously taken backup file to use during upgrade").Required().ExistingFile()
 
-		cetcdWipe          = cetcd.Command("wipe", "Wipe out all local etcd data").Hidden()
-		cetcdWipeConfirmed = cetcdWipe.Flag("confirm", "Auto-confirm the action").Bool()
+		cetcdSetVersion              = cetcd.Command("set-version", "Set the version of etcd to use").Hidden()
+		cetcdSetVersionTargetVersion = cetcdBackup.Arg("file", "The file to store the backup").String()
 
 		// leader election commands
 		cleader              = app.Command("leader", "Leader election control")
