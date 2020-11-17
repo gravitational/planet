@@ -355,7 +355,7 @@ func runAgent(config agentConfig) error {
 	}
 	config.agent.Tags["role"] = string(config.monitoring.Role)
 
-	clientset, err := getKubeClientFromPath(constants.KubectlConfigPath)
+	clientset, err := getKubeClientFromPath(constants.KubeletConfigPath)
 	if err != nil {
 		return trace.Wrap(err, "failed to get Kubernetes clientset")
 	}
