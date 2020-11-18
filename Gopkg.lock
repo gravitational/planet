@@ -430,7 +430,8 @@
   version = "v1.0.0"
 
 [[projects]]
-  digest = "1:6431d8417c06afed8394a2ec98732d59d8f4272dbdc6966076602b57d3efcbf1"
+  branch = "walt/7.0-nf-nat-ipv4"
+  digest = "1:de5b3032c10ac9cd09e54d90b9affbd807481cb5809638756a6741e395f2e3e3"
   name = "github.com/gravitational/satellite"
   packages = [
     "agent",
@@ -451,8 +452,7 @@
     "utils",
   ]
   pruneopts = "UT"
-  revision = "853c9e775c27c30c8eee3c2fbd683daf0bcf6548"
-  version = "7.0.23"
+  revision = "2e2407185f8448b415e4df7c9b1074a115be4dc7"
 
 [[projects]]
   digest = "1:5639168299375c369a68748214586e3b25bbc17e7ec9c64564f43f4635097bfc"
