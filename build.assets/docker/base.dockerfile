@@ -55,6 +55,7 @@ RUN export DEBIAN_FRONTEND=noninteractive && set -ex && \
         conntrack \
         strace \
         netbase \
+        bsdmainutils \
         && apt-get -y autoclean && apt-get -y clean && apt-get autoremove \
         && rm -rf /var/lib/apt/lists/*;
 

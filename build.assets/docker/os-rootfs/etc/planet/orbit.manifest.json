@@ -26,6 +26,11 @@
             "value": "REPLACE_HELM_LATEST_VERSION"
         },
         {
+            "name": "version-helm3",
+            "value": "REPLACE_HELM3_LATEST_VERSION"
+        },
+
+        {
             "name": "version-coredns",
             "value": "REPLACE_COREDNS_LATEST_VERSION"
         },
@@ -157,6 +162,14 @@
                 "env": "PLANET_POD_SUBNET",
                 "cli": {
                     "name": "pod-subnet"
+                }
+            },
+            {
+                "type": "String",
+                "name": "podsubnetsize",
+                "env": "PLANET_POD_SUBNET_SIZE",
+                "cli": {
+                    "name": "pod-subnet-size"
                 }
             },
             {

@@ -141,6 +141,7 @@ func start(config *Config) (*runtimeContext, error) {
 		box.EnvPair{Name: EnvCloudProvider, Val: config.CloudProvider},
 		box.EnvPair{Name: EnvServiceSubnet, Val: config.ServiceCIDR.String()},
 		box.EnvPair{Name: EnvPodSubnet, Val: config.PodCIDR.String()},
+		box.EnvPair{Name: EnvPodSubnetSize, Val: strconv.Itoa(config.PodSubnetSize)},
 		box.EnvPair{Name: EnvServiceNodePortRange, Val: config.ServiceNodePortRange},
 		box.EnvPair{Name: EnvProxyPortRange, Val: config.ProxyPortRange},
 		box.EnvPair{Name: EnvPublicIP, Val: config.PublicIP},
@@ -616,7 +617,9 @@ func addKubeConfig(config *Config) error {
 		if err != nil {
 			return trace.Wrap(err)
 		}
-		err = utils.SafeWriteFile(path, kubeConfig, constants.SharedReadMask)
+		// set read-only permissions for kubectl.kubeconfig to avoid annoying warning from Helm 3
+		// 'WARNING: Kubernetes configuration file is group-readable. This is insecure. Location: /etc/kubernetes/kubectl.kubeconfig'
+		err = utils.SafeWriteFile(path, kubeConfig, constants.OwnerReadMask)
 		if err != nil {
 			return trace.Wrap(err)
 		}
