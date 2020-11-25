@@ -1,0 +1,12 @@
+# EventRateLimit Configuration
+# Documentation: https://kubernetes.io/docs/reference/access-authn-authz/admission-controllers/#eventratelimit
+
+apiVersion: eventratelimit.admission.k8s.io/v1alpha1
+kind: Configuration
+limits:
+- type: Server
+  qps: 1000
+  busrt: 10000
+- type: Namespace
+  qps: 100
+  burst: 1000
