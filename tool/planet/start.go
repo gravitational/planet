@@ -617,7 +617,9 @@ func addKubeConfig(config *Config) error {
 		if err != nil {
 			return trace.Wrap(err)
 		}
-		err = utils.SafeWriteFile(path, kubeConfig, constants.SharedReadMask)
+		// set read-only permissions for kubectl.kubeconfig to avoid annoying warning from Helm 3
+		// 'WARNING: Kubernetes configuration file is group-readable. This is insecure. Location: /etc/kubernetes/kubectl.kubeconfig'
+		err = utils.SafeWriteFile(path, kubeConfig, constants.OwnerReadMask)
 		if err != nil {
 			return trace.Wrap(err)
 		}
