@@ -1,0 +1,14 @@
+# ImagePolicyWebhook Configuration
+# Documentation: https://kubernetes.io/docs/reference/access-authn-authz/admission-controllers/#imagepolicywebhook
+# Example: https://github.com/flavio/kube-image-bouncer
+
+# imagePolicy:
+#   kubeConfigFile: "<path-to-kubeconfig-file>"
+#   # time in s to cache approval
+#   allowTTL: 50
+#   # time in s to cache denial
+#   denyTTL: 50
+#   # time in ms to wait between retries
+#   retryBackoff: 500
+#   # determines behavior if the webhook backend fails
+#   defaultAllow: false

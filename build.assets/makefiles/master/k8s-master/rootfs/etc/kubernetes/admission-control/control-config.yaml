@@ -6,3 +6,5 @@ kind: AdmissionConfiguration
 plugins:
 - name: EventRateLimit
   path: event-config.yaml
+- name: ImagePolicyWebhook
+  path: image-policy-config.yaml
