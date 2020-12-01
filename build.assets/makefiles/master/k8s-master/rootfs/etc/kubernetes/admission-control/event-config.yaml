@@ -6,7 +6,7 @@ kind: Configuration
 limits:
 - type: Server
   qps: 1000
-  busrt: 10000
+  burst: 10000
 - type: Namespace
   qps: 100
   burst: 1000
