@@ -367,7 +367,6 @@ func runAgent(config agentConfig) error {
 
 	cluster, err := k8smembership.NewCluster(&k8smembership.Config{
 		Informer: informer,
-		Stop:     stop,
 	})
 	if err != nil {
 		return trace.Wrap(err, "failed to initialize cluster membership")
