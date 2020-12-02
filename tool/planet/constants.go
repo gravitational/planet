@@ -244,7 +244,7 @@ const (
 	// EnvDisableFlannel is an environment variable to indicate whether we should disable flannel within planet
 	EnvDisableFlannel = "PLANET_DISABLE_FLANNEL"
 
-	// EnvOpenEBSEnabled names the environment variable that specifies if this
+	// EnvOpenEBSEnabled is an environment variable that specifies if this
 	// deployment is OpenEBS enabled
 	EnvOpenEBSEnabled = "PLANET_OPENEBS_ENABLED"
 
@@ -354,7 +354,7 @@ const (
 	CorednsServiceName = "coredns.service"
 
 	// ETCDGatewayDropinPath is the location of the systemd dropin when etcd is in gateway mode
-	ETCDGatewayDropinPath = "/etc/systemd/system/etcd.service.d/"
+	ETCDGatewayDropinPath = "/etc/systemd/system/etcd.service.d/10-gateway.conf"
 
 	// ISCSIDServicePath is the location of the systemd unit file for iscsid
 	ISCSIDServicePath = "lib/systemd/system/iscsid.service"
