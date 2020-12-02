@@ -6,9 +6,6 @@ ARG IPTABLES_VER
 ARG PLANET_UID
 ARG PLANET_GID
 
-ARG ISCSID_VER
-ARG ISCSID_PKG=open-iscsi_${ISCSID_VER}ubuntu6_amd64.deb
-
 # FIXME: allowing downgrades and pinning the version of libip4tc0 for iptables
 # as the package has a dependency on the older version as the one available.
 RUN export DEBIAN_FRONTEND=noninteractive && set -ex && \
@@ -25,7 +22,6 @@ RUN export DEBIAN_FRONTEND=noninteractive && set -ex && \
         libncurses5 \
         net-tools \
         curl \
-        wget \
         iproute2 \
         lsb-base \
         dash \
@@ -53,6 +49,7 @@ RUN export DEBIAN_FRONTEND=noninteractive && set -ex && \
         nfs-common \
         jq \
         conntrack \
+        open-iscsi \
         strace \
         netbase \
         bsdmainutils \
@@ -85,17 +82,9 @@ RUN export DEBIAN_FRONTEND=noninteractive && set -ex \
         automake \
         pkg-config \
         libmnl-dev \
-        make
-
-# Deploy Ubuntu .deb in order to get .socket activated iscsid. Debian's iscsid is not socket activated.
-# Socket activation is needed in order to avoid developing custom logic to start the service
-# when OpenEBS enabled application is deployed.
-RUN set -ex && \
-    wget http://mirrors.kernel.org/ubuntu/pool/main/o/open-iscsi/${ISCSID_PKG} && \
-    apt install -y ./${ISCSID_PKG} && \
-    rm -rf ${ISCSID_PKG} && \
-    apt-get -y autoclean && apt-get -y clean && apt-get autoremove -y \
-            && rm -rf /var/lib/apt/lists/*;
+        make \
+        && apt-get -y autoclean && apt-get -y clean && apt-get autoremove -y \
+        && rm -rf /var/lib/apt/lists/*;
 
 RUN set -ex && \
     groupadd --system --non-unique --gid ${PLANET_GID} planet && \

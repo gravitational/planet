@@ -129,6 +129,9 @@ type Config struct {
 	NodeLabels []string
 	// DisableFlannel tells planet to disable the embedded flannel plugin
 	DisableFlannel bool
+	// OpenEBSEnabled tells Planet if it should perform OpenEBS related setups
+	// (enable or disable ISCSI)
+	OpenEBSEnabled bool
 	// KubeletConfig specifies the configuration for kubelet as JSON-encoded payload
 	KubeletConfig string
 	// CloudConfig specifies the cloud configuration as JSON-encoded payload

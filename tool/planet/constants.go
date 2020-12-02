@@ -244,6 +244,10 @@ const (
 	// EnvDisableFlannel is an environment variable to indicate whether we should disable flannel within planet
 	EnvDisableFlannel = "PLANET_DISABLE_FLANNEL"
 
+	// EnvOpenEBSEnabled names the environment variable that specifies if this
+	// deployment is OpenEBS enabled
+	EnvOpenEBSEnabled = "PLANET_OPENEBS_ENABLED"
+
 	// EnvPlanetKubeletConfig specifies the kubelet configuration as a base64-encoded JSON payload.
 	// This is external configuration for the container
 	EnvPlanetKubeletConfig = "PLANET_KUBELET_CONFIG"
@@ -350,7 +354,13 @@ const (
 	CorednsServiceName = "coredns.service"
 
 	// ETCDGatewayDropinPath is the location of the systemd dropin when etcd is in gateway mode
-	ETCDGatewayDropinPath = "/etc/systemd/system/etcd.service.d/10-gateway.conf"
+	ETCDGatewayDropinPath = "/etc/systemd/system/etcd.service.d/"
+
+	// ISCSIDServicePath is the location of the systemd unit file for iscsid
+	ISCSIDServicePath = "lib/systemd/system/iscsid.service"
+
+	// OpenISCSIServicePath is the location of the systemd unit file for open-iscsi
+	OpenISCSIServicePath = "lib/systemd/system/open-iscsi.service"
 
 	// PlanetResolv is planet local resolver
 	PlanetResolv = "resolv.gravity.conf"

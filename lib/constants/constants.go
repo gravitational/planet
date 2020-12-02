@@ -53,6 +53,12 @@ const (
 	// SharedDirMask is a mask for shared directories
 	SharedDirMask = 0755
 
+	// OwnerGroupRWXOtherRX  sets permissions so that,
+	// (U)ser / owner can read, can write and can execute.
+	// (G)roup can read, can write and can execute.
+	// (O)thers can read, can't write and can execute.
+	OwnerGroupRWXOtherRX = 0775
+
 	// GroupReadWriteMask is a file mask for owder/group read/write
 	GroupReadWriteMask = 0660
 

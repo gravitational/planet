@@ -36,6 +36,7 @@ import (
 	"github.com/gravitational/planet/lib/check"
 	"github.com/gravitational/planet/lib/constants"
 	"github.com/gravitational/planet/lib/defaults"
+	"github.com/gravitational/planet/lib/systemd"
 	"github.com/gravitational/planet/lib/user"
 	"github.com/gravitational/planet/lib/utils"
 
@@ -160,6 +161,7 @@ func start(config *Config) (*runtimeContext, error) {
 		box.EnvPair{Name: EnvClusterID, Val: config.ClusterID},
 		box.EnvPair{Name: EnvNodeName, Val: config.NodeName},
 		box.EnvPair{Name: EnvElectionEnabled, Val: strconv.FormatBool(config.ElectionEnabled)},
+		box.EnvPair{Name: EnvOpenEBSEnabled, Val: strconv.FormatBool(config.OpenEBSEnabled)},
 		box.EnvPair{Name: EnvDNSHosts, Val: config.DNS.Hosts.String()},
 		box.EnvPair{Name: EnvDNSZones, Val: config.DNS.Zones.String()},
 		box.EnvPair{Name: EnvPlanetAllowPrivileged, Val: strconv.FormatBool(config.AllowPrivileged)},
@@ -181,6 +183,11 @@ func start(config *Config) (*runtimeContext, error) {
 		return nil, trace.Wrap(err)
 	}
 	if err = addCloudOptions(config); err != nil {
+		return nil, trace.Wrap(err)
+	}
+
+	err = setupISCSI(config)
+	if err != nil {
 		return nil, trace.Wrap(err)
 	}
 
@@ -520,6 +527,25 @@ func setupEtcd(config *Config) error {
 	)
 	if err != nil && !os.IsExist(err) {
 		return trace.Wrap(err)
+	}
+
+	return nil
+}
+
+// setupISCSI runs ISCSI related setup tasks.
+// If OpenEBS is disabled in the config then
+// we disable(mask) the ISCSI related services.
+func setupISCSI(config *Config) error {
+	if !config.OpenEBSEnabled {
+		err := systemd.MaskService(path.Join(config.Rootfs, ISCSIDServicePath))
+		if err != nil {
+			return trace.Wrap(err)
+		}
+
+		err = systemd.MaskService(path.Join(config.Rootfs, OpenISCSIServicePath))
+		if err != nil {
+			return trace.Wrap(err)
+		}
 	}
 
 	return nil

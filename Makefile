@@ -47,7 +47,6 @@ NODE_PROBLEM_DETECTOR_VER := v0.6.4
 CNI_VER := 0.8.6
 SERF_VER := v0.8.5
 IPTABLES_VER := v1.8.5
-ISCSID_VER := 2.0.874-7.1
 
 # planet user to use inside the rootfs tarball. This serves as a placeholder
 # and the files will be owned by the actual planet user after extraction
@@ -188,7 +187,7 @@ os:
 base: os
 	@echo -e "\n---> Making Planet/Base Docker image based on Planet/OS...\n"
 	$(MAKE) -e BUILDIMAGE=$(PLANET_IMAGE) DOCKERFILE=base.dockerfile \
-		EXTRA_ARGS="--build-arg SECCOMP_VER=$(SECCOMP_VER) --build-arg IPTABLES_VER=$(IPTABLES_VER) --build-arg PLANET_UID=$(PLANET_UID) --build-arg PLANET_GID=$(PLANET_GID) --build-arg PLANET_OS_IMAGE=$(PLANET_OS_IMAGE) --build-arg ISCSID_VER=$(ISCSID_VER)" \
+		EXTRA_ARGS="--build-arg SECCOMP_VER=$(SECCOMP_VER) --build-arg IPTABLES_VER=$(IPTABLES_VER) --build-arg PLANET_UID=$(PLANET_UID) --build-arg PLANET_GID=$(PLANET_GID) --build-arg PLANET_OS_IMAGE=$(PLANET_OS_IMAGE)" \
 		make-docker-image
 
 # Build a container used for building the planet image

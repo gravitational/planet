@@ -135,6 +135,7 @@ func run() error {
 		cstartTaints          = List(cstart.Flag("taint", "Kubernetes taints to apply to the node during creation").OverrideDefaultFromEnvar(EnvPlanetTaints))
 		cstartNodeLabels      = List(cstart.Flag("node-label", "Kubernetes node label to apply upon node registration").OverrideDefaultFromEnvar(EnvPlanetNodeLabels))
 		cstartDisableFlannel  = cstart.Flag("disable-flannel", "Disable flannel within the planet container").OverrideDefaultFromEnvar(EnvDisableFlannel).Bool()
+		cstartOpenEBSEnabled  = cstart.Flag("openebs-enabled", "Boolean flag to specify if this cluster is OpenEBS enabled").OverrideDefaultFromEnvar(EnvOpenEBSEnabled).Bool()
 		cstartKubeletConfig   = cstart.Flag("kubelet-config", "Kubelet configuration as base64-encoded JSON payload").OverrideDefaultFromEnvar(EnvPlanetKubeletConfig).String()
 		cstartCloudConfig     = cstart.Flag("cloud-config", "Cloud configuration as base64-encoded payload").OverrideDefaultFromEnvar(EnvPlanetCloudConfig).String()
 		cstartAllowPrivileged = cstart.Flag("allow-privileged", "Allow privileged containers").OverrideDefaultFromEnvar(EnvPlanetAllowPrivileged).Bool()
@@ -460,6 +461,7 @@ func run() error {
 			Taints:           *cstartTaints,
 			NodeLabels:       *cstartNodeLabels,
 			DisableFlannel:   *cstartDisableFlannel,
+			OpenEBSEnabled:   *cstartOpenEBSEnabled,
 			KubeletConfig:    *cstartKubeletConfig,
 			CloudConfig:      *cstartCloudConfig,
 			AllowPrivileged:  *cstartAllowPrivileged,
