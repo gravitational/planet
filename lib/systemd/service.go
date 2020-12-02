@@ -19,6 +19,7 @@ package systemd
 import (
 	"io/ioutil"
 	"os"
+	"path/filepath"
 
 	"github.com/gravitational/planet/lib/constants"
 
@@ -51,9 +52,8 @@ func DropIn(dropInFileName string, dropInDir string, dropInContents string) erro
 		return trace.Wrap(err)
 	}
 
-	dropInFullPath := dropInDir + dropInFileName
-
-	if err := ioutil.WriteFile(dropInFullPath, []byte(dropInContents), os.FileMode(constants.OwnerGroupRWXOtherRX)); err != nil {
+	if err := ioutil.WriteFile(filepath.Join(dropInDir, dropInFileName), []byte(dropInContents),
+		os.FileMode(constants.OwnerGroupRWXOtherRX)); err != nil {
 		return trace.Wrap(err)
 	}
 
