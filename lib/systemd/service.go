@@ -21,6 +21,8 @@ import (
 	"os"
 
 	"github.com/gravitational/planet/lib/constants"
+
+	"github.com/gravitational/trace"
 )
 
 // MaskService masks a service. Deletes the unit file first.
@@ -28,7 +30,7 @@ import (
 func MaskService(unitFilePath string) error {
 	err := os.Remove(unitFilePath)
 	if err != nil {
-		return err
+		return trace.Wrap(err)
 	}
 
 	err = os.Symlink(
@@ -36,23 +38,24 @@ func MaskService(unitFilePath string) error {
 		unitFilePath,
 	)
 	if err != nil {
-		return err
+		return trace.Wrap(err)
 	}
 
-	return err
+	return nil
 }
 
 // DropIn creates a systemd drop-in unit
 func DropIn(dropInFileName string, dropInDir string, dropInContents string) error {
 	err := os.MkdirAll(dropInDir, os.FileMode(constants.OwnerGroupRWXOtherRX))
 	if err != nil {
-		return err
+		return trace.Wrap(err)
 	}
 
 	dropInFullPath := dropInDir + dropInFileName
 
 	if err := ioutil.WriteFile(dropInFullPath, []byte(dropInContents), os.FileMode(constants.OwnerGroupRWXOtherRX)); err != nil {
-		return err
+		return trace.Wrap(err)
 	}
-	return err
+
+	return nil
 }
