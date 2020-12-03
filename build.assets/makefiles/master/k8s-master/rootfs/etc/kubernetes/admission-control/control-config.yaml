@@ -1,0 +1,8 @@
+# Admission Control Configuration
+# Documentation: https://kubernetes.io/docs/reference/access-authn-authz/admission-controllers
+
+apiVersion: apiserver.config.k8s.io/v1
+kind: AdmissionConfiguration
+plugins:
+- name: EventRateLimit
+  path: event-config.yaml
