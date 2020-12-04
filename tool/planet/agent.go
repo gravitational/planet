@@ -210,6 +210,12 @@ func startLeaderClient(conf *LeaderConfig, agent agent.Agent, errorC chan error)
 			// stop election participation
 			cancelVoter()
 			cancelVoter = nil
+
+			log.Info("Shut down services until election has been re-enabled.")
+			// Shut down services if we've been requested to not participate in elections
+			if err := stopUnits(context.TODO()); err != nil {
+				log.WithError(err).Warn("Failed to stop units.")
+			}
 		}
 	})
 	// modify /etc/hosts upon election of a new leader node
