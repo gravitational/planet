@@ -137,6 +137,8 @@ type Config struct {
 	AllowPrivileged bool
 	// SELinux turns on SELinux support
 	SELinux bool
+	// AdmissionPlugins lists the Kubernetes admission plugins to enable.
+	AdmissionPlugins []string
 }
 
 // DNS describes DNS server configuration
