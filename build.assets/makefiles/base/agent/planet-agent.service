@@ -15,7 +15,6 @@ LimitNPROC=1048576
 ExecStartPre=/bin/systemctl is-active etcd.service
 ExecStartPre=/bin/systemctl is-active serf.service
 ExecStart=/usr/bin/planet agent \
-        --name=${PLANET_AGENT_NAME} \
         --rpc-addr=${PLANET_PUBLIC_IP}:7575 \
         --rpc-addr=127.0.0.1:7575 \
         --metrics-addr=${PLANET_PUBLIC_IP}:7580 \

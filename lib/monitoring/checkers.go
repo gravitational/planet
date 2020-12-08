@@ -37,7 +37,6 @@ import (
 	"github.com/gravitational/satellite/monitoring"
 	"github.com/gravitational/satellite/monitoring/latency"
 	"github.com/gravitational/trace"
-	serf "github.com/hashicorp/serf/client"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/tools/clientcmd"
 )
@@ -261,8 +260,8 @@ func addToMaster(node agent.Agent, config *Config, etcdConfig *monitoring.ETCDCo
 
 	latencyChecker, err := latency.NewChecker(
 		&latency.Config{
-			NodeName:      config.NodeName,
-			KubeClient:    client,
+			NodeName:      node.GetConfig().Name,
+			Cluster:       node.GetConfig().Cluster,
 			LatencyClient: nethealth.NewClient(nethealth.DefaultNethealthSocket),
 		},
 	)
@@ -271,25 +270,11 @@ func addToMaster(node agent.Agent, config *Config, etcdConfig *monitoring.ETCDCo
 	}
 	node.AddChecker(latencyChecker)
 
-	serfClient, err := agent.NewSerfClient(serf.Config{
-		Addr: node.GetConfig().SerfConfig.Addr,
-	})
-	if err != nil {
-		return trace.Wrap(err)
-	}
-
-	serfMember, err := serfClient.FindMember(node.GetConfig().Name)
-	if err != nil {
-		return trace.Wrap(err)
-	}
-
 	timeDriftChecker, err := monitoring.NewTimeDriftChecker(
 		monitoring.TimeDriftCheckerConfig{
-			CAFile:     node.GetConfig().CAFile,
-			CertFile:   node.GetConfig().CertFile,
-			KeyFile:    node.GetConfig().KeyFile,
-			SerfClient: serfClient,
-			SerfMember: serfMember,
+			NodeName: node.GetConfig().Name,
+			Cluster:  node.GetConfig().Cluster,
+			DialRPC:  node.GetConfig().DialRPC,
 		})
 	if err != nil {
 		return trace.Wrap(err)

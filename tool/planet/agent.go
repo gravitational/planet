@@ -38,6 +38,7 @@ import (
 	"github.com/gravitational/satellite/agent"
 	pb "github.com/gravitational/satellite/agent/proto/agentpb"
 	"github.com/gravitational/satellite/cmd"
+	k8smembership "github.com/gravitational/satellite/lib/membership/kubernetes"
 	"github.com/gravitational/satellite/lib/rpc/client"
 	agentutils "github.com/gravitational/satellite/utils"
 	"github.com/gravitational/trace"
@@ -45,6 +46,8 @@ import (
 	etcd "go.etcd.io/etcd/client"
 	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/client-go/informers"
+	"k8s.io/client-go/kubernetes"
 	corev1 "k8s.io/client-go/kubernetes/typed/core/v1"
 	"k8s.io/client-go/tools/clientcmd"
 )
@@ -313,6 +316,22 @@ func stopUnits(ctx context.Context) error {
 	return trace.NewAggregate(errors...)
 }
 
+// getKubeClientFromPath returns a Kubernetes clientset using the given
+// kubeconfig file path.
+func getKubeClientFromPath(kubeconfigPath string) (*kubernetes.Clientset, error) {
+	config, err := clientcmd.BuildConfigFromFlags("", kubeconfigPath)
+	if err != nil {
+		return nil, trace.Wrap(err)
+	}
+
+	client, err := kubernetes.NewForConfig(config)
+	if err != nil {
+		return nil, trace.Wrap(err)
+	}
+
+	return client, nil
+}
+
 type agentConfig struct {
 	agent       *agent.Config
 	monitoring  *monitoring.Config
@@ -335,6 +354,25 @@ func runAgent(config agentConfig) error {
 		config.agent.Tags = make(map[string]string)
 	}
 	config.agent.Tags["role"] = string(config.monitoring.Role)
+
+	clientset, err := getKubeClientFromPath(constants.KubeletConfigPath)
+	if err != nil {
+		return trace.Wrap(err, "failed to get Kubernetes clientset")
+	}
+
+	informer := informers.NewSharedInformerFactory(clientset, 0).Core().V1().Nodes().Informer()
+	stop := make(chan struct{})
+	defer close(stop)
+	go informer.Run(stop)
+
+	cluster, err := k8smembership.NewCluster(&k8smembership.Config{
+		Informer: informer,
+	})
+	if err != nil {
+		return trace.Wrap(err, "failed to initialize cluster membership")
+	}
+	config.agent.Cluster = cluster
+
 	monitoringAgent, err := agent.New(config.agent)
 	if err != nil {
 		return trace.Wrap(err)
@@ -352,22 +390,6 @@ func runAgent(config agentConfig) error {
 	err = monitoringAgent.Start()
 	if err != nil {
 		return trace.Wrap(err)
-	}
-
-	// only join to the initial seed list if not member already,
-	// as the initial peer could be gone
-	isMember, err := monitoringAgent.IsMember()
-	if err != nil {
-		return trace.Wrap(err)
-	}
-	if !isMember && len(config.peers) > 0 {
-		log.Infof("Joining the cluster: %v.", config.peers)
-		err = monitoringAgent.Join(config.peers)
-		if err != nil {
-			return trace.Wrap(err, "failed to join serf cluster")
-		}
-	} else {
-		log.Info("This agent is already a member of the cluster.")
 	}
 
 	errorC := make(chan error, 10)
@@ -397,13 +419,6 @@ func runAgent(config agentConfig) error {
 		}
 	}
 
-	if config.monitoring.Role == RoleMaster {
-		kubeconfig, err := clientcmd.BuildConfigFromFlags("", constants.KubeletConfigPath)
-		if err != nil {
-			return trace.Wrap(err, "failed to build kubeconfig")
-		}
-		go startSerfReconciler(ctx, kubeconfig, &config.agent.SerfConfig)
-	}
 	go runSystemdCgroupCleaner(ctx)
 
 	signalc := make(chan os.Signal, 2)
