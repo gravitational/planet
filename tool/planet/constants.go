@@ -267,9 +267,6 @@ const (
 	// critical system pods.
 	EnvCriticalNamespaces = "PLANET_CRITICAL_NAMESPACES"
 
-	// EnvAdmissionPlugins lists the Kubernetes admission plugins to be enabled.
-	EnvAdmissionPlugins = "KUBE_ADMISSION_PLUGINS"
-
 	// DefaultDNSListenAddr is the default IP address CoreDNS will listen on
 	DefaultDNSListenAddr = "127.0.0.2"
 
@@ -440,9 +437,6 @@ const (
 
 	// DefaultCriticalNamespaces is the default list of critical namespaces
 	DefaultCriticalNamespaces = "kube-system,monitoring"
-
-	// DefaultAdmissionPlugins is the default list of enabled admission plugins
-	DefaultAdmissionPlugins = "PodSecurityPolicy,NodeRestriction,AlwaysPullImages,EventRateLimit"
 
 	// DNSEnvFile specifies the file location to write information about the overlay network
 	// in use to be picked up by scripts

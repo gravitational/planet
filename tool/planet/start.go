@@ -214,12 +214,6 @@ func start(config *Config) (*runtimeContext, error) {
 			Val:  strings.Join(localNameservers, ","),
 		})
 
-	config.Env = append(config.Env,
-		box.EnvPair{
-			Name: EnvAdmissionPlugins,
-			Val:  strings.Join(append(config.AdmissionPlugins, DefaultAdmissionPlugins), ","),
-		})
-
 	if len(config.Taints) > 0 {
 		config.Env = append(config.Env,
 			box.EnvPair{

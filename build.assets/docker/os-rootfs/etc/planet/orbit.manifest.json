@@ -499,18 +499,6 @@
                 "cli": {
                     "name": "feature-gates"
                 }
-            },
-            {
-                "type": "List",
-                "name": "admission-plugins",
-                "spec": {
-                    "name": "admission-plugins",
-                    "env": "KUBE_ADMISSION_PLUGINS",
-                    "type": "String",
-                    "cli": {
-                        "name": "admission-plugins"
-                    }
-                }
             }
         ]
     }
