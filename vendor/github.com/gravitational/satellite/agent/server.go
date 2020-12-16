@@ -228,6 +228,11 @@ func newTLSConfig(caCertPool *x509.CertPool) *tls.Config {
 		ClientAuth: tls.RequireAndVerifyClientCert,
 		// Use TLS Modern capability suites
 		// https://wiki.mozilla.org/Security/Server_Side_TLS
+		CipherSuites: []uint16{
+			tls.TLS_AES_128_GCM_SHA256,
+			tls.TLS_AES_256_GCM_SHA384,
+			tls.TLS_CHACHA20_POLY1305_SHA256,
+		},
 		MinVersion:               tls.VersionTLS13,
 	}
 	tlsConfig.BuildNameToCertificate()
