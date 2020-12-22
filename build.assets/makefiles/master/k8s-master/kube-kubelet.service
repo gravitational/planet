@@ -5,7 +5,7 @@ Wants=docker.service
 
 [Service]
 EnvironmentFile=/etc/container-environment
-EnvironmentFile=/run/dns.env
+EnvironmentFile=-/run/dns.env
 EnvironmentFile=-/run/kubernetes-reserved.env
 ExecStartPre=/bin/systemctl is-active docker.service
 ExecStartPre=/usr/bin/scripts/cluster-dns.sh
