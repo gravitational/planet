@@ -3,9 +3,7 @@ module github.com/gravitational/planet
 go 1.13
 
 require (
-	github.com/Azure/go-ansiterm v0.0.0-20170929234023-d6e3b3328b78 // indirect
 	github.com/Microsoft/go-winio v0.4.14 // indirect
-	github.com/alecthomas/template v0.0.0-20190718012654-fb15b899a751 // indirect
 	github.com/alecthomas/units v0.0.0-20190924025748-f65c72e2690d // indirect
 	github.com/cenkalti/backoff v2.0.0+incompatible
 	github.com/checkpoint-restore/go-criu v0.0.0-20181120144056-17b0214f6c48 // indirect
@@ -30,19 +28,16 @@ require (
 	github.com/ghodss/yaml v1.0.0
 	github.com/godbus/dbus v4.1.0+incompatible // indirect
 	github.com/godbus/dbus/v5 v5.0.3
-	github.com/golang/groupcache v0.0.0-20190129154638-5b532d6fd5ef // indirect
-	github.com/golang/protobuf v1.3.3 // indirect
 	github.com/gorilla/mux v1.7.1 // indirect
 	github.com/gorilla/websocket v1.4.0 // indirect
 	github.com/gravitational/configure v0.0.0-20180808141939-c3428bd84c23
 	github.com/gravitational/coordinate v0.0.0-20200227044100-12af3c0f9593
 	github.com/gravitational/etcd-backup v0.0.0-20201012185408-87328521981c
 	github.com/gravitational/go-udev v0.0.0-20160615210516-4cc8baba3689
-	github.com/gravitational/satellite v0.0.9-0.20201208011301-5a67ae767d68
+	github.com/gravitational/satellite v0.0.9-0.20201223220419-72a513b7d332
 	github.com/gravitational/trace v1.1.11
 	github.com/gravitational/version v0.0.2-0.20170324200323-95d33ece5ce1
 	github.com/grpc-ecosystem/go-grpc-middleware v1.2.0 // indirect
-	github.com/grpc-ecosystem/grpc-gateway v1.14.5 // indirect
 	github.com/hashicorp/serf v0.9.2 // indirect
 	github.com/imdario/mergo v0.3.6
 	github.com/jonboulle/clockwork v0.2.2 // indirect
@@ -58,7 +53,7 @@ require (
 	github.com/opencontainers/runtime-spec v1.0.2
 	github.com/opencontainers/selinux v1.4.0
 	github.com/pborman/uuid v0.0.0-20180906182336-adf5a7427709
-	github.com/prometheus/client_golang v1.1.0
+	github.com/prometheus/client_golang v1.7.1
 	github.com/seccomp/libseccomp-golang v0.9.0 // indirect
 	github.com/sirupsen/logrus v1.7.0
 	github.com/stretchr/testify v1.6.1
@@ -72,21 +67,16 @@ require (
 	go.uber.org/zap v1.14.0 // indirect
 	golang.org/x/crypto v0.0.0-20201012173705-84dcc777aaee // indirect
 	golang.org/x/lint v0.0.0-20200130185559-910be7a94367 // indirect
-	golang.org/x/net v0.0.0-20201016165138-7b1cca2348c0 // indirect
-	golang.org/x/oauth2 v0.0.0-20200107190931-bf48bf16ab8d // indirect
-	golang.org/x/sys v0.0.0-20201016160150-f659759dc4ca
+	golang.org/x/sys v0.0.0-20201112073958-5cba982894dd
 	golang.org/x/tools v0.0.0-20200225230052-807dcd883420 // indirect
-	google.golang.org/genproto v0.0.0-20200513103714-09dca8ec2884 // indirect
-	google.golang.org/grpc v1.26.0 // indirect
 	gopkg.in/alecthomas/kingpin.v2 v2.2.6
 	gopkg.in/check.v1 v1.0.0-20190902080502-41f04d3bba15
 	gopkg.in/yaml.v2 v2.2.8
 	gopkg.in/yaml.v3 v3.0.0-20200605160147-a5ece683394c // indirect
-	gotest.tools v2.2.0+incompatible // indirect
-	k8s.io/api v0.17.6
-	k8s.io/apimachinery v0.17.6
-	k8s.io/client-go v0.17.6
-	k8s.io/kubelet v0.17.6
+	k8s.io/api v0.19.6
+	k8s.io/apimachinery v0.19.6
+	k8s.io/client-go v0.19.6
+	k8s.io/kubelet v0.19.6
 )
 
 replace (
@@ -94,17 +84,20 @@ replace (
 	github.com/coreos/go-systemd => github.com/coreos/go-systemd v0.0.0-20180202092358-40e2722dffea
 	github.com/coreos/pkg => github.com/coreos/pkg v0.0.0-20180108230652-97fdf19511ea
 	github.com/docker/docker => github.com/docker/engine v17.12.0-ce-rc1.0.20200204220554-5f6d6f3f2203+incompatible
-	github.com/gogo/protobuf => github.com/gogo/protobuf v1.1.1
-	github.com/golang/protobuf => github.com/golang/protobuf v1.2.0
+	github.com/gogo/protobuf => github.com/gogo/protobuf v1.3.1
+	github.com/golang/protobuf => github.com/golang/protobuf v1.4.2
 	github.com/google/uuid => github.com/google/uuid v1.0.0
 	github.com/json-iterator/go => github.com/json-iterator/go v1.1.5
-	github.com/prometheus/common => github.com/prometheus/common v0.0.0-20181015124227-bcb74de08d37
+	github.com/prometheus/client_golang => github.com/prometheus/client_golang v1.6.0
+	github.com/prometheus/client_model => github.com/prometheus/client_model v0.2.0
+	github.com/prometheus/common => github.com/prometheus/common v0.10.0
 	github.com/sirupsen/logrus => github.com/gravitational/logrus v1.4.3
 	go.etcd.io/etcd => go.etcd.io/etcd v0.5.0-alpha.5.0.20200401174654-e694b7bb0875
 	golang.org/x/oauth2 => golang.org/x/oauth2 v0.0.0-20181017192945-9dcd33a902f4
 	golang.org/x/text => golang.org/x/text v0.3.0
 	golang.org/x/time => golang.org/x/time v0.0.0-20180412165947-fbb02b2291d2
 	google.golang.org/genproto => google.golang.org/genproto v0.0.0-20181016170114-94acd270e44e
+	google.golang.org/grpc => google.golang.org/grpc v1.23.1
 	gopkg.in/alecthomas/kingpin.v2 => github.com/gravitational/kingpin v2.1.11-0.20180808090833-85085db9f49b+incompatible
 	gopkg.in/yaml.v2 => gopkg.in/yaml.v2 v2.2.2
 )
