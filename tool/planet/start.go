@@ -32,6 +32,7 @@ import (
 	"text/template"
 	"time"
 
+	"github.com/davecgh/go-spew/spew"
 	"github.com/gravitational/planet/lib/box"
 	"github.com/gravitational/planet/lib/check"
 	"github.com/gravitational/planet/lib/constants"
@@ -558,6 +559,7 @@ func addKubeletOptions(config *Config) error {
 	kubeletConfig := KubeletConfig
 	if config.KubeletConfig != "" {
 		decoded, err := base64.StdEncoding.DecodeString(config.KubeletConfig)
+		spew.Dump(kubeletConfig)
 		if err != nil {
 			return trace.Wrap(err, "invalid kubelet configuration: expected base64-encoded payload")
 		}
@@ -566,6 +568,7 @@ func addKubeletOptions(config *Config) error {
 			return trace.Wrap(err, "invalid kubelet configuration: expected either JSON or YAML")
 		}
 		var externalConfig kubeletconfig.KubeletConfiguration
+		spew.Dump(externalConfig)
 		if err := json.Unmarshal(configBytes, &externalConfig); err != nil {
 			return trace.Wrap(err, "failed to unmarshal kubelet configuration from JSON")
 		}
@@ -577,6 +580,7 @@ func addKubeletOptions(config *Config) error {
 		if err != nil {
 			return trace.Wrap(err)
 		}
+		spew.Dump(kubeletConfig)
 	}
 	configBytes, err := yaml.Marshal(kubeletConfig)
 	if err != nil {
