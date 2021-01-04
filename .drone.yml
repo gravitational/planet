@@ -1,0 +1,55 @@
+---
+kind: pipeline
+type: kubernetes
+name: pr
+
+trigger:
+  event:
+  - pull_request
+
+steps:
+  - name: fetch tags
+    image: docker:git
+    commands:
+      - git fetch --tags
+  - name: wait for docker
+    image: docker
+    commands:
+      - timeout 15s /bin/sh -c 'while [ ! -S /var/run/docker.sock ]; do sleep 1; done'
+      - docker version
+    volumes:
+      - name: dockersock
+        path: /var/run
+  - name: build buildbox
+    image: docker:git
+    commands:
+      - apk add --no-cache make
+      - make buildbox
+    volumes:
+      - name: dockersock
+        path: /var/run
+  - name: build tarball
+    image: docker:git
+    commands:
+      - apk add --no-cache make fakeroot
+      - make production
+    volumes:
+      - name: dockersock
+        path: /var/run
+
+services:
+  - name: run docker daemon
+    image: docker:dind
+    privileged: true
+    volumes:
+      - name: dockersock
+        path: /var/run
+
+volumes:
+  - name: dockersock
+    temp: {}
+---
+kind: signature
+hmac: b38e0d956bc9dc2abee7fb1418a05b7233ade75516da22cdfaceb01fb253ffce
+
+...
