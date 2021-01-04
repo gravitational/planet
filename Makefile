@@ -27,7 +27,6 @@
 #
 .DEFAULT_GOAL := all
 
-SHELL := /bin/bash
 PWD := $(shell pwd)
 ASSETS := $(PWD)/build.assets
 BUILD_ASSETS := $(PWD)/build/assets
