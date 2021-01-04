@@ -580,12 +580,13 @@ func addKubeletOptions(config *Config) error {
 		if err != nil {
 			return trace.Wrap(err)
 		}
-		spew.Dump(kubeletConfig)
 	}
+	spew.Dump(kubeletConfig)
 	configBytes, err := yaml.Marshal(kubeletConfig)
 	if err != nil {
 		return trace.Wrap(err)
 	}
+	log.Warn(string(configBytes))
 	config.Files = append(config.Files, box.File{
 		Path:     constants.KubeletConfigFile,
 		Contents: bytes.NewReader(configBytes),
