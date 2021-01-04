@@ -1,8 +1,7 @@
 # Quick Start
 # -----------
 # make production:
-#     CD/CD build of Planet. This is what's used by Jenkins builds and this
-#     is what gets released to customers.
+#     Used by CI builds and what is released to customers.
 #
 # make:
 #     builds your changes and updates planet binary in
