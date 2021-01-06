@@ -118,8 +118,74 @@ services:
 volumes:
   - name: dockersock
     temp: {}
+
+---
+kind: pipeline
+type: kubernetes
+name: dev-publish
+
+trigger:
+  event:
+  - custom
+
+steps:
+  - name: fetch tags
+    image: docker:git
+    commands:
+      - git fetch --tags
+  - name: wait for docker
+    image: docker
+    commands:
+      - timeout 15s /bin/sh -c 'while [ ! -S /var/run/docker.sock ]; do sleep 1; done'
+      - docker version
+    volumes:
+      - name: dockersock
+        path: /var/run
+  - name: build buildbox
+    image: docker:git
+    commands:
+      - apk add --no-cache make
+      - make buildbox
+    volumes:
+      - name: dockersock
+        path: /var/run
+  - name: build tarball
+    image: docker:git
+    commands:
+      - apk add --no-cache make fakeroot
+      - make production
+    volumes:
+      - name: dockersock
+        path: /var/run
+  - name: publish to s3
+    image: docker:git
+    environment:
+      AWS_ACCESS_KEY_ID:
+        from_secret: AWS_ACCESS_KEY_ID
+      AWS_SECRET_ACCESS_KEY:
+        from_secret: AWS_SECRET_ACCESS_KEY
+      AWS_DEFAULT_REGION: us-east-1
+    commands:
+      - apk add --no-cache make aws-cli
+      - make dev-deploy
+    volumes:
+      - name: dockersock
+        path: /var/run
+
+services:
+  - name: run docker daemon
+    image: docker:dind
+    privileged: true
+    volumes:
+      - name: dockersock
+        path: /var/run
+
+volumes:
+  - name: dockersock
+    temp: {}
+
 ---
 kind: signature
-hmac: 16ff6331fc38270a5038e000f3687835b826ff6d2bb14d51c6702a6889b9342d
+hmac: 89b749595d4aac174eb23a4f8a4678b67241f2a05ada27ed6d02fea92a5acaae
 
 ...
