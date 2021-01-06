@@ -1,7 +1,7 @@
 ---
 kind: pipeline
 type: kubernetes
-name: pr
+name: validate
 
 trigger:
   event:
@@ -57,6 +57,7 @@ name: publish
 trigger:
   event:
   - tag
+  - custom
 
 steps:
   - name: fetch tags
@@ -89,6 +90,9 @@ steps:
         path: /var/run
   - name: publish
     image: docker:git
+    when:
+      event:
+      - tag
     environment:
       REGISTRY_USERNAME:
         from_secret: quay_username
@@ -106,59 +110,11 @@ steps:
     volumes:
       - name: dockersock
         path: /var/run
-
-services:
-  - name: run docker daemon
-    image: docker:dind
-    privileged: true
-    volumes:
-      - name: dockersock
-        path: /var/run
-
-volumes:
-  - name: dockersock
-    temp: {}
-
----
-kind: pipeline
-type: kubernetes
-name: dev-publish
-
-trigger:
-  event:
-  - custom
-
-steps:
-  - name: fetch tags
+  - name: dev-publish
     image: docker:git
-    commands:
-      - git fetch --tags
-  - name: wait for docker
-    image: docker
-    commands:
-      - timeout 15s /bin/sh -c 'while [ ! -S /var/run/docker.sock ]; do sleep 1; done'
-      - docker version
-    volumes:
-      - name: dockersock
-        path: /var/run
-  - name: build buildbox
-    image: docker:git
-    commands:
-      - apk add --no-cache make
-      - make buildbox
-    volumes:
-      - name: dockersock
-        path: /var/run
-  - name: build tarball
-    image: docker:git
-    commands:
-      - apk add --no-cache make fakeroot
-      - make production
-    volumes:
-      - name: dockersock
-        path: /var/run
-  - name: publish to s3
-    image: docker:git
+    when:
+      event:
+      - custom
     environment:
       AWS_ACCESS_KEY_ID:
         from_secret: AWS_ACCESS_KEY_ID
@@ -167,7 +123,7 @@ steps:
       AWS_DEFAULT_REGION: us-east-1
     commands:
       - apk add --no-cache make aws-cli
-      - make dev-deploy
+      - make deploy
     volumes:
       - name: dockersock
         path: /var/run
@@ -184,8 +140,12 @@ volumes:
   - name: dockersock
     temp: {}
 
+    volumes:
+      - name: dockersock
+        path: /var/run
+
 ---
 kind: signature
-hmac: 89b749595d4aac174eb23a4f8a4678b67241f2a05ada27ed6d02fea92a5acaae
+hmac: 518d5043ac943c0b5ff11947ab3008d1b675e067327d81906065670a01141637
 
 ...
