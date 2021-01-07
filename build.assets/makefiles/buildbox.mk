@@ -1,5 +1,4 @@
 # This makefile is used inside the buildbox container
-SHELL := /bin/bash
 TARGETDIR ?= $(BUILDDIR)/planet
 ASSETDIR ?= $(BUILDDIR)/assets
 ROOTFS ?= $(TARGETDIR)/rootfs
@@ -103,11 +102,11 @@ $(ROOTFS)/bin/bash: clean-rootfs
 .PHONY: clean-rootfs
 clean-rootfs:
 # umount tmps volume for rootfs:
-	if [[ $$(mount | grep $(ROOTFS)) ]]; then \
+	if mount | grep $(ROOTFS); then \
 		sudo umount -f $(ROOTFS) 2>/dev/null ;\
 	fi
 # delete docker container we've used to create rootfs:
-	if [[ $$(docker ps -a | grep $(CONTAINERNAME)) ]]; then \
+	if docker ps -a | grep $(CONTAINERNAME); then \
 		docker rm -f $(CONTAINERNAME) ;\
 	fi
 
