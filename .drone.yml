@@ -48,8 +48,144 @@ services:
 volumes:
   - name: dockersock
     temp: {}
+
+---
+kind: pipeline
+type: kubernetes
+name: publish
+
+trigger:
+  event:
+  - tag
+
+steps:
+  - name: fetch tags
+    image: docker:git
+    commands:
+      - git fetch --tags
+  - name: wait for docker
+    image: docker
+    commands:
+      - timeout 15s /bin/sh -c 'while [ ! -S /var/run/docker.sock ]; do sleep 1; done'
+      - docker version
+    volumes:
+      - name: dockersock
+        path: /var/run
+  - name: build buildbox
+    image: docker:git
+    commands:
+      - apk add --no-cache make
+      - make buildbox
+    volumes:
+      - name: dockersock
+        path: /var/run
+  - name: build tarball
+    image: docker:git
+    commands:
+      - apk add --no-cache make fakeroot
+      - make production
+    volumes:
+      - name: dockersock
+        path: /var/run
+  - name: publish
+    image: docker:git
+    environment:
+      REGISTRY_USERNAME:
+        from_secret: quay_username
+      REGISTRY_PASSWORD:
+        from_secret: quay_password
+      AWS_ACCESS_KEY_ID:
+        from_secret: AWS_ACCESS_KEY_ID
+      AWS_SECRET_ACCESS_KEY:
+        from_secret: AWS_SECRET_ACCESS_KEY
+      AWS_DEFAULT_REGION: us-east-1
+    commands:
+      - apk add --no-cache make aws-cli
+      - docker login -u="$REGISTRY_USERNAME" -p="$REGISTRY_PASSWORD" quay.io
+      - make deploy
+    volumes:
+      - name: dockersock
+        path: /var/run
+
+services:
+  - name: run docker daemon
+    image: docker:dind
+    privileged: true
+    volumes:
+      - name: dockersock
+        path: /var/run
+
+volumes:
+  - name: dockersock
+    temp: {}
+
+---
+kind: pipeline
+type: kubernetes
+name: dev-publish
+
+trigger:
+  event:
+  - custom
+
+steps:
+  - name: fetch tags
+    image: docker:git
+    commands:
+      - git fetch --tags
+  - name: wait for docker
+    image: docker
+    commands:
+      - timeout 15s /bin/sh -c 'while [ ! -S /var/run/docker.sock ]; do sleep 1; done'
+      - docker version
+    volumes:
+      - name: dockersock
+        path: /var/run
+  - name: build buildbox
+    image: docker:git
+    commands:
+      - apk add --no-cache make
+      - make buildbox
+    volumes:
+      - name: dockersock
+        path: /var/run
+  - name: build tarball
+    image: docker:git
+    commands:
+      - apk add --no-cache make fakeroot
+      - make production
+    volumes:
+      - name: dockersock
+        path: /var/run
+  - name: publish to s3
+    image: docker:git
+    environment:
+      AWS_ACCESS_KEY_ID:
+        from_secret: AWS_ACCESS_KEY_ID
+      AWS_SECRET_ACCESS_KEY:
+        from_secret: AWS_SECRET_ACCESS_KEY
+      AWS_DEFAULT_REGION: us-east-1
+    commands:
+      - apk add --no-cache make aws-cli
+      - make dev-deploy
+    volumes:
+      - name: dockersock
+        path: /var/run
+
+services:
+  - name: run docker daemon
+    image: docker:dind
+    privileged: true
+    volumes:
+      - name: dockersock
+        path: /var/run
+
+volumes:
+  - name: dockersock
+    temp: {}
+
 ---
 kind: signature
-hmac: b38e0d956bc9dc2abee7fb1418a05b7233ade75516da22cdfaceb01fb253ffce
+hmac: 89b749595d4aac174eb23a4f8a4678b67241f2a05ada27ed6d02fea92a5acaae
 
 ...
