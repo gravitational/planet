@@ -23,8 +23,6 @@ ExecStart=/usr/bin/kubelet \
         --cgroup-root=${KUBE_CGROUP_ROOT} \
         --config=/etc/kubernetes/kubelet.yaml \
         --image-pull-progress-deadline=15m \
-        --tls-cipher-suites=TLS_ECDHE_ECDSA_WITH_AES_128_GCM_SHA256,TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256,TLS_ECDHE_ECDSA_WITH_AES_256_GCM_SHA384,TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384,TLS_RSA_WITH_AES_128_GCM_SHA256,TLS_RSA_WITH_AES_256_GCM_SHA384,TLS_RSA_WITH_AES_128_GCM_SHA256,TLS_RSA_WITH_AES_256_GCM_SHA384 \
-        --tls-min-version=VersionTLS12 \
         $KUBE_KUBELET_FLAGS \
         $KUBE_CLOUD_FLAGS \
         $KUBE_COMPONENT_FLAGS
