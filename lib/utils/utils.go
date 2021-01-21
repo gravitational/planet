@@ -24,6 +24,8 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"runtime"
+	"strings"
 	"syscall"
 	"unicode"
 
@@ -31,6 +33,7 @@ import (
 
 	"github.com/ghodss/yaml"
 	"github.com/gravitational/trace"
+	"github.com/sirupsen/logrus"
 )
 
 // WriteHosts formats entries in hosts file format to writer
@@ -153,4 +156,37 @@ func hasJSONPrefix(buf []byte) bool {
 func hasPrefix(buf []byte, prefix []byte) bool {
 	trim := bytes.TrimLeftFunc(buf, unicode.IsSpace)
 	return bytes.HasPrefix(trim, prefix)
+}
+
+// OnGCEVM returns true if it finds a local GCE VM.
+// Looks at a product file that is an undocumented API.
+// Based on https://github.com/kubernetes/kubernetes/blob/09f4baed35865d410febb3220811ca5c2fe1cf42/pkg/credentialprovider/gcp/metadata.go#L117-L142
+// Copyright the Kubernetes Authors: https://github.com/kubernetes/kubernetes/blob/09f4baed35865d410febb3220811ca5c2fe1cf42/pkg/credentialprovider/gcp/metadata.go#L1-L15
+func OnGCEVM() bool {
+	var name string
+
+	if runtime.GOOS == "windows" {
+		data, err := exec.Command("wmic", "computersystem", "get", "model").Output()
+		if err != nil {
+			return false
+		}
+
+		fields := strings.Split(strings.TrimSpace(string(data)), "\r\n")
+
+		if len(fields) != 2 {
+			logrus.Infof("Received unexpected value retrieving system model: %q", string(data))
+			return false
+		}
+
+		name = fields[1]
+	} else {
+		data, err := ioutil.ReadFile("/sys/class/dmi/id/product_name")
+		if err != nil {
+			logrus.Infof("Error while reading product_name: %v", err)
+			return false
+		}
+		name = strings.TrimSpace(string(data))
+	}
+
+	return name == "Google" || name == "Google Compute Engine"
 }
