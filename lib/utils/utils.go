@@ -30,10 +30,10 @@ import (
 	"unicode"
 
 	"github.com/gravitational/planet/lib/constants"
-	"github.com/sirupsen/logrus"
 
 	"github.com/ghodss/yaml"
 	"github.com/gravitational/trace"
+	"github.com/sirupsen/logrus"
 )
 
 // WriteHosts formats entries in hosts file format to writer
