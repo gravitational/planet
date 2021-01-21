@@ -227,10 +227,7 @@ func start(config *Config, monitorc chan<- bool) (*runtimeContext, error) {
 	}
 	mountSecrets(config)
 
-	err = setHosts(config, []utils.HostEntry{
-		{IP: "127.0.0.1", Hostnames: "localhost localhost.localdomain localhost4 localhost4.localdomain4"},
-		{IP: "::1", Hostnames: "localhost localhost.localdomain localhost6 localhost6.localdomain6"},
-	})
+	err = setHosts(config, generateHosts())
 	if err != nil {
 		return nil, trace.Wrap(err)
 	}
@@ -770,6 +767,22 @@ func copyResolvFile(cfg utils.DNSConfig, destination string, upstreamNameservers
 	}
 
 	return nil
+}
+
+func generateHosts() []utils.HostEntry {
+	hosts := []utils.HostEntry{
+		{IP: "127.0.0.1", Hostnames: "localhost localhost.localdomain localhost4 localhost4.localdomain4"},
+		{IP: "::1", Hostnames: "localhost localhost.localdomain localhost6 localhost6.localdomain6"},
+	}
+
+	if utils.OnGCEVM() {
+		hosts = append(hosts, utils.HostEntry{
+			IP:        "169.254.169.254",
+			Hostnames: "metadata.google.internal metadata",
+		})
+	}
+
+	return hosts
 }
 
 func setHosts(config *Config, entries []utils.HostEntry) error {
