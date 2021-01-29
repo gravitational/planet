@@ -534,6 +534,12 @@ func addComponentOptions(config *Config) error {
 		config.Env.Append(EnvAPIServerOptions,
 			fmt.Sprintf("--service-node-port-range=%v", config.ServiceNodePortRange))
 	}
+	if config.HighAvailability {
+		config.Env.Append(EnvAPIServerOptions, fmt.Sprintf("--endpoint-reconciler-type=lease"))
+	} else {
+		config.Env.Append(EnvAPIServerOptions, fmt.Sprintf("--endpoint-reconciler-type=master-count"))
+		config.Env.Append(EnvAPIServerOptions, fmt.Sprintf("--apiserver-count=1"))
+	}
 	if config.ProxyPortRange != "" {
 		config.Env.Append(EnvKubeProxyOptions,
 			fmt.Sprintf("--proxy-port-range=%v", config.ProxyPortRange))
