@@ -77,6 +77,8 @@ type LeaderConfig struct {
 	// APIServerDNS is a name of the API server entry to lookup
 	// for the currently active API server
 	APIServerDNS string
+	// HighAvailability enables kubernetes high availability mode.
+	HighAvailability bool
 }
 
 // String returns string representation of the agent leader configuration

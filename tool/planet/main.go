@@ -129,15 +129,16 @@ func run() error {
 					OverrideDefaultFromEnvar(EnvPlanetKubeletOptions).String()
 		cstartAPIServerOptions = cstart.Flag("apiserver-options", "Additional command line options to pass to API server").
 					OverrideDefaultFromEnvar(EnvPlanetAPIServerOptions).String()
-		cstartDNSListenAddrs  = List(cstart.Flag("dns-listen-addr", "Comma-separated list of addresses for CoreDNS to listen on").OverrideDefaultFromEnvar(EnvPlanetDNSListenAddr).Default(DefaultDNSListenAddr))
-		cstartDNSPort         = cstart.Flag("dns-port", "DNS port for CoreDNS").OverrideDefaultFromEnvar(EnvPlanetDNSPort).Default(strconv.Itoa(DNSPort)).Int()
-		cstartTaints          = List(cstart.Flag("taint", "Kubernetes taints to apply to the node during creation").OverrideDefaultFromEnvar(EnvPlanetTaints))
-		cstartNodeLabels      = List(cstart.Flag("node-label", "Kubernetes node label to apply upon node registration").OverrideDefaultFromEnvar(EnvPlanetNodeLabels))
-		cstartDisableFlannel  = cstart.Flag("disable-flannel", "Disable flannel within the planet container").OverrideDefaultFromEnvar(EnvDisableFlannel).Bool()
-		cstartKubeletConfig   = cstart.Flag("kubelet-config", "Kubelet configuration as base64-encoded JSON payload").OverrideDefaultFromEnvar(EnvPlanetKubeletConfig).String()
-		cstartCloudConfig     = cstart.Flag("cloud-config", "Cloud configuration as base64-encoded payload").OverrideDefaultFromEnvar(EnvPlanetCloudConfig).String()
-		cstartAllowPrivileged = cstart.Flag("allow-privileged", "Allow privileged containers").OverrideDefaultFromEnvar(EnvPlanetAllowPrivileged).Bool()
-		cstartSELinux         = cstart.Flag("selinux", "Run with SELinux support").Envar(EnvPlanetSELinux).Bool()
+		cstartDNSListenAddrs   = List(cstart.Flag("dns-listen-addr", "Comma-separated list of addresses for CoreDNS to listen on").OverrideDefaultFromEnvar(EnvPlanetDNSListenAddr).Default(DefaultDNSListenAddr))
+		cstartDNSPort          = cstart.Flag("dns-port", "DNS port for CoreDNS").OverrideDefaultFromEnvar(EnvPlanetDNSPort).Default(strconv.Itoa(DNSPort)).Int()
+		cstartTaints           = List(cstart.Flag("taint", "Kubernetes taints to apply to the node during creation").OverrideDefaultFromEnvar(EnvPlanetTaints))
+		cstartNodeLabels       = List(cstart.Flag("node-label", "Kubernetes node label to apply upon node registration").OverrideDefaultFromEnvar(EnvPlanetNodeLabels))
+		cstartDisableFlannel   = cstart.Flag("disable-flannel", "Disable flannel within the planet container").OverrideDefaultFromEnvar(EnvDisableFlannel).Bool()
+		cstartKubeletConfig    = cstart.Flag("kubelet-config", "Kubelet configuration as base64-encoded JSON payload").OverrideDefaultFromEnvar(EnvPlanetKubeletConfig).String()
+		cstartCloudConfig      = cstart.Flag("cloud-config", "Cloud configuration as base64-encoded payload").OverrideDefaultFromEnvar(EnvPlanetCloudConfig).String()
+		cstartAllowPrivileged  = cstart.Flag("allow-privileged", "Allow privileged containers").OverrideDefaultFromEnvar(EnvPlanetAllowPrivileged).Bool()
+		cstartSELinux          = cstart.Flag("selinux", "Run with SELinux support").Envar(EnvPlanetSELinux).Bool()
+		cstartHighAvailability = cstart.Flag("high-availability", "Boolean flag to enable/disable kubernetes high availability mode.").OverrideDefaultFromEnvar(EnvHighAvailability).Bool()
 
 		// start the planet agent
 		cagent                 = app.Command("agent", "Start Planet Agent")
@@ -172,6 +173,7 @@ func run() error {
 		cagentRetention              = cagent.Flag("retention", "Window to retain timeline as a Go duration").Duration()
 		cagentServiceCIDR            = cidrFlag(cagent.Flag("service-subnet", "IP range from which to assign service cluster IPs. This must not overlap with any IP ranges assigned to nodes for pods.").Default(DefaultServiceSubnet).Envar(EnvServiceSubnet))
 		cagentCriticalNamespaces     = List(cagent.Flag("critical-namespaces", "List of Kubernetes namespaces to search for critical system pods").Default(DefaultCriticalNamespaces).OverrideDefaultFromEnvar(EnvCriticalNamespaces))
+		cagentHighAvailability       = cagent.Flag("high-availability", "Boolean flag to enable/disable kubernetes high availability mode.").OverrideDefaultFromEnvar(EnvHighAvailability).Bool()
 
 		// stop a running container
 		cstop        = app.Command("stop", "Stop planet container")
@@ -355,14 +357,15 @@ func run() error {
 				CriticalNamespaces:    *cagentCriticalNamespaces,
 			},
 			leader: &LeaderConfig{
-				PublicIP:        cagentPublicIP.String(),
-				LeaderKey:       *cagentLeaderKey,
-				Role:            *cagentRole,
-				Term:            *cagentTerm,
-				ETCD:            etcdConf,
-				APIServerDNS:    *cagentKubeAPIServerDNS,
-				ElectionKey:     fmt.Sprintf("%v/%v", *cagentElectionKey, cagentPublicIP.String()),
-				ElectionEnabled: bool(*cagentElectionEnabled),
+				PublicIP:         cagentPublicIP.String(),
+				LeaderKey:        *cagentLeaderKey,
+				Role:             *cagentRole,
+				Term:             *cagentTerm,
+				ETCD:             etcdConf,
+				APIServerDNS:     *cagentKubeAPIServerDNS,
+				ElectionKey:      fmt.Sprintf("%v/%v", *cagentElectionKey, cagentPublicIP.String()),
+				ElectionEnabled:  bool(*cagentElectionEnabled),
+				HighAvailability: bool(*cagentHighAvailability),
 			},
 			peers:       toAddrList(*cagentInitialCluster),
 			serviceCIDR: cagentServiceCIDR.ipNet,
@@ -460,6 +463,7 @@ func run() error {
 			CloudConfig:      *cstartCloudConfig,
 			AllowPrivileged:  *cstartAllowPrivileged,
 			SELinux:          *cstartSELinux,
+			HighAvailability: *cstartHighAvailability,
 		}
 		err = startAndWait(config)
 
