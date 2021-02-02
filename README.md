@@ -96,7 +96,6 @@ quite a few dependencies:
  - docker registry
  - [flannel](https://github.com/coreos/flannel>)
  - [etcd](https://github.com/coreos/etcd)
- - [serf](https://github.com/hashicorp/serf)
 
 Subsequent builds are much faster because intermediate results are cached (in `build/assets` directory).
 To clear and rebuild from scratch, run the `make clean`.
