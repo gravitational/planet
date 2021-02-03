@@ -129,9 +129,9 @@ func startLeaderClient(config agentConfig, agent agent.Agent, errorC chan error)
 		return client, nil
 	}
 
-	// Watch for changes in the election mode.
-	// start/stop voter participation depending on the value of the election mode key.
-	client.AddWatchCallback(conf.ElectionKey, conf.Term, manageParticipation(client, conf, errorC))
+	// Watch for changes in the election key.
+	// Start/Stop voter participation when election is enabled/disabled.
+	client.AddWatchCallback(conf.ElectionKey, conf.Term, manageParticipation(client, config, errorC))
 
 	// Watch for changes to the leader key.
 	// If this agent becomes the leader, record a LeaderElected event to the local timeline.
@@ -139,7 +139,7 @@ func startLeaderClient(config agentConfig, agent agent.Agent, errorC chan error)
 
 	if !conf.HighAvailability {
 		// Watch for changes to the leader key.
-		// If this agent becomes the leader, start a number of additional services.
+		// Start/Stop control plane units when a new leader is elected.
 		client.AddWatchCallback(conf.LeaderKey, conf.Term/3, manageUnits(config))
 	}
 
@@ -152,24 +152,14 @@ func startLeaderClient(config agentConfig, agent agent.Agent, errorC chan error)
 		return nil, trace.Wrap(err)
 	}
 
-	// Start control plane components on all master nodes if running in HA mode.
-	if conf.HighAvailability {
-		if err := startUnits(context.TODO()); err != nil {
-			return nil, trace.Wrap(err, "failed to start units")
-		}
-		if err := validateKubernetesService(context.TODO(), config.serviceCIDR); err != nil {
-			return nil, trace.Wrap(err, "failed to validate kubernetes services")
-		}
-	}
-
 	return client, nil
 }
 
-// manageParticipation starts voter participation when the election mode is
-// enabled and stops voter participation when election mode is disabled.
-func manageParticipation(client *leader.Client, conf *LeaderConfig, errorC chan error) leader.CallbackFn {
-	// cancelVoter will be assigned whenever election mode is enabled. Context
-	// will be canceled whenever the election mode is disabled.
+// manageParticipation starts voter participation when the election is enabled
+// and stops voter participation when election is disabled.
+func manageParticipation(client *leader.Client, config agentConfig, errorC chan error) leader.CallbackFn {
+	// cancelVoter will be assigned whenever election is enabled. Context
+	// will be canceled whenever election is disabled.
 	var cancelVoter context.CancelFunc
 
 	return func(key, prevElectionMode, newElectionMode string) {
@@ -183,10 +173,22 @@ func manageParticipation(client *leader.Client, conf *LeaderConfig, errorC chan 
 			// start election participation
 			var ctx context.Context
 			ctx, cancelVoter = context.WithCancel(context.TODO())
-			if err := client.AddVoter(ctx, conf.LeaderKey, conf.PublicIP, conf.Term); err != nil {
-				log.Errorf("failed to add voter for %v: %v", conf.PublicIP, trace.DebugReport(err))
+			err := client.AddVoter(ctx, config.leader.LeaderKey, config.leader.PublicIP, config.leader.Term)
+			if err != nil {
+				log.Errorf("failed to add voter for %v: %v", config.leader.PublicIP, trace.DebugReport(err))
 				errorC <- err
 			}
+
+			// While running with HA enabled, start units when election is re-enabled
+			if config.leader.HighAvailability {
+				if err := startUnits(context.TODO()); err != nil {
+					log.WithError(err).Warn("Failed to start units.")
+				}
+				if err := validateKubernetesService(context.TODO(), config.serviceCIDR); err != nil {
+					log.WithError(err).Warn("Failed to validate kubernetes service.")
+				}
+			}
+
 			return
 		case false:
 			if cancelVoter == nil {
@@ -196,11 +198,6 @@ func manageParticipation(client *leader.Client, conf *LeaderConfig, errorC chan 
 			// stop election participation
 			cancelVoter()
 			cancelVoter = nil
-
-			// Control plane components run on all master nodes if HA mode is enabled.
-			if conf.HighAvailability {
-				return
-			}
 
 			log.Info("Shut down services until election has been re-enabled.")
 			// Shut down services if we've been requested to not participate in elections
