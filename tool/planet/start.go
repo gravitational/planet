@@ -535,10 +535,10 @@ func addComponentOptions(config *Config) error {
 			fmt.Sprintf("--service-node-port-range=%v", config.ServiceNodePortRange))
 	}
 	if config.HighAvailability {
-		config.Env.Append(EnvAPIServerOptions, fmt.Sprintf("--endpoint-reconciler-type=lease"))
+		config.Env.Append(EnvAPIServerOptions, "--endpoint-reconciler-type=lease")
 	} else {
-		config.Env.Append(EnvAPIServerOptions, fmt.Sprintf("--endpoint-reconciler-type=master-count"))
-		config.Env.Append(EnvAPIServerOptions, fmt.Sprintf("--apiserver-count=1"))
+		config.Env.Append(EnvAPIServerOptions, "--endpoint-reconciler-type=master-count")
+		config.Env.Append(EnvAPIServerOptions, "--apiserver-count=1")
 	}
 	if config.ProxyPortRange != "" {
 		config.Env.Append(EnvKubeProxyOptions,

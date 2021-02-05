@@ -175,16 +175,17 @@ func manageParticipation(client *leader.Client, config agentConfig, errorC chan 
 			ctx, cancelVoter = context.WithCancel(context.TODO())
 			err := client.AddVoter(ctx, config.leader.LeaderKey, config.leader.PublicIP, config.leader.Term)
 			if err != nil {
-				log.Errorf("failed to add voter for %v: %v", config.leader.PublicIP, trace.DebugReport(err))
+				log.WithError(err).Errorf("Failed to add voter for %v.", config.leader.PublicIP)
+				cancelVoter()
 				errorC <- err
 			}
 
 			// While running with HA enabled, start units when election is re-enabled
 			if config.leader.HighAvailability {
-				if err := startUnits(context.TODO()); err != nil {
+				if err := startUnits(ctx); err != nil {
 					log.WithError(err).Warn("Failed to start units.")
 				}
-				if err := validateKubernetesService(context.TODO(), config.serviceCIDR); err != nil {
+				if err := validateKubernetesService(ctx, config.serviceCIDR); err != nil {
 					log.WithError(err).Warn("Failed to validate kubernetes service.")
 				}
 			}
