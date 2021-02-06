@@ -499,6 +499,14 @@
                 "cli": {
                     "name": "feature-gates"
                 }
+            },
+            {
+                "type": "Bool",
+                "name": "high-availability",
+                "env": "KUBE_HIGH_AVAILABILITY",
+                "cli": {
+                    "name": "high-availability"
+                }
             }
         ]
     }

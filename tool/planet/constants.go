@@ -267,6 +267,10 @@ const (
 	// critical system pods.
 	EnvCriticalNamespaces = "PLANET_CRITICAL_NAMESPACES"
 
+	// EnvHighAvailability is a bool flag to enable/disable kubernetes high
+	// availability mode.
+	EnvHighAvailability = "KUBE_HIGH_AVAILABILITY"
+
 	// DefaultDNSListenAddr is the default IP address CoreDNS will listen on
 	DefaultDNSListenAddr = "127.0.0.2"
 
