@@ -137,6 +137,9 @@ type Config struct {
 	AllowPrivileged bool
 	// SELinux turns on SELinux support
 	SELinux bool
+	// HighAvailability enables kubernetes high availability mode. If enabled,
+	// control plane components will be enabled on all master nodes.
+	HighAvailability bool
 }
 
 // DNS describes DNS server configuration

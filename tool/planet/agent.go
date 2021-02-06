@@ -73,6 +73,8 @@ type LeaderConfig struct {
 	// APIServerDNS is a name of the API server entry to lookup
 	// for the currently active API server
 	APIServerDNS string
+	// HighAvailability enables kubernetes high availability mode.
+	HighAvailability bool
 }
 
 // String returns string representation of the agent leader configuration
@@ -91,41 +93,17 @@ func (conf LeaderConfig) String() string {
 func startLeaderClient(config agentConfig, agent agent.Agent, errorC chan error) (leaderClient io.Closer, err error) {
 	conf := config.leader
 	log.Infof("%v start", conf)
-	var hostname string
-	hostname, err = os.Hostname()
-	if err != nil {
-		return nil, trace.Wrap(err)
-	}
 
-	if conf.Role == RoleMaster {
-		err = upsertCgroups(true)
-	} else {
-		err = upsertCgroups(false)
-	}
-	if err != nil {
+	if err = upsertCgroups(conf.Role == RoleMaster); err != nil {
 		return nil, trace.Wrap(err)
 	}
 
 	if err = conf.ETCD.CheckAndSetDefaults(); err != nil {
 		return nil, trace.Wrap(err)
 	}
-	var etcdClient etcd.Client
-	etcdClient, err = conf.ETCD.NewClient()
+	etcdClient, err := conf.ETCD.NewClient()
 	if err != nil {
 		return nil, trace.Wrap(err)
-	}
-
-	if conf.Role == RoleMaster {
-		etcdapi := etcd.NewKeysAPI(etcdClient)
-		// Set initial value of election participation mode
-		_, err = etcdapi.Set(context.TODO(), conf.ElectionKey,
-			strconv.FormatBool(conf.ElectionEnabled),
-			&etcd.SetOptions{PrevExist: etcd.PrevNoExist})
-		if err != nil {
-			if err = convertError(err); !trace.IsAlreadyExists(err) {
-				return nil, trace.Wrap(err)
-			}
-		}
 	}
 
 	client, err := leader.NewClient(leader.Config{Client: etcdClient})
@@ -139,73 +117,49 @@ func startLeaderClient(config agentConfig, agent agent.Agent, errorC chan error)
 		}
 	}()
 
-	if conf.Role == RoleMaster {
-		// Add a callback to watch for changes to the leader key.
-		// If this node becomes the leader, start a number of additional
-		// services as a leader.
-		client.AddWatchCallback(conf.LeaderKey, conf.Term/3, func(key, prevLeaderAddr, newLeaderAddr string) {
-			log.WithField("addr", newLeaderAddr).Info("New leader.")
-			if newLeaderAddr != conf.PublicIP {
-				if err := stopUnits(context.TODO()); err != nil {
-					log.WithError(err).Warn("Failed to stop units.")
-				}
-				return
-			}
-			if err := startUnits(context.TODO()); err != nil {
-				log.WithError(err).Warn("Failed to start units.")
-			}
-			if err := validateKubernetesService(context.TODO(), config.serviceCIDR); err != nil {
-				log.WithError(err).Warn("Failed to validate kubernetes service.")
-			}
-		})
+	// Watch for changes to the leader key.
+	// Update coredns.hosts with new leader address.
+	client.AddWatchCallback(conf.LeaderKey, conf.Term/3, updateDNS())
+
+	if conf.Role != RoleMaster {
+		return client, nil
 	}
 
-	// Add a callback to watch for changes to the leader key.
-	// If this node becomes the leader, record a LeaderElected event to the
-	// local timeline.
-	client.AddWatchCallback(conf.LeaderKey, conf.Term/3, func(key, prevVal, newVal string) {
-		// recordEventTimeout specifies the max timeout to record an event
-		const recordEventTimeout = 10 * time.Second
+	// Watch for changes in the election key.
+	// Start/Stop voter participation when election is enabled/disabled.
+	client.AddWatchCallback(conf.ElectionKey, conf.Term, manageParticipation(client, config, errorC))
 
-		if newVal != conf.PublicIP {
-			return
-		}
-		// Ignore if same leader is re-elected
-		if newVal == prevVal {
-			return
-		}
+	// Watch for changes to the leader key.
+	// If this agent becomes the leader, record a LeaderElected event to the local timeline.
+	client.AddWatchCallback(conf.LeaderKey, conf.Term/3, recordElectionEvents(conf.PublicIP, agent))
 
-		ctx, cancel := context.WithTimeout(context.Background(), recordEventTimeout)
-		defer cancel()
+	if !conf.HighAvailability {
+		// Watch for changes to the leader key.
+		// Start/Stop control plane units when a new leader is elected.
+		client.AddWatchCallback(conf.LeaderKey, conf.Term/3, manageUnits(config))
+	}
 
-		agent.RecordLocalEvents(ctx, []*pb.TimelineEvent{
-			pb.NewLeaderElected(agent.GetConfig().Clock.Now(), prevVal, newVal),
-		})
-	})
+	// Set initial value of election mode
+	etcdapi := etcd.NewKeysAPI(etcdClient)
+	_, err = etcdapi.Set(context.TODO(), conf.ElectionKey,
+		strconv.FormatBool(conf.ElectionEnabled),
+		&etcd.SetOptions{PrevExist: etcd.PrevNoExist})
+	if !trace.IsAlreadyExists(convertError(err)) {
+		return nil, trace.Wrap(err)
+	}
 
+	return client, nil
+}
+
+// manageParticipation starts voter participation when the election is enabled
+// and stops voter participation when election is disabled.
+func manageParticipation(client *leader.Client, config agentConfig, errorC chan error) leader.CallbackFn {
+	// cancelVoter will be assigned whenever election is enabled. Context
+	// will be canceled whenever election is disabled.
 	var cancelVoter context.CancelFunc
-	var ctx context.Context
-	if conf.Role == RoleMaster {
-		switch conf.ElectionEnabled {
-		case true:
-			log.Infof("Adding voter for IP %v.", conf.PublicIP)
-			ctx, cancelVoter = context.WithCancel(context.TODO())
-			if err = client.AddVoter(ctx, conf.LeaderKey, conf.PublicIP, conf.Term); err != nil {
-				return nil, trace.Wrap(err)
-			}
-		case false:
-			log.Info("Shut down services until election has been re-enabled.")
-			// Shut down services at startup if running as master
-			if err := stopUnits(context.TODO()); err != nil {
-				log.WithError(err).Warn("Failed to stop units.")
-			}
-		}
-	}
-	// watch the election mode status and start/stop participation
-	// depending on the value of the election mode key
-	client.AddWatchCallback(conf.ElectionKey, conf.Term, func(key, prevVal, newVal string) {
-		var err error
-		enabled, _ := strconv.ParseBool(newVal)
+
+	return func(key, prevElectionMode, newElectionMode string) {
+		enabled, _ := strconv.ParseBool(newElectionMode)
 		switch enabled {
 		case true:
 			if cancelVoter != nil {
@@ -213,11 +167,26 @@ func startLeaderClient(config agentConfig, agent agent.Agent, errorC chan error)
 				return
 			}
 			// start election participation
+			var ctx context.Context
 			ctx, cancelVoter = context.WithCancel(context.TODO())
-			if err = client.AddVoter(ctx, conf.LeaderKey, conf.PublicIP, conf.Term); err != nil {
-				log.Errorf("failed to add voter for %v: %v", conf.PublicIP, trace.DebugReport(err))
+			err := client.AddVoter(ctx, config.leader.LeaderKey, config.leader.PublicIP, config.leader.Term)
+			if err != nil {
+				log.WithError(err).Errorf("Failed to add voter for %v.", config.leader.PublicIP)
+				cancelVoter()
 				errorC <- err
 			}
+
+			// While running with HA enabled, start units when election is re-enabled
+			if config.leader.HighAvailability {
+				if err := startUnits(ctx); err != nil {
+					log.WithError(err).Warn("Failed to start units.")
+				}
+				if err := validateKubernetesService(ctx, config.serviceCIDR); err != nil {
+					log.WithError(err).Warn("Failed to validate kubernetes service.")
+				}
+			}
+
+			return
 		case false:
 			if cancelVoter == nil {
 				log.Info("no voter active")
@@ -233,23 +202,61 @@ func startLeaderClient(config agentConfig, agent agent.Agent, errorC chan error)
 				log.WithError(err).Warn("Failed to stop units.")
 			}
 		}
-	})
-	// modify /etc/hosts upon election of a new leader node
-	client.AddWatchCallback(conf.LeaderKey, conf.Term/3, func(key, prevVal, newLeaderIP string) {
-		if err := updateDNS(conf, hostname, newLeaderIP); err != nil {
-			log.Error(trace.DebugReport(err))
-		}
-	})
+	}
+}
 
-	return client, nil
+// manageUnits starts the control plane components on the newly elected leader
+// node and stops the components on all other master nodes.
+func manageUnits(config agentConfig) leader.CallbackFn {
+	return func(key, prevLeaderIP, newLeaderIP string) {
+		log.WithField("addr", newLeaderIP).Info("New leader.")
+		if newLeaderIP != config.leader.PublicIP {
+			if err := stopUnits(context.TODO()); err != nil {
+				log.WithError(err).Warn("Failed to stop units.")
+			}
+			return
+		}
+		if err := startUnits(context.TODO()); err != nil {
+			log.WithError(err).Warn("Failed to start units.")
+		}
+		if err := validateKubernetesService(context.TODO(), config.serviceCIDR); err != nil {
+			log.WithError(err).Warn("Failed to validate kubernetes service.")
+		}
+	}
+}
+
+// recordElectionEvents records a new LeaderElected event when this agent
+// is elected to be the new leader.
+func recordElectionEvents(publicIP string, agent agent.Agent) leader.CallbackFn {
+	return func(key, prevLeaderIP, newLeaderIP string) {
+		// recordEventTimeout specifies the max timeout to record an event
+		const recordEventTimeout = 10 * time.Second
+
+		if newLeaderIP != publicIP {
+			return
+		}
+
+		// Ignore if same leader is re-elected
+		if newLeaderIP == prevLeaderIP {
+			return
+		}
+
+		ctx, cancel := context.WithTimeout(context.Background(), recordEventTimeout)
+		defer cancel()
+
+		agent.RecordLocalEvents(ctx, []*pb.TimelineEvent{
+			pb.NewLeaderElected(agent.GetConfig().Clock.Now(), prevLeaderIP, newLeaderIP),
+		})
+	}
 }
 
 func writeLocalLeader(target string, masterIP string) error {
-	contents := fmt.Sprint(masterIP, " ",
-		constants.APIServerDNSName, " ",
-		constants.APIServerDNSNameGravity, " ",
-		constants.RegistryDNSName, " ",
-		LegacyAPIServerDNSName, "\n")
+	contents := fmt.Sprintf("%s %s %s %s %s\n",
+		masterIP,
+		constants.APIServerDNSName,
+		constants.APIServerDNSNameGravity,
+		constants.RegistryDNSName,
+		LegacyAPIServerDNSName)
 	err := ioutil.WriteFile(
 		target,
 		[]byte(contents),
@@ -258,13 +265,13 @@ func writeLocalLeader(target string, masterIP string) error {
 	return trace.Wrap(err)
 }
 
-func updateDNS(conf *LeaderConfig, hostname string, newMasterIP string) error {
-	log.Infof("Setting new leader address to %v in %v", newMasterIP, CoreDNSHosts)
-	err := writeLocalLeader(CoreDNSHosts, newMasterIP)
-	if err != nil {
-		return trace.Wrap(err)
+func updateDNS() leader.CallbackFn {
+	return func(key, prevLeaderIP, newLeaderIP string) {
+		log.Infof("Setting new leader address to %v in %v", newLeaderIP, CoreDNSHosts)
+		if err := writeLocalLeader(CoreDNSHosts, newLeaderIP); err != nil {
+			log.Error(trace.DebugReport(err))
+		}
 	}
-	return nil
 }
 
 var controlPlaneUnits = []string{
