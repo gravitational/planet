@@ -165,6 +165,7 @@ func start(config *Config) (*runtimeContext, error) {
 		box.EnvPair{Name: EnvPlanetAllowPrivileged, Val: strconv.FormatBool(config.AllowPrivileged)},
 		box.EnvPair{Name: EnvServiceUID, Val: config.ServiceUser.UID},
 		box.EnvPair{Name: EnvServiceGID, Val: config.ServiceUser.GID},
+		box.EnvPair{Name: EnvHighAvailability, Val: strconv.FormatBool(config.HighAvailability)},
 	)
 
 	// Setup http_proxy / no_proxy environment configuration
@@ -532,6 +533,12 @@ func addComponentOptions(config *Config) error {
 	if config.ServiceNodePortRange != "" {
 		config.Env.Append(EnvAPIServerOptions,
 			fmt.Sprintf("--service-node-port-range=%v", config.ServiceNodePortRange))
+	}
+	if config.HighAvailability {
+		config.Env.Append(EnvAPIServerOptions, "--endpoint-reconciler-type=lease")
+	} else {
+		config.Env.Append(EnvAPIServerOptions, "--endpoint-reconciler-type=master-count")
+		config.Env.Append(EnvAPIServerOptions, "--apiserver-count=1")
 	}
 	if config.ProxyPortRange != "" {
 		config.Env.Append(EnvKubeProxyOptions,
