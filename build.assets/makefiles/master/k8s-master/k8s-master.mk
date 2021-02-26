@@ -2,7 +2,7 @@
 
 BINDIR:=$(ASSETDIR)/k8s-$(KUBE_VER)
 
-all: k8s-master.mk
+all: k8s-master.mk scripts
 	@echo "\n---> Building Kubernetes master components\n"
 	mkdir -p $(ROOTFS)/etc/kubernetes
 	cp -TRv -p rootfs/etc/kubernetes $(ROOTFS)/etc/kubernetes
@@ -19,3 +19,9 @@ all: k8s-master.mk
 	install -m 0755 $(BINDIR)/kubectl $(ROOTFS)/usr/bin
 	install -m 0755 $(BINDIR)/kube-proxy $(ROOTFS)/usr/bin
 	install -m 0755 $(BINDIR)/kubelet $(ROOTFS)/usr/bin
+
+.PHONY: scripts
+scripts:
+# install script to update clusterDNS values in kubelet config.
+	mkdir -p $(ROOTFS)/usr/bin/scripts
+	install -m 0755 ./cluster-dns.sh $(ROOTFS)/usr/bin/scripts/cluster-dns.sh
