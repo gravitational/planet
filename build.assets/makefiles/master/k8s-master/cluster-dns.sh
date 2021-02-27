@@ -31,13 +31,19 @@ then
 fi
 
 # Remove existing clusterDNS values.
-sed -n -i '/clusterDNS:/{g; :a; n; /:/!ba};p' $KUBELET_CONFIG
+# clusterDNS contains a list of addresses. Example:
+#
+# clusterDNS:
+#   - 100.100.100.101
+#   - 100.100.100.102
+#   - 100.100.100.103
+sed -n -i '/clusterDNS:/{g; :a; n; /^[^[:space:]]/!ba};p' $KUBELET_CONFIG
 
 # Write new clusterDNS values to kubelet config.
-CLUSTER_DNS="clusterDNS:\n"
+CLUSTER_DNS="clusterDNS:"
 while IFS=',' read -ra ADDR; do
     for i in "${ADDR[@]}"; do
-        CLUSTER_DNS+="  - $i\n"
+        CLUSTER_DNS+="\n  - $i"
     done
 done <<< "$DNS_ADDRESSES"
 echo -e "$CLUSTER_DNS" | tee -a $KUBELET_CONFIG
