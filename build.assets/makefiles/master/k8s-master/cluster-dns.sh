@@ -17,7 +17,7 @@ KUBELET_CONFIG=/etc/kubernetes/kubelet.yaml
 if [ ! -f $DNS_ENV ]
 then
     echo "$DNS_ENV does not exist"
-    exit
+    exit 1
 fi
 
 # Import DNS_ADDRESSES from env file.
@@ -27,7 +27,7 @@ export $(cat $DNS_ENV | xargs)
 if [ -z "$DNS_ADDRESSES" ]
 then
     echo "DNS_ADDRESSES is not set"
-    exit
+    exit 1
 fi
 
 # Remove existing clusterDNS values.
