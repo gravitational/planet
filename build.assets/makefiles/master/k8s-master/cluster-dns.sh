@@ -46,4 +46,4 @@ while IFS=',' read -ra ADDR; do
         CLUSTER_DNS+="\n  - $i"
     done
 done <<< "$DNS_ADDRESSES"
-echo -e "$CLUSTER_DNS" | tee -a $KUBELET_CONFIG
+echo -e "$CLUSTER_DNS" | tee -a $KUBELET_CONFIG 1> /dev/null
