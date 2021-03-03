@@ -37,7 +37,7 @@ fi
 #   - 100.100.100.101
 #   - 100.100.100.102
 #   - 100.100.100.103
-sed -n -i '/clusterDNS:/{g; :a; n; /^[^[:space:]]/!ba};p' $KUBELET_CONFIG
+sed -n -i '/clusterDNS:/{g; :a; n; /^[^[:space:]-]/!ba};p' $KUBELET_CONFIG
 
 # Write new clusterDNS values to kubelet config.
 CLUSTER_DNS="clusterDNS:"
