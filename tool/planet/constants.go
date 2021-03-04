@@ -434,7 +434,7 @@ const (
 	DefaultVxlanPort = 8472
 
 	// DefaultFeatureGates is the default set of component feature gates
-	DefaultFeatureGates = "AllAlpha=true,APIResponseCompression=false,BoundServiceAccountTokenVolume=false,CSIMigration=false,KubeletPodResources=false,EndpointSlice=false,IPv6DualStack=false,RemoveSelfLink=false"
+	DefaultFeatureGates = "AllAlpha=true,APIResponseCompression=false,BoundServiceAccountTokenVolume=false,CSIMigration=false,KubeletPodResources=false,IPv6DualStack=false,RemoveSelfLink=false"
 
 	// DefaultServiceNodePortRange defines the default IP range for services with NodePort visibility
 	DefaultServiceNodePortRange = "30000-32767"
@@ -574,6 +574,16 @@ var KubeletConfigOverrides = kubeletconfig.KubeletConfiguration{
 	Authorization: kubeletconfig.KubeletAuthorization{
 		Mode: kubeletconfig.KubeletAuthorizationModeWebhook,
 	},
+	TLSCipherSuites: []string{
+		"TLS_ECDHE_ECDSA_WITH_AES_128_GCM_SHA256",
+		"TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256",
+		"TLS_ECDHE_ECDSA_WITH_AES_256_GCM_SHA384",
+		"TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384",
+		"TLS_RSA_WITH_AES_128_GCM_SHA256,TLS_RSA_WITH_AES_256_GCM_SHA384",
+		"TLS_RSA_WITH_AES_128_GCM_SHA256",
+		"TLS_RSA_WITH_AES_256_GCM_SHA384",
+	},
+	TLSMinVersion: "VersionTLS12",
 }
 
 // KubeletTypeMeta defines the type meta block of the kubelet configuration resource
