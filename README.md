@@ -13,7 +13,7 @@ Compared to [official ways](https://kubernetes.io/docs/setup/) to install and ma
 ## Installation
 
 Planet images are automatically packaged by [Gravity](https://github.com/gravitational/gravity) - this is the easiest way to use and hack on planet.
-See the development section below on details on how to build & hack on planet locally.
+See the development section below for details on how to build & hack on planet locally.
 
 ## Details of Operation
 
