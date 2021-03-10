@@ -21,7 +21,7 @@ Planet is a generic `container image` with executable entry points -- it is an a
 Planet uses [libcontainer](https://github.com/opencontainers/runc/tree/master/libcontainer) to self-containerize.
 Planet launches [systemd](http://www.freedesktop.org/wiki/Software/systemd/) inside the container as the main process which manages the
 lifetime of all the other services - [Kubernetes](https://github.com/kubernetes/kubernetes), among others.
-A `planet` binary is available within planet as `rootfs/usr/bin/planet`
+A `planet` binary is available within planet at `rootfs/usr/bin/planet`
 
 That `planet` binary defines all entry points for this package. Here is a brief summary of the planet interface:
 ```
