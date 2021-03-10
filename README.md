@@ -88,7 +88,7 @@ The output of Planet build is a tarball that goes into `build/$TARGET`:
 
 Following are the most common targets:
 
- - `make production` - builds a planet images. These are the images used by Gravity.
+ - `make production` - builds a planet image. These are the images used by Gravity.
 
 Building planet for the first time takes considerable amount of time since it has to download/build/configure
 quite a few dependencies:
