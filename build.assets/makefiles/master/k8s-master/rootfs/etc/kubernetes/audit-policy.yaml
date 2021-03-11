@@ -8,8 +8,10 @@ rules:
   # so drop them.
   - level: None
     users: ["system:kube-proxy"]
-    verbs: ["watch"]
+    verbs: ["get", "list", "watch"]
     resources:
+      - group: "discovery.k8s.io"
+        resources: ["endpointslices"]
       - group: "" # core
         resources: ["endpoints", "services", "services/status"]
   - level: None
