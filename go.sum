@@ -186,6 +186,8 @@ github.com/gravitational/roundtrip v1.0.0 h1:eb+0EABfSKC8607CQ4oOyWCm9zVIfio/wW7
 github.com/gravitational/roundtrip v1.0.0/go.mod h1:qccpLd30tAJVSpx7aOEEnws4ZT3njPwdbtT8lNQxbAs=
 github.com/gravitational/satellite v0.0.9-0.20201208011301-5a67ae767d68 h1:m8iessMEsg1hIKzBwYf26oNfqUGLQj2nyvoXX8kvA30=
 github.com/gravitational/satellite v0.0.9-0.20201208011301-5a67ae767d68/go.mod h1:OcgAUN5zzYAEiNPcjQ/MS2+YAMX6jTpPrbP6zIg29GI=
+github.com/gravitational/satellite v0.0.9-0.20210107181439-0622d0257e68 h1:wOEhdK55MSSTz6xgRWA+YJ3HGUaoeWKG5rinvH0x+ZI=
+github.com/gravitational/satellite v0.0.9-0.20210107181439-0622d0257e68/go.mod h1:OcgAUN5zzYAEiNPcjQ/MS2+YAMX6jTpPrbP6zIg29GI=
 github.com/gravitational/satellite v0.0.9-0.20210304050703-ef8c429a0699 h1:x6Z1iRlwHp8daWUQnlQ/GzLWIQVeb9AOY5n9gLxj4hw=
 github.com/gravitational/satellite v0.0.9-0.20210304050703-ef8c429a0699/go.mod h1:OcgAUN5zzYAEiNPcjQ/MS2+YAMX6jTpPrbP6zIg29GI=
 github.com/gravitational/satellite v0.0.9-0.20210305053937-1fcfb2acfefd h1:to+t9Vd3E6NxfYl8bBypZKPDwHjQO+0PK3RNQSUSJwA=
@@ -194,6 +196,8 @@ github.com/gravitational/satellite v0.0.9-0.20210305054435-2a6c7d23e6ea h1:gCTjO
 github.com/gravitational/satellite v0.0.9-0.20210305054435-2a6c7d23e6ea/go.mod h1:OcgAUN5zzYAEiNPcjQ/MS2+YAMX6jTpPrbP6zIg29GI=
 github.com/gravitational/satellite v0.0.9-0.20210305063117-587b581c99f6 h1:XdwoCxhW2AKMwPSCPufObjIjXn8VX7t784/HTV10dGs=
 github.com/gravitational/satellite v0.0.9-0.20210305063117-587b581c99f6/go.mod h1:OcgAUN5zzYAEiNPcjQ/MS2+YAMX6jTpPrbP6zIg29GI=
+github.com/gravitational/satellite v0.0.9-0.20210311035542-3970de1195e2 h1:qT34cJUZ9+FErmvmq/fqF9H9x0U/q9UDExZ2AUKynyw=
+github.com/gravitational/satellite v0.0.9-0.20210311035542-3970de1195e2/go.mod h1:OcgAUN5zzYAEiNPcjQ/MS2+YAMX6jTpPrbP6zIg29GI=
 github.com/gravitational/trace v1.1.11 h1:c+saoho5rBdj5lPEGzfHaYjh4Do4d+jX7hh4BgQtKc0=
 github.com/gravitational/trace v1.1.11/go.mod h1:RvdOUHE4SHqR3oXlFFKnGzms8a5dugHygGw1bqDstYI=
 github.com/gravitational/ttlmap/v2 v2.0.0-20200702161230-1bbfd908876d h1:vIgmA0qBCUgDSip4Gf0iqYCRv6fxsfHEJ2WHPVI35PQ=

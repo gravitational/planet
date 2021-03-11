@@ -501,10 +501,6 @@ func (r *agent) statusUpdateLoop(ctx context.Context) error {
 	ticker := r.Clock.NewTicker(StatusUpdateTimeout)
 	defer ticker.Stop()
 
-	if err := r.updateStatus(ctx); err != nil {
-		log.WithError(err).Warn("Failed to updates status.")
-	}
-
 	for {
 		select {
 		case <-ticker.Chan():
@@ -556,8 +552,6 @@ func (r *agent) collectStatus(ctx context.Context) *pb.SystemStatus {
 		}
 	}
 
-	go r.clientCache.CloseMissingMembers(members, StatusUpdateTimeout-time.Second)
-
 	systemStatus := &pb.SystemStatus{
 		Status:    pb.SystemStatus_Unknown,
 		Timestamp: pb.NewTimeToProto(r.Clock.Now()),
@@ -605,6 +599,8 @@ L:
 	}
 
 	setSystemStatus(systemStatus, members)
+
+	go r.clientCache.CloseMissingMembers(members)
 
 	return systemStatus
 }
