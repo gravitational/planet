@@ -559,7 +559,7 @@ func validateKubernetesService(ctx context.Context, serviceCIDR net.IPNet) error
 			return trace.Wrap(err)
 		}
 		services := client.CoreV1().Services(metav1.NamespaceDefault)
-		svc, err := services.Get(KubernetesServiceName, metav1.GetOptions{})
+		svc, err := services.Get(ctx, KubernetesServiceName, metav1.GetOptions{})
 		if err != nil {
 			return trace.Wrap(err)
 		}
@@ -589,7 +589,7 @@ func validateKubernetesService(ctx context.Context, serviceCIDR net.IPNet) error
 }
 
 func removeKubernetesService(services corev1.ServiceInterface) error {
-	err := services.Delete(KubernetesServiceName, &metav1.DeleteOptions{})
+	err := services.Delete(context.TODO(), KubernetesServiceName, metav1.DeleteOptions{})
 	if err != nil && !errors.IsNotFound(err) {
 		return trace.Wrap(err)
 	}
