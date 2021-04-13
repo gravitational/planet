@@ -49,7 +49,7 @@ func setupResolver(ctx context.Context, role agent.Role, serviceCIDR net.IPNet) 
 		return trace.Wrap(err)
 	}
 	err = utils.RetryWithInterval(ctx, newUnlimitedExponentialBackoff(5*time.Second), func() error {
-		err = updateEnvDNSAddresses(client, role, serviceCIDR)
+		err = updateEnvDNSAddresses(ctx, client, role, serviceCIDR)
 		if err != nil {
 			log.Warn("Error updating DNS env: ", err)
 			return trace.Wrap(err)
@@ -72,9 +72,9 @@ func writeEnvDNSAddresses(addr []string, overwrite bool) error {
 	return trace.Wrap(err)
 }
 
-func updateEnvDNSAddresses(client *kubernetes.Clientset, role agent.Role, serviceCIDR net.IPNet) error {
+func updateEnvDNSAddresses(ctx context.Context, client *kubernetes.Clientset, role agent.Role, serviceCIDR net.IPNet) error {
 	// locate the cluster IP of the kube-dns service
-	masterServices, err := client.CoreV1().Services(metav1.NamespaceSystem).List(context.TODO(), metav1.ListOptions{
+	masterServices, err := client.CoreV1().Services(metav1.NamespaceSystem).List(ctx, metav1.ListOptions{
 		LabelSelector: dnsServiceSelector.String(),
 	})
 	if err != nil {
@@ -85,7 +85,7 @@ func updateEnvDNSAddresses(client *kubernetes.Clientset, role agent.Role, servic
 		return trace.Wrap(err)
 	}
 
-	workerServices, err := client.CoreV1().Services(metav1.NamespaceSystem).List(context.TODO(), metav1.ListOptions{
+	workerServices, err := client.CoreV1().Services(metav1.NamespaceSystem).List(ctx, metav1.ListOptions{
 		LabelSelector: dnsWorkerServiceSelector.String(),
 	})
 	if err != nil {
