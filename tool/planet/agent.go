@@ -578,7 +578,7 @@ func validateKubernetesService(ctx context.Context, serviceCIDR net.IPNet) error
 		if !serviceCIDR.Contains(clusterIP) {
 			logger.WithField("cluster-ip", svc.Spec.ClusterIP).
 				Warn("API server service clusterIP is invalid, will reset service.")
-			if err := removeKubernetesService(services); err != nil {
+			if err := removeKubernetesService(ctx, services); err != nil {
 				return trace.Wrap(err)
 			}
 			return utils.Continue("wait for API server service to become available")
@@ -588,8 +588,8 @@ func validateKubernetesService(ctx context.Context, serviceCIDR net.IPNet) error
 	})
 }
 
-func removeKubernetesService(services corev1.ServiceInterface) error {
-	err := services.Delete(context.TODO(), KubernetesServiceName, metav1.DeleteOptions{})
+func removeKubernetesService(ctx context.Context, services corev1.ServiceInterface) error {
+	err := services.Delete(ctx, KubernetesServiceName, metav1.DeleteOptions{})
 	if err != nil && !errors.IsNotFound(err) {
 		return trace.Wrap(err)
 	}
