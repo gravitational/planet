@@ -366,7 +366,7 @@ func getLibcontainerConfig(containerID, rootfs string, cfg Config) (*configs.Con
 				AllowedDevices:   configs.DefaultAllowedDevices,
 				MemorySwappiness: nil, // nil means "machine-default" and that's what we need because we don't care
 				CpuShares:        2,   // set planet to minimum cpu shares relative to host services
-				PidsLimit:        -1,  // override systemd defaults and set planet scope to unlimited pids
+				PidsLimit:        2000000,  // override systemd defaults and set planet scope to unlimited pids
 			},
 		},
 
