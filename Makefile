@@ -26,11 +26,12 @@
 #
 .DEFAULT_GOAL := all
 
-PWD := $(shell pwd)
-ASSETS := $(PWD)/build.assets
-BUILD_ASSETS := $(PWD)/build/assets
-BUILDDIR ?= $(PWD)/build
-BUILDDIR := $(shell realpath $(BUILDDIR))
+MKFILE_PATH := $(abspath $(lastword $(MAKEFILE_LIST)))
+CURRENT_DIR := $(realpath $(patsubst %/,%,$(dir $(MKFILE_PATH))))
+
+ASSETS := $(CURRENT_DIR)/build.assets
+BUILD_ASSETS := $(CURRENT_DIR)/build/assets
+BUILDDIR ?= $(CURRENT_DIR)/build
 OUTPUTDIR := $(BUILDDIR)/planet
 
 KUBE_VER ?= v1.21.0
@@ -71,7 +72,10 @@ ETCD_VER := v3.3.12 v3.3.15 v3.3.20 v3.3.22 v3.4.3 v3.4.7 v3.4.9
 #   - Modify build.go and run the etcd upgrade integration test (go run mage.go ci:testEtcdUpgrade)
 ETCD_LATEST_VER := v3.4.9
 
-BUILDBOX_GO_VER ?= 1.13.8
+# TODO: currently defaulting to stretch explicitly to work around
+# a breaking change in buster (with GLIBC 2.28) w.r.t fcntl() implementation.
+# See https://forum.rebol.info/t/dynamic-linking-static-linking-and-the-march-of-progress/1231/1
+BUILDBOX_GO_VER ?= go1.13.8-stretch
 PLANET_BUILD_TAG ?= $(shell git describe --tags)
 PLANET_IMAGE_NAME ?= planet/base
 PLANET_IMAGE ?= $(PLANET_IMAGE_NAME):$(PLANET_BUILD_TAG)
@@ -82,7 +86,7 @@ PLANET_BUILDBOX_IMAGE ?= $(PLANET_BUILDBOX_NAME):$(PLANET_BUILD_TAG)
 export
 
 PUBLIC_IP ?= 127.0.0.1
-PLANET_PACKAGE_PATH := $(PWD)
+PLANET_PACKAGE_PATH := $(CURRENT_DIR)
 PLANET_PACKAGE := github.com/gravitational/planet
 PLANET_VERSION_PACKAGE_PATH := $(PLANET_PACKAGE)/Godeps/_workspace/src/github.com/gravitational/version
 GO_FILES := $(shell find . -type f -name '*.go' -not -path "./vendor/*" -not -path "./build/*")

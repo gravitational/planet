@@ -7,7 +7,7 @@ TARBALL ?= $(BUILDDIR)/planet.tar.gz
 PLANET_BUILD_TAG ?= $(shell git describe --tags)
 BUILDBOX_NAME ?= planet/buildbox
 BUILDBOX_IMAGE ?= $(BUILDBOX_NAME):$(PLANET_BUILD_TAG)
-
+GO ?= go
 GOCACHE_DOCKER_OPTIONS ?=
 GOCACHE ?= $(shell go env GOCACHE 2>/dev/null || echo $${HOME}/.cache/go-build)
 ifdef GOCACHE_ENABLED
@@ -15,6 +15,20 @@ GOCACHE_DOCKER_OPTIONS = --volume $(GOCACHE):$(GOCACHE) --env "GOCACHE=$(GOCACHE
 endif
 
 export
+
+OS := $(shell uname | tr '[:upper:]' '[:lower:]')
+ARCH := $(shell uname -m)
+
+define replace
+	sed -i "$1" $2
+endef
+
+ifeq ($(OS),darwin)
+define replace
+	sed -i '' "$1" $2
+endef
+endif
+
 TMPFS_SIZE ?= 900m
 VER_UPDATES = ETCD_LATEST_VER KUBE_VER FLANNEL_VER DOCKER_VER HELM_VER HELM3_VER COREDNS_VER NODE_PROBLEM_DETECTOR_VER
 
@@ -32,7 +46,7 @@ build: | $(ASSETDIR) $(GOCACHE)
 		--volume=$(ROOTFS):/rootfs \
 		--volume=$(TARGETDIR):/targetdir \
 		--volume=$(ASSETDIR):/assetdir \
-		--volume=$(PWD):/gopath/src/github.com/gravitational/planet \
+		--volume=$(CURRENT_DIR):/gopath/src/github.com/gravitational/planet \
 		--env="ASSETS=/assets" \
 		--env="ROOTFS=/rootfs" \
 		--env="TARGETDIR=/targetdir" \
@@ -64,22 +78,17 @@ planet-image:
 	cp $(ASSETDIR)/planet $(ROOTFS)/usr/bin/
 	cp $(ASSETDIR)/docker-import $(ROOTFS)/usr/bin/
 	cp $(ASSETS)/docker/os-rootfs/etc/planet/orbit.manifest.json $(TARGETDIR)/
-	sed -i "s/REPLACE_ETCD_LATEST_VERSION/$(ETCD_LATEST_VER)/g" $(TARGETDIR)/orbit.manifest.json
-	sed -i "s/REPLACE_KUBE_LATEST_VERSION/$(KUBE_VER)/g" $(TARGETDIR)/orbit.manifest.json
-	sed -i "s/REPLACE_FLANNEL_LATEST_VERSION/$(FLANNEL_VER)/g" $(TARGETDIR)/orbit.manifest.json
-	sed -i "s/REPLACE_DOCKER_LATEST_VERSION/$(DOCKER_VER)/g" $(TARGETDIR)/orbit.manifest.json
-	sed -i "s/REPLACE_HELM_LATEST_VERSION/$(HELM_VER)/g" $(TARGETDIR)/orbit.manifest.json
-	sed -i "s/REPLACE_HELM3_LATEST_VERSION/$(HELM3_VER)/g" $(TARGETDIR)/orbit.manifest.json
-	sed -i "s/REPLACE_COREDNS_LATEST_VERSION/$(COREDNS_VER)/g" $(TARGETDIR)/orbit.manifest.json
-	sed -i "s/REPLACE_NODE_PROBLEM_DETECTOR_LATEST_VERSION/$(NODE_PROBLEM_DETECTOR_VER)/g" $(TARGETDIR)/orbit.manifest.json
+	$(call replace,"s/REPLACE_ETCD_LATEST_VERSION/$(ETCD_LATEST_VER)/g",$(TARGETDIR)/orbit.manifest.json)
+	$(call replace,"s/REPLACE_KUBE_LATEST_VERSION/$(KUBE_VER)/g",$(TARGETDIR)/orbit.manifest.json)
+	$(call replace,"s/REPLACE_FLANNEL_LATEST_VERSION/$(FLANNEL_VER)/g",$(TARGETDIR)/orbit.manifest.json)
+	$(call replace,"s/REPLACE_DOCKER_LATEST_VERSION/$(DOCKER_VER)/g",$(TARGETDIR)/orbit.manifest.json)
+	$(call replace,"s/REPLACE_HELM_LATEST_VERSION/$(HELM_VER)/g",$(TARGETDIR)/orbit.manifest.json)
+	$(call replace,"s/REPLACE_HELM3_LATEST_VERSION/$(HELM3_VER)/g",$(TARGETDIR)/orbit.manifest.json)
+	$(call replace,"s/REPLACE_COREDNS_LATEST_VERSION/$(COREDNS_VER)/g",$(TARGETDIR)/orbit.manifest.json)
+	$(call replace,"s/REPLACE_NODE_PROBLEM_DETECTOR_LATEST_VERSION/$(NODE_PROBLEM_DETECTOR_VER)/g",$(TARGETDIR)/orbit.manifest.json)
 	cp $(TARGETDIR)/orbit.manifest.json $(ROOTFS)/etc/planet/
 	@echo -e "\n---> Creating Planet image...\n"
-	cd $(TARGETDIR) && fakeroot -- sh -c ' \
-		chown -R $(PLANET_UID):$(PLANET_GID) . ; \
-		chown -R root:root rootfs/sbin/mount.* ; \
-		chown -R root:$(PLANET_GID) rootfs/etc/ ; \
-		chmod -R g+rw rootfs/etc ; \
-		tar -czf $(TARBALL) orbit.manifest.json rootfs'
+	$(GO) run github.com/gravitational/planet/tool/create-tarball/... $(TARGETDIR) $(BUILDDIR)/planet.tar.gz
 	@echo -e "\nDone --> $(TARBALL)"
 
 .PHONY: enter-buildbox
