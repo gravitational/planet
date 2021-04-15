@@ -1,0 +1,5 @@
+mage.go
+build/
+_build/
+vagrant/
+contrib/

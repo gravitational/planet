@@ -1,0 +1,12 @@
+#!/usr/bin/env sh
+set -eu
+
+# Use:
+# BUILDKIT_HOST=tcp://0.0.0.0:1234 make -f Makefile.buildx tarball
+
+: ${PORT=1234}
+docker run --detach --privileged \
+	--publish ${PORT}:${PORT} \
+	--name buildkitd \
+	tonistiigi/buildkit \
+	--addr tcp://0.0.0.0:${PORT}
