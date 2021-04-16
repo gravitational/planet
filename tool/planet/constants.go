@@ -434,7 +434,7 @@ const (
 	DefaultVxlanPort = 8472
 
 	// DefaultFeatureGates is the default set of component feature gates
-	DefaultFeatureGates = "AllAlpha=true,APIResponseCompression=false,BoundServiceAccountTokenVolume=false,CSIMigration=false,KubeletPodResources=false,IPv6DualStack=false,RemoveSelfLink=false,StorageVersionAPI=false"
+	DefaultFeatureGates = "AllAlpha=true,APIResponseCompression=false,StorageVersionAPI=false"
 
 	// DefaultServiceNodePortRange defines the default IP range for services with NodePort visibility
 	DefaultServiceNodePortRange = "30000-32767"
