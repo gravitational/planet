@@ -5,6 +5,7 @@ set -eu
 
 : ${TARGET=releaser}
 : ${OUTPUT=./build/planet}
+: ${OUTPUT_FORMAT="type=local,dest=$OUTPUT"}
 
 if [ -n "$BUILDKIT_HOST" ] && buildctl --version >/dev/null 2>&1; then
   targetFlags=""
@@ -16,7 +17,7 @@ if [ -n "$BUILDKIT_HOST" ] && buildctl --version >/dev/null 2>&1; then
       --frontend=dockerfile.v0 \
       --local context=. \
       --local dockerfile=. \
-      --output="type=local,dest=$OUTPUT"
+      --output="$OUTPUT_FORMAT"
 else
   targetFlags=""
   if [ -n "$TARGET" ]; then
@@ -24,6 +25,6 @@ else
   fi
   buildxCmd build \
     $targetFlags \
-    --output="type=local,dest=$OUTPUT" \
+    --output="$OUTPUT_FORMAT" \
     .
 fi

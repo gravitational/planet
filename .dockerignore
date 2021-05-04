@@ -1,5 +1,9 @@
-mage.go
 build/
 _build/
 vagrant/
-contrib/
+.drone.yml
+.git/
+.github/
+
+# darwin-specific
+.DS_Store

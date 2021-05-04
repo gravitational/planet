@@ -1,6 +1,6 @@
 # syntax = docker/dockerfile:1.2
 
-ARG KUBE_VER=v1.19.8
+ARG KUBE_VER=v1.21.0
 ARG SECCOMP_VER=2.3.1-2.1+deb9u1
 ARG DOCKER_VER=19.03.12
 # we currently use our own flannel fork: gravitational/flannel
@@ -42,8 +42,8 @@ ARG ETCD_VER="v3.3.12 v3.3.15 v3.3.20 v3.3.22 v3.4.3 v3.4.7 v3.4.9"
 ARG ETCD_LATEST_VER=v3.4.9
 
 # go builder
-FROM golang:${GO_VERSION}-alpine AS gobase
-RUN apk add --no-cache git
+FROM golang:${GO_VERSION}-stretch AS gobase
+RUN apt install -y --no-install-recommends git
 
 # git stage is used for checking out remote repository sources
 FROM --platform=$BUILDPLATFORM alpine:${ALPINE_VERSION} AS git
@@ -346,13 +346,12 @@ COPY ./build.assets/makefiles/base/network/flanneld.service /lib/systemd/system/
 RUN set -ex && mkdir -p /etc/cni/net.d/ /opt/cni/bin
 COPY --from=cni-downloader /opt/cni/bin/ /opt/cni/bin/
 # Scripts to wait for etcd/flannel to come up
-WORKDIR /host
-RUN --mount=target=. \
+RUN --mount=target=/host \
 	set -ex && \
 	mkdir -p /usr/bin/scripts && \
-	install -m 0755 ./build.assets/makefiles/base/network/wait-for-etcd.sh /usr/bin/scripts && \
-	install -m 0755 ./build.assets/makefiles/base/network/wait-for-flannel.sh /usr/bin/scripts && \
-	install -m 0755 ./build.assets/makefiles/base/network/setup-etc.sh /usr/bin/scripts
+	install -m 0755 /host/build.assets/makefiles/base/network/wait-for-etcd.sh /usr/bin/scripts && \
+	install -m 0755 /host/build.assets/makefiles/base/network/wait-for-flannel.sh /usr/bin/scripts && \
+	install -m 0755 /host/build.assets/makefiles/base/network/setup-etc.sh /usr/bin/scripts
 # node-problem-detector.mk
 COPY --from=node-problem-detector-downloader /tmp/bin/ /usr/bin
 COPY ./build.assets/makefiles/base/node-problem-detector/node-problem-detector.service /lib/systemd/system/
@@ -373,9 +372,9 @@ RUN set -ex && \
 		ln -sf /var/state/kubelet.cert /etc/docker/certs.d/$r/client.cert; \
 		ln -sf /var/state/kubelet.key /etc/docker/certs.d/$r/client.key; \
 	done;
-RUN --mount=target=. \
+RUN --mount=target=/host \
 	set -ex && \
-	install -m 0755 ./build.assets/makefiles/base/docker/unmount-devmapper.sh /usr/bin/scripts/
+	install -m 0755 /host/build.assets/makefiles/base/docker/unmount-devmapper.sh /usr/bin/scripts/
 COPY --from=docker-downloader /docker/ /usr/bin/
 # agent.mk
 COPY --from=serf-builder /serf /usr/bin/
@@ -391,13 +390,13 @@ COPY --from=helm3-downloader /helm3 /usr/bin/
 COPY --from=coredns-downloader /coredns /usr/bin/
 COPY --from=docker-import-builder /docker-import /usr/bin/
 COPY ./build.assets/makefiles/master/k8s-master/*.service /lib/systemd/system/
-RUN --mount=target=. \
+RUN --mount=target=/host \
 	set -ex && \
-	cp -TRv -p ./build.assets/makefiles/master/k8s-master/rootfs/etc/kubernetes /etc/kubernetes && \
+	cp -TRv -p /host/build.assets/makefiles/master/k8s-master/rootfs/etc/kubernetes /etc/kubernetes && \
 	ln -sf /lib/systemd/system/kube-kubelet.service /lib/systemd/system/multi-user.target.wants/ && \
 	ln -sf /lib/systemd/system/kube-proxy.service /lib/systemd/system/multi-user.target.wants/ && \
 	mkdir -p /usr/bin/scripts && \
-	install -m 0755 ./build.assets/makefiles/master/k8s-master/cluster-dns.sh /usr/bin/scripts/
+	install -m 0755 /host/build.assets/makefiles/master/k8s-master/cluster-dns.sh /usr/bin/scripts/
 # etcd.mk
 COPY --from=etcd-downloader /tmp/bin/ /usr/bin/
 COPY --from=planet-builder /planet /usr/bin/
@@ -420,7 +419,7 @@ COPY ./build.assets/docker/registry/config.yml /etc/docker/registry/
 RUN set -ex && \
 	ln -sf /lib/systemd/system/registry.service /lib/systemd/system/multi-user.target.wants/
 
-FROM alpine:${ALPINE_VERSION} AS tarball-builder
+FROM gobase AS tarball-builder
 ARG ETCD_LATEST_VER
 ARG KUBE_VER
 ARG FLANNEL_VER
