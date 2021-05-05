@@ -35,3 +35,6 @@ make.sh
 
 *.swp
 .vscode
+
+build.assets/docker/frozen-images/
+_build/

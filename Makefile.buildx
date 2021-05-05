@@ -1,19 +1,36 @@
 MKFILE_PATH := $(abspath $(lastword $(MAKEFILE_LIST)))
 CURRENT_DIR := $(realpath $(patsubst %/,%,$(dir $(MKFILE_PATH))))
 BUILDDIR ?= $(CURRENT_DIR)/_build
+DOCKER ?= docker
+FROZEN_IMAGES_DIR := $(CURRENT_DIR)/build.assets/docker/frozen-images
 
-.PHONY: all binaries tarball
+.PHONY: all binaries tarball rootfs-shell clean
 all: tarball
 
 binaries: | $(BUILDDIR)
 	TARGET=binary-releaser OUTPUT=$(BUILDDIR) hack/build
 
-tarball: | $(BUILDDIR)
+tarball: $(FROZEN_IMAGES_DIR)/pause.tar.gz $(FROZEN_IMAGES_DIR)/nettest.tar.gz | $(BUILDDIR)
 	TARGET=releaser OUTPUT=$(BUILDDIR) hack/build
 
 rootfs-shell:
 	TARGET=rootfs OUTPUT_FORMAT="type=image,name=planet-rootfs:v1" hack/build
-	docker run --rm -ti planet-rootfs:v1 bash
+	$(DOCKER) run --rm -ti planet-rootfs:v1 bash
+
+$(FROZEN_IMAGES_DIR)/pause.tar.gz: image=gcr.io/google_containers/pause:3.2
+$(FROZEN_IMAGES_DIR)/pause.tar.gz:
+	$(DOCKER) pull $(image)
+	$(DOCKER) save -o $@ $(image)
+
+$(FROZEN_IMAGES_DIR)/nettest.tar.gz: image=gcr.io/google_containers/nettest:1.8
+$(FROZEN_IMAGES_DIR)/nettest.tar.gz:
+	$(DOCKER) pull $(image)
+	$(DOCKER) save -o $@ $(image)
 
 $(BUILDDIR):
 	mkdir -p $@
+
+clean:
+	rm -r $(BUILDDIR) || true
+	rm -r $(FROZEN_IMAGES_DIR) || true
+	$(DOCKER) rmi --force planet-rootfs:v1

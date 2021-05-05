@@ -336,7 +336,7 @@ COPY ./build.assets/makefiles/base/systemd/journald.conf /lib/systemd/system/sys
 COPY ./build.assets/makefiles/base/systemd/system.conf /etc/systemd/system.conf.d/
 
 # containers.mk
-COPY ./build.assets/docker/frozen-images/images.tar.gz /etc/docker/offline/
+COPY ./build.assets/docker/frozen-images/*.tar.gz /etc/docker/offline/
 COPY ./build.assets/makefiles/master/k8s-master/offline-container-import.service /lib/systemd/system/
 RUN set -ex && \
 	ln -sf /lib/systemd/system/offline-container-import.service /lib/systemd/system/multi-user.target.wants/
