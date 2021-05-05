@@ -16,6 +16,7 @@ ARG PLANET_UID=980665
 ARG PLANET_GID=980665
 ARG GO_VERSION=1.16.3
 ARG ALPINE_VERSION=3.12
+ARG DEBIAN_IMAGE=quay.io/gravitational/debian-mirror@sha256:4b6ec644c29e4964a6f74543a5bf8c12bed6dec3d479e039936e4a37a8af9116
 ARG GO_BUILDER_VERSION=go1.13.8-stretch
 # TODO(dima): update to 2.7.2 release once available
 # ARG DISTRIBUTION_VER=release/2.7
@@ -23,7 +24,6 @@ ARG DISTRIBUTION_VER=v2.7.1-gravitational
 
 ARG PLANET_PKG_PATH=/gopath/src/github.com/gravitational/planet
 ARG PLANET_BUILDFLAGS="-tags 'selinux sqlite_omit_load_extension'"
-
 
 # ETCD Versions to include in the release
 # This list needs to include every version of etcd that we can upgrade from + latest
@@ -45,17 +45,16 @@ ARG ETCD_LATEST_VER=v3.4.9
 FROM golang:${GO_VERSION}-stretch AS gobase
 RUN apt install -y --no-install-recommends git
 
-# git stage is used for checking out remote repository sources
-FROM --platform=$BUILDPLATFORM alpine:${ALPINE_VERSION} AS git
-RUN apk add --no-cache git
-
 FROM alpine:${ALPINE_VERSION} AS downloader
 RUN apk add --no-cache curl tar && mkdir -p /tmp
 
-FROM alpine:${ALPINE_VERSION} AS iptables-builder
+FROM ${DEBIAN_IMAGE} AS iptables-builder
 ARG IPTABLES_VER
+RUN --mount=type=cache,target=/var/cache/apt,rw --mount=type=cache,target=/var/lib/apt,rw \
+	set -ex && \
+	apt-get update && apt-get install -y --no-install-recommends \
+		git pkg-config autoconf automake libtool libmnl-dev make build-essential
 RUN set -ex && \
-	apk add --no-cache git autoconf automake libtool libmnl-dev make build-base && \
         mkdir /tmp/iptables.build /tmp/iptables.local && \
         git clone git://git.netfilter.org/iptables.git --branch ${IPTABLES_VER} --single-branch /tmp/iptables.build && \
         cd /tmp/iptables.build && \
@@ -97,7 +96,7 @@ RUN --mount=target=. --mount=target=/root/.cache,type=cache --mount=target=/go/p
 
 # OS base image
 # debian:stretch-backports tagged 20200501
-FROM quay.io/gravitational/debian-mirror@sha256:4b6ec644c29e4964a6f74543a5bf8c12bed6dec3d479e039936e4a37a8af9116 as os
+FROM ${DEBIAN_IMAGE} AS os
 ARG SECCOMP_VER
 # planet user to use inside the rootfs tarball. This serves as a placeholder
 # and the files will be owned by the actual planet user after extraction
@@ -218,11 +217,11 @@ RUN --mount=type=cache,target=/var/cache/apt,rw --mount=type=cache,target=/var/l
 	bsdmainutils;
 
 RUN set -ex && \
-groupadd --system --non-unique --gid ${PLANET_GID} planet && \
-useradd --system --non-unique --no-create-home -g ${PLANET_GID} -u ${PLANET_UID} planet && \
-groupadd --system docker && \
-    usermod -a -G planet root && \
-    usermod -a -G docker planet;
+	groupadd --system --non-unique --gid ${PLANET_GID} planet && \
+	useradd --system --non-unique --no-create-home -g ${PLANET_GID} -u ${PLANET_UID} planet && \
+	groupadd --system docker && \
+	usermod -a -G planet root && \
+	usermod -a -G docker planet;
 COPY --from=iptables-builder /usr/local/ /usr/local/
 
 FROM gobase AS flannel-builder
@@ -316,7 +315,7 @@ RUN set -ex && \
 FROM downloader AS node-problem-detector-downloader
 ARG NODE_PROBLEM_DETECTOR_VER
 RUN set -ex && curl -L --retry 5 https://github.com/kubernetes/node-problem-detector/releases/download/${NODE_PROBLEM_DETECTOR_VER}/node-problem-detector-${NODE_PROBLEM_DETECTOR_VER}.tar.gz| tar xz --no-same-owner -C /tmp/
-	
+
 # docker.mk
 FROM downloader AS docker-downloader
 ARG DOCKER_VER
@@ -329,37 +328,44 @@ ARG ETCD_LATEST_VER
 
 # systemd.mk
 RUN set -ex && \
-	mkdir -p /lib/systemd/system/systemd-journald.service.d/ && \
-	mkdir -p /etc/systemd/system.conf.d/ && \
-	mkdir -p /etc/docker/offline/
+	mkdir -p \
+		/lib/systemd/system/systemd-journald.service.d/ \
+		/etc/systemd/system.conf.d/ \
+		/etc/docker/offline/
 COPY ./build.assets/makefiles/base/systemd/journald.conf /lib/systemd/system/systemd-journald.service.d/
 COPY ./build.assets/makefiles/base/systemd/system.conf /etc/systemd/system.conf.d/
+
 # containers.mk
 COPY ./build.assets/docker/frozen-images/images.tar.gz /etc/docker/offline/
 COPY ./build.assets/makefiles/master/k8s-master/offline-container-import.service /lib/systemd/system/
 RUN set -ex && \
 	ln -sf /lib/systemd/system/offline-container-import.service /lib/systemd/system/multi-user.target.wants/
+
 # network.mk
 COPY --from=flannel-builder /flanneld /usr/bin/flanneld
 COPY ./build.assets/makefiles/base/network/flanneld.service /lib/systemd/system/
 # Setup cni and include flannel as a plugin
 RUN set -ex && mkdir -p /etc/cni/net.d/ /opt/cni/bin
 COPY --from=cni-downloader /opt/cni/bin/ /opt/cni/bin/
-# Scripts to wait for etcd/flannel to come up
+
+# scripts to wait for etcd/flannel to come up
 RUN --mount=target=/host \
 	set -ex && \
 	mkdir -p /usr/bin/scripts && \
 	install -m 0755 /host/build.assets/makefiles/base/network/wait-for-etcd.sh /usr/bin/scripts && \
 	install -m 0755 /host/build.assets/makefiles/base/network/wait-for-flannel.sh /usr/bin/scripts && \
 	install -m 0755 /host/build.assets/makefiles/base/network/setup-etc.sh /usr/bin/scripts
+
 # node-problem-detector.mk
 COPY --from=node-problem-detector-downloader /tmp/bin/ /usr/bin
 COPY ./build.assets/makefiles/base/node-problem-detector/node-problem-detector.service /lib/systemd/system/
 RUN set -ex && ln -sf /lib/systemd/system/node-problem-detector.service /lib/systemd/system/multi-user.target.wants/
+
 # dns.mk
 RUN set -ex && mkdir -p /etc/coredns/configmaps/ /usr/lib/sysusers.d/
 COPY ./build.assets/makefiles/base/dns/coredns.service /lib/systemd/system/
 RUN set -ex && ln -sf /lib/systemd/system/coredns.service /lib/systemd/system/multi-user.target.wants/
+
 # docker.mk
 COPY ./build.assets/makefiles/base/docker/docker.service /lib/systemd/system/
 COPY ./build.assets/makefiles/base/docker/docker.socket /lib/systemd/system/
@@ -376,6 +382,7 @@ RUN --mount=target=/host \
 	set -ex && \
 	install -m 0755 /host/build.assets/makefiles/base/docker/unmount-devmapper.sh /usr/bin/scripts/
 COPY --from=docker-downloader /docker/ /usr/bin/
+
 # agent.mk
 COPY --from=serf-builder /serf /usr/bin/
 COPY ./build.assets/makefiles/base/agent/serf.service /lib/systemd/system
@@ -383,6 +390,7 @@ COPY ./build.assets/makefiles/base/agent/planet-agent.service /lib/systemd/syste
 RUN set -ex && \
 	ln -sf /lib/systemd/system/serf.service /lib/systemd/system/multi-user.target.wants/ && \
 	ln -sf /lib/systemd/system/planet-agent.service /lib/systemd/system/multi-user.target.wants/
+
 # kubernetes.mk
 COPY --from=k8s-downloader /tmp/ /usr/bin/
 COPY --from=helm-downloader /helm /usr/bin/
@@ -412,6 +420,7 @@ RUN set -ex && \
 	ln -sf /dev/null /etc/systemd/system/etcd-upgrade.service && \
 	# write to the release file to indicate the latest release
 	echo PLANET_ETCD_VERSION=${ETCD_LATEST_VER} >> /etc/planet-release
+
 # registry.mk
 COPY --from=distribution-builder /registry /usr/bin/registry
 COPY ./build.assets/makefiles/base/docker/registry.service /lib/systemd/system

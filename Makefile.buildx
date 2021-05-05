@@ -3,13 +3,17 @@ CURRENT_DIR := $(realpath $(patsubst %/,%,$(dir $(MKFILE_PATH))))
 BUILDDIR ?= $(CURRENT_DIR)/_build
 
 .PHONY: all binaries tarball
-all: binaries tarball
+all: tarball
 
 binaries: | $(BUILDDIR)
 	TARGET=binary-releaser OUTPUT=$(BUILDDIR) hack/build
 
 tarball: | $(BUILDDIR)
 	TARGET=releaser OUTPUT=$(BUILDDIR) hack/build
+
+rootfs-shell:
+	TARGET=rootfs OUTPUT_FORMAT="type=image,name=planet-rootfs:v1" hack/build
+	docker run --rm -ti planet-rootfs:v1 bash
 
 $(BUILDDIR):
 	mkdir -p $@
