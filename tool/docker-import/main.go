@@ -57,7 +57,7 @@ func run() error {
 		return trace.Wrap(err)
 	}
 
-	log.Infof("processing files in %s", *tarballDir)
+	log.Info("Processing files in ", *tarballDir)
 	return bulkImport(*tarballDir, registryAddr.String())
 }
 
@@ -75,17 +75,17 @@ func bulkImport(dir, registryAddr string) error {
 			}
 			return nil
 		}
-		log.Infof("processing file %s", path)
+		log.Info("Processing file ", path)
 		read := func(path string) error {
 			var f *os.File
 			f, err = os.Open(path)
 			if err != nil {
-				return trace.Wrap(err, "failed to open tarball `%s` for reading", path)
+				return trace.Wrap(err, "failed to open tarball for reading").AddField("path", path)
 			}
 			defer f.Close()
 			err = importImageFromTarball(f, path, registryAddr)
 			if err != nil {
-				return trace.Wrap(err, "failed to import image from tarball `%s`", path)
+				return trace.Wrap(err, "failed to import image from tarball").AddField("path", path)
 			}
 			return nil
 		}
@@ -103,7 +103,7 @@ func importImageFromTarball(input io.Reader, path, registryAddr string) error {
 	const interval = 5 * time.Second
 	const attempts = 6
 
-	log.Infof("importing from tarball %s", path)
+	log.Info("Importing from tarball ", path)
 	r := tar.NewReader(input)
 	var hdr *tar.Header
 	var err error
@@ -120,12 +120,12 @@ func importImageFromTarball(input io.Reader, path, registryAddr string) error {
 			if err != nil {
 				return trace.Wrap(err)
 			}
-			var repo Repo
-			if err = json.Unmarshal(data, &repo); err != nil {
+			var repos Repositories
+			if err = json.Unmarshal(data, &repos); err != nil {
 				return trace.Wrap(err)
 			}
 			if err = utils.Retry(context.TODO(), attempts, interval, func() error {
-				if err := importWithRepo(repo, path, registryAddr); err != nil {
+				if err := importWithRepos(repos, path, registryAddr); err != nil {
 					return trace.Wrap(err, "failed to import %v into docker: %v, will retry", path, err)
 				}
 				return nil
@@ -136,21 +136,23 @@ func importImageFromTarball(input io.Reader, path, registryAddr string) error {
 	}
 }
 
-// importWithRepo imports the actual container image into the docker registry specified
-// with registryAddr using repo for metadata.
-func importWithRepo(repo Repo, path, registryAddr string) error {
+// importWithRepos imports the actual container images into the docker registry specified
+// with registryAddr using repos for metadata.
+func importWithRepos(repos Repositories, path, registryAddr string) error {
 	out, err := dockerCommand("load", "-i", path)
 	if err != nil {
-		return trace.Wrap(err, "failed to load image into docker:\n%s", out)
+		return trace.Wrap(err, "failed to load image(s) into docker:\n%s", out)
 	}
-	repoTag := fmt.Sprintf("%v/%v", registryAddr, repo.ImageURL())
-	out, err = dockerCommand("tag", repo.ImageURL(), repoTag)
-	if err != nil {
-		return trace.Wrap(err, "failed to tag image in registry:\n%s", out)
-	}
-	out, err = dockerCommand("push", repoTag)
-	if err != nil {
-		return trace.Wrap(err, "failed to push image to registry:\n%s", out)
+	for _, image := range repos.Images() {
+		repoTag := fmt.Sprintf("%v/%v", registryAddr, image.url())
+		out, err = dockerCommand("tag", image.url(), repoTag)
+		if err != nil {
+			return trace.Wrap(err, "failed to tag image in registry:\n%s", out)
+		}
+		out, err = dockerCommand("push", repoTag)
+		if err != nil {
+			return trace.Wrap(err, "failed to push image to registry:\n%s", out)
+		}
 	}
 	return nil
 }
@@ -163,29 +165,6 @@ func dockerCommand(args ...string) ([]byte, error) {
 		return out, trace.Wrap(err)
 	}
 	return nil, nil
-}
-
-// Repo describes docker container image repository metadata.
-type Repo map[string]Version
-
-// Version describes the version part of a container image metadata.
-type Version map[string]string
-
-// ImageURL builds a container image repository URL:
-//
-// repository/image_name:image_version
-func (r Repo) ImageURL() string {
-	for imagePath, details := range r {
-		repoURL, imageName := filepath.Split(imagePath)
-		for version := range details {
-			return filepath.Join(repoURL, imageTag(imageName, version))
-		}
-	}
-	return ""
-}
-
-func imageTag(name, version string) string {
-	return fmt.Sprintf("%v:%v", name, version)
 }
 
 // HostPort returns an instance of the kingpin Flag to read `host:port` formatted input.
