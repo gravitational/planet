@@ -70,15 +70,14 @@ require (
 	golang.org/x/lint v0.0.0-20200130185559-910be7a94367 // indirect
 	golang.org/x/oauth2 v0.0.0-20200107190931-bf48bf16ab8d // indirect
 	golang.org/x/sys v0.0.0-20201112073958-5cba982894dd
-	golang.org/x/tools v0.0.0-20200225230052-807dcd883420 // indirect
 	gopkg.in/alecthomas/kingpin.v2 v2.2.6
 	gopkg.in/check.v1 v1.0.0-20190902080502-41f04d3bba15
 	gopkg.in/yaml.v2 v2.2.8
 	gopkg.in/yaml.v3 v3.0.0-20200605160147-a5ece683394c // indirect
-	k8s.io/api v0.19.8
-	k8s.io/apimachinery v0.19.8
-	k8s.io/client-go v0.19.8
-	k8s.io/kubelet v0.19.8
+	k8s.io/api v0.19.10
+	k8s.io/apimachinery v0.19.10
+	k8s.io/client-go v0.19.10
+	k8s.io/kubelet v0.19.10
 )
 
 replace (
