@@ -1,6 +1,6 @@
 .PHONY: all
 
-all:
+all: planet-agent.service
 	@echo "\n---> Installing services for Planet agent:\n"
 
 	cp -af ./planet-agent.service $(ROOTFS)/lib/systemd/system
