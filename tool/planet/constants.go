@@ -118,7 +118,7 @@ const (
 	// hostname attributes for k8s kubelet/kube-proxy
 	EnvNodeName = "KUBE_NODE_NAME"
 	// EnvAgentName names the environment variable that specifies the name
-	// of the planet agent as known within the serf cluster
+	// of the planet agent as known within the cluster
 	EnvAgentName = "PLANET_AGENT_NAME"
 	// EnvInitialCluster names the environment variable that specifies the initial
 	// agent cluster configuration as comma-separated list of addresses
