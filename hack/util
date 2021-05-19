@@ -1,0 +1,32 @@
+#!/usr/bin/env sh
+export BUILDX_NO_DEFAULT_LOAD=true
+
+: ${CI=}
+: ${BUILDKIT_HOST=}
+: ${DOCKER_BUILDKIT=}
+
+progressFlag=""
+if [ "$CI" = "true" ]; then
+  progressFlag="--progress=plain"
+fi
+
+buildctlCmd() {
+    set -x
+    buildctl --addr=$BUILDKIT_HOST "$@"
+}
+
+buildxCmd() {
+  if docker buildx version >/dev/null 2>&1; then
+    set -x
+    docker buildx "$@" $progressFlag
+  elif buildx version >/dev/null 2>&1; then
+    set -x
+    buildx "$@" $progressFlag
+  elif [ -n "$DOCKER_BUILDKIT" ]; then
+    set -x
+    docker "$@" $progressFlag
+  else
+    >&2 echo "no buildkit-compatible builder installed"
+    exit 1
+  fi
+}

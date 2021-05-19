@@ -1,0 +1,39 @@
+MKFILE_PATH := $(abspath $(lastword $(MAKEFILE_LIST)))
+CURRENT_DIR := $(realpath $(patsubst %/,%,$(dir $(MKFILE_PATH))))
+ARTEFACTS_DIR := _build
+BUILDDIR ?= $(CURRENT_DIR)/$(ARTEFACTS_DIR)
+OUTPUTDIR ?= $(BUILDDIR)
+DOCKER ?= docker
+
+.PHONY: all binaries tarball rootfs-shell clean
+all: tarball
+
+binaries: | $(BUILDDIR) $(OUTPUTDIR)
+	TARGET=binary-releaser OUTPUTDIR=$(OUTPUTDIR) hack/build
+
+tarball: $(BUILDDIR)/pause.tar.gz $(BUILDDIR)/nettest.tar.gz | $(BUILDDIR) $(OUTPUTDIR)
+	TARGET=releaser OUTPUTDIR=$(OUTPUTDIR) ARTEFACTS_DIR=$(ARTEFACTS_DIR) hack/build
+
+rootfs-shell:
+	TARGET=rootfs OUTPUT_FORMAT="type=image,name=planet-rootfs:v1" hack/build
+	$(DOCKER) run --rm -ti planet-rootfs:v1 bash
+
+$(BUILDDIR)/pause.tar.gz: image=gcr.io/google_containers/pause:3.2
+$(BUILDDIR)/pause.tar.gz: | $(BUILDDIR)
+	$(DOCKER) pull $(image)
+	$(DOCKER) save -o $@ $(image)
+
+$(BUILDDIR)/nettest.tar.gz: image=gcr.io/google_containers/nettest:1.8
+$(BUILDDIR)/nettest.tar.gz: | $(BUILDDIR)
+	$(DOCKER) pull $(image)
+	$(DOCKER) save -o $@ $(image)
+
+$(BUILDDIR):
+	mkdir -p $@
+
+$(OUTPUTDIR):
+	mkdir -p $@
+
+clean:
+	rm -r $(BUILDDIR) || true
+	$(DOCKER) rmi --force planet-rootfs:v1
