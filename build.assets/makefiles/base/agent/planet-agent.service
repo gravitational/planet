@@ -1,7 +1,7 @@
 [Unit]
 Description=Planet Agent service
 Documentation=https://github.com/gravitational/planet
-Wants=etcd.service serf.service
+Wants=etcd.service
 
 [Service]
 Restart=always
@@ -13,7 +13,6 @@ EnvironmentFile=-/ext/etcd/etcd-synced.txt
 LimitNOFILE=40000
 LimitNPROC=1048576
 ExecStartPre=/bin/systemctl is-active etcd.service
-ExecStartPre=/bin/systemctl is-active serf.service
 ExecStart=/usr/bin/planet agent \
         --rpc-addr=${PLANET_PUBLIC_IP}:7575 \
         --rpc-addr=127.0.0.1:7575 \
