@@ -263,7 +263,7 @@ func defaultCgroupConfig(numCPU int, isMaster bool) *CgroupConfig {
 
 	// System reserved
 	// - 10% of cpu for admin tasks (pods will be able to burst into this CPU time most often)
-	// - 200 millicores (serf/coredns/satellite/systemd etc services)
+	// - 200 millicores (coredns/satellite/systemd etc services)
 	config.KubeSystemCPUMillicores = (totalMillis / 10) + 200
 
 	return &config

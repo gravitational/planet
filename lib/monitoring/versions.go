@@ -66,7 +66,6 @@ var infoCheckers = []infoChecker{
 	{command: []string{"/usr/bin/kubelet", "--version"}, component: "kubelet-version"},
 	{command: []string{"/usr/bin/coredns", "-version"}, component: "coredns-version"},
 	{command: []string{"/usr/bin/dbus-daemon", "--version"}, component: "dbus-version"},
-	{command: []string{"/usr/bin/serf", "--version"}, component: "serf-version"},
 	{command: []string{"/usr/bin/flanneld", "--version"}, component: "flanneld-version"},
 	{command: []string{"/usr/bin/registry", "--version"}, component: "registry-version"},
 	{command: []string{"/usr/bin/node-problem-detector", "--version"}, component: "node-problem-detector-version"},
