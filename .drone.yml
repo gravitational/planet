@@ -91,9 +91,9 @@ steps:
     image: docker:git
     environment:
       REGISTRY_USERNAME:
-        from_secret: quay_username
+        from_secret: QUAY_USERNAME
       REGISTRY_PASSWORD:
-        from_secret: quay_password
+        from_secret: QUAY_PASSWORD
       AWS_ACCESS_KEY_ID:
         from_secret: AWS_ACCESS_KEY_ID
       AWS_SECRET_ACCESS_KEY:
@@ -186,6 +186,6 @@ volumes:
 
 ---
 kind: signature
-hmac: 89b749595d4aac174eb23a4f8a4678b67241f2a05ada27ed6d02fea92a5acaae
+hmac: 5be62ef6affc6418f1fd2fa295110292308c85867e9f191f0fcbc4cd78426464
 
 ...
