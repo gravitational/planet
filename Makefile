@@ -35,7 +35,7 @@ OUTPUTDIR := $(BUILDDIR)/planet
 
 KUBE_VER ?= v1.17.9
 SECCOMP_VER ?= 2.3.1-2.1+deb9u1
-DOCKER_VER ?= 19.03.12
+DOCKER_VER ?= 20.10.7
 # we currently use our own flannel fork: gravitational/flannel
 FLANNEL_VER := v0.10.5-gravitational
 HELM_VER := 2.16.12
