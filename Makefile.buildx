@@ -1,9 +1,30 @@
+include variables.mk
+
 MKFILE_PATH := $(abspath $(lastword $(MAKEFILE_LIST)))
 CURRENT_DIR := $(realpath $(patsubst %/,%,$(dir $(MKFILE_PATH))))
 ARTEFACTS_DIR := _build
 BUILDDIR ?= $(CURRENT_DIR)/$(ARTEFACTS_DIR)
 OUTPUTDIR ?= $(BUILDDIR)
 DOCKER ?= docker
+GO_BUILDER_VERSION := go$(BUILDBOX_GO_VER)-stretch
+DOCKER_BUILD_ARGS := --build-arg=ARTEFACTS_DIR="$(ARTEFACTS_DIR)" \
+      --build-arg=KUBE_VER="$(KUBE_VER)" \
+      --build-arg=SECCOMP_VER="$(SECCOMP_VER)" \
+      --build-arg=DOCKER_VER="$(DOCKER_VER)" \
+      --build-arg=FLANNEL_VER="$(FLANNEL_VER)" \
+      --build-arg=HELM_VER="$(HELM_VER)" \
+      --build-arg=HELM3_VER="$(HELM3_VER)" \
+      --build-arg=COREDNS_VER="$(COREDNS_VER)" \
+      --build-arg=NODE_PROBLEM_DETECTOR_VER="$(NODE_PROBLEM_DETECTOR_VER)" \
+      --build-arg=CNI_VER="$(CNI_VER)" \
+      --build-arg=IPTABLES_VER="$(IPTABLES_VER)" \
+      --build-arg=BUILDBOX_GO_VER="$(BUILDBOX_GO_VER)" \
+      --build-arg=DISTRIBUTION_VER="$(DISTRIBUTION_VER)" \
+      --build-arg=PLANET_UID="$(PLANET_UID)" \
+      --build-arg=PLANET_GID="$(PLANET_GID)" \
+      --build-arg=ETCD_VER="$(ETCD_VER)" \
+      --build-arg=ETCD_LATEST_VER="$(ETCD_LATEST_VER)" \
+      --build-arg=GO_BUILDER_VERSION="$(GO_BUILDER_VERSION)"
 
 .PHONY: all binaries tarball rootfs-shell clean
 all: tarball
@@ -12,10 +33,11 @@ binaries: | $(BUILDDIR) $(OUTPUTDIR)
 	TARGET=binary-releaser OUTPUTDIR=$(OUTPUTDIR) hack/build
 
 tarball: $(BUILDDIR)/pause.tar.gz $(BUILDDIR)/nettest.tar.gz | $(BUILDDIR) $(OUTPUTDIR)
-	TARGET=releaser OUTPUTDIR=$(OUTPUTDIR) ARTEFACTS_DIR=$(ARTEFACTS_DIR) hack/build
+	TARGET=releaser OUTPUTDIR=$(OUTPUTDIR) hack/build $(DOCKER_BUILD_ARGS)
 
-rootfs-shell:
-	TARGET=rootfs OUTPUT_FORMAT="type=image,name=planet-rootfs:v1" hack/build
+rootfs-shell: $(BUILDDIR)/pause.tar.gz $(BUILDDIR)/nettest.tar.gz | $(BUILDDIR)
+	TARGET=rootfs OUTPUT_FORMAT="type=docker,name=planet-rootfs:v1" hack/build \
+	      $(DOCKER_BUILD_ARGS)
 	$(DOCKER) run --rm -ti planet-rootfs:v1 bash
 
 $(BUILDDIR)/pause.tar.gz: image=gcr.io/google_containers/pause:3.2
@@ -32,7 +54,9 @@ $(BUILDDIR):
 	mkdir -p $@
 
 $(OUTPUTDIR):
+ifneq ($(OUTPUTDIR),$(BUILDDIR))
 	mkdir -p $@
+endif
 
 clean:
 	rm -r $(BUILDDIR) || true
