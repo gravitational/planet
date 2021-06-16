@@ -71,8 +71,8 @@ func enterConsole(config enterConfig) error {
 // to proxy input and output
 func enter(cfg box.EnterConfig) error {
 	// tell bash to use environment we've created
-	cfg.Process.Env.Upsert("ENV", ContainerEnvironmentFile)
-	cfg.Process.Env.Upsert("BASH_ENV", ContainerEnvironmentFile)
+	cfg.Process.Env.Upsert("ENV", containerEnvironmentFile)
+	cfg.Process.Env.Upsert("BASH_ENV", containerEnvironmentFile)
 	cfg.Process.Env.Upsert(EnvKubeConfig, constants.KubectlConfigPath)
 
 	return trace.Wrap(box.Enter(cfg))

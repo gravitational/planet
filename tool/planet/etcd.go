@@ -85,7 +85,7 @@ func etcdInit() error {
 		}
 	}
 
-	env, err := box.ReadEnvironment(ContainerEnvironmentFile)
+	env, err := box.ReadEnvironment(containerEnvironmentFile)
 	if err != nil {
 		return trace.Wrap(err)
 	}
@@ -217,7 +217,7 @@ func etcdEnable(upgradeService bool, joinToMaster string) error {
 		return trace.Wrap(enableService(ctx, ETCDServiceName))
 	}
 	// don't actually enable the service if this is a proxy
-	env, err := box.ReadEnvironment(ContainerEnvironmentFile)
+	env, err := box.ReadEnvironment(containerEnvironmentFile)
 	if err != nil {
 		return trace.Wrap(err)
 	}
@@ -233,7 +233,7 @@ func etcdEnable(upgradeService bool, joinToMaster string) error {
 // etcdInitJoin ensures this particular node is part of an etcd cluster.
 // Because the etcd cluster is re-created during an upgrade, this particular node may not be part of the new cluster.
 func etcdInitJoin(ctx context.Context, initMaster string) error {
-	env, err := box.ReadEnvironment(ContainerEnvironmentFile)
+	env, err := box.ReadEnvironment(containerEnvironmentFile)
 	if err != nil {
 		return trace.Wrap(err)
 	}
@@ -333,7 +333,7 @@ func etcdMemberPeerList(ctx context.Context, client *etcdv3.Client, advertisePee
 func etcdUpgrade(rollback bool) error {
 	log.Info("Updating etcd")
 
-	env, err := box.ReadEnvironment(ContainerEnvironmentFile)
+	env, err := box.ReadEnvironment(containerEnvironmentFile)
 	if err != nil {
 		return trace.Wrap(err)
 	}

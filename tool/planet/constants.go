@@ -544,7 +544,9 @@ var KubeletConfig = kubeletconfig.KubeletConfiguration{
 	},
 	// Allow parallel image pulls to avoid head of line blocking
 	// https://github.com/gravitational/gravity/issues/1167
-	SerializeImagePulls: utils.BoolPtr(false),
+	SerializeImagePulls:  utils.BoolPtr(false),
+	ContainerLogMaxSize:  "50Mi",
+	ContainerLogMaxFiles: utils.Int32Ptr(9),
 }
 
 // KubeletConfigOverrides specifies the subset of kubelet configuration

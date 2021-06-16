@@ -1,0 +1,12 @@
+[Unit]
+Description=Socket for the containerd API
+PartOf=containerd.service
+
+[Socket]
+ListenStream=/run/containerd/containerd.sock
+SocketMode=0660
+SocketUser=root
+SocketGroup=root
+
+[Install]
+WantedBy=sockets.target

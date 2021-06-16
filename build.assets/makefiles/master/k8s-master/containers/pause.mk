@@ -1,6 +1,6 @@
 .PHONY: all pull-from-internet
 
-IMAGE:=gcr.io/google_containers/pause:3.2
+IMAGE:=k8s.gcr.io/pause:3.5
 # OUTDIR defines the output directory for the resulting tarball
 # (set in the parent makefile)
 override OUT:=$(OUTDIR)/pause.tar.gz

@@ -2,7 +2,9 @@
 
 ARG KUBE_VER=v1.21.2
 ARG SECCOMP_VER=2.3.1-2.1+deb9u1
-ARG DOCKER_VER=20.10.7
+ARG CONTAINERD_VER=1.5.2
+ARG CRITOOLS_VER=1.21.0
+
 # we currently use our own flannel fork: gravitational/flannel
 ARG FLANNEL_VER=v0.10.5-gravitational
 ARG HELM_VER=2.16.12
@@ -80,12 +82,12 @@ RUN --mount=target=. --mount=target=/root/.cache,type=cache --mount=target=/go/p
 	GOOS=linux GOARCH=amd64 GO111MODULE=on \
 	go build -mod=vendor -ldflags "$(linkflags -pkg=. -verpkg=github.com/gravitational/version)" -tags "selinux sqlite_omit_load_extension" -o /planet ./tool/planet/...
 
-FROM planet-builder-base AS docker-import-builder
+FROM planet-builder-base AS infra-import-builder
 WORKDIR /gopath/src/github.com/gravitational/planet
 RUN --mount=target=. --mount=target=/root/.cache,type=cache --mount=target=/go/pkg/mod,type=cache \
 	set -ex && \
 	GOOS=linux GOARCH=amd64 \
-	go build -mod=vendor -o /docker-import github.com/gravitational/planet/tool/docker-import
+	go build -mod=vendor -o /infra-import github.com/gravitational/planet/tool/docker-import
 
 FROM gobase AS create-tarball-builder
 WORKDIR /go/src/github.com/gravitational/planet
@@ -221,9 +223,7 @@ RUN --mount=type=cache,target=/var/cache/apt,rw --mount=type=cache,target=/var/l
 RUN set -ex && \
 	groupadd --system --non-unique --gid ${PLANET_GID} planet && \
 	useradd --system --non-unique --no-create-home -g ${PLANET_GID} -u ${PLANET_UID} planet && \
-	groupadd --system docker && \
-	usermod -a -G planet root && \
-	usermod -a -G docker planet;
+	usermod -a -G planet root;
 
 FROM gobase AS flannel-builder
 ARG FLANNEL_VER
@@ -237,7 +237,7 @@ RUN --mount=target=/root/.cache,type=cache --mount=target=/go/pkg/mod,type=cache
 
 FROM gobase AS distribution-builder
 ARG DISTRIBUTION_VER
-ENV GOOS=linux GOARCH=amd64 CGO_ENABLED=0 GO111MODULE=off 
+ENV GOOS=linux GOARCH=amd64 CGO_ENABLED=0 GO111MODULE=off
 WORKDIR /go/src/github.com/docker/distribution
 RUN --mount=target=/root/.cache,type=cache --mount=target=/go/pkg/mod,type=cache \
 	set -ex && \
@@ -307,12 +307,18 @@ FROM downloader AS node-problem-detector-downloader
 ARG NODE_PROBLEM_DETECTOR_VER
 RUN set -ex && curl -L --retry 5 https://github.com/kubernetes/node-problem-detector/releases/download/${NODE_PROBLEM_DETECTOR_VER}/node-problem-detector-${NODE_PROBLEM_DETECTOR_VER}.tar.gz| tar xz --no-same-owner -C /tmp/
 
-# docker.mk
-FROM downloader AS docker-downloader
-ARG DOCKER_VER
+# containerd
+FROM downloader AS containerd-downloader
+ARG CONTAINERD_VER
 RUN set -ex && \
-	mkdir -p /docker && \
-	curl -L --retry 5 https://download.docker.com/linux/static/stable/x86_64/docker-${DOCKER_VER}.tgz | tar xvz --no-same-owner --strip-components=1 -C /docker
+	mkdir -p /opt/bin && \
+	curl -L --retry 5 https://github.com/containerd/containerd/releases/download/v${CONTAINERD_VER}/containerd-${CONTAINERD_VER}-linux-amd64.tar.gz | tar xvz --no-same-owner --strip-components=1 -C /opt/bin
+
+FROM downloader AS crictl-downloader
+ARG CRITOOLS_VER
+RUN set -ex && \
+	mkdir -p /opt/bin && \
+	curl -L --retry 5 https://github.com/kubernetes-sigs/cri-tools/releases/download/v${CRITOOLS_VER}/crictl-v${CRITOOLS_VER}-linux-amd64.tar.gz | tar xvz --no-same-owner -C /opt/bin crictl
 
 FROM base AS rootfs
 ARG ETCD_LATEST_VER
@@ -328,8 +334,7 @@ COPY ./build.assets/makefiles/base/systemd/journald.conf /lib/systemd/system/sys
 COPY ./build.assets/makefiles/base/systemd/system.conf /etc/systemd/system.conf.d/
 
 # containers.mk
-COPY ${ARTEFACTS_DIR}/nettest.tar.gz /etc/docker/offline/
-COPY ${ARTEFACTS_DIR}/pause.tar.gz /etc/docker/offline/
+COPY ${ARTEFACTS_DIR}/infra.tar.gz /etc/docker/offline/
 COPY ./build.assets/makefiles/master/k8s-master/offline-container-import.service /lib/systemd/system/
 RUN set -ex && \
 	ln -sf /lib/systemd/system/offline-container-import.service /lib/systemd/system/multi-user.target.wants/
@@ -359,12 +364,12 @@ RUN set -ex && mkdir -p /etc/coredns/configmaps/ /usr/lib/sysusers.d/
 COPY ./build.assets/makefiles/base/dns/coredns.service /lib/systemd/system/
 RUN set -ex && ln -sf /lib/systemd/system/coredns.service /lib/systemd/system/multi-user.target.wants/
 
-# docker.mk
-COPY ./build.assets/makefiles/base/docker/docker.service /lib/systemd/system/
-COPY ./build.assets/makefiles/base/docker/docker.socket /lib/systemd/system/
+# containerd.mk
+COPY ./build.assets/makefiles/base/cri/containerd.service /lib/systemd/system/
+COPY ./build.assets/makefiles/base/cri/containerd.socket /lib/systemd/system/
 ENV REGISTRY_ALIASES="apiserver:5000 leader.telekube.local:5000 leader.gravity.local:5000 registry.local:5000"
 RUN set -ex && \
-	ln -sf /lib/systemd/system/docker.service /lib/systemd/system/multi-user.target.wants/ && \
+	ln -sf /lib/systemd/system/containerd.service /lib/systemd/system/multi-user.target.wants/ && \
 	for r in ${REGISTRY_ALIASES}; do \
 		mkdir -p /etc/docker/certs.d/$r; \
 		ln -sf /var/state/root.cert /etc/docker/certs.d/$r/$r.crt; \
@@ -373,8 +378,9 @@ RUN set -ex && \
 	done;
 RUN --mount=target=/host \
 	set -ex && \
-	install -m 0755 /host/build.assets/makefiles/base/docker/unmount-devmapper.sh /usr/bin/scripts/
-COPY --from=docker-downloader /docker/ /usr/bin/
+	install -m 0755 /host/build.assets/makefiles/base/cri/unmount-devmapper.sh /usr/bin/scripts/
+COPY --from=containerd-downloader /opt/bin/* /usr/bin/
+COPY --from=crictl-downloader /opt/bin/crictl /usr/bin/
 
 # agent.mk
 COPY ./build.assets/makefiles/base/agent/planet-agent.service /lib/systemd/system
@@ -386,7 +392,7 @@ COPY --from=k8s-downloader /tmp/ /usr/bin/
 COPY --from=helm-downloader /helm /usr/bin/
 COPY --from=helm3-downloader /helm3 /usr/bin/
 COPY --from=coredns-downloader /coredns /usr/bin/
-COPY --from=docker-import-builder /docker-import /usr/bin/
+COPY --from=infra-import-builder /infra-import /usr/bin/
 COPY ./build.assets/makefiles/master/k8s-master/*.service /lib/systemd/system/
 RUN --mount=target=/host \
 	set -ex && \
@@ -413,7 +419,7 @@ RUN set -ex && \
 
 # registry.mk
 COPY --from=distribution-builder /registry /usr/bin/registry
-COPY ./build.assets/makefiles/base/docker/registry.service /lib/systemd/system
+COPY ./build.assets/makefiles/base/cri/registry.service /lib/systemd/system
 COPY ./build.assets/docker/registry/config.yml /etc/docker/registry/
 RUN set -ex && \
 	ln -sf /lib/systemd/system/registry.service /lib/systemd/system/multi-user.target.wants/

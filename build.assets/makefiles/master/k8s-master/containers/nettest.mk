@@ -1,6 +1,6 @@
 .PHONY: all pull-from-internet
 
-IMAGE:=gcr.io/google_containers/nettest:1.8
+IMAGE:=k8s.gcr.io/nettest:1.9
 # OUTDIR defines the output directory for the resulting tarball
 # (set in the parent makefile)
 override OUT:=$(OUTDIR)/nettest.tar.gz

@@ -225,7 +225,8 @@ func addToMaster(node agent.Agent, config *Config, etcdConfig *monitoring.ETCDCo
 
 	kubeConfig := monitoring.KubeConfig{Client: client}
 	node.AddChecker(monitoring.KubeAPIServerHealth(monitoring.KubeConfig{Client: apiServerClient}))
-	node.AddChecker(monitoring.DockerHealth("/var/run/docker.sock"))
+	// TODO(dima): implement health checker for containerd
+	// node.AddChecker(monitoring.DockerHealth("/var/run/docker.sock"))
 	node.AddChecker(dockerRegistryHealth(config.RegistryAddr, localClient))
 	node.AddChecker(etcdChecker)
 	node.AddChecker(monitoring.SystemdHealth())
@@ -328,7 +329,8 @@ func addToNode(node agent.Agent, config *Config, etcdConfig *monitoring.ETCDConf
 
 	nodeConfig := monitoring.KubeConfig{Client: nodeClient}
 	node.AddChecker(monitoring.KubeletHealth("http://127.0.0.1:10248"))
-	node.AddChecker(monitoring.DockerHealth("/var/run/docker.sock"))
+	// TODO(dima): implement health checker for containerd
+	// node.AddChecker(monitoring.DockerHealth("/var/run/docker.sock"))
 	node.AddChecker(etcdChecker)
 	node.AddChecker(monitoring.SystemdHealth())
 	node.AddChecker(NewVersionCollector())

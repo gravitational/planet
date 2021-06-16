@@ -6,6 +6,7 @@ ARTEFACTS_DIR := _build
 BUILDDIR ?= $(CURRENT_DIR)/$(ARTEFACTS_DIR)
 OUTPUTDIR ?= $(BUILDDIR)
 DOCKER ?= docker
+INFRA_IMAGES := k8s.gcr.io/pause:3.5 k8s.gcr.io/nettest:1.9
 GO_BUILDER_VERSION := go$(BUILDBOX_GO_VER)-stretch
 DOCKER_BUILD_ARGS := --build-arg=ARTEFACTS_DIR="$(ARTEFACTS_DIR)" \
       --build-arg=KUBE_VER="$(KUBE_VER)" \
@@ -32,29 +33,25 @@ all: tarball
 binaries: | $(BUILDDIR) $(OUTPUTDIR)
 	TARGET=binary-releaser OUTPUTDIR=$(OUTPUTDIR) hack/build
 
-tarball: $(BUILDDIR)/pause.tar.gz $(BUILDDIR)/nettest.tar.gz | $(BUILDDIR) $(OUTPUTDIR)
+tarball: $(BUILDDIR)/infra.tar.gz | $(BUILDDIR) $(OUTPUTDIR)
 	TARGET=releaser OUTPUTDIR=$(OUTPUTDIR) hack/build $(DOCKER_BUILD_ARGS)
 
-rootfs-shell: $(BUILDDIR)/pause.tar.gz $(BUILDDIR)/nettest.tar.gz | $(BUILDDIR)
-	TARGET=rootfs OUTPUT_FORMAT="type=docker,name=planet-rootfs:v1" hack/build \
+rootfs-shell: $(BUILDDIR)/infra.tar.gz | $(BUILDDIR)
+	TARGET=rootfs OUTPUT_FORMAT="type=image,name=planet-rootfs:v1" hack/build \
 	      $(DOCKER_BUILD_ARGS)
 	$(DOCKER) run --rm -ti planet-rootfs:v1 bash
 
-$(BUILDDIR)/pause.tar.gz: image=gcr.io/google_containers/pause:3.2
-$(BUILDDIR)/pause.tar.gz: | $(BUILDDIR)
-	$(DOCKER) pull $(image)
-	$(DOCKER) save -o $@ $(image)
-
-$(BUILDDIR)/nettest.tar.gz: image=gcr.io/google_containers/nettest:1.8
-$(BUILDDIR)/nettest.tar.gz: | $(BUILDDIR)
-	$(DOCKER) pull $(image)
-	$(DOCKER) save -o $@ $(image)
+$(BUILDDIR)/infra.tar.gz: | $(BUILDDIR)
+	@for image in $(INFRA_IMAGES); do \
+		$(DOCKER) pull $$image; \
+	done
+	$(DOCKER) save -o $@ $(INFRA_IMAGES)
 
 $(BUILDDIR):
 	mkdir -p $@
 
 $(OUTPUTDIR):
-ifneq ($(OUTPUTDIR),$(BUILDDIR))
+ifneq ($(BUILDDIR),$(OUTPUTDIR))
 	mkdir -p $@
 endif
 

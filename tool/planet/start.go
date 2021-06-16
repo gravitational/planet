@@ -109,13 +109,14 @@ func start(config *Config) (*runtimeContext, error) {
 		return nil, trace.Wrap(err)
 	}
 
-	if config.DockerBackend == "" {
-		// check supported storage back-ends for docker
-		config.DockerBackend, err = pickDockerStorageBackend()
-		if err != nil {
-			return nil, trace.Wrap(err)
-		}
-	}
+	// TODO(dima): configure containerd snapshotter if required
+	// if config.DockerBackend == "" {
+	// 	// check supported storage back-ends for docker
+	// 	config.DockerBackend, err = pickDockerStorageBackend()
+	// 	if err != nil {
+	// 		return nil, trace.Wrap(err)
+	// 	}
+	// }
 
 	// add service user/group to container
 	err = addUserToContainer(config.Rootfs, config.ServiceUser)
@@ -264,7 +265,7 @@ func start(config *Config) (*runtimeContext, error) {
 		Rootfs: config.Rootfs,
 		EnvFiles: []box.EnvFile{
 			{
-				Path: ContainerEnvironmentFile,
+				Path: containerEnvironmentFile,
 				Env:  config.Env,
 			},
 			{
@@ -436,30 +437,6 @@ func generateCloudConfig(config *Config) (cloudConfig string, err error) {
 		return "", trace.Wrap(err)
 	}
 	return buf.String(), nil
-}
-
-// pickDockerStorageBackend examines the filesystems this host supports and picks one
-// suitable to be a docker storage backend, or returns an error if doesn't find a supported FS
-func pickDockerStorageBackend() (dockerBackend string, err error) {
-	// these backends will be tried in the order of preference:
-	supportedBackends := []string{
-		"overlay",
-		"aufs",
-	}
-	for _, fs := range supportedBackends {
-		ok, err := check.CheckFS(fs)
-		if err != nil {
-			return "", trace.Wrap(err)
-		}
-		// found supported FS:
-		if ok {
-			return fs, nil
-		}
-	}
-	// if we get here, it means no suitable FS has been found
-	err = trace.Errorf("none of the required filesystems are supported by this host: %q",
-		supportedBackends)
-	return "", err
 }
 
 // addDockerStorage adds a given docker storage back-end to DOCKER_OPTS environment
@@ -914,25 +891,25 @@ var flannelConflist = `
 `
 
 const (
-	ETCDWorkDir              = "/ext/etcd"
-	ETCDProxyDir             = "/ext/etcd/proxy"
-	DockerWorkDir            = "/ext/docker"
-	RegistryWorkDir          = "/ext/registry"
-	ContainerEnvironmentFile = "/etc/container-environment"
+	etcdWorkDir              = "/ext/etcd"
+	etcdProxyDir             = "/ext/etcd/proxy"
+	containerRuntimeWorkDir  = "/ext/containerd"
+	registryWorkDir          = "/ext/registry"
+	containerEnvironmentFile = "/etc/container-environment"
 )
 
 func checkRequiredMounts(cfg *Config) error {
 	expected := map[string]bool{
-		ETCDWorkDir:     false,
-		DockerWorkDir:   false,
-		RegistryWorkDir: false,
+		etcdWorkDir:             false,
+		containerRuntimeWorkDir: false,
+		registryWorkDir:         false,
 	}
 	for _, m := range cfg.Mounts {
 		dst := filepath.Clean(m.Dst)
 		if _, ok := expected[dst]; ok {
 			expected[dst] = true
 		}
-		if dst == ETCDWorkDir {
+		if dst == etcdWorkDir {
 			// remove the latest symlink, as it won't point to a valid path during chown below
 			// and will get recreated during etcd initialization
 			// if the file doesn't exist or we fail, it doesn't really matter if later steps are working
@@ -943,12 +920,13 @@ func checkRequiredMounts(cfg *Config) error {
 				return trace.Wrap(err)
 			}
 		}
-		if dst == DockerWorkDir {
-			if ok, _ := check.IsBtrfsVolume(m.Src); ok {
-				cfg.DockerBackend = "btrfs"
-				log.Infof("Docker working directory is on BTRFS volume %q.", m.Src)
-			}
-		}
+		// TODO(dima): remove me
+		// if dst == DockerWorkDir {
+		// 	if ok, _ := check.IsBtrfsVolume(m.Src); ok {
+		// 		cfg.DockerBackend = "btrfs"
+		// 		log.Infof("Docker working directory is on BTRFS volume %q.", m.Src)
+		// 	}
+		// }
 	}
 	for k, v := range expected {
 		if !v {

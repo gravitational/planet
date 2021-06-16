@@ -1,0 +1,36 @@
+[Unit]
+Description=Containerd Container Runtime
+Documentation=https://containerd.io
+After=network.target containerd.socket
+Requires=containerd.socket
+
+[Service]
+EnvironmentFile=/etc/container-environment
+EnvironmentFile=/etc/proxy-environment
+Type=notify
+ExecStartPre=/sbin/modprobe overlay
+# TODO(dima): is the cgroup issue still relevant for systemd in planet?
+# the default is not to use systemd for cgroups because the delegate issues still
+# exist and systemd currently does not support the cgroup feature set required
+# for containers run by docker
+ExecStartPre=-/sbin/ip link set dev docker0 down
+ExecStartPre=-/sbin/brctl delbr docker0
+ExecStartPre=-/bin/rm -f /var/run/docker.pid
+ExecStart=/usr/bin/containerd
+# Having non-zero Limits causes performance problems due to accounting overhead
+# in the kernel. We recommend using cgroups to do container-local accounting.
+#LimitNOFILE=infinity
+LimitNOFILE=1000000
+LimitNPROC=infinity
+LimitCORE=infinity
+# systemd >= 226
+TasksMax=infinity
+TimeoutStartSec=0
+# configure systemd to not reset the cgroups of containers
+Delegate=yes
+KillMode=process
+Restart=always
+RestartSec=5
+StartLimitInterval=3600
+StartLimitBurst=720
+OOMScoreAdjust=-999

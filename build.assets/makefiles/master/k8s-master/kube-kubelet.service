@@ -1,19 +1,19 @@
 [Unit]
 Description=Kubernetes Kubelet
 Documentation=https://github.com/kubernetes/kubernetes
-Wants=docker.service
+Wants=containerd.service
 
 [Service]
 EnvironmentFile=/etc/container-environment
 EnvironmentFile=/run/dns.env
 EnvironmentFile=-/run/kubernetes-reserved.env
-ExecStartPre=/bin/systemctl is-active docker.service
+ExecStartPre=/bin/systemctl is-active containerd.service
 ExecStartPre=/usr/bin/scripts/cluster-dns.sh
 ExecStart=/usr/bin/kubelet \
         --root-dir=/var/lib/kubelet \
         --hostname-override=${KUBE_NODE_NAME} \
         --logtostderr=true \
-        --pod-infra-container-image=${KUBE_APISERVER}:5000/gcr.io/google_containers/pause:3.2 \
+        --pod-infra-container-image=${KUBE_APISERVER}:5000/k8s.gcr.io/pause:3.5 \
         --kubeconfig=/etc/kubernetes/kubelet.kubeconfig \
         --register-with-taints=${PLANET_NODE_TAINTS} \
         --node-labels=${PLANET_NODE_LABELS} \
@@ -24,6 +24,8 @@ ExecStart=/usr/bin/kubelet \
         --config=/etc/kubernetes/kubelet.yaml \
         --image-pull-progress-deadline=15m \
         --tls-min-version=VersionTLS12 \
+	--container-runtime=remote \
+	--container-runtime-endpoint=/run/containerd/containerd.sock \
         $KUBE_KUBELET_FLAGS \
         $KUBE_CLOUD_FLAGS \
         $KUBE_COMPONENT_FLAGS

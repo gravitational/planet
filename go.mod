@@ -29,7 +29,6 @@ require (
 	github.com/godbus/dbus v4.1.0+incompatible // indirect
 	github.com/godbus/dbus/v5 v5.0.3
 	github.com/gorilla/mux v1.7.1 // indirect
-	github.com/gorilla/websocket v1.4.0 // indirect
 	github.com/gravitational/configure v0.0.0-20180808141939-c3428bd84c23
 	github.com/gravitational/coordinate v0.0.0-20200227044100-12af3c0f9593
 	github.com/gravitational/etcd-backup v0.0.0-20201012185408-87328521981c
@@ -66,19 +65,16 @@ require (
 	go.etcd.io/etcd v3.3.22+incompatible
 	go.uber.org/multierr v1.5.0 // indirect
 	go.uber.org/zap v1.14.0 // indirect
-	golang.org/x/crypto v0.0.0-20201012173705-84dcc777aaee // indirect
-	golang.org/x/lint v0.0.0-20200130185559-910be7a94367 // indirect
-	golang.org/x/oauth2 v0.0.0-20200107190931-bf48bf16ab8d // indirect
-	golang.org/x/sys v0.0.0-20201112073958-5cba982894dd
-	golang.org/x/tools v0.0.0-20200225230052-807dcd883420 // indirect
+	golang.org/x/sys v0.0.0-20210225134936-a50acf3fe073
 	gopkg.in/alecthomas/kingpin.v2 v2.2.6
-	gopkg.in/check.v1 v1.0.0-20190902080502-41f04d3bba15
-	gopkg.in/yaml.v2 v2.2.8
+	gopkg.in/check.v1 v1.0.0-20200227125254-8fa46927fb4f
+	gopkg.in/yaml.v2 v2.4.0
 	gopkg.in/yaml.v3 v3.0.0-20200605160147-a5ece683394c // indirect
-	k8s.io/api v0.19.8
-	k8s.io/apimachinery v0.19.8
-	k8s.io/client-go v0.19.8
-	k8s.io/kubelet v0.19.8
+	gotest.tools v2.2.0+incompatible // indirect
+	k8s.io/api v0.21.1
+	k8s.io/apimachinery v0.21.1
+	k8s.io/client-go v0.21.1
+	k8s.io/kubelet v0.21.1
 )
 
 replace (

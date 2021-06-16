@@ -344,7 +344,7 @@ func run() error {
 				LocalNameservers:      *cagentDNSLocalNameservers,
 				DNSZones:              (map[string][]string)(*cagentDNSZones),
 				RegistryAddr:          fmt.Sprintf("https://%v", *cagentRegistryAddr),
-				NettestContainerImage: fmt.Sprintf("%v/gcr.io/google_containers/nettest:1.8", *cagentRegistryAddr),
+				NettestContainerImage: fmt.Sprintf("%v/k8s.gcr.io/nettest:1.9", *cagentRegistryAddr),
 				ETCDConfig:            etcdConf,
 				DisableInterPodCheck:  disableInterPodCheck,
 				CloudProvider:         *cagentCloudProvider,
