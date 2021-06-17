@@ -172,9 +172,20 @@ func start(config *Config) (*runtimeContext, error) {
 	// Setup http_proxy / no_proxy environment configuration
 	configureProxy(config)
 
-	if err = addDockerOptions(config); err != nil {
+	kubeletConfig, err := mergeKubeletConfig(config.KubeletConfig)
+	if err != nil {
 		return nil, trace.Wrap(err)
 	}
+	if err := upsertCgroups(kubeletConfig, config.Roles[0] == RoleMaster); err != nil {
+		return nil, trace.Wrap(err)
+	}
+	kubeletConfigBytes, err := marshalKubeletConfig(kubeletConfig)
+	if err != nil {
+		return nil, trace.Wrap(err)
+	}
+	addKubeletConfig(config, kubeletConfigBytes)
+	addContainerRuntimeConfig(config)
+
 	addEtcdOptions(config)
 	if err := addComponentOptions(config); err != nil {
 		return nil, trace.Wrap(err)
@@ -439,28 +450,29 @@ func generateCloudConfig(config *Config) (cloudConfig string, err error) {
 	return buf.String(), nil
 }
 
-// addDockerStorage adds a given docker storage back-end to DOCKER_OPTS environment
-// variable
-func addDockerOptions(config *Config) error {
-	// add supported storage backend
-	config.Env.Append(EnvDockerOptions,
-		fmt.Sprintf("--storage-driver=%s", config.DockerBackend))
-
-	// use cgroups native driver, because of this:
-	// https://github.com/docker/docker/issues/16256
-	config.Env.Append(EnvDockerOptions, "--exec-opt native.cgroupdriver=cgroupfs")
-	// Add sensible size limits to logging driver
-	config.Env.Append(EnvDockerOptions, "--log-opt max-size=50m")
-	config.Env.Append(EnvDockerOptions, "--log-opt max-file=9")
-	if config.DockerOptions != "" {
-		config.Env.Append(EnvDockerOptions, config.DockerOptions)
-	}
-	if config.SELinux {
-		config.Env.Append(EnvDockerOptions, "--selinux-enabled")
-	}
-
-	return nil
-}
+// TODO(dima): remove me
+// // addDockerStorage adds a given docker storage back-end to DOCKER_OPTS environment
+// // variable
+// func addDockerOptions(config *Config) error {
+// 	// add supported storage backend
+// 	config.Env.Append(EnvDockerOptions,
+// 		fmt.Sprintf("--storage-driver=%s", config.DockerBackend))
+//
+// 	// use cgroups native driver, because of this:
+// 	// https://github.com/docker/docker/issues/16256
+// 	config.Env.Append(EnvDockerOptions, "--exec-opt native.cgroupdriver=cgroupfs")
+// 	// Add sensible size limits to logging driver
+// 	config.Env.Append(EnvDockerOptions, "--log-opt max-size=50m")
+// 	config.Env.Append(EnvDockerOptions, "--log-opt max-file=9")
+// 	if config.DockerOptions != "" {
+// 		config.Env.Append(EnvDockerOptions, config.DockerOptions)
+// 	}
+// 	if config.SELinux {
+// 		config.Env.Append(EnvDockerOptions, "--selinux-enabled")
+// 	}
+//
+// 	return nil
+// }
 
 // addEtcdOptions sets extra etcd command line arguments in environment
 func addEtcdOptions(config *Config) {
@@ -501,9 +513,6 @@ func setupEtcd(config *Config) error {
 }
 
 func addComponentOptions(config *Config) error {
-	if err := addKubeletOptions(config); err != nil {
-		return trace.Wrap(err)
-	}
 	if config.APIServerOptions != "" {
 		config.Env.Append(EnvAPIServerOptions, config.APIServerOptions)
 	}
@@ -527,44 +536,56 @@ func addComponentOptions(config *Config) error {
 	return nil
 }
 
-// addKubeletOptions sets extra kubelet command line arguments in environment
-func addKubeletOptions(config *Config) error {
-	if config.KubeletOptions != "" {
-		config.Env.Append(EnvKubeletOptions, config.KubeletOptions)
-	}
+func addContainerRuntimeConfig(config *Config) {
+	config.Env = append(config.Env, box.EnvPair{
+		Name: EnvContainerRuntimeEndpoint,
+		Val:  DefaultContainerRuntimeEndpoint,
+	})
+
+}
+
+// addKubeletConfig sets extra kubelet command line arguments in environment
+func addKubeletConfig(config *Config, marshaledKubeletConfig []byte) {
+	config.Files = append(config.Files, box.File{
+		Path:     constants.KubeletConfigFile,
+		Contents: bytes.NewReader(marshaledKubeletConfig),
+		Mode:     SharedReadWriteMask,
+	})
+}
+
+func mergeKubeletConfig(additionlConfig string) (*kubeletconfig.KubeletConfiguration, error) {
 	kubeletConfig := KubeletConfig
-	if config.KubeletConfig != "" {
-		decoded, err := base64.StdEncoding.DecodeString(config.KubeletConfig)
+	if additionlConfig != "" {
+		decoded, err := base64.StdEncoding.DecodeString(additionlConfig)
 		if err != nil {
-			return trace.Wrap(err, "invalid kubelet configuration: expected base64-encoded payload")
+			return nil, trace.Wrap(err, "invalid kubelet configuration: expected base64-encoded payload")
 		}
 		configBytes, err := utils.ToJSON([]byte(decoded))
 		if err != nil {
-			return trace.Wrap(err, "invalid kubelet configuration: expected either JSON or YAML")
+			return nil, trace.Wrap(err, "invalid kubelet configuration: expected either JSON or YAML")
 		}
 		var externalConfig kubeletconfig.KubeletConfiguration
 		if err := json.Unmarshal(configBytes, &externalConfig); err != nil {
-			return trace.Wrap(err, "failed to unmarshal kubelet configuration from JSON")
+			return nil, trace.Wrap(err, "failed to unmarshal kubelet configuration from JSON")
 		}
 		err = mergo.Merge(&kubeletConfig, externalConfig, mergo.WithOverride)
 		if err != nil {
-			return trace.Wrap(err)
+			return nil, trace.Wrap(err)
 		}
 		err = applyConfigOverrides(&kubeletConfig)
 		if err != nil {
-			return trace.Wrap(err)
+			return nil, trace.Wrap(err)
 		}
 	}
-	configBytes, err := yaml.Marshal(kubeletConfig)
+	return &kubeletConfig, nil
+}
+
+func marshalKubeletConfig(config *kubeletconfig.KubeletConfiguration) ([]byte, error) {
+	bytes, err := yaml.Marshal(config)
 	if err != nil {
-		return trace.Wrap(err)
+		return nil, trace.Wrap(err)
 	}
-	config.Files = append(config.Files, box.File{
-		Path:     constants.KubeletConfigFile,
-		Contents: bytes.NewReader(configBytes),
-		Mode:     SharedReadWriteMask,
-	})
-	return nil
+	return bytes, nil
 }
 
 func applyConfigOverrides(config *kubeletconfig.KubeletConfiguration) error {
@@ -898,6 +919,8 @@ const (
 	containerEnvironmentFile = "/etc/container-environment"
 )
 
+// TODO(dima): move these to external manifests as planet is transitioned
+// to not own any of the replaceable software groups
 func checkRequiredMounts(cfg *Config) error {
 	expected := map[string]bool{
 		etcdWorkDir:             false,
@@ -920,13 +943,6 @@ func checkRequiredMounts(cfg *Config) error {
 				return trace.Wrap(err)
 			}
 		}
-		// TODO(dima): remove me
-		// if dst == DockerWorkDir {
-		// 	if ok, _ := check.IsBtrfsVolume(m.Src); ok {
-		// 		cfg.DockerBackend = "btrfs"
-		// 		log.Infof("Docker working directory is on BTRFS volume %q.", m.Src)
-		// 	}
-		// }
 	}
 	for k, v := range expected {
 		if !v {

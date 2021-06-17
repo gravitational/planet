@@ -3,7 +3,7 @@ Description=Local Docker Registry
 Wants=containerd.service
 
 [Service]
-ExecStart=/usr/bin/registry serve /etc/docker/registry/config.yml
+ExecStart=/usr/bin/registry serve /etc/registry/config.yml
 Restart=always
 RestartSec=5
 StartLimitInterval=3600

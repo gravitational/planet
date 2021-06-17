@@ -181,6 +181,10 @@ const (
 
 	// EnvPath is the PATH environment variable
 	EnvPath = "PATH"
+
+	// EnvContainerRuntimeEndpoint specifies the container runtime endpoint configuration for the cri client
+	EnvContainerRuntimeEndpoint = "CONTAINER_RUNTIME_ENDPOINT"
+
 	// EnvPlanetAgentCAFile names the environment variable that specifies the location
 	// of the agent ca certificate file
 	EnvPlanetAgentCAFile = "PLANET_AGENT_CAFILE"
@@ -280,6 +284,9 @@ const (
 	// DefaultEnvPath defines the default value for PATH environment variable
 	// when executing commands inside the container
 	DefaultEnvPath = "/usr/local/bin:/usr/local/sbin:/usr/bin:/usr/sbin:/bin:/sbin"
+
+	// DefaultContainerRuntimeEndpoint defines the default path to container runtime endpoint
+	DefaultContainerRuntimeEndpoint = "unix:///run/containerd/containerd.sock"
 
 	// PlanetRoleMaster specifies the value of the node role to be master.
 	// A master node runs additional runtime tests as well as additional
@@ -544,9 +551,14 @@ var KubeletConfig = kubeletconfig.KubeletConfiguration{
 	},
 	// Allow parallel image pulls to avoid head of line blocking
 	// https://github.com/gravitational/gravity/issues/1167
-	SerializeImagePulls:  utils.BoolPtr(false),
-	ContainerLogMaxSize:  "50Mi",
-	ContainerLogMaxFiles: utils.Int32Ptr(9),
+	SerializeImagePulls:    utils.BoolPtr(false),
+	ContainerLogMaxSize:    "50Mi",
+	ContainerLogMaxFiles:   utils.Int32Ptr(9),
+	CgroupDriver:           "systemd",
+	EnforceNodeAllocatable: []string{"pods", "kube-reserved", "system-reserved"},
+	SystemReservedCgroup:   "/system.slice",
+	KubeReservedCgroup:     "/kubereserved.slice",
+	KubeletCgroups:         "/kubereserved.slice/kubelet.slice",
 }
 
 // KubeletConfigOverrides specifies the subset of kubelet configuration

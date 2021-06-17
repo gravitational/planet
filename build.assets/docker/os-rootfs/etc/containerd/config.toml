@@ -18,7 +18,7 @@ version = 2
   uid = 0
 
 [grpc]
-  address = "/run/containerd/containerd.sock"
+  address = "unix:///run/containerd/containerd.sock"
   gid = 0
   max_recv_message_size = 16777216
   max_send_message_size = 16777216
@@ -76,6 +76,7 @@ version = 2
       disable_snapshot_annotations = true
       discard_unpacked_layers = false
       no_pivot = false
+      # TODO(dima): externalize this configuration
       snapshotter = "overlayfs"
 
       [plugins."io.containerd.grpc.v1.cri".containerd.default_runtime]
@@ -128,7 +129,7 @@ version = 2
       key_model = "node"
 
     [plugins."io.containerd.grpc.v1.cri".registry]
-      config_path = ""
+      config_path = "/etc/containerd/certs.d"
 
       [plugins."io.containerd.grpc.v1.cri".registry.auths]
 

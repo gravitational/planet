@@ -3,6 +3,7 @@
 ARG KUBE_VER=v1.21.2
 ARG SECCOMP_VER=2.3.1-2.1+deb9u1
 ARG CONTAINERD_VER=1.5.2
+ARG RUNC_VER=1.0.0-rc95
 ARG CRITOOLS_VER=1.21.0
 
 # we currently use our own flannel fork: gravitational/flannel
@@ -42,6 +43,8 @@ ARG PLANET_BUILDFLAGS="-tags 'selinux sqlite_omit_load_extension'"
 # v3.4.9  - 7.0.x
 ARG ETCD_VER="v3.3.12 v3.3.15 v3.3.20 v3.3.22 v3.4.3 v3.4.7 v3.4.9"
 ARG ETCD_LATEST_VER=v3.4.9
+
+ARG CURL_OPTS="--retry 100 --retry-delay 0 --connect-timeout 10 --max-time 300 --tlsv1.2 --silent --show-error -L"
 
 # go builder
 FROM golang:${GO_VERSION}-stretch AS gobase
@@ -280,6 +283,13 @@ RUN set -ex && \
 		chmod +x /tmp/$r; \
 	done;
 
+FROM downloader AS runc-downloader
+ARG RUNC_VER
+ARG CURL_OPTS
+RUN set -ex && \
+	curl ${CURL_OPTS} https://github.com/opencontainers/runc/releases/download/v${RUNC_VER}/runc.amd64 -o /runc && \
+	chmod +x /runc
+
 FROM downloader AS etcd-downloader
 ARG ETCD_VER
 ENV OS=linux
@@ -329,12 +339,12 @@ RUN set -ex && \
 	mkdir -p \
 		/lib/systemd/system/systemd-journald.service.d/ \
 		/etc/systemd/system.conf.d/ \
-		/etc/docker/offline/
+		/etc/containerd/infra/
 COPY ./build.assets/makefiles/base/systemd/journald.conf /lib/systemd/system/systemd-journald.service.d/
 COPY ./build.assets/makefiles/base/systemd/system.conf /etc/systemd/system.conf.d/
 
 # containers.mk
-COPY ${ARTEFACTS_DIR}/infra.tar.gz /etc/docker/offline/
+COPY ${ARTEFACTS_DIR}/infra.tar.gz /etc/containerd/infra/
 COPY ./build.assets/makefiles/master/k8s-master/offline-container-import.service /lib/systemd/system/
 RUN set -ex && \
 	ln -sf /lib/systemd/system/offline-container-import.service /lib/systemd/system/multi-user.target.wants/
@@ -371,16 +381,17 @@ ENV REGISTRY_ALIASES="apiserver:5000 leader.telekube.local:5000 leader.gravity.l
 RUN set -ex && \
 	ln -sf /lib/systemd/system/containerd.service /lib/systemd/system/multi-user.target.wants/ && \
 	for r in ${REGISTRY_ALIASES}; do \
-		mkdir -p /etc/docker/certs.d/$r; \
-		ln -sf /var/state/root.cert /etc/docker/certs.d/$r/$r.crt; \
-		ln -sf /var/state/kubelet.cert /etc/docker/certs.d/$r/client.cert; \
-		ln -sf /var/state/kubelet.key /etc/docker/certs.d/$r/client.key; \
+		mkdir -p /etc/containerd/certs.d/$r; \
+		ln -sf /var/state/root.cert /etc/containerd/certs.d/$r/$r.crt; \
+		ln -sf /var/state/kubelet.cert /etc/containerd/certs.d/$r/client.cert; \
+		ln -sf /var/state/kubelet.key /etc/containerd/certs.d/$r/client.key; \
 	done;
 RUN --mount=target=/host \
 	set -ex && \
 	install -m 0755 /host/build.assets/makefiles/base/cri/unmount-devmapper.sh /usr/bin/scripts/
 COPY --from=containerd-downloader /opt/bin/* /usr/bin/
 COPY --from=crictl-downloader /opt/bin/crictl /usr/bin/
+COPY --from=runc-downloader /runc /usr/bin/
 
 # agent.mk
 COPY ./build.assets/makefiles/base/agent/planet-agent.service /lib/systemd/system
@@ -420,7 +431,7 @@ RUN set -ex && \
 # registry.mk
 COPY --from=distribution-builder /registry /usr/bin/registry
 COPY ./build.assets/makefiles/base/cri/registry.service /lib/systemd/system
-COPY ./build.assets/docker/registry/config.yml /etc/docker/registry/
+COPY ./build.assets/docker/registry/config.yml /etc/registry/
 RUN set -ex && \
 	ln -sf /lib/systemd/system/registry.service /lib/systemd/system/multi-user.target.wants/
 
@@ -428,7 +439,7 @@ FROM gobase AS tarball-builder
 ARG ETCD_LATEST_VER
 ARG KUBE_VER
 ARG FLANNEL_VER
-ARG DOCKER_VER
+ARG CONTAINERD_VER
 ARG HELM_VER
 ARG HELM3_VER
 ARG COREDNS_VER
@@ -436,7 +447,7 @@ ARG NODE_PROBLEM_DETECTOR_VER
 ENV REPLACE_ETCD_LATEST_VERSION=${ETCD_LATEST_VER}
 ENV REPLACE_KUBE_LATEST_VERSION=${KUBE_VER}
 ENV REPLACE_FLANNEL_LATEST_VERSION=${FLANNEL_VER}
-ENV REPLACE_DOCKER_LATEST_VERSION=${DOCKER_VER}
+ENV REPLACE_CONTAINERD_LATEST_VERSION=${CONTAINERD_VER}
 ENV REPLACE_HELM_LATEST_VERSION=${HELM_VER}
 ENV REPLACE_HELM3_LATEST_VERSION=${HELM3_VER}
 ENV REPLACE_COREDNS_LATEST_VERSION=${COREDNS_VER}

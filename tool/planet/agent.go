@@ -98,10 +98,6 @@ func startLeaderClient(config agentConfig, agent agent.Agent, errorC chan error)
 	conf := config.leader
 	log.Infof("%v start", conf)
 
-	if err = upsertCgroups(conf.Role == RoleMaster); err != nil {
-		return nil, trace.Wrap(err)
-	}
-
 	if err = conf.ETCD.CheckAndSetDefaults(); err != nil {
 		return nil, trace.Wrap(err)
 	}
@@ -148,7 +144,7 @@ func startLeaderClient(config agentConfig, agent agent.Agent, errorC chan error)
 	_, err = etcdapi.Set(context.TODO(), conf.ElectionKey,
 		strconv.FormatBool(conf.ElectionEnabled),
 		&etcd.SetOptions{PrevExist: etcd.PrevNoExist})
-	if !trace.IsAlreadyExists(convertError(err)) {
+	if err != nil && !trace.IsAlreadyExists(convertError(err)) {
 		return nil, trace.Wrap(err)
 	}
 

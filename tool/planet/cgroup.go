@@ -36,7 +36,6 @@ Notes:
 package main
 
 import (
-	"bytes"
 	"context"
 	"fmt"
 	"io/ioutil"
@@ -45,7 +44,6 @@ import (
 	"path/filepath"
 	"runtime"
 	"strings"
-	"text/template"
 	"time"
 
 	systemdDbus "github.com/coreos/go-systemd/v22/dbus"
@@ -60,6 +58,7 @@ import (
 	specs "github.com/opencontainers/runtime-spec/specs-go"
 	"github.com/sirupsen/logrus"
 	yaml "gopkg.in/yaml.v2"
+	kubeletconfig "k8s.io/kubelet/config/v1beta1"
 )
 
 type CgroupConfig struct {
@@ -87,7 +86,7 @@ type CgroupEntry struct {
 }
 
 // upsertCgroups reads/updates the cgroup configuration and applies it to the system
-func upsertCgroups(isMaster bool) error {
+func upsertCgroups(kubeletConfig *kubeletconfig.KubeletConfiguration, isMaster bool) error {
 	log := logrus.WithField(trace.Component, "cgroup")
 	log.WithField("master", isMaster).Info("Upsert cgroup configuration")
 
@@ -108,16 +107,13 @@ func upsertCgroups(isMaster bool) error {
 	if err != nil && !trace.IsNotFound(err) {
 		return trace.Wrap(err)
 	}
-	if trace.IsNotFound(err) {
-		config = defaultCgroupConfig(runtime.NumCPU(), isMaster)
-	}
-	if config.Enabled && config.Auto {
+	if (config.Enabled && config.Auto) || trace.IsNotFound(err) {
 		// if the configuration is automatically generated, regenerate it each start to pick up any changes
 		// with new planet releases
 		config = defaultCgroupConfig(runtime.NumCPU(), isMaster)
 	}
 
-	log.Info("cgroup configuration: ", spew.Sdump(config))
+	log.Info("Cgroup configuration: ", spew.Sdump(config))
 
 	if !config.Enabled {
 		return nil
@@ -144,7 +140,12 @@ func upsertCgroups(isMaster bool) error {
 		}
 	}
 
-	errors = append(errors, trace.Wrap(writeKubeReservedEnvironment(config)))
+	kubeletConfig.KubeReserved = map[string]string{
+		"cpu": fmt.Sprint(config.KubeReservedCPUMillicores, "m"),
+	}
+	kubeletConfig.SystemReserved = map[string]string{
+		"cpu": fmt.Sprint(config.KubeSystemCPUMillicores, "m"),
+	}
 
 	return trace.NewAggregate(errors...)
 }
@@ -200,8 +201,8 @@ func defaultCgroupConfig(numCPU int, isMaster bool) *CgroupConfig {
 		Cgroups: []CgroupEntry{
 			// /user
 			// - cgroup for user processes, capped cpu usage
-			CgroupEntry{
-				Path: "user",
+			{
+				Path: "/user.slice",
 				LinuxResources: specs.LinuxResources{
 					CPU: &specs.LinuxCPU{
 						Shares: u64(1024),
@@ -213,8 +214,8 @@ func defaultCgroupConfig(numCPU int, isMaster bool) *CgroupConfig {
 			// /system.slice
 			// - cgroup for planet services
 			// - set swapinness to 0
-			CgroupEntry{
-				Path: "system.slice",
+			{
+				Path: "/system.slice",
 				LinuxResources: specs.LinuxResources{
 					CPU: &specs.LinuxCPU{
 						Shares: u64(1024),
@@ -224,12 +225,12 @@ func defaultCgroupConfig(numCPU int, isMaster bool) *CgroupConfig {
 					},
 				},
 			},
-			// /kube-pods
+			// /kubereserved.slice/kubepods.slice
 			// - cgroup for kubernetes pods
 			// - minimum cpu scheduling priority
 			// - Set swappiness to 20, so processes are less likely to swap. (Kubernetes recommends no swap)
-			CgroupEntry{
-				Path: "kube-pods",
+			{
+				Path: "/kubereserved.slice/kubepods.slice",
 				LinuxResources: specs.LinuxResources{
 					CPU: &specs.LinuxCPU{
 						Shares: u64(2),
@@ -292,30 +293,6 @@ func writeCgroupConfig(path string, config *CgroupConfig) error {
 
 	return trace.Wrap(utils.SafeWriteFile(path, buf, constants.SharedReadMask))
 }
-
-func writeKubeReservedEnvironment(config *CgroupConfig) error {
-	env := make(map[string]string)
-	env["KUBE_CGROUP_ROOT"] = "/kube-pods"
-	if config.KubeReservedCPUMillicores > 0 {
-		env["KUBE_RESERVED"] = fmt.Sprintf("cpu=%vm", config.KubeReservedCPUMillicores)
-	}
-	if config.KubeSystemCPUMillicores > 0 {
-		env["KUBE_SYSTEM_RESERVED"] = fmt.Sprintf("cpu=%vm", config.KubeSystemCPUMillicores)
-	}
-
-	var b bytes.Buffer
-	err := kubeReservedEnv.Execute(&b, &env)
-	if err != nil {
-		return trace.Wrap(err)
-	}
-
-	return trace.Wrap(utils.SafeWriteFile("/run/kubernetes-reserved.env", b.Bytes(), constants.SharedReadMask))
-}
-
-var kubeReservedEnv = template.Must(
-	template.New("kube-reserved-env").Parse(`{{ range $key, $value := . }}{{ $key }}="{{ $value }}"
-{{ end }}
-`))
 
 func u64(n uint64) *uint64 {
 	return &n

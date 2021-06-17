@@ -18,8 +18,8 @@
             "value": "REPLACE_FLANNEL_LATEST_VERSION"
         },
         {
-            "name": "version-docker",
-            "value": "REPLACE_DOCKER_LATEST_VERSION"
+            "name": "version-containerd",
+            "value": "REPLACE_CONTAINERD_LATEST_VERSION"
         },
         {
             "name": "version-helm",

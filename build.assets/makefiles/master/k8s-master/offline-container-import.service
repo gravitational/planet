@@ -7,7 +7,7 @@ EnvironmentFile=/etc/container-environment
 Restart=on-failure
 RestartSec=5
 ExecStartPre=/bin/systemctl is-active containerd.service
-ExecStart=/usr/bin/infra-import --dir=/etc/docker/offline/ --registry-addr=${KUBE_APISERVER}:5000
+ExecStart=/usr/bin/infra-import --dir=/etc/containerd/infra/ --registry-addr=${KUBE_APISERVER}:5000
 
 [Install]
 WantedBy=multi-user.target

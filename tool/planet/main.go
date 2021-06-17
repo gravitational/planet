@@ -677,7 +677,7 @@ func emptyIP(addr *net.IP) bool {
 
 // InitLogger configures the global logger for a given purpose / verbosity level
 func initLogging(debug bool) {
-	level := log.WarnLevel
+	level := log.InfoLevel
 	trace.SetDebug(debug)
 	if debug {
 		level = log.DebugLevel

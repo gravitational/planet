@@ -139,17 +139,21 @@ func importImageFromTarball(input io.Reader, path, registryAddr string) error {
 // importWithRepos imports the actual container images into the docker registry specified
 // with registryAddr using repos for metadata.
 func importWithRepos(repos Repositories, path, registryAddr string) error {
-	out, err := command("image", "import", "-i", path)
+	out, err := command("images", "import", path)
 	if err != nil {
 		return trace.Wrap(err, "failed to load image(s) into docker:\n%s", out)
 	}
 	for _, image := range repos.Images() {
 		repoTag := fmt.Sprintf("%v/%v", registryAddr, image.url())
-		out, err = command("tag", image.url(), repoTag)
+		out, err = command("images", "tag", image.url(), repoTag)
 		if err != nil {
 			return trace.Wrap(err, "failed to tag image in registry:\n%s", out)
 		}
-		out, err = command("push", repoTag)
+		out, err = command("images", "push",
+			"--tlscacert", "/var/state/root.cert",
+			"--tlscert", "/var/state/kubelet.cert",
+			"--tlskey", "/var/state/kubelet.key",
+			repoTag)
 		if err != nil {
 			return trace.Wrap(err, "failed to push image to registry:\n%s", out)
 		}
@@ -157,10 +161,10 @@ func importWithRepos(repos Repositories, path, registryAddr string) error {
 	return nil
 }
 
-// command executes an arbitrary crictl command specified with args.
+// command executes an arbitrary containerd controller command specified with args.
 // Returns the command output upon failure.
 func command(args ...string) ([]byte, error) {
-	out, err := exec.Command("crictl", args...).CombinedOutput()
+	out, err := exec.Command("ctr", args...).CombinedOutput()
 	if err != nil {
 		return out, trace.Wrap(err)
 	}

@@ -45,6 +45,10 @@ func enterConsole(config enterConfig) error {
 					Name: EnvPath,
 					Val:  DefaultEnvPath,
 				},
+				box.EnvPair{
+					Name: EnvContainerRuntimeEndpoint,
+					Val:  DefaultContainerRuntimeEndpoint,
+				},
 			},
 		},
 		SELinux: config.seLinux,
