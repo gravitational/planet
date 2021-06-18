@@ -1,6 +1,6 @@
 # syntax = docker/dockerfile:1.2
 
-ARG KUBE_VER=v1.21.0
+ARG KUBE_VER=v1.21.2
 ARG SECCOMP_VER=2.3.1-2.1+deb9u1
 ARG DOCKER_VER=20.10.7
 # we currently use our own flannel fork: gravitational/flannel
