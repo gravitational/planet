@@ -33,7 +33,12 @@ $(BINARIES):
 # TODO(knisbet) build off fork until upstream allows limiting cipher selection to modern standards
 	cd $(REPODIR) && git clone https://github.com/gravitational/distribution -b $(DISTRIBUTION_VER) --depth 1
 	cd $(REPODIR)/distribution && \
-	echo "$$VERSION_PACKAGE" > version/version.go && \ GOOS=linux GOARCH=amd64 CGO_ENABLED=0 go build -tags "$(DOCKER_BUILDTAGS)" -a -installsuffix cgo -o $@ $(GO_LDFLAGS) ./cmd/registry install: registry.mk $(BINARIES) @echo "\n---> Installing docker registry:\n" cp -af $(ASSETS)/makefiles/base/docker/registry.service $(ROOTFS)/lib/systemd/system
+	echo "$$VERSION_PACKAGE" > version/version.go && \
+	GOOS=linux GOARCH=amd64 CGO_ENABLED=0 go build -tags "$(DOCKER_BUILDTAGS)" -a -installsuffix cgo -o $@ $(GO_LDFLAGS) ./cmd/registry
+
+install: registry.mk $(BINARIES)
+	@echo "\n---> Installing docker registry:\n"
+	cp -af $(ASSETS)/makefiles/base/docker/registry.service $(ROOTFS)/lib/systemd/system
 	ln -sf /lib/systemd/system/registry.service  $(ROOTFS)/lib/systemd/system/multi-user.target.wants/
 	mkdir -p $(ROOTFS)/usr/bin
 	cp $(BINARIES) $(ROOTFS)/usr/bin/registry
