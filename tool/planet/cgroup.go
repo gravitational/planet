@@ -107,7 +107,7 @@ func upsertCgroups(kubeletConfig *kubeletconfig.KubeletConfiguration, isMaster b
 	if err != nil && !trace.IsNotFound(err) {
 		return trace.Wrap(err)
 	}
-	if (config.Enabled && config.Auto) || trace.IsNotFound(err) {
+	if trace.IsNotFound(err) || (config.Enabled && config.Auto) {
 		// if the configuration is automatically generated, regenerate it each start to pick up any changes
 		// with new planet releases
 		config = defaultCgroupConfig(runtime.NumCPU(), isMaster)
