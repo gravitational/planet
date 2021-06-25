@@ -80,8 +80,8 @@ func run() error {
 		cversion = app.Command("version", "Print version information")
 
 		// internal init command used by libcontainer
-		cinit            = app.Command("init", "Internal init command").Hidden()
-		cinitContainerID = cinit.Flag("container-id", "ID of the container").String()
+		cinit           = app.Command("init", "Internal init command").Hidden()
+		cinitCgroupPath = cinit.Flag("cgroup", "Optional cgroup to join").String()
 
 		// start the container with planet
 		cstart = app.Command("start", "Start Planet container")
@@ -470,7 +470,7 @@ func run() error {
 
 	// "init" command
 	case cinit.FullCommand():
-		err = box.Init(*cinitContainerID)
+		err = box.Init(*cinitCgroupPath)
 
 	// "enter" command
 	case center.FullCommand():

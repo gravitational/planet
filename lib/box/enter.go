@@ -34,6 +34,8 @@ import (
 	"github.com/containerd/cgroups"
 	"github.com/davecgh/go-spew/spew"
 	"github.com/opencontainers/runc/libcontainer"
+	libcgroups "github.com/opencontainers/runc/libcontainer/cgroups"
+	"github.com/opencontainers/runc/libcontainer/cgroups/fs2"
 	"github.com/opencontainers/runc/libcontainer/utils"
 	"github.com/opencontainers/selinux/go-selinux"
 	log "github.com/sirupsen/logrus"
@@ -197,7 +199,8 @@ func enter(dataDir string, container libcontainer.Container, config ProcessConfi
 		return trace.Wrap(err)
 	}
 
-	setProcessUserCgroup(container, p)
+	// TODO(dima): compute the cgroup path based on initProcessID
+	// setProcessUserCgroup(container, p)
 
 	err = tty.ClosePostStart()
 	if err != nil {
@@ -283,18 +286,46 @@ func getContainer(dataDir string) (libcontainer.Container, error) {
 
 		// There should only be a single planet container that's running, so exec within the first
 		// running container found
-		if status == libcontainer.Running {
+		switch status {
+		case libcontainer.Running:
 			log.WithField("container", container.ID()).Debug("Found running container.")
-			break
+			return getContainerFromDir(container, dataDir, dir.Name())
+		case libcontainer.Stopped:
+			return nil, trace.BadParameter(errStoppedContainer).AddField("container", container.ID())
 		}
 	}
-	if container == nil {
-		return nil, trace.NotFound("planet container not found")
+	return nil, trace.NotFound("planet container not found")
+}
+
+func getContainerFromDir(container libcontainer.Container, dataDir, containerID string) (libcontainer.Container, error) {
+	state, err := container.State()
+	if err != nil {
+		return nil, trace.Wrap(err)
 	}
-	if status == libcontainer.Stopped {
-		return nil, trace.BadParameter(errStoppedContainer).AddField("container", container.ID())
+	// Reload the container with the overridden init args
+	// so the init helper process can join the cgroup
+	factory, err := getLibContainerFactory(dataDir,
+		libcontainer.InitArgs(os.Args[0], "init", "--cgroup", getCgroupPath(state.InitProcessPid)))
+	if err != nil {
+		return nil, trace.Wrap(err)
 	}
-	return container, nil
+	return factory.Load(container.ID())
+}
+
+func getCgroupPath(initProcessPID int) (path string) {
+	initProcCgroupFile := fmt.Sprintf("/proc/%d/cgroup", initProcessPID)
+	initCg, initCgErr := libcgroups.ParseCgroupFile(initProcCgroupFile)
+	if initCgErr == nil {
+		if initCgPath, ok := initCg[""]; ok {
+			initCgDirpath := filepath.Join(fs2.UnifiedMountpoint, initCgPath)
+			log.Infof("Attempting to join pid %d to cgroups %q (obtained from %s).",
+				initProcessPID, initCg, initCgDirpath)
+			// TODO(dima): compute
+			// /system.slice/-planet-UUID.slice/user.slice path
+			return path
+		}
+	}
+	return ""
 }
 
 func isErrorContainerNotFound(err error) bool {

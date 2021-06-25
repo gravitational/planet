@@ -30,12 +30,12 @@ import (
 	"strings"
 	"syscall"
 
+	"github.com/gravitational/go-udev"
 	"github.com/gravitational/planet/lib/constants"
 	"github.com/gravitational/planet/lib/defaults"
 	"github.com/gravitational/trace"
 
 	"github.com/davecgh/go-spew/spew"
-	"github.com/gravitational/go-udev"
 	"github.com/opencontainers/runc/libcontainer"
 	"github.com/opencontainers/runc/libcontainer/configs"
 	"github.com/opencontainers/runc/libcontainer/devices"
@@ -151,8 +151,7 @@ func Start(cfg Config) (*Box, error) {
 
 	containerID := uuid.New()
 	log.WithField("id", containerID).Warn("Start container.")
-	root, err := getLibContainerFactory(cfg.DataDir,
-		libcontainer.InitArgs(os.Args[0], "init", "--container-id", containerID))
+	root, err := getLibContainerFactory(cfg.DataDir)
 	if err != nil {
 		return nil, trace.Wrap(err)
 	}
