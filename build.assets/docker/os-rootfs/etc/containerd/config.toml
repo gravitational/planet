@@ -18,7 +18,7 @@ version = 2
   uid = 0
 
 [grpc]
-  address = "unix:///run/containerd/containerd.sock"
+  address = "/run/containerd/containerd.sock"
   gid = 0
   max_recv_message_size = 16777216
   max_send_message_size = 16777216
