@@ -557,8 +557,7 @@ var KubeletConfig = kubeletconfig.KubeletConfiguration{
 	CgroupDriver:           "systemd",
 	EnforceNodeAllocatable: []string{"pods", "kube-reserved", "system-reserved"},
 	SystemReservedCgroup:   "/system.slice",
-	KubeReservedCgroup:     "/kubereserved.slice",
-	KubeletCgroups:         "/kubereserved.slice/kubelet.slice",
+	KubeReservedCgroup:     "/kubernetes.slice",
 }
 
 // KubeletConfigOverrides specifies the subset of kubelet configuration
@@ -598,6 +597,11 @@ var KubeletConfigOverrides = kubeletconfig.KubeletConfiguration{
 		"TLS_RSA_WITH_AES_256_GCM_SHA384",
 	},
 	TLSMinVersion: "VersionTLS12",
+	FeatureGates: map[string]bool{
+		"AllAlpha":               true,
+		"APIResponseCompression": false,
+		"StorageVersionAPI":      false,
+	},
 }
 
 // KubeletTypeMeta defines the type meta block of the kubelet configuration resource

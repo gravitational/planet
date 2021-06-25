@@ -176,7 +176,7 @@ func start(config *Config) (*runtimeContext, error) {
 	if err != nil {
 		return nil, trace.Wrap(err)
 	}
-	if err := upsertCgroups(kubeletConfig, config.Roles[0] == RoleMaster); err != nil {
+	if err := upsertCgroups(kubeletConfig, config, config.Roles[0] == RoleMaster); err != nil {
 		return nil, trace.Wrap(err)
 	}
 	kubeletConfigBytes, err := marshalKubeletConfig(kubeletConfig)
@@ -530,8 +530,8 @@ func addComponentOptions(config *Config) error {
 		config.Env.Append(EnvKubeProxyOptions,
 			fmt.Sprintf("--proxy-port-range=%v", config.ProxyPortRange))
 	}
-	if config.FeatureGates != "" {
-		config.Env.Append(EnvKubeComponentFlags, fmt.Sprintf("--feature-gates=%v", config.FeatureGates))
+	if config.FeatureGates != nil {
+		config.Env.Append(EnvKubeComponentFlags, fmt.Sprintf("--feature-gates=%s", config.FeatureGates.String()))
 	}
 	return nil
 }

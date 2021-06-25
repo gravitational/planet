@@ -17,6 +17,7 @@ limitations under the License.
 package box
 
 import (
+	"fmt"
 	"os"
 	"runtime"
 
@@ -35,11 +36,17 @@ func init() {
 
 // Init is implicitly called by the libcontainer logic and is used to start
 // a process in the new namespaces and cgroups
-func Init() error {
+func Init(containerID string) error {
 	factory, err := libcontainer.New("")
 	if err != nil {
 		return trace.Wrap(err, "failed to create container factory")
 	}
+	fmt.Println("Init with container:", containerID)
+	log.WithField("container-id", containerID).WithField("args", os.Args).Warn("Container init process.")
+	// TODO(dima): will factory.Load(containerID) followed by the logic
+	// to move this init process to the user slice work? Since this way
+	// the child will also inherit the cgroup and there will be no race.
+	// InitArgs could be customized to accept a default value for `--containerID=`
 	if err := factory.StartInitialization(); err != nil {
 		log.Warnf("Failed to initialize container factory: %v.", err)
 		return trace.Wrap(err, "failed to initialize container factory")

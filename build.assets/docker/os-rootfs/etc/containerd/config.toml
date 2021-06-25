@@ -61,6 +61,7 @@ version = 2
     stream_idle_timeout = "4h0m0s"
     stream_server_address = "127.0.0.1"
     stream_server_port = "0"
+    # This is deprecated in favor of runc configuration (see below)
     systemd_cgroup = false
     tolerate_missing_hugetlb_controller = true
     unset_seccomp_profile = ""

@@ -1,7 +1,7 @@
 [Unit]
 Description=Kubernetes Kubelet
 Documentation=https://github.com/kubernetes/kubernetes
-Wants=containerd.service
+Wants=containerd.service kubernetes.slice
 
 [Service]
 EnvironmentFile=/etc/container-environment
@@ -12,20 +12,16 @@ ExecStart=/usr/bin/kubelet \
         --root-dir=/var/lib/kubelet \
         --hostname-override=${KUBE_NODE_NAME} \
         --logtostderr=true \
-        --pod-infra-container-image=${KUBE_APISERVER}:5000/k8s.gcr.io/pause:3.5 \
         --kubeconfig=/etc/kubernetes/kubelet.kubeconfig \
         --register-with-taints=${PLANET_NODE_TAINTS} \
         --node-labels=${PLANET_NODE_LABELS} \
-        --network-plugin=cni \
         --config=/etc/kubernetes/kubelet.yaml \
-        --image-pull-progress-deadline=15m \
-        --tls-min-version=VersionTLS12 \
 	--container-runtime=remote \
 	--container-runtime-endpoint=${CONTAINER_RUNTIME_ENDPOINT} \
         $KUBE_KUBELET_FLAGS \
-        $KUBE_CLOUD_FLAGS \
-        $KUBE_COMPONENT_FLAGS
+        $KUBE_CLOUD_FLAGS
 Restart=always
 RestartSec=5
 StartLimitInterval=3600
 StartLimitBurst=720
+Slice=kubernetes.slice

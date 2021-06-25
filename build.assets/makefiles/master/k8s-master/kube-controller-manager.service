@@ -1,7 +1,7 @@
 [Unit]
 Description=Kubernetes Controller Manager
 Documentation=https://github.com/GoogleCloudPlatform/kubernetes
-Wants=kube-apiserver.service
+Wants=kube-apiserver.service kubernetes.slice
 
 [Service]
 EnvironmentFile=/etc/container-environment
@@ -31,4 +31,5 @@ StartLimitInterval=3600
 StartLimitBurst=720
 User=planet
 Group=planet
+Slice=kubernetes.slice
 SuccessExitStatus=2

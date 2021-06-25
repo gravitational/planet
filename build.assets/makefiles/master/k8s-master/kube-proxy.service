@@ -1,6 +1,7 @@
 [Unit]
 Description=Kubernetes Proxy
 Documentation=https://github.com/GoogleCloudPlatform/kubernetes
+Wants=kubernetes.slice
 
 [Service]
 EnvironmentFile=/etc/container-environment
@@ -17,3 +18,4 @@ Restart=always
 RestartSec=5
 StartLimitInterval=3600
 StartLimitBurst=720
+Slice=kubernetes.slice

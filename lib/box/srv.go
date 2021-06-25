@@ -32,12 +32,14 @@ import (
 
 	"github.com/gravitational/planet/lib/constants"
 	"github.com/gravitational/planet/lib/defaults"
-
-	"github.com/gravitational/go-udev"
 	"github.com/gravitational/trace"
+
+	"github.com/davecgh/go-spew/spew"
+	"github.com/gravitational/go-udev"
 	"github.com/opencontainers/runc/libcontainer"
-	"github.com/opencontainers/runc/libcontainer/cgroups/systemd"
 	"github.com/opencontainers/runc/libcontainer/configs"
+	"github.com/opencontainers/runc/libcontainer/devices"
+	"github.com/opencontainers/runc/libcontainer/specconv"
 	"github.com/pborman/uuid"
 	log "github.com/sirupsen/logrus"
 )
@@ -88,11 +90,7 @@ func (b *Box) Wait() (*os.ProcessState, error) {
 	return state, err
 }
 
-func getLibContainerFactory(dataDir string) (libcontainer.Factory, error) {
-	if !systemd.UseSystemd() {
-		return nil, trace.BadParameter("unable to use systemd for container creation")
-	}
-
+func getLibContainerFactory(dataDir string, opts ...func(*libcontainer.LinuxFactory) error) (libcontainer.Factory, error) {
 	// Resolve the paths for {newuidmap,newgidmap} from the context of runc,
 	// to avoid doing a path lookup in the nsexec context.
 	// TODO: the binary names are not currently configurable.
@@ -105,11 +103,10 @@ func getLibContainerFactory(dataDir string) (libcontainer.Factory, error) {
 		newgidmap = ""
 	}
 
-	factory, err := libcontainer.New(dataDir,
-		libcontainer.SystemdCgroups,
+	opts = append(opts, libcontainer.SystemdCgroups,
 		libcontainer.NewuidmapPath(newuidmap),
-		libcontainer.NewgidmapPath(newgidmap),
-	)
+		libcontainer.NewgidmapPath(newgidmap))
+	factory, err := libcontainer.New(dataDir, opts...)
 	if err != nil {
 		return nil, trace.Wrap(err)
 	}
@@ -143,18 +140,23 @@ func Start(cfg Config) (*Box, error) {
 		for _, f := range cfg.Files {
 			path := filepath.Join(rootfs, f.Path)
 			cfg.WithField("file", path).Infof("Write file.")
+			if err := os.MkdirAll(filepath.Dir(path), 0755); err != nil {
+				return nil, trace.Wrap(trace.ConvertSystemError(err))
+			}
 			if err := writeFile(path, f); err != nil {
 				return nil, trace.Wrap(err)
 			}
 		}
 	}
 
-	root, err := getLibContainerFactory(cfg.DataDir)
+	containerID := uuid.New()
+	log.WithField("id", containerID).Warn("Start container.")
+	root, err := getLibContainerFactory(cfg.DataDir,
+		libcontainer.InitArgs(os.Args[0], "init", "--container-id", containerID))
 	if err != nil {
 		return nil, trace.Wrap(err)
 	}
 
-	containerID := uuid.New()
 	// https://github.com/systemd/systemd/blob/9ed6a1d2c6fd60ea666a30f815ab4c776e5d5c7c/src/core/machine-id-setup.c#L54-L58
 	// Pass the container uuid to systemd init
 	cfg.InitEnv = append(cfg.InitEnv, fmt.Sprintf("container_uuid=%v", containerID))
@@ -163,6 +165,7 @@ func Start(cfg Config) (*Box, error) {
 	if err != nil {
 		return nil, trace.Wrap(err)
 	}
+	fmt.Println("Libcontainer config:", spew.Sdump(config))
 
 	// Bootstrap the container.
 	//
@@ -234,7 +237,7 @@ func getLibcontainerConfig(containerID, rootfs string, cfg Config) (*configs.Con
 	udev := udev.Udev{}
 	enum := udev.NewEnumerate()
 
-	devices, err := enum.Devices()
+	udevDevices, err := enum.Devices()
 	if err != nil {
 		return nil, trace.Wrap(err, "failed to enumerate available devices")
 	}
@@ -245,33 +248,39 @@ func getLibcontainerConfig(containerID, rootfs string, cfg Config) (*configs.Con
 		return nil, trace.Wrap(err)
 	}
 
-	var disks []*configs.Device
-	for _, device := range devices {
+	var disks []*devices.Device
+	for _, device := range udevDevices {
 		deviceType := device.Devtype()
 		if deviceType == "disk" || deviceType == "partition" {
 			devnum := device.Devnum()
-			disks = append(disks, &configs.Device{
-				Type:        'b',
-				Path:        device.Devnode(),
-				Major:       int64(devnum.Major()),
-				Minor:       int64(devnum.Minor()),
-				Permissions: constants.DeviceReadWritePerms,
-				FileMode:    constants.GroupReadWriteMask,
+			disks = append(disks, &devices.Device{
+				Rule: devices.Rule{
+					Allow:       true,
+					Type:        'b',
+					Major:       int64(devnum.Major()),
+					Minor:       int64(devnum.Minor()),
+					Permissions: constants.DeviceReadWritePerms,
+				},
+				Path:     device.Devnode(),
+				FileMode: constants.GroupReadWriteMask,
 			})
 		}
 	}
 
-	loopDevices := make([]*configs.Device, len(hostLoops))
+	loopDevices := make([]*devices.Device, len(hostLoops))
 	for i := range hostLoops {
-		loopDevices[i] = &configs.Device{
-			Type:        'b',
-			Path:        fmt.Sprintf("/dev/loop%d", i),
-			Major:       7,
-			Minor:       int64(i),
-			Uid:         0,
-			Gid:         0,
-			Permissions: constants.DeviceReadWritePerms,
-			FileMode:    constants.GroupReadWriteMask,
+		loopDevices[i] = &devices.Device{
+			Rule: devices.Rule{
+				Allow:       true,
+				Type:        'b',
+				Major:       7,
+				Minor:       int64(i),
+				Permissions: constants.DeviceReadWritePerms,
+			},
+			Path:     fmt.Sprintf("/dev/loop%d", i),
+			Uid:      0,
+			Gid:      0,
+			FileMode: constants.GroupReadWriteMask,
 		}
 	}
 
@@ -283,7 +292,19 @@ func getLibcontainerConfig(containerID, rootfs string, cfg Config) (*configs.Con
 		Ambient:     cfg.Capabilities,
 	}
 
-	allowAllDevices := true
+	var allowedDevices []*devices.Rule
+	for _, group := range [][]*devices.Device{specconv.AllowedDevices, loopDevices, disks} {
+		for _, device := range group {
+			allowedDevices = append(allowedDevices, &device.Rule)
+		}
+	}
+	kernelLogDevice, err := devices.DeviceFromPath("/dev/kmsg", "ro")
+	if err != nil {
+		return nil, trace.Wrap(err)
+	}
+	kernelLogDevice.Rule.Allow = true
+	allowedDevices = append(allowedDevices, &kernelLogDevice.Rule)
+
 	config := &configs.Config{
 		Rootfs:       rootfs,
 		Capabilities: &capabilities,
@@ -384,14 +405,13 @@ func getLibcontainerConfig(containerID, rootfs string, cfg Config) (*configs.Con
 		Cgroups: &configs.Cgroup{
 			Name: fmt.Sprintf("planet-%v", containerID),
 			Resources: &configs.Resources{
-				AllowAllDevices:  &allowAllDevices,
-				AllowedDevices:   configs.DefaultAllowedDevices,
-				MemorySwappiness: nil, // nil means "machine-default" and that's what we need because we don't care
-				CpuShares:        2,   // set planet to minimum cpu shares relative to host services
-				PidsLimit:        2000000,  // override systemd defaults and set planet scope to unlimited pids
+				Devices:          allowedDevices,
+				MemorySwappiness: nil,     // nil means "machine-default" and that's what we need because we don't care
+				CpuShares:        2,       // set planet to minimum cpu shares relative to host services
+				PidsLimit:        2000000, // override systemd defaults and set planet scope to unlimited pids
 			},
 		},
-		Devices:  append(configs.DefaultAutoCreatedDevices, append(loopDevices, disks...)...),
+		Devices:  append(specconv.AllowedDevices, append(loopDevices, disks...)...),
 		Hostname: hostname,
 	}
 	if cfg.SELinux {
@@ -489,7 +509,8 @@ func getLibcontainerConfig(containerID, rootfs string, cfg Config) (*configs.Con
 	return config, nil
 }
 
-func convertToDevices(device Device) (devices []*configs.Device, err error) {
+// TODO(dima): reuse libcontainer/devices APIs
+func convertToDevices(device Device) (result []*devices.Device, err error) {
 	// each device path passed on CLI is treated as a glob
 	devicePaths, err := filepath.Glob(device.Path)
 	if err != nil {
@@ -501,16 +522,16 @@ func convertToDevices(device Device) (devices []*configs.Device, err error) {
 			return nil, trace.Wrap(err)
 		}
 		// fill in other fields from the parameters passed on CLI
-		deviceInfo.Permissions = device.Permissions
+		deviceInfo.Rule.Permissions = devices.Permissions(device.Permissions)
 		deviceInfo.FileMode = device.FileMode
 		deviceInfo.Uid = device.UID
 		deviceInfo.Gid = device.GID
-		devices = append(devices, deviceInfo)
+		result = append(result, deviceInfo)
 	}
-	return devices, nil
+	return result, nil
 }
 
-func getDeviceInfo(devicePath string) (*configs.Device, error) {
+func getDeviceInfo(devicePath string) (*devices.Device, error) {
 	stat := syscall.Stat_t{}
 	if err := syscall.Stat(devicePath, &stat); err != nil {
 		return nil, trace.Wrap(err)
@@ -525,11 +546,13 @@ func getDeviceInfo(devicePath string) (*configs.Device, error) {
 	default:
 		return nil, trace.BadParameter("unsupported device type: %q", devicePath)
 	}
-	return &configs.Device{
-		Type:  deviceType,
-		Path:  devicePath,
-		Major: int64(stat.Rdev / 256),
-		Minor: int64(stat.Rdev % 256),
+	return &devices.Device{
+		Rule: devices.Rule{
+			Type:  devices.Type(deviceType),
+			Major: int64(stat.Rdev / 256),
+			Minor: int64(stat.Rdev % 256),
+		},
+		Path: devicePath,
 	}, nil
 }
 

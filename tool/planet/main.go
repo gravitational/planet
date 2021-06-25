@@ -28,6 +28,7 @@ import (
 	"os"
 	"os/signal"
 	"path/filepath"
+	"sort"
 	"strconv"
 	"strings"
 	"syscall"
@@ -46,7 +47,7 @@ import (
 	"github.com/gravitational/satellite/lib/history/sqlite"
 	"github.com/gravitational/trace"
 	"github.com/gravitational/version"
-	"github.com/opencontainers/runc/libcontainer/configs"
+	"github.com/opencontainers/runc/libcontainer/devices"
 	"github.com/opencontainers/selinux/go-selinux"
 	log "github.com/sirupsen/logrus"
 	logsyslog "github.com/sirupsen/logrus/hooks/syslog"
@@ -79,7 +80,8 @@ func run() error {
 		cversion = app.Command("version", "Print version information")
 
 		// internal init command used by libcontainer
-		cinit = app.Command("init", "Internal init command").Hidden()
+		cinit            = app.Command("init", "Internal init command").Hidden()
+		cinitContainerID = cinit.Flag("container-id", "ID of the container").String()
 
 		// start the container with planet
 		cstart = app.Command("start", "Start Planet container")
@@ -104,10 +106,9 @@ func run() error {
 						Default(DefaultServiceNodePortRange).
 						OverrideDefaultFromEnvar(EnvPlanetServiceNodePortRange).
 						String()
-		cstartFeatureGates = cstart.Flag("feature-gates", "A comma-separated list of key=value pairs that describe feature gates for alpha/experimental features.").
+		cstartFeatureGates = mapStringBoolFlag(cstart.Flag("feature-gates", "A comma-separated list of key=value pairs that describe feature gates for alpha/experimental features.").
 					Default(DefaultFeatureGates).
-					OverrideDefaultFromEnvar(EnvPlanetFeatureGates).
-					String()
+					OverrideDefaultFromEnvar(EnvPlanetFeatureGates))
 		cstartVxlanPort               = cstart.Flag("vxlan-port", "overlay network port").Default(strconv.Itoa(DefaultVxlanPort)).OverrideDefaultFromEnvar(EnvVxlanPort).Int()
 		cstartServiceUID              = cstart.Flag("service-uid", "Service user ID. Service user is used for services that do not require elevated permissions").OverrideDefaultFromEnvar(EnvServiceUID).String()
 		cstartServiceGID              = cstart.Flag("service-gid", "Service user group ID").OverrideDefaultFromEnvar(EnvServiceGID).String()
@@ -469,7 +470,7 @@ func run() error {
 
 	// "init" command
 	case cinit.FullCommand():
-		err = box.Init()
+		err = box.Init(*cinitContainerID)
 
 	// "enter" command
 	case center.FullCommand():
@@ -523,7 +524,7 @@ func run() error {
 		err = e2e.RunTests(config, extraArgs)
 
 	case cdeviceAdd.FullCommand():
-		var device configs.Device
+		var device devices.Device
 		if err = json.Unmarshal([]byte(*cdeviceAddData), &device); err != nil {
 			break
 		}
@@ -564,6 +565,55 @@ func run() error {
 }
 
 const monitoringDbFile = "monitoring.db"
+
+// Copy of k8s.io/component-base/cli/flag/map_string_bool.go but for kingpin
+//
+// mapStringBool can be set from the command line with the format `--flag "string=bool"`.
+// Multiple comma-separated key-value pairs in a single invocation are supported. For example: `--flag "a=true,b=false"`.
+// Multiple flag invocations are supported. For example: `--flag "a=true" --flag "b=false"`.
+type mapStringBool map[string]bool
+
+// mapStringBoolFlag return the flag parsing shim for key=value
+// pairs where keys are strings and values are booleans
+func mapStringBoolFlag(s kingpin.Settings) *mapStringBool {
+	m := &mapStringBool{}
+	s.SetValue(m)
+	return m
+}
+
+// String implements kingpin.Value
+func (m *mapStringBool) String() string {
+	if m == nil {
+		return ""
+	}
+	pairs := []string{}
+	for k, v := range *m {
+		pairs = append(pairs, fmt.Sprintf("%s=%t", k, v))
+	}
+	sort.Strings(pairs)
+	return strings.Join(pairs, ",")
+}
+
+// Set implements kingpin.Value
+func (m *mapStringBool) Set(value string) error {
+	for _, s := range strings.Split(value, ",") {
+		if len(s) == 0 {
+			continue
+		}
+		arr := strings.SplitN(s, "=", 2)
+		if len(arr) != 2 {
+			return trace.BadParameter("malformed pair, expect string=bool")
+		}
+		k := strings.TrimSpace(arr[0])
+		v := strings.TrimSpace(arr[1])
+		boolValue, err := strconv.ParseBool(v)
+		if err != nil {
+			return trace.BadParameter("invalid value of %s: %s, err: %v", k, v, err)
+		}
+		(*m)[k] = boolValue
+	}
+	return nil
+}
 
 func EnvVars(s kingpin.Settings) *box.EnvVars {
 	vars := new(box.EnvVars)

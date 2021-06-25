@@ -3,8 +3,9 @@
 ARG KUBE_VER=v1.21.2
 ARG SECCOMP_VER=2.3.1-2.1+deb9u1
 ARG CONTAINERD_VER=1.5.2
-ARG RUNC_VER=1.0.0-rc95
+ARG RUNC_VER=1.0.0
 ARG CRITOOLS_VER=1.21.0
+ARG NERDCTL_VER=0.9.0
 
 # we currently use our own flannel fork: gravitational/flannel
 ARG FLANNEL_VER=v0.10.5-gravitational
@@ -330,6 +331,12 @@ RUN set -ex && \
 	mkdir -p /opt/bin && \
 	curl -L --retry 5 https://github.com/kubernetes-sigs/cri-tools/releases/download/v${CRITOOLS_VER}/crictl-v${CRITOOLS_VER}-linux-amd64.tar.gz | tar xvz --no-same-owner -C /opt/bin crictl
 
+FROM downloader AS nerdctl-downloader
+ARG NERDCTL_VER
+RUN set -ex && \
+	mkdir -p /opt/bin && \
+	curl -L --retry 5 https://github.com/containerd/nerdctl/releases/download/v${NERDCTL_VER}/nerdctl-${NERDCTL_VER}-linux-amd64.tar.gz | tar xvz --no-same-owner -C /opt/bin nerdctl
+
 FROM base AS rootfs
 ARG ETCD_LATEST_VER
 ARG ARTEFACTS_DIR
@@ -391,6 +398,7 @@ RUN --mount=target=/host \
 	install -m 0755 /host/build.assets/makefiles/base/cri/unmount-devmapper.sh /usr/bin/scripts/
 COPY --from=containerd-downloader /opt/bin/* /usr/bin/
 COPY --from=crictl-downloader /opt/bin/crictl /usr/bin/
+COPY --from=nerdctl-downloader /opt/bin/nerdctl /usr/bin/
 COPY --from=runc-downloader /runc /usr/bin/
 
 # agent.mk

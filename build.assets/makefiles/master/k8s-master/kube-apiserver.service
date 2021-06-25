@@ -1,7 +1,7 @@
 [Unit]
 Description=Kubernetes API Server
 Documentation=https://github.com/GoogleCloudPlatform/kubernetes
-Wants=etcd.service
+Wants=etcd.service kubernetes.slice
 
 [Service]
 # Default to etcd storage backend
@@ -68,3 +68,4 @@ StartLimitInterval=3600
 StartLimitBurst=720
 User=planet
 Group=planet
+Slice=kubernetes.slice

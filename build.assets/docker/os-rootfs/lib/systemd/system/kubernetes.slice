@@ -1,0 +1,6 @@
+[Unit]
+Description=Kubernetes system components slice
+Before=slices.target
+
+[Slice]
+

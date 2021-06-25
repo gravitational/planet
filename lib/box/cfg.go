@@ -262,6 +262,16 @@ type Mount struct {
 
 type Mounts []Mount
 
+// GetHostPath looks up the mapping for path on the host
+func (m Mounts) GetHostPath(path string) (hostPath string) {
+	for _, mnt := range m {
+		if mnt.Dst == path {
+			return mnt.Src
+		}
+	}
+	return ""
+}
+
 func (m *Mounts) Set(v string) error {
 	for _, i := range cstrings.SplitComma(v) {
 		if err := m.setItem(i); err != nil {

@@ -18,6 +18,7 @@ package box
 
 import (
 	"bytes"
+	"fmt"
 	"io"
 	"io/ioutil"
 	"os"
@@ -28,9 +29,10 @@ import (
 
 	"github.com/gravitational/planet/lib/constants"
 	"github.com/gravitational/planet/lib/defaults"
+	"github.com/gravitational/trace"
 
 	"github.com/containerd/cgroups"
-	"github.com/gravitational/trace"
+	"github.com/davecgh/go-spew/spew"
 	"github.com/opencontainers/runc/libcontainer"
 	"github.com/opencontainers/runc/libcontainer/utils"
 	"github.com/opencontainers/selinux/go-selinux"
@@ -94,6 +96,7 @@ func setProcessUserCgroupImpl(c libcontainer.Container, p *libcontainer.Process)
 	if err != nil {
 		return trace.Wrap(err)
 	}
+	fmt.Println("Container state:", spew.Sdump(state))
 
 	// This is a bit of a risk, try and use the cpu controller to identify the cgroup path. CgroupsV1 doesn't use a
 	// unified hierarchy, so different controllers can have different cgroup paths. For us, cpu is the most important
@@ -114,7 +117,8 @@ func setProcessUserCgroupImpl(c libcontainer.Container, p *libcontainer.Process)
 	if len(dirs) < 6 {
 		return trace.BadParameter("cgroup path expected to have atleast 6 directory separators '/'").AddField("cgroup_path", cgroupPath)
 	}
-	userPath := filepath.Join("/", path.Join(dirs[5:]...), "user")
+	userPath := filepath.Join("/", path.Join(dirs[5:]...), "user.slice")
+	fmt.Println("User cgroup path:", userPath)
 
 	control, err := cgroups.Load(cgroups.V1, cgroups.StaticPath(userPath))
 	if err != nil {

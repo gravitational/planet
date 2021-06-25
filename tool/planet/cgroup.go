@@ -38,6 +38,7 @@ package main
 import (
 	"context"
 	"fmt"
+	"io"
 	"io/ioutil"
 	"os"
 	"path"
@@ -46,15 +47,16 @@ import (
 	"strings"
 	"time"
 
-	systemdDbus "github.com/coreos/go-systemd/v22/dbus"
-	"github.com/davecgh/go-spew/spew"
-	"github.com/godbus/dbus/v5"
-
-	"github.com/containerd/cgroups"
 	"github.com/gravitational/planet/lib/box"
 	"github.com/gravitational/planet/lib/constants"
 	"github.com/gravitational/planet/lib/utils"
 	"github.com/gravitational/trace"
+
+	"github.com/containerd/cgroups"
+	systemdDbus "github.com/coreos/go-systemd/v22/dbus"
+	"github.com/coreos/go-systemd/v22/unit"
+	"github.com/davecgh/go-spew/spew"
+	"github.com/godbus/dbus/v5"
 	specs "github.com/opencontainers/runtime-spec/specs-go"
 	"github.com/sirupsen/logrus"
 	yaml "gopkg.in/yaml.v2"
@@ -69,7 +71,7 @@ type CgroupConfig struct {
 	// config is externally managed or updated by a user, set this to false so planet doesn't overwrite the settings.
 	Auto bool
 
-	// KubeReservedCPUMillicores is the amount of CPU to reserve within kubernetes for kubelet + docker (in millicores)
+	// KubeReservedCPUMillicores is the amount of CPU to reserve within kubernetes for kubelet + container runtime (in millicores)
 	KubeReservedCPUMillicores int
 	// KubeSystemCPUMillicores is the amount of CPU to reserve within kubernetes for system services (in millicores)
 	KubeSystemCPUMillicores int
@@ -81,12 +83,49 @@ type CgroupConfig struct {
 type CgroupEntry struct {
 	specs.LinuxResources
 
-	// Path is the cgroup hierarchy path this setting applies to
+	// Path is the cgroup hierarchy path this setting applies to.
+	// The path is relative to the cgroup root. Changes to the
+	// corresponding slice are placed into the corresponding drop-in
+	// directory
 	Path string
 }
 
+func (r CgroupEntry) configPath() (path string) {
+	if r.Path == "system" {
+		return filepath.Join(localConfigRoot, "system.slice.d", "10-gravity.conf")
+	}
+	return filepath.Join(packageConfigRoot, fmt.Sprint(r.Path, ".slice.d"), "10-gravity.conf")
+}
+
+func (r CgroupEntry) path() (path string) {
+	return strings.TrimSuffix(filepath.Base(r.Path), ".slice")
+}
+
+func (r CgroupEntry) serialize() io.Reader {
+	opts := []*unit.UnitOption{
+		{Section: "Unit", Name: "Description", Value: fmt.Sprint("Auto-generated slice for ", r.path())},
+		{Section: "Unit", Name: "Wants", Value: "system.slice"},
+		{Section: "Slice", Name: "MemoryAccounting", Value: "yes"},
+		{Section: "Slice", Name: "CPUAccounting", Value: "yes"},
+		{Section: "Slice", Name: "BlockIOAccounting", Value: "yes"},
+	}
+	if r.CPU.Shares != nil {
+		opts = append(opts, &unit.UnitOption{
+			Section: "Slice",
+			Name:    "CPUWeight",
+			Value:   fmt.Sprint(*r.CPU.Shares),
+		})
+	}
+	return unit.Serialize(opts)
+}
+
+const (
+	localConfigRoot   = "/etc/systemd/system"
+	packageConfigRoot = "/lib/systemd/system"
+)
+
 // upsertCgroups reads/updates the cgroup configuration and applies it to the system
-func upsertCgroups(kubeletConfig *kubeletconfig.KubeletConfiguration, isMaster bool) error {
+func upsertCgroups(kubeletConfig *kubeletconfig.KubeletConfiguration, rootConfig *Config, isMaster bool) error {
 	log := logrus.WithField(trace.Component, "cgroup")
 	log.WithField("master", isMaster).Info("Upsert cgroup configuration")
 
@@ -102,7 +141,11 @@ func upsertCgroups(kubeletConfig *kubeletconfig.KubeletConfiguration, isMaster b
 		return nil
 	}
 
-	configPath := path.Join(StateDir, "planet-cgroups.conf")
+	stateDir := rootConfig.Mounts.GetHostPath(StateDir)
+	if stateDir == "" {
+		return trace.Errorf("state directory not found in mounts")
+	}
+	configPath := path.Join(stateDir, "planet-cgroups.conf")
 	config, err := readCgroupConfig(configPath)
 	if err != nil && !trace.IsNotFound(err) {
 		return trace.Wrap(err)
@@ -132,12 +175,11 @@ func upsertCgroups(kubeletConfig *kubeletconfig.KubeletConfiguration, isMaster b
 			return trace.BadParameter("cgroup spec with no path set: %v", entry)
 		}
 
-		switch {
-		case strings.HasSuffix(entry.Path, ".slice"):
-			errors = append(errors, trace.Wrap(upsertSystemd(entry)))
-		default:
-			errors = append(errors, trace.Wrap(upsertCgroupV1(entry)))
-		}
+		rootConfig.Files = append(rootConfig.Files, box.File{
+			Path:     entry.configPath(),
+			Contents: entry.serialize(),
+			Mode:     constants.SharedReadWriteMask,
+		})
 	}
 
 	kubeletConfig.KubeReserved = map[string]string{
@@ -165,7 +207,7 @@ func upsertSystemd(entry CgroupEntry) error {
 	}
 
 	if entry.CPU.Shares != nil {
-		properties = append(properties, newProperty("CPUShares", entry.CPU.Shares))
+		properties = append(properties, newProperty("CPUWeight", entry.CPU.Shares))
 	}
 
 	return trace.Wrap(conn.SetUnitProperties(entry.Path, true, properties...))
@@ -202,7 +244,7 @@ func defaultCgroupConfig(numCPU int, isMaster bool) *CgroupConfig {
 			// /user
 			// - cgroup for user processes, capped cpu usage
 			{
-				Path: "/user.slice",
+				Path: "user",
 				LinuxResources: specs.LinuxResources{
 					CPU: &specs.LinuxCPU{
 						Shares: u64(1024),
@@ -215,7 +257,7 @@ func defaultCgroupConfig(numCPU int, isMaster bool) *CgroupConfig {
 			// - cgroup for planet services
 			// - set swapinness to 0
 			{
-				Path: "/system.slice",
+				Path: "system",
 				LinuxResources: specs.LinuxResources{
 					CPU: &specs.LinuxCPU{
 						Shares: u64(1024),
@@ -225,12 +267,12 @@ func defaultCgroupConfig(numCPU int, isMaster bool) *CgroupConfig {
 					},
 				},
 			},
-			// /kubereserved.slice/kubepods.slice
+			// /kubepods.slice
 			// - cgroup for kubernetes pods
 			// - minimum cpu scheduling priority
 			// - Set swappiness to 20, so processes are less likely to swap. (Kubernetes recommends no swap)
 			{
-				Path: "/kubereserved.slice/kubepods.slice",
+				Path: "kubepods",
 				LinuxResources: specs.LinuxResources{
 					CPU: &specs.LinuxCPU{
 						Shares: u64(2),
@@ -244,7 +286,7 @@ func defaultCgroupConfig(numCPU int, isMaster bool) *CgroupConfig {
 	}
 
 	// if the system has limited CPU power, we only set the cgroup hierarchy
-	// and don't set kube-reserved / system reserved
+	// and don't set kube-reserved / system-reserved
 	if numCPU <= 4 {
 		return &config
 	}
