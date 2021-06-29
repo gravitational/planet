@@ -1,13 +1,19 @@
 [Unit]
 Description=Kubernetes Kubelet
 Documentation=https://github.com/kubernetes/kubernetes
-Wants=containerd.service kubernetes.slice
+Wants=containerd.service kubereserved.slice
 
 [Service]
 EnvironmentFile=/etc/container-environment
 EnvironmentFile=/run/dns.env
 ExecStartPre=/bin/systemctl is-active containerd.service
 ExecStartPre=/usr/bin/scripts/cluster-dns.sh
+# TODO(dima): move these to a tmpfiles.d configuration or another bootstrap script?
+# Kubelet expects to find the pods reserved cgroup in cpuset/hugetlb controllers
+# which aren't managed by systemd:
+# https://github.com/kubernetes/kubernetes/blob/092fbfbf53427de67cac1e9fa54aaa09a28371d7/pkg/kubelet/cm/cgroup_manager_linux.go#L277
+ExecStartPre=mkdir -p /sys/fs/cgroup/cpuset/kubereserved.slice
+ExecStartPre=mkdir -p /sys/fs/cgroup/hugetlb/kubereserved.slice
 ExecStart=/usr/bin/kubelet \
         --root-dir=/var/lib/kubelet \
         --hostname-override=${KUBE_NODE_NAME} \
@@ -20,8 +26,12 @@ ExecStart=/usr/bin/kubelet \
 	--container-runtime-endpoint=${CONTAINER_RUNTIME_ENDPOINT} \
         $KUBE_KUBELET_FLAGS \
         $KUBE_CLOUD_FLAGS
+# Clean up cgroup controllers not managed by systemd
+#ExecStopPost=-/bin/rm -r /sys/fs/cgroup/cpuset/kubereserved.slice
+#ExecStopPost=-/bin/rm -r /sys/fs/cgroup/hugetlb/kubereserved.slice
 Restart=always
 RestartSec=5
 StartLimitInterval=3600
 StartLimitBurst=720
 Slice=kubernetes.slice
+Delegate=yes

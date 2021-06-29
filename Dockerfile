@@ -467,6 +467,7 @@ RUN --mount=from=rootfs,src=/,target=/output/rootfs \
 
 FROM scratch AS binary-releaser
 COPY --from=planet-builder /planet /
+COPY --from=infra-import-builder /infra-import /
 
 FROM scratch AS releaser
 COPY --from=tarball-builder /planet.tar.gz /

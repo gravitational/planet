@@ -1061,7 +1061,7 @@ func isRoot() bool {
 var masterUnits = []string{
 	"etcd",
 	"flanneld",
-	"docker",
+	"containerd",
 	"kube-apiserver",
 	"kube-controller-manager",
 	"kube-scheduler",
@@ -1071,7 +1071,7 @@ var masterUnits = []string{
 
 var nodeUnits = []string{
 	"flanneld",
-	"docker",
+	"containerd",
 	"kube-proxy",
 	"kube-kubelet",
 	"etcd",

@@ -551,11 +551,16 @@ var KubeletConfig = kubeletconfig.KubeletConfiguration{
 	},
 	// Allow parallel image pulls to avoid head of line blocking
 	// https://github.com/gravitational/gravity/issues/1167
-	SerializeImagePulls:    utils.BoolPtr(false),
-	ContainerLogMaxSize:    "50Mi",
-	ContainerLogMaxFiles:   utils.Int32Ptr(9),
-	CgroupDriver:           "systemd",
-	EnforceNodeAllocatable: []string{"pods", "kube-reserved", "system-reserved"},
+	SerializeImagePulls:  utils.BoolPtr(false),
+	ContainerLogMaxSize:  "50Mi",
+	ContainerLogMaxFiles: utils.Int32Ptr(9),
+	CgroupDriver:         "systemd",
+	CgroupRoot:           "/kubereserved",
+	// TODO(dima): do not enforce the system/kube reserved cgroups
+	// until I've figured out what to do with systemd not managing
+	// cpuset/hugetlb controllers in v1
+	// EnforceNodeAllocatable: []string{"pods", "kube-reserved", "system-reserved"},
+	EnforceNodeAllocatable: []string{"pods"},
 	SystemReservedCgroup:   "/system.slice",
 	KubeReservedCgroup:     "/kubernetes.slice",
 }

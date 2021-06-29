@@ -104,7 +104,7 @@ func (r CgroupEntry) path() (path string) {
 func (r CgroupEntry) serialize() io.Reader {
 	opts := []*unit.UnitOption{
 		{Section: "Unit", Name: "Description", Value: fmt.Sprint("Auto-generated slice for ", r.path())},
-		{Section: "Unit", Name: "Wants", Value: "system.slice"},
+		{Section: "Unit", Name: "Wants", Value: "slices.target"},
 		{Section: "Slice", Name: "MemoryAccounting", Value: "yes"},
 		{Section: "Slice", Name: "CPUAccounting", Value: "yes"},
 		{Section: "Slice", Name: "BlockIOAccounting", Value: "yes"},
@@ -255,7 +255,7 @@ func defaultCgroupConfig(numCPU int, isMaster bool) *CgroupConfig {
 			},
 			// /system.slice
 			// - cgroup for planet services
-			// - set swapinness to 0
+			// - set swapinness to 0 to disable swap entirely
 			{
 				Path: "system",
 				LinuxResources: specs.LinuxResources{
@@ -267,12 +267,12 @@ func defaultCgroupConfig(numCPU int, isMaster bool) *CgroupConfig {
 					},
 				},
 			},
-			// /kubepods.slice
+			// /kubereserved.slice
 			// - cgroup for kubernetes pods
 			// - minimum cpu scheduling priority
 			// - Set swappiness to 20, so processes are less likely to swap. (Kubernetes recommends no swap)
 			{
-				Path: "kubepods",
+				Path: "kubereserved",
 				LinuxResources: specs.LinuxResources{
 					CPU: &specs.LinuxCPU{
 						Shares: u64(2),

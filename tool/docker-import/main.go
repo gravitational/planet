@@ -18,6 +18,7 @@ package main
 
 import (
 	"archive/tar"
+	"bytes"
 	"context"
 	"encoding/json"
 	"fmt"
@@ -141,13 +142,13 @@ func importImageFromTarball(input io.Reader, path, registryAddr string) error {
 func importWithRepos(repos Repositories, path, registryAddr string) error {
 	out, err := command("images", "import", path)
 	if err != nil {
-		return trace.Wrap(err, "failed to load image(s) into docker:\n%s", out)
+		return trace.Wrap(err, "failed to load image(s) into docker: %q", out)
 	}
 	for _, image := range repos.Images() {
 		repoTag := fmt.Sprintf("%v/%v", registryAddr, image.url())
 		out, err = command("images", "tag", image.url(), repoTag)
-		if err != nil {
-			return trace.Wrap(err, "failed to tag image in registry:\n%s", out)
+		if err != nil && !isErrAlreadyExists(out) {
+			return trace.Wrap(err, "failed to tag image in registry: %q", out)
 		}
 		out, err = command("images", "push",
 			"--tlscacert", "/var/state/root.cert",
@@ -155,7 +156,7 @@ func importWithRepos(repos Repositories, path, registryAddr string) error {
 			"--tlskey", "/var/state/kubelet.key",
 			repoTag)
 		if err != nil {
-			return trace.Wrap(err, "failed to push image to registry:\n%s", out)
+			return trace.Wrap(err, "failed to push image to registry: %q", out)
 		}
 	}
 	return nil
@@ -164,11 +165,15 @@ func importWithRepos(repos Repositories, path, registryAddr string) error {
 // command executes an arbitrary containerd controller command specified with args.
 // Returns the command output upon failure.
 func command(args ...string) ([]byte, error) {
-	out, err := exec.Command("ctr", args...).CombinedOutput()
+	var buf bytes.Buffer
+	cmd := exec.Command("ctr", args...)
+	cmd.Stdout = io.MultiWriter(os.Stdout, &buf)
+	cmd.Stderr = io.MultiWriter(os.Stderr, &buf)
+	err := cmd.Run()
 	if err != nil {
-		return out, trace.Wrap(err)
+		return buf.Bytes(), trace.Wrap(err)
 	}
-	return nil, nil
+	return buf.Bytes(), nil
 }
 
 // HostPort returns an instance of the kingpin Flag to read `host:port` formatted input.
@@ -203,4 +208,8 @@ func (r *hostPort) Set(input string) error {
 // String converts host:port into a string representation.
 func (r hostPort) String() string {
 	return net.JoinHostPort(r.host, fmt.Sprintf("%v", r.port))
+}
+
+func isErrAlreadyExists(out []byte) bool {
+	return bytes.Contains(out, []byte("already exists"))
 }

@@ -1,0 +1,5 @@
+[Unit]
+Description=Kubernetes pods slice
+Before=slices.target
+
+[Slice]

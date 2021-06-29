@@ -303,6 +303,19 @@ func getLibcontainerConfig(containerID, rootfs string, cfg Config) (*configs.Con
 	}
 	kernelLogDevice.Rule.Allow = true
 	allowedDevices = append(allowedDevices, &kernelLogDevice.Rule)
+	// Allow all devices inside the container.
+	// This used to be possible with a AllowAllDevices boolean but
+	// runc implementation has been updated to use the deny-all + whitelist
+	// for explicit control.
+	// We need to allow all devices since kubelet attempts to create
+	// containers with this configuration
+	allowedDevices = append(allowedDevices, &devices.Rule{
+		Type:        'a',
+		Permissions: "rwm",
+		Allow:       true,
+		Minor:       devices.Wildcard,
+		Major:       devices.Wildcard,
+	})
 
 	config := &configs.Config{
 		Rootfs:       rootfs,
