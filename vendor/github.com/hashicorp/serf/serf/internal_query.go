@@ -2,6 +2,7 @@ package serf
 
 import (
 	"encoding/base64"
+	"fmt"
 	"log"
 	"strings"
 )
@@ -28,6 +29,13 @@ const (
 
 	// listKeysQuery is used to list all known keys in the cluster
 	listKeysQuery = "list-keys"
+
+	// minEncodedKeyLength is used to compute the max number of keys in a list key
+	// response. eg 1024/25 = 40. a message with max size of 1024 bytes cannot
+	// contain more than 40 keys. There is a test
+	// (TestSerfQueries_estimateMaxKeysInListKeyResponse) which does the
+	// computation and in case of changes, the value can be adjusted.
+	minEncodedKeyLength = 25
 )
 
 // internalQueryName is used to generate a query name for an internal query
@@ -56,6 +64,9 @@ type nodeKeyResponse struct {
 
 	// Keys is used in listing queries to relay a list of installed keys
 	Keys []string
+
+	// PrimaryKey is used in listing queries to relay the primary key
+	PrimaryKey string
 }
 
 // newSerfQueries is used to create a new serfQueries. We return an event
@@ -149,17 +160,62 @@ func (s *serfQueries) handleConflict(q *Query) {
 	}
 }
 
+func (s *serfQueries) keyListResponseWithCorrectSize(q *Query, resp *nodeKeyResponse) ([]byte, messageQueryResponse, error) {
+	maxListKeys := q.serf.config.QueryResponseSizeLimit / minEncodedKeyLength
+	actual := len(resp.Keys)
+	for i := maxListKeys; i >= 0; i-- {
+		buf, err := encodeMessage(messageKeyResponseType, resp)
+		if err != nil {
+			return nil, messageQueryResponse{}, err
+		}
+
+		// Create response
+		qresp := q.createResponse(buf)
+
+		// Encode response
+		raw, err := encodeMessage(messageQueryResponseType, qresp)
+		if err != nil {
+			return nil, messageQueryResponse{}, err
+		}
+
+		// Check the size limit
+		if err = q.checkResponseSize(raw); err != nil {
+			resp.Keys = resp.Keys[0:i]
+			resp.Message = fmt.Sprintf("truncated key list response, showing first %d of %d keys", i, actual)
+			continue
+		}
+
+		if actual > i {
+			s.logger.Printf("[WARN] serf: %s", resp.Message)
+		}
+		return raw, qresp, nil
+	}
+	return nil, messageQueryResponse{}, fmt.Errorf("Failed to truncate response so that it fits into message")
+}
+
 // sendKeyResponse handles responding to key-related queries.
 func (s *serfQueries) sendKeyResponse(q *Query, resp *nodeKeyResponse) {
-	buf, err := encodeMessage(messageKeyResponseType, resp)
-	if err != nil {
-		s.logger.Printf("[ERR] serf: Failed to encode key response: %v", err)
-		return
-	}
-
-	if err := q.Respond(buf); err != nil {
-		s.logger.Printf("[ERR] serf: Failed to respond to key query: %v", err)
-		return
+	switch q.Name {
+	case internalQueryName(listKeysQuery):
+		raw, qresp, err := s.keyListResponseWithCorrectSize(q, resp)
+		if err != nil {
+			s.logger.Printf("[ERR] serf: %v", err)
+			return
+		}
+		if err := q.respondWithMessageAndResponse(raw, qresp); err != nil {
+			s.logger.Printf("[ERR] serf: Failed to respond to key query: %v", err)
+			return
+		}
+	default:
+		buf, err := encodeMessage(messageKeyResponseType, resp)
+		if err != nil {
+			s.logger.Printf("[ERR] serf: Failed to encode key response: %v", err)
+			return
+		}
+		if err := q.Respond(buf); err != nil {
+			s.logger.Printf("[ERR] serf: Failed to respond to key query: %v", err)
+			return
+		}
 	}
 }
 
@@ -192,10 +248,12 @@ func (s *serfQueries) handleInstallKey(q *Query) {
 		goto SEND
 	}
 
-	if err := s.serf.writeKeyringFile(); err != nil {
-		response.Message = err.Error()
-		s.logger.Printf("[ERR] serf: Failed to write keyring file: %s", err)
-		goto SEND
+	if s.serf.config.KeyringFile != "" {
+		if err := s.serf.writeKeyringFile(); err != nil {
+			response.Message = err.Error()
+			s.logger.Printf("[ERR] serf: Failed to write keyring file: %s", err)
+			goto SEND
+		}
 	}
 
 	response.Result = true
@@ -291,7 +349,7 @@ SEND:
 func (s *serfQueries) handleListKeys(q *Query) {
 	response := nodeKeyResponse{Result: false}
 	keyring := s.serf.config.MemberlistConfig.Keyring
-
+	var primaryKeyBytes []byte
 	if !s.serf.EncryptionEnabled() {
 		response.Message = "Keyring is empty (encryption not enabled)"
 		s.logger.Printf("[ERR] serf: Keyring is empty (encryption not enabled)")
@@ -305,6 +363,9 @@ func (s *serfQueries) handleListKeys(q *Query) {
 		key := base64.StdEncoding.EncodeToString(keyBytes)
 		response.Keys = append(response.Keys, key)
 	}
+	primaryKeyBytes = keyring.GetPrimaryKey()
+	response.PrimaryKey = base64.StdEncoding.EncodeToString(primaryKeyBytes)
+
 	response.Result = true
 
 SEND:

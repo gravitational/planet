@@ -1,7 +1,9 @@
 MAKEFILE := $(lastword $(MAKEFILE_LIST))
 OS := linux
 ARCH := amd64
-targets = $(addprefix $(ROOTFS)/usr/bin/etcd-, $(ETCD_VER))
+TARBALLS := $(addprefix $(ASSETDIR)/etcd-,$(addsuffix -$(OS)-$(ARCH).tar.gz,$(ETCD_VER)))
+server_targets = $(addprefix $(ROOTFS)/usr/bin/etcd-,$(ETCD_VER))
+ctl_targets = $(addprefix $(ROOTFS)/usr/bin/etcdctl-cmd-,$(ETCD_VER))
 
 # outputs parameters with a prefix and a suffix new line
 define print
@@ -10,7 +12,7 @@ endef
 
 .PHONY: all
 all: require-ASSETDIR require-ETCD_VER require-ROOTFS
-all: $(targets)
+all: $(server_targets) $(ctl_targets)
 	$(call print, "---> Building etcd:")
 	$(call print, "---> Setup etcd services:")
 	cd $(ASSETDIR)
@@ -28,24 +30,25 @@ all: $(targets)
 	# Write to the release file to indicate the latest release
 	echo PLANET_ETCD_VERSION=$(ETCD_LATEST_VER) >> $(ROOTFS)/etc/planet-release
 
-.PHONY: $(ETCD_VER)
-$(ETCD_VER): output=etcd-$@-$(OS)-$(ARCH).tar.gz
-$(ETCD_VER): targetdir=$(ASSETDIR)/etcd-$@-$(OS)-$(ARCH)
-$(ETCD_VER):
+$(TARBALLS): $(ASSETDIR)/etcd-%-$(OS)-$(ARCH).tar.gz:
 	$(call print, "---> $@ - Downloading etcd")
-	curl -L https://github.com/coreos/etcd/releases/download/$@/$(output) \
-		-o $(ASSETDIR)/$(output)
+	curl -L https://github.com/coreos/etcd/releases/download/$*/$(@F) -o $@
 
+$(server_targets): $(ROOTFS)/usr/bin/etcd-%: $(TARBALLS)
 	$(call print, "---> $@ - Extracting etcd")
-	tar -xzf $(ASSETDIR)/$(output) -C $(ASSETDIR)
+	tar xf $(ASSETDIR)/etcd-$*-$(OS)-$(ARCH).tar.gz \
+		--strip-components 1 \
+		--directory $(@D) \
+		--transform="s|etcd$$|$(@F)|" \
+		etcd-$*-$(OS)-$(ARCH)/etcd
 
-	cp -afv $(targetdir)/etcd $(ROOTFS)/usr/bin/etcd-$@
-	cp -afv $(targetdir)/etcdctl $(ROOTFS)/usr/bin/etcdctl-cmd-$@
-
-
-$(targets): version=$(lastword $(subst -, ,$(notdir $@)))
-$(targets):
-	$(MAKE) -f $(MAKEFILE) $(version)
+$(ctl_targets): $(ROOTFS)/usr/bin/etcdctl-cmd-%: $(TARBALLS)
+	$(call print, "---> $@ - Extracting etcdctl")
+	tar xf $(ASSETDIR)/etcd-$*-$(OS)-$(ARCH).tar.gz \
+		--strip-components 1 \
+		--directory $(@D) \
+		--transform="s|etcdctl$$|$(@F)|" \
+		etcd-$*-$(OS)-$(ARCH)/etcdctl
 
 require-%: FORCE
 	@if [ -z '${${*}}' ]; then echo 'Environment variable $* not set.' && exit 1; fi

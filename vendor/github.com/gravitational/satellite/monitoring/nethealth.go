@@ -34,7 +34,7 @@ import (
 	"github.com/gravitational/satellite/utils"
 
 	"github.com/gravitational/trace"
-	"github.com/mailgun/holster"
+	"github.com/gravitational/ttlmap/v2"
 	dto "github.com/prometheus/client_model/go"
 	"github.com/prometheus/common/expfmt"
 	log "github.com/sirupsen/logrus"
@@ -306,6 +306,7 @@ func (c *nethealthChecker) fetchNethealthMetrics(ctx context.Context) (res []byt
 		},
 		Timeout: time.Second,
 	}
+
 	// The two relevant metrics exposed by nethealth are 'nethealth_echo_request_total' and
 	// 'nethealth_echo_timeout_total'. We expect a pair of request/timeout metrics per peer.
 	// Example metrics received from nethealth may look something like the output below:
@@ -325,11 +326,16 @@ func (c *nethealthChecker) fetchNethealthMetrics(ctx context.Context) (res []byt
 
 	req = req.WithContext(ctx)
 
+	req.Close = true
+
 	resp, err := client.Do(req)
+	if resp != nil {
+		defer resp.Body.Close()
+	}
+
 	if err != nil {
 		return nil, trace.Wrap(err)
 	}
-	defer resp.Body.Close()
 
 	if resp.StatusCode == http.StatusOK {
 		buffer, err := ioutil.ReadAll(resp.Body)
@@ -437,13 +443,13 @@ type netStats struct {
 	// Mutex locks access to TTLMap.
 	sync.Mutex
 	// TTLMap maps a peer to its peerData.
-	*holster.TTLMap
+	*ttlmap.TTLMap
 }
 
 // newNetStats constructs a new netStats.
 func newNetStats(mapCapacity int, packetLossCapacity int) *netStats {
 	return &netStats{
-		TTLMap:             holster.NewTTLMap(mapCapacity),
+		TTLMap:             ttlmap.NewTTLMap(mapCapacity),
 		packetLossCapacity: packetLossCapacity,
 	}
 }

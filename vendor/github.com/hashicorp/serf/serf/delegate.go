@@ -1,15 +1,20 @@
 package serf
 
 import (
+	"bytes"
 	"fmt"
 
 	"github.com/armon/go-metrics"
+	"github.com/hashicorp/go-msgpack/codec"
+	"github.com/hashicorp/memberlist"
 )
 
 // delegate is the memberlist.Delegate implementation that Serf uses.
 type delegate struct {
 	serf *Serf
 }
+
+var _ memberlist.Delegate = &delegate{}
 
 func (d *delegate) NodeMeta(limit int) []byte {
 	roleBytes := d.serf.encodeTags(d.serf.config.Tags)
@@ -30,6 +35,11 @@ func (d *delegate) NotifyMsg(buf []byte) {
 	rebroadcast := false
 	rebroadcastQueue := d.serf.broadcasts
 	t := messageType(buf[0])
+
+	if d.serf.config.messageDropper(t) {
+		return
+	}
+
 	switch t {
 	case messageLeaveType:
 		var leave messageLeave
@@ -82,6 +92,31 @@ func (d *delegate) NotifyMsg(buf []byte) {
 
 		d.serf.logger.Printf("[DEBUG] serf: messageQueryResponseType: %v", resp.From)
 		d.serf.handleQueryResponse(&resp)
+
+	case messageRelayType:
+		var header relayHeader
+		var handle codec.MsgpackHandle
+		reader := bytes.NewReader(buf[1:])
+		decoder := codec.NewDecoder(reader, &handle)
+		if err := decoder.Decode(&header); err != nil {
+			d.serf.logger.Printf("[ERR] serf: Error decoding relay header: %s", err)
+			break
+		}
+
+		// The remaining contents are the message itself, so forward that
+		raw := make([]byte, reader.Len())
+		reader.Read(raw)
+
+		addr := memberlist.Address{
+			Addr: header.DestAddr.String(),
+			Name: header.DestName,
+		}
+
+		d.serf.logger.Printf("[DEBUG] serf: Relaying response to addr: %s", header.DestAddr.String())
+		if err := d.serf.memberlist.SendToAddress(addr, raw); err != nil {
+			d.serf.logger.Printf("[ERR] serf: Error forwarding message to %s: %s", header.DestAddr.String(), err)
+			break
+		}
 
 	default:
 		d.serf.logger.Printf("[WARN] serf: Received message of unknown type: %d", t)
@@ -183,6 +218,10 @@ func (d *delegate) MergeRemoteState(buf []byte, isJoin bool) {
 		return
 	}
 
+	if d.serf.config.messageDropper(messagePushPullType) {
+		return
+	}
+
 	// Attempt a decode
 	pp := messagePushPull{}
 	if err := decodeMessage(buf[1:], &pp); err != nil {
@@ -202,13 +241,16 @@ func (d *delegate) MergeRemoteState(buf []byte, isJoin bool) {
 		d.serf.queryClock.Witness(pp.QueryLTime - 1)
 	}
 
-	// Process the left nodes first to avoid the LTimes from being increment
-	// in the wrong order
+	// Process the left nodes first to avoid the LTimes from incrementing
+	// in the wrong order. Note that we don't have the actual Lamport time
+	// for the leave message, so we go one past the join time, since the
+	// leave must have been accepted after that to get onto the left members
+	// list. If we didn't do this then the message would not get processed.
 	leftMap := make(map[string]struct{}, len(pp.LeftMembers))
 	leave := messageLeave{}
 	for _, name := range pp.LeftMembers {
 		leftMap[name] = struct{}{}
-		leave.LTime = pp.StatusLTimes[name]
+		leave.LTime = pp.StatusLTimes[name] + 1
 		leave.Node = name
 		d.serf.handleNodeLeaveIntent(&leave)
 	}
@@ -230,7 +272,8 @@ func (d *delegate) MergeRemoteState(buf []byte, isJoin bool) {
 	// If we are doing a join, and eventJoinIgnore is set
 	// then we set the eventMinTime to the EventLTime. This
 	// prevents any of the incoming events from being processed
-	if isJoin && d.serf.eventJoinIgnore {
+	eventJoinIgnore := d.serf.eventJoinIgnore.Load().(bool)
+	if isJoin && eventJoinIgnore {
 		d.serf.eventLock.Lock()
 		if pp.EventLTime > d.serf.eventMinTime {
 			d.serf.eventMinTime = pp.EventLTime

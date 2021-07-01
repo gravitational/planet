@@ -30,7 +30,7 @@ $(BINARIES): GOPATH := $(DIR)
 $(BINARIES):
 	mkdir -p $(DIR)/src/github.com/coreos
 	cd $(DIR)/src/github.com/coreos && git clone https://github.com/gravitational/flannel -b $(FLANNEL_VER) --depth 1
-	cd $(DIR)/src/github.com/coreos/flannel && GO111MODULE=on go build -mod=vendor -o flanneld .
+	cd $(DIR)/src/github.com/coreos/flannel && go build -mod=vendor -o flanneld .
 	cp $(DIR)/src/github.com/coreos/flannel/flanneld $@
 	rm -rf $(DIR)
 

@@ -2,6 +2,7 @@
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
 
+//go:build (arm || mips || mipsle || 386) && linux
 // +build arm mips mipsle 386
 // +build linux
 
@@ -10,8 +11,12 @@ package socket
 import "unsafe"
 
 func (h *msghdr) setIov(vs []iovec) {
+	l := len(vs)
+	if l == 0 {
+		return
+	}
 	h.Iov = &vs[0]
-	h.Iovlen = uint32(len(vs))
+	h.Iovlen = uint32(l)
 }
 
 func (h *msghdr) setControl(b []byte) {
