@@ -123,7 +123,7 @@ func startLeaderClient(config agentConfig, agent agent.Agent, errorC chan error)
 
 	// Watch for changes to the leader key.
 	// Update coredns.hosts with new leader address.
-	client.AddWatchCallback(conf.LeaderKey, conf.Term/3, updateDNS())
+	client.AddWatchCallback(conf.LeaderKey, updateDNS())
 
 	if conf.Role != RoleMaster {
 		return client, nil
@@ -131,16 +131,16 @@ func startLeaderClient(config agentConfig, agent agent.Agent, errorC chan error)
 
 	// Watch for changes in the election key.
 	// Start/Stop voter participation when election is enabled/disabled.
-	client.AddWatchCallback(conf.ElectionKey, conf.Term, manageParticipation(client, config, errorC))
+	client.AddWatchCallback(conf.ElectionKey, manageParticipation(client, config, errorC))
 
 	// Watch for changes to the leader key.
 	// If this agent becomes the leader, record a LeaderElected event to the local timeline.
-	client.AddWatchCallback(conf.LeaderKey, conf.Term/3, recordElectionEvents(conf.PublicIP, agent))
+	client.AddWatchCallback(conf.LeaderKey, recordElectionEvents(conf.PublicIP, agent))
 
 	if !conf.HighAvailability {
 		// Watch for changes to the leader key.
 		// Start/Stop control plane units when a new leader is elected.
-		client.AddWatchCallback(conf.LeaderKey, conf.Term/3, manageUnits(config))
+		client.AddWatchCallback(conf.LeaderKey, manageUnits(config))
 	}
 
 	// Set initial value of election mode
@@ -173,12 +173,7 @@ func manageParticipation(client *leader.Client, config agentConfig, errorC chan 
 			// start election participation
 			var ctx context.Context
 			ctx, cancelVoter = context.WithCancel(context.TODO())
-			err := client.AddVoter(ctx, config.leader.LeaderKey, config.leader.PublicIP, config.leader.Term)
-			if err != nil {
-				log.WithError(err).Errorf("Failed to add voter for %v.", config.leader.PublicIP)
-				cancelVoter()
-				errorC <- err
-			}
+			client.AddVoter(ctx, config.leader.LeaderKey, config.leader.PublicIP, config.leader.Term)
 
 			// While running with HA enabled, start units when election is re-enabled
 			if config.leader.HighAvailability {

@@ -5,19 +5,15 @@ go 1.13
 require (
 	github.com/Microsoft/go-winio v0.4.14 // indirect
 	github.com/alecthomas/units v0.0.0-20190924025748-f65c72e2690d // indirect
-	github.com/cenkalti/backoff v2.0.0+incompatible
+	github.com/cenkalti/backoff v2.2.1+incompatible
 	github.com/checkpoint-restore/go-criu v0.0.0-20181120144056-17b0214f6c48 // indirect
 	github.com/cilium/ebpf v0.0.0-20200224172853-0b019ed01187 // indirect
 	github.com/cloudfoundry/gosigar v1.1.1-0.20180907192854-50ddd08d81d7 // indirect
 	github.com/containerd/cgroups v0.0.0-20200608084758-56813a8f106c
 	github.com/containerd/console v0.0.0-20180307192801-cb7008ab3d83
 	github.com/containerd/containerd v1.3.3 // indirect
-	github.com/coreos/bbolt v1.3.2 // indirect
-	github.com/coreos/etcd v3.3.22+incompatible // indirect
-	github.com/coreos/go-semver v0.3.0 // indirect
 	github.com/coreos/go-systemd v0.0.0-20190321100706-95778dfbb74e // indirect
 	github.com/coreos/go-systemd/v22 v22.1.0
-	github.com/coreos/pkg v0.0.0-20180928190104-399ea9e2e55f // indirect
 	github.com/cyphar/filepath-securejoin v0.2.2 // indirect
 	github.com/davecgh/go-spew v1.1.1
 	github.com/docker/distribution v2.7.1+incompatible // indirect
@@ -31,7 +27,7 @@ require (
 	github.com/gorilla/mux v1.7.1 // indirect
 	github.com/gorilla/websocket v1.4.0 // indirect
 	github.com/gravitational/configure v0.0.0-20180808141939-c3428bd84c23
-	github.com/gravitational/coordinate v0.0.0-20200227044100-12af3c0f9593
+	github.com/gravitational/coordinate v0.0.0-20200506112554-9ae5851333fd
 	github.com/gravitational/etcd-backup v0.0.0-20201012185408-87328521981c
 	github.com/gravitational/go-udev v0.0.0-20160615210516-4cc8baba3689
 	github.com/gravitational/satellite v0.0.9-0.20210518231730-758163e22217
@@ -53,7 +49,7 @@ require (
 	github.com/opencontainers/runc v1.0.0-rc10
 	github.com/opencontainers/runtime-spec v1.0.2
 	github.com/opencontainers/selinux v1.4.0
-	github.com/pborman/uuid v0.0.0-20180906182336-adf5a7427709
+	github.com/pborman/uuid v1.2.0
 	github.com/prometheus/client_golang v1.7.1
 	github.com/seccomp/libseccomp-golang v0.9.0 // indirect
 	github.com/sirupsen/logrus v1.7.0
@@ -64,15 +60,13 @@ require (
 	github.com/vishvananda/netns v0.0.0-20180720170159-13995c7128cc // indirect
 	go.etcd.io/bbolt v1.3.4 // indirect
 	go.etcd.io/etcd v3.3.22+incompatible
-	go.uber.org/multierr v1.5.0 // indirect
-	go.uber.org/zap v1.14.0 // indirect
 	golang.org/x/crypto v0.0.0-20201012173705-84dcc777aaee // indirect
 	golang.org/x/lint v0.0.0-20200130185559-910be7a94367 // indirect
 	golang.org/x/oauth2 v0.0.0-20200107190931-bf48bf16ab8d // indirect
 	golang.org/x/sys v0.0.0-20201112073958-5cba982894dd
 	golang.org/x/tools v0.0.0-20200225230052-807dcd883420 // indirect
 	gopkg.in/alecthomas/kingpin.v2 v2.2.6
-	gopkg.in/check.v1 v1.0.0-20190902080502-41f04d3bba15
+	gopkg.in/check.v1 v1.0.0-20200227125254-8fa46927fb4f
 	gopkg.in/yaml.v2 v2.2.8
 	gopkg.in/yaml.v3 v3.0.0-20200605160147-a5ece683394c // indirect
 	k8s.io/api v0.19.8
