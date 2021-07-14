@@ -217,14 +217,19 @@ func addToMaster(node agent.Agent, config *Config, etcdConfig *monitoring.ETCDCo
 		return trace.Wrap(err)
 	}
 
-	// Kubelet certificate does not have permissions to query ComponentStatuses
-	apiServerClient, err := getKubeClientFromPath(constants.KubectlConfigPath)
-	if err != nil {
-		return trace.Wrap(err)
-	}
-
 	kubeConfig := monitoring.KubeConfig{Client: client}
-	node.AddChecker(monitoring.KubeAPIServerHealth(monitoring.KubeConfig{Client: apiServerClient}))
+	// Ideally, the component healthz checks should test against localhost endpoints
+	// in HA mode since they need to verify local instances. It is not currently possible
+	// as we need a way to flip HA on demand for cluster rolling updates when a single API
+	// server is preferred. And HA mode control is tightly coupled to agent leader elections
+	// (which is not ideal as these are separate venues). If we had a way to flip HA by means
+	// other than leader elections, this could work.
+	node.AddChecker(monitoring.KubeComponentsHealth(monitoring.ComponentHealthzConfig{
+		SchedulerAddr:         leaderHealthzAddr(monitoring.DefaultKubeSchedulerHealthzPort),
+		ControllerManagerAddr: leaderHealthzAddr(monitoring.DefaultKubeControllerManagerHealthzPort),
+	}))
+	// Kubelet can use the localhost healthz endpoint though
+	node.AddChecker(monitoring.KubeletHealth(monitoring.DefaultLocalKubeletHealthzAddr))
 	node.AddChecker(monitoring.DockerHealth("/var/run/docker.sock"))
 	node.AddChecker(dockerRegistryHealth(config.RegistryAddr, localClient))
 	node.AddChecker(etcdChecker)
@@ -327,7 +332,7 @@ func addToNode(node agent.Agent, config *Config, etcdConfig *monitoring.ETCDConf
 	}
 
 	nodeConfig := monitoring.KubeConfig{Client: nodeClient}
-	node.AddChecker(monitoring.KubeletHealth("http://127.0.0.1:10248"))
+	node.AddChecker(monitoring.KubeletHealth(monitoring.DefaultLocalKubeletHealthzAddr))
 	node.AddChecker(monitoring.DockerHealth("/var/run/docker.sock"))
 	node.AddChecker(etcdChecker)
 	node.AddChecker(monitoring.SystemdHealth())
@@ -412,4 +417,8 @@ func newCertPool(CAFiles []string) (*x509.CertPool, error) {
 	}
 
 	return certPool, nil
+}
+
+func leaderHealthzAddr(port int) string {
+	return fmt.Sprintf("https://leader.telekube.local:%d/healthz", port)
 }
