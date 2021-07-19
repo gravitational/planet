@@ -149,7 +149,7 @@ github.com/googleapis/gnostic/openapiv2
 # github.com/gravitational/configure v0.0.0-20180808141939-c3428bd84c23
 github.com/gravitational/configure
 github.com/gravitational/configure/cstrings
-# github.com/gravitational/coordinate v0.0.0-20200506112554-9ae5851333fd
+# github.com/gravitational/coordinate v0.0.0-20200506112554-9ae5851333fd => github.com/a-palchikov/coordinate v0.0.0-20210719110725-c3b036e813ed
 github.com/gravitational/coordinate/config
 github.com/gravitational/coordinate/leader
 # github.com/gravitational/etcd-backup v0.0.0-20201012185408-87328521981c
