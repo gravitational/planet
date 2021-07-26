@@ -113,7 +113,10 @@ func (l *Client) AddWatchCallback(key string, fn CallbackFn) {
 			prev = val
 		}
 	}()
-	l.addWatch(ctx, key, valuesC)
+	go func() {
+		l.watchLoop(ctx, key, valuesC)
+		l.wg.Done()
+	}()
 }
 
 // AddWatch starts watching the key for changes and sending them
@@ -126,14 +129,10 @@ func (l *Client) AddWatch(key string, valuesC chan string) {
 		cancel()
 		l.wg.Done()
 	}()
-	l.addWatch(ctx, key, valuesC)
-}
-
-func (l *Client) addWatch(ctx context.Context, key string, valuesC chan string) {
-	logger := log.WithField("key", key)
-	logger.WithField("peers", l.Client.Endpoints()).Info("Setting up watch.")
-
-	go l.watchLoop(ctx, key, valuesC, logger)
+	go func() {
+		l.watchLoop(ctx, key, valuesC)
+		l.wg.Done()
+	}()
 }
 
 // AddVoter starts a goroutine that attempts to set the specified key to
@@ -193,8 +192,12 @@ func (l *Client) startVoterLoop(key, value string, term time.Duration, enabled b
 	go l.voterLoop(ctx, key, value, term, enabled)
 }
 
-func (l *Client) watchLoop(ctx context.Context, key string, valuesC chan string, logger logrus.FieldLogger) {
-	defer l.wg.Done()
+func (l *Client) watchLoop(ctx context.Context, key string, valuesC chan string) {
+	logger := log.WithFields(logrus.Fields{
+		"key":   key,
+		"peers": l.Client.Endpoints(),
+	})
+	logger.Info("Setting up watch.")
 	boff := newBackoff()
 	// maxFailedSteps sets the limit on the number of failed attempts before the watch
 	// is forcibly reset
