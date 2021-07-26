@@ -139,6 +139,7 @@ func run() error {
 		cstartAllowPrivileged  = cstart.Flag("allow-privileged", "Allow privileged containers").OverrideDefaultFromEnvar(EnvPlanetAllowPrivileged).Bool()
 		cstartSELinux          = cstart.Flag("selinux", "Run with SELinux support").Envar(EnvPlanetSELinux).Bool()
 		cstartHighAvailability = cstart.Flag("high-availability", "Boolean flag to enable/disable kubernetes high availability mode.").OverrideDefaultFromEnvar(EnvHighAvailability).Bool()
+		cstartFlannelBackend   = cstart.Flag("flannel-backend", "Flannel backend: 'aws-vpc', 'gce', or 'vxlan'").Envar(EnvFlannelBackend).String()
 
 		// start the planet agent
 		cagent                 = app.Command("agent", "Start Planet Agent")
@@ -464,6 +465,7 @@ func run() error {
 			AllowPrivileged:  *cstartAllowPrivileged,
 			SELinux:          *cstartSELinux,
 			HighAvailability: *cstartHighAvailability,
+			FlannelBackend:   *cstartFlannelBackend,
 		}
 		err = startAndWait(config)
 

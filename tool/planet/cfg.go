@@ -140,6 +140,8 @@ type Config struct {
 	// HighAvailability enables kubernetes high availability mode. If enabled,
 	// control plane components will be enabled on all master nodes.
 	HighAvailability bool
+	// FlannelBackend specifies the backend to pair with flannel.
+	FlannelBackend string
 }
 
 // DNS describes DNS server configuration

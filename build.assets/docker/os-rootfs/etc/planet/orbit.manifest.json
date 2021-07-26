@@ -507,6 +507,14 @@
                 "cli": {
                     "name": "high-availability"
                 }
+            },
+            {
+                "type": "String",
+                "name": "flannel-backend",
+                "env": "FLANNEL_BACKEND",
+                "cli": {
+                    "name": "flannel-backend"
+                }
             }
         ]
     }
