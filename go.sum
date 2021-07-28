@@ -30,8 +30,8 @@ github.com/Microsoft/go-winio v0.4.14/go.mod h1:qXqCSQ3Xa7+6tgxaGTIe4Kpcdsi+P8jB
 github.com/NYTimes/gziphandler v0.0.0-20170623195520-56545f4a5d46/go.mod h1:3wb06e3pkSAbeQ52E9H9iFoQsEEwGN64994WTCIhntQ=
 github.com/PuerkitoBio/purell v1.0.0/go.mod h1:c11w/QuzBsJSee3cPx9rAFu61PvFxuPbtSwDGJws/X0=
 github.com/PuerkitoBio/urlesc v0.0.0-20160726150825-5bd2802263f2/go.mod h1:uGdkoq3SwY9Y+13GIhn11/XLaGBb4BfwItxLd5jeuXE=
-github.com/a-palchikov/coordinate v0.0.0-20210726111053-7eeb23cd595e h1:ueq6yk/qsKxPGzmgKbikfIzKQSQDrSVwr8TZT8YPn9k=
-github.com/a-palchikov/coordinate v0.0.0-20210726111053-7eeb23cd595e/go.mod h1:sg8dAMpTFhWxef+CtonpHL9fM3WCPzGgkGsFs2pyVdw=
+github.com/a-palchikov/coordinate v0.0.0-20210728135334-dc275f5b2bdb h1:50ujG8ipbtOz150/dr7pTjuuK8USd5GZ3j9aNpuEtGA=
+github.com/a-palchikov/coordinate v0.0.0-20210728135334-dc275f5b2bdb/go.mod h1:sg8dAMpTFhWxef+CtonpHL9fM3WCPzGgkGsFs2pyVdw=
 github.com/alecthomas/template v0.0.0-20160405071501-a0175ee3bccc/go.mod h1:LOuyumcjzFXgccqObfd/Ljyb9UuFJ6TxHnclSeseNhc=
 github.com/alecthomas/template v0.0.0-20190718012654-fb15b899a751 h1:JYp7IbQjafoB+tBA3gMyHYHrpOtNuDiK/uB5uXxq5wM=
 github.com/alecthomas/template v0.0.0-20190718012654-fb15b899a751/go.mod h1:LOuyumcjzFXgccqObfd/Ljyb9UuFJ6TxHnclSeseNhc=

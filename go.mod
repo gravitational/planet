@@ -81,7 +81,7 @@ replace (
 	github.com/coreos/pkg => github.com/coreos/pkg v0.0.0-20180108230652-97fdf19511ea
 	github.com/docker/docker => github.com/docker/engine v17.12.0-ce-rc1.0.20200204220554-5f6d6f3f2203+incompatible
 	github.com/google/uuid => github.com/google/uuid v1.0.0
-	github.com/gravitational/coordinate => github.com/a-palchikov/coordinate v0.0.0-20210726111053-7eeb23cd595e
+	github.com/gravitational/coordinate => github.com/a-palchikov/coordinate v0.0.0-20210728135334-dc275f5b2bdb
 	github.com/json-iterator/go => github.com/json-iterator/go v1.1.5
 	github.com/sirupsen/logrus => github.com/gravitational/logrus v1.4.3
 	go.etcd.io/etcd => go.etcd.io/etcd v0.5.0-alpha.5.0.20200401174654-e694b7bb0875

@@ -108,9 +108,14 @@ func (l *Client) AddWatchCallback(key string, fn CallbackFn) {
 	go func() {
 		defer l.wg.Done()
 		var prev string
-		for val := range valuesC {
-			fn(ctx, key, prev, val)
-			prev = val
+		for {
+			select {
+			case val := <-valuesC:
+				fn(ctx, key, prev, val)
+				prev = val
+			case <-ctx.Done():
+				return
+			}
 		}
 	}()
 	go func() {
