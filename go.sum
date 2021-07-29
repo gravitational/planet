@@ -30,8 +30,10 @@ github.com/Microsoft/go-winio v0.4.14/go.mod h1:qXqCSQ3Xa7+6tgxaGTIe4Kpcdsi+P8jB
 github.com/NYTimes/gziphandler v0.0.0-20170623195520-56545f4a5d46/go.mod h1:3wb06e3pkSAbeQ52E9H9iFoQsEEwGN64994WTCIhntQ=
 github.com/PuerkitoBio/purell v1.0.0/go.mod h1:c11w/QuzBsJSee3cPx9rAFu61PvFxuPbtSwDGJws/X0=
 github.com/PuerkitoBio/urlesc v0.0.0-20160726150825-5bd2802263f2/go.mod h1:uGdkoq3SwY9Y+13GIhn11/XLaGBb4BfwItxLd5jeuXE=
-github.com/a-palchikov/coordinate v0.0.0-20210728135334-dc275f5b2bdb h1:50ujG8ipbtOz150/dr7pTjuuK8USd5GZ3j9aNpuEtGA=
-github.com/a-palchikov/coordinate v0.0.0-20210728135334-dc275f5b2bdb/go.mod h1:sg8dAMpTFhWxef+CtonpHL9fM3WCPzGgkGsFs2pyVdw=
+github.com/a-palchikov/coordinate/v4 v4.0.0-20210729114333-cca0da0c9f47 h1:TODmHaE++UHaz8ke9TukZMXMQCIOndFDzCPtta0d/sA=
+github.com/a-palchikov/coordinate/v4 v4.0.0-20210729114333-cca0da0c9f47/go.mod h1:qtSGgHvGQTztENiTudIN8CypTVQV3P0p4lrCmXEL840=
+github.com/a-palchikov/etcd-backup v0.0.0-20210729114452-4d08a139f70b h1:wtE3xpbhf8NrBjQdpm8XPjIbkc6pnf5eKx/ME1rEtI4=
+github.com/a-palchikov/etcd-backup v0.0.0-20210729114452-4d08a139f70b/go.mod h1:fQeSo5MupAE0GrhU4Z4CtnJNDTRZXAKsufXMZ/CO9Zw=
 github.com/alecthomas/template v0.0.0-20160405071501-a0175ee3bccc/go.mod h1:LOuyumcjzFXgccqObfd/Ljyb9UuFJ6TxHnclSeseNhc=
 github.com/alecthomas/template v0.0.0-20190718012654-fb15b899a751 h1:JYp7IbQjafoB+tBA3gMyHYHrpOtNuDiK/uB5uXxq5wM=
 github.com/alecthomas/template v0.0.0-20190718012654-fb15b899a751/go.mod h1:LOuyumcjzFXgccqObfd/Ljyb9UuFJ6TxHnclSeseNhc=
@@ -194,8 +196,8 @@ github.com/gorilla/websocket v1.4.0/go.mod h1:E7qHFY5m1UJ88s3WnNqhKjPHQ0heANvMoA
 github.com/gravitational/configure v0.0.0-20161002181724-4e0f2df8846e/go.mod h1:XL9nebvlfNVvRzRPWdDcWootcyA0l7THiH/A+W1233g=
 github.com/gravitational/configure v0.0.0-20180808141939-c3428bd84c23 h1:havbccuFO5fRj0O67oHXI7doShLig3rSIXfMrd/UnkA=
 github.com/gravitational/configure v0.0.0-20180808141939-c3428bd84c23/go.mod h1:XL9nebvlfNVvRzRPWdDcWootcyA0l7THiH/A+W1233g=
-github.com/gravitational/etcd-backup v0.0.0-20201012185408-87328521981c h1:Lz+oVKEnFPmfjfTusqTmRc14jCKF7R5rFt+02v0VbFA=
-github.com/gravitational/etcd-backup v0.0.0-20201012185408-87328521981c/go.mod h1:/FbWLtYnq6PNp0P8GRdywxg4j08/OSKGOcXhGTxLBdQ=
+github.com/gravitational/coordinate v0.0.0-20210729105737-9889f283ee4f h1:160CAa/THZHq76nnU0B+dVrR23rpm8jaMyJKyo46WQA=
+github.com/gravitational/coordinate v0.0.0-20210729105737-9889f283ee4f/go.mod h1:sg8dAMpTFhWxef+CtonpHL9fM3WCPzGgkGsFs2pyVdw=
 github.com/gravitational/go-udev v0.0.0-20160615210516-4cc8baba3689 h1:USMyYrSbe8efNyjVImVmTHxkHKnRZtwZz8k7nwCPaRs=
 github.com/gravitational/go-udev v0.0.0-20160615210516-4cc8baba3689/go.mod h1:KYSgUdTJCOqAvFyQgoqMQqMZ3SJUeTX2Mh/6k37led4=
 github.com/gravitational/kingpin v2.1.11-0.20180808090833-85085db9f49b+incompatible h1:EKUsVxTkuWutOypOzQOSG78G/B5eLJNPkEbqpYlh3XQ=

@@ -33,8 +33,8 @@ import (
 	"github.com/gravitational/planet/lib/monitoring"
 	"github.com/gravitational/planet/lib/utils"
 
-	etcdconf "github.com/gravitational/coordinate/config"
-	"github.com/gravitational/coordinate/leader"
+	etcdconf "github.com/gravitational/coordinate/v4/config"
+	"github.com/gravitational/coordinate/v4/leader"
 	"github.com/gravitational/satellite/agent"
 	pb "github.com/gravitational/satellite/agent/proto/agentpb"
 	"github.com/gravitational/satellite/cmd"

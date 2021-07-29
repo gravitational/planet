@@ -149,10 +149,12 @@ github.com/googleapis/gnostic/openapiv2
 # github.com/gravitational/configure v0.0.0-20180808141939-c3428bd84c23
 github.com/gravitational/configure
 github.com/gravitational/configure/cstrings
-# github.com/gravitational/coordinate v0.0.0-20200506112554-9ae5851333fd => github.com/a-palchikov/coordinate v0.0.0-20210728135334-dc275f5b2bdb
+# github.com/gravitational/coordinate v0.0.0-20210729105737-9889f283ee4f
 github.com/gravitational/coordinate/config
-github.com/gravitational/coordinate/leader
-# github.com/gravitational/etcd-backup v0.0.0-20201012185408-87328521981c
+# github.com/gravitational/coordinate/v4 v4.0.0 => github.com/a-palchikov/coordinate/v4 v4.0.0-20210729114333-cca0da0c9f47
+github.com/gravitational/coordinate/v4/config
+github.com/gravitational/coordinate/v4/leader
+# github.com/gravitational/etcd-backup v0.0.0-20201012185408-87328521981c => github.com/a-palchikov/etcd-backup v0.0.0-20210729114452-4d08a139f70b
 github.com/gravitational/etcd-backup/lib/etcd
 # github.com/gravitational/go-udev v0.0.0-20160615210516-4cc8baba3689
 github.com/gravitational/go-udev

@@ -21,7 +21,7 @@ import (
 	"time"
 
 	"github.com/coreos/go-semver/semver"
-	etcdconf "github.com/gravitational/coordinate/config"
+	etcdconf "github.com/gravitational/coordinate/v4/config"
 	"github.com/gravitational/trace"
 	etcdv2 "go.etcd.io/etcd/client"
 	etcdv3 "go.etcd.io/etcd/clientv3"

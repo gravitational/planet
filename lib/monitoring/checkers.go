@@ -30,7 +30,7 @@ import (
 
 	"github.com/gravitational/planet/lib/constants"
 
-	etcdconf "github.com/gravitational/coordinate/config"
+	etcdconf "github.com/gravitational/coordinate/v4/config"
 	"github.com/gravitational/satellite/agent"
 	"github.com/gravitational/satellite/agent/health"
 	"github.com/gravitational/satellite/lib/nethealth"

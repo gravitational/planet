@@ -39,7 +39,7 @@ import (
 
 	"github.com/coreos/go-systemd/v22/dbus"
 	"github.com/davecgh/go-spew/spew"
-	etcdconf "github.com/gravitational/coordinate/config"
+	etcdconf "github.com/gravitational/coordinate/v4/config"
 	backup "github.com/gravitational/etcd-backup/lib/etcd"
 	"github.com/gravitational/trace"
 	ps "github.com/mitchellh/go-ps"

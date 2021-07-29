@@ -27,7 +27,8 @@ require (
 	github.com/gorilla/mux v1.7.1 // indirect
 	github.com/gorilla/websocket v1.4.0 // indirect
 	github.com/gravitational/configure v0.0.0-20180808141939-c3428bd84c23
-	github.com/gravitational/coordinate v0.0.0-20200506112554-9ae5851333fd
+	github.com/gravitational/coordinate v0.0.0-20210729105737-9889f283ee4f
+	github.com/gravitational/coordinate/v4 v4.0.0
 	github.com/gravitational/etcd-backup v0.0.0-20201012185408-87328521981c
 	github.com/gravitational/go-udev v0.0.0-20160615210516-4cc8baba3689
 	github.com/gravitational/satellite v0.0.9-0.20210518231730-758163e22217
@@ -58,7 +59,6 @@ require (
 	github.com/tmc/grpc-websocket-proxy v0.0.0-20190109142713-0ad062ec5ee5 // indirect
 	github.com/vishvananda/netlink v1.0.0 // indirect
 	github.com/vishvananda/netns v0.0.0-20180720170159-13995c7128cc // indirect
-	go.etcd.io/bbolt v1.3.4 // indirect
 	go.etcd.io/etcd v3.3.22+incompatible
 	golang.org/x/crypto v0.0.0-20201012173705-84dcc777aaee // indirect
 	golang.org/x/lint v0.0.0-20200130185559-910be7a94367 // indirect
@@ -81,7 +81,8 @@ replace (
 	github.com/coreos/pkg => github.com/coreos/pkg v0.0.0-20180108230652-97fdf19511ea
 	github.com/docker/docker => github.com/docker/engine v17.12.0-ce-rc1.0.20200204220554-5f6d6f3f2203+incompatible
 	github.com/google/uuid => github.com/google/uuid v1.0.0
-	github.com/gravitational/coordinate => github.com/a-palchikov/coordinate v0.0.0-20210728135334-dc275f5b2bdb
+	github.com/gravitational/coordinate/v4 => github.com/a-palchikov/coordinate/v4 v4.0.0-20210729114333-cca0da0c9f47
+	github.com/gravitational/etcd-backup => github.com/a-palchikov/etcd-backup v0.0.0-20210729114452-4d08a139f70b
 	github.com/json-iterator/go => github.com/json-iterator/go v1.1.5
 	github.com/sirupsen/logrus => github.com/gravitational/logrus v1.4.3
 	go.etcd.io/etcd => go.etcd.io/etcd v0.5.0-alpha.5.0.20200401174654-e694b7bb0875
