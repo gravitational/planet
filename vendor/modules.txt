@@ -154,7 +154,7 @@ github.com/gravitational/coordinate/config
 # github.com/gravitational/coordinate/v4 v4.0.0 => github.com/a-palchikov/coordinate/v4 v4.0.0-20210729114333-cca0da0c9f47
 github.com/gravitational/coordinate/v4/config
 github.com/gravitational/coordinate/v4/leader
-# github.com/gravitational/etcd-backup v0.0.0-20201012185408-87328521981c => github.com/a-palchikov/etcd-backup v0.0.0-20210729114452-4d08a139f70b
+# github.com/gravitational/etcd-backup v0.0.0-20210730122523-5067e2c92759
 github.com/gravitational/etcd-backup/lib/etcd
 # github.com/gravitational/go-udev v0.0.0-20160615210516-4cc8baba3689
 github.com/gravitational/go-udev
