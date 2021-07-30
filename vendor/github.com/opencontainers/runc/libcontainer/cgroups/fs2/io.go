@@ -5,7 +5,6 @@ package fs2
 import (
 	"bufio"
 	"os"
-	"path/filepath"
 	"strconv"
 	"strings"
 
@@ -14,30 +13,50 @@ import (
 	"github.com/opencontainers/runc/libcontainer/configs"
 )
 
-func setIo(dirPath string, cgroup *configs.Cgroup) error {
-	if cgroup.Resources.BlkioWeight != 0 {
-		filename := "io.bfq.weight"
-		if err := fscommon.WriteFile(dirPath, filename, strconv.FormatUint(uint64(cgroup.Resources.BlkioWeight), 10)); err != nil {
-			return err
-		}
+func isIoSet(r *configs.Resources) bool {
+	return r.BlkioWeight != 0 ||
+		len(r.BlkioThrottleReadBpsDevice) > 0 ||
+		len(r.BlkioThrottleWriteBpsDevice) > 0 ||
+		len(r.BlkioThrottleReadIOPSDevice) > 0 ||
+		len(r.BlkioThrottleWriteIOPSDevice) > 0
+}
+
+func setIo(dirPath string, r *configs.Resources) error {
+	if !isIoSet(r) {
+		return nil
 	}
 
-	for _, td := range cgroup.Resources.BlkioThrottleReadBpsDevice {
+	if r.BlkioWeight != 0 {
+		filename := "io.bfq.weight"
+		if err := fscommon.WriteFile(dirPath, filename,
+			strconv.FormatUint(uint64(r.BlkioWeight), 10)); err != nil {
+			// if io.bfq.weight does not exist, then bfq module is not loaded.
+			// Fallback to use io.weight with a conversion scheme
+			if !os.IsNotExist(err) {
+				return err
+			}
+			v := cgroups.ConvertBlkIOToIOWeightValue(r.BlkioWeight)
+			if err := fscommon.WriteFile(dirPath, "io.weight", strconv.FormatUint(v, 10)); err != nil {
+				return err
+			}
+		}
+	}
+	for _, td := range r.BlkioThrottleReadBpsDevice {
 		if err := fscommon.WriteFile(dirPath, "io.max", td.StringName("rbps")); err != nil {
 			return err
 		}
 	}
-	for _, td := range cgroup.Resources.BlkioThrottleWriteBpsDevice {
+	for _, td := range r.BlkioThrottleWriteBpsDevice {
 		if err := fscommon.WriteFile(dirPath, "io.max", td.StringName("wbps")); err != nil {
 			return err
 		}
 	}
-	for _, td := range cgroup.Resources.BlkioThrottleReadIOPSDevice {
+	for _, td := range r.BlkioThrottleReadIOPSDevice {
 		if err := fscommon.WriteFile(dirPath, "io.max", td.StringName("riops")); err != nil {
 			return err
 		}
 	}
-	for _, td := range cgroup.Resources.BlkioThrottleWriteIOPSDevice {
+	for _, td := range r.BlkioThrottleWriteIOPSDevice {
 		if err := fscommon.WriteFile(dirPath, "io.max", td.StringName("wiops")); err != nil {
 			return err
 		}
@@ -48,8 +67,7 @@ func setIo(dirPath string, cgroup *configs.Cgroup) error {
 
 func readCgroup2MapFile(dirPath string, name string) (map[string][]string, error) {
 	ret := map[string][]string{}
-	p := filepath.Join(dirPath, name)
-	f, err := os.Open(p)
+	f, err := fscommon.OpenFile(dirPath, name, os.O_RDONLY)
 	if err != nil {
 		return nil, err
 	}
@@ -81,11 +99,11 @@ func statIo(dirPath string, stats *cgroups.Stats) error {
 		if len(d) != 2 {
 			continue
 		}
-		minor, err := strconv.ParseUint(d[0], 10, 0)
+		major, err := strconv.ParseUint(d[0], 10, 0)
 		if err != nil {
 			return err
 		}
-		major, err := strconv.ParseUint(d[1], 10, 0)
+		minor, err := strconv.ParseUint(d[1], 10, 0)
 		if err != nil {
 			return err
 		}
