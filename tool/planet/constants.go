@@ -271,6 +271,9 @@ const (
 	// availability mode.
 	EnvHighAvailability = "KUBE_HIGH_AVAILABILITY"
 
+	// EnvFlannelBackend specifies the flannel backend.
+	EnvFlannelBackend = "FLANNEL_BACKEND"
+
 	// DefaultDNSListenAddr is the default IP address CoreDNS will listen on
 	DefaultDNSListenAddr = "127.0.0.2"
 

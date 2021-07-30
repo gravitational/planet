@@ -862,13 +862,8 @@ func setupFlannel(config *Config) error {
 		return nil
 	}
 
-	switch config.CloudProvider {
-	case constants.CloudProviderAWS:
-		config.Env.Upsert("FLANNEL_BACKEND", "aws-vpc")
-	case constants.CloudProviderGCE:
-		config.Env.Upsert("FLANNEL_BACKEND", "gce")
-	default:
-		config.Env.Upsert("FLANNEL_BACKEND", "vxlan")
+	if err := selectFlannelBackend(config); err != nil {
+		return trace.Wrap(err, "failed to select flannel backend")
 	}
 
 	err := os.Symlink(
@@ -888,7 +883,42 @@ func setupFlannel(config *Config) error {
 		return trace.Wrap(err)
 	}
 	return nil
+}
 
+// selectFlannelBackend selects the flannel backend. If a flannel backend was not
+// specified in the configuration, the backend will be automatically selected based
+// on the cloud provider.
+func selectFlannelBackend(config *Config) error {
+	if config.FlannelBackend != "" {
+		if isSupportedBackend(config.FlannelBackend) {
+			config.Env.Upsert(EnvFlannelBackend, config.FlannelBackend)
+			return nil
+		}
+		return trace.BadParameter("unsupported flannel backend was specified: %v", config.FlannelBackend)
+	}
+
+	switch config.CloudProvider {
+	case constants.CloudProviderAWS:
+		config.Env.Upsert(EnvFlannelBackend, "aws-vpc")
+	case constants.CloudProviderGCE:
+		config.Env.Upsert(EnvFlannelBackend, "gce")
+	default:
+		config.Env.Upsert(EnvFlannelBackend, "vxlan")
+	}
+
+	return nil
+}
+
+// isSupportedBackend returns true if the specified backend is a supported flannel
+// backend.
+func isSupportedBackend(backend string) bool {
+	var supportedBackends = []string{"aws-vpc", "gce", "vxlan"}
+	for _, supportedBackend := range supportedBackends {
+		if backend == supportedBackend {
+			return true
+		}
+	}
+	return false
 }
 
 var flannelConflist = `
