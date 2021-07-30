@@ -43,7 +43,7 @@ github.com/aws/aws-sdk-go/service/sts/stsiface
 github.com/beorn7/perks/quantile
 # github.com/blang/semver v3.5.1+incompatible
 github.com/blang/semver
-# github.com/cenkalti/backoff v2.0.0+incompatible
+# github.com/cenkalti/backoff v2.2.1+incompatible
 github.com/cenkalti/backoff
 # github.com/cespare/xxhash/v2 v2.1.1
 github.com/cespare/xxhash/v2
@@ -149,10 +149,12 @@ github.com/googleapis/gnostic/openapiv2
 # github.com/gravitational/configure v0.0.0-20180808141939-c3428bd84c23
 github.com/gravitational/configure
 github.com/gravitational/configure/cstrings
-# github.com/gravitational/coordinate v0.0.0-20200227044100-12af3c0f9593
+# github.com/gravitational/coordinate v0.0.0-20210729105737-9889f283ee4f
 github.com/gravitational/coordinate/config
-github.com/gravitational/coordinate/leader
-# github.com/gravitational/etcd-backup v0.0.0-20201012185408-87328521981c
+# github.com/gravitational/coordinate/v4 v4.0.0 => github.com/a-palchikov/coordinate/v4 v4.0.0-20210729114333-cca0da0c9f47
+github.com/gravitational/coordinate/v4/config
+github.com/gravitational/coordinate/v4/leader
+# github.com/gravitational/etcd-backup v0.0.0-20210730122523-5067e2c92759
 github.com/gravitational/etcd-backup/lib/etcd
 # github.com/gravitational/go-udev v0.0.0-20160615210516-4cc8baba3689
 github.com/gravitational/go-udev
@@ -201,8 +203,6 @@ github.com/jonboulle/clockwork
 github.com/json-iterator/go
 # github.com/konsorten/go-windows-terminal-sequences v1.0.3
 github.com/konsorten/go-windows-terminal-sequences
-# github.com/kr/pretty v0.2.0
-github.com/kr/pretty
 # github.com/kr/text v0.1.0
 github.com/kr/text
 # github.com/kylelemons/godebug v0.0.0-20170820004349-d65d576e9348
@@ -231,6 +231,8 @@ github.com/modern-go/concurrent
 github.com/modern-go/reflect2
 # github.com/mrunalp/fileutils v0.0.0-20171103030105-7d4729fb3618
 github.com/mrunalp/fileutils
+# github.com/niemeyer/pretty v0.0.0-20200227124842-a10e7caefd8e
+github.com/niemeyer/pretty
 # github.com/opencontainers/go-digest v1.0.0-rc1
 github.com/opencontainers/go-digest
 # github.com/opencontainers/image-spec v1.0.1
@@ -266,7 +268,7 @@ github.com/opencontainers/runtime-spec/specs-go
 github.com/opencontainers/selinux/go-selinux
 github.com/opencontainers/selinux/go-selinux/label
 github.com/opencontainers/selinux/pkg/pwalk
-# github.com/pborman/uuid v0.0.0-20180906182336-adf5a7427709
+# github.com/pborman/uuid v1.2.0
 github.com/pborman/uuid
 # github.com/pkg/errors v0.9.1
 github.com/pkg/errors
@@ -340,7 +342,7 @@ go.etcd.io/etcd/version
 go.uber.org/atomic
 # go.uber.org/multierr v1.5.0
 go.uber.org/multierr
-# go.uber.org/zap v1.14.0
+# go.uber.org/zap v1.15.0
 go.uber.org/zap
 go.uber.org/zap/buffer
 go.uber.org/zap/internal/bufferpool
@@ -351,9 +353,6 @@ go.uber.org/zap/zapcore
 golang.org/x/crypto/ed25519
 golang.org/x/crypto/ed25519/internal/edwards25519
 golang.org/x/crypto/ssh/terminal
-# golang.org/x/lint v0.0.0-20200130185559-910be7a94367
-golang.org/x/lint
-golang.org/x/lint/golint
 # golang.org/x/net v0.0.0-20201110031124-69a78807bb2b
 golang.org/x/net/bpf
 golang.org/x/net/context
@@ -387,10 +386,6 @@ golang.org/x/text/unicode/bidi
 golang.org/x/text/unicode/norm
 # golang.org/x/time v0.0.0-20191024005414-555d28b269f0 => golang.org/x/time v0.0.0-20180412165947-fbb02b2291d2
 golang.org/x/time/rate
-# golang.org/x/tools v0.0.0-20200225230052-807dcd883420
-golang.org/x/tools/go/ast/astutil
-golang.org/x/tools/go/gcexportdata
-golang.org/x/tools/go/internal/gcimporter
 # golang.org/x/xerrors v0.0.0-20191204190536-9bdfabe68543
 golang.org/x/xerrors
 golang.org/x/xerrors/internal
@@ -476,7 +471,7 @@ google.golang.org/protobuf/types/known/durationpb
 google.golang.org/protobuf/types/known/timestamppb
 # gopkg.in/alecthomas/kingpin.v2 v2.2.6 => github.com/gravitational/kingpin v2.1.11-0.20180808090833-85085db9f49b+incompatible
 gopkg.in/alecthomas/kingpin.v2
-# gopkg.in/check.v1 v1.0.0-20190902080502-41f04d3bba15
+# gopkg.in/check.v1 v1.0.0-20200227125254-8fa46927fb4f
 gopkg.in/check.v1
 # gopkg.in/inf.v0 v0.9.1
 gopkg.in/inf.v0

@@ -23,7 +23,7 @@ import (
 	"os"
 	"time"
 
-	etcdconf "github.com/gravitational/coordinate/config"
+	etcdconf "github.com/gravitational/coordinate/v4/config"
 	"github.com/gravitational/trace"
 	log "github.com/sirupsen/logrus"
 	etcdv2 "go.etcd.io/etcd/client"

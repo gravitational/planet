@@ -40,7 +40,7 @@ import (
 	"github.com/fatih/color"
 	kv "github.com/gravitational/configure"
 	"github.com/gravitational/configure/cstrings"
-	etcdconf "github.com/gravitational/coordinate/config"
+	etcdconf "github.com/gravitational/coordinate/v4/config"
 	"github.com/gravitational/satellite/agent"
 	"github.com/gravitational/satellite/agent/backend/inmemory"
 	"github.com/gravitational/satellite/lib/history/sqlite"
