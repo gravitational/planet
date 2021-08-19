@@ -10,6 +10,7 @@ ExecStart=/usr/bin/kube-scheduler \
         --master=https://${KUBE_APISERVER}:6443 \
         --kubeconfig=/etc/kubernetes/scheduler.kubeconfig \
         --profiling=false \
+        --port=0 \
         --client-ca-file=/var/state/root.cert \
         --tls-cert-file=/var/state/scheduler.cert \
         --tls-private-key-file=/var/state/scheduler.key \
