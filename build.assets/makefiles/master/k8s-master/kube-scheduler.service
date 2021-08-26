@@ -10,6 +10,10 @@ ExecStart=/usr/bin/kube-scheduler \
         --master=https://${KUBE_APISERVER}:6443 \
         --kubeconfig=/etc/kubernetes/scheduler.kubeconfig \
         --profiling=false \
+        --port=0 \
+        --client-ca-file=/var/state/root.cert \
+        --tls-cert-file=/var/state/scheduler.cert \
+        --tls-private-key-file=/var/state/scheduler.key \
         --tls-cipher-suites=TLS_ECDHE_ECDSA_WITH_AES_128_GCM_SHA256,TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256,TLS_ECDHE_ECDSA_WITH_AES_256_GCM_SHA384,TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384,TLS_RSA_WITH_AES_128_GCM_SHA256,TLS_RSA_WITH_AES_256_GCM_SHA384,TLS_RSA_WITH_AES_128_GCM_SHA256,TLS_RSA_WITH_AES_256_GCM_SHA384 \
         --tls-min-version=VersionTLS12 \
         $KUBE_COMPONENT_FLAGS
