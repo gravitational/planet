@@ -24,6 +24,7 @@ import (
 	"io/ioutil"
 	"net"
 	"os"
+	"os/exec"
 	"os/signal"
 	"strconv"
 	"syscall"
@@ -399,6 +400,8 @@ func runAgent(config agentConfig) error {
 		return trace.Wrap(err)
 	}
 
+	joinSerfClusterIfNecessary(config)
+
 	errorC := make(chan error, 10)
 	client, err := startLeaderClient(config, monitoringAgent, errorC)
 	if err != nil {
@@ -438,6 +441,77 @@ func runAgent(config agentConfig) error {
 	}
 
 	return nil
+}
+
+func joinSerfClusterIfNecessary(config agentConfig) {
+	path, err := exec.LookPath("serf")
+	if err != nil {
+		if execErr, ok := err.(*exec.Error); ok && execErr.Err == exec.ErrNotFound {
+			// No serf binary in container - ignore
+			return
+		}
+		log.WithError(err).Debug("Failed to locate serf binary.")
+		return
+	}
+	serf := serf{path: path}
+	if !serf.isMember(config.agent.Name) {
+		return
+	}
+	serf.join(config.peers...)
+}
+
+/*
+{
+  "members": [
+    {
+      "name": "172_17_0_2.test",
+      "addr": "172.17.0.2:7496",
+      "port": 7496,
+      "tags": {
+        "publicip": "172.17.0.2",
+        "role": "master"
+      },
+      "status": "alive",
+      "protocol": {
+        "max": 5,
+        "min": 2,
+        "version": 4
+      }
+    }
+  ]
+}
+*/
+type serfMember struct {
+	Name string `json:"name"`
+}
+
+func (r serf) isMember(name string) bool {
+	out, err := exec.Command(r.path, "members", "-format", "json").CombinedOutput()
+	if err != nil {
+		log.WithError(err).WithField("out", string(out)).Debug("Unable to query serf members.")
+	}
+	var members []serfMember
+	if err := json.Unmarshal(out, &members); err != nil {
+		log.WithError(err).Debug("Unable to decode serf members.")
+	}
+	for _, m := range members {
+		if name == m.Name {
+			return true
+		}
+	}
+	return false
+}
+
+func (r serf) join(peers ...string) {
+	args := append([]string{"join"}, peers...)
+	out, err := exec.Command(r.path, args...).CombinedOutput()
+	if err != nil {
+		log.WithError(err).WithField("out", string(out)).Debug("Failed to join serf cluster.")
+	}
+}
+
+type serf struct {
+	path string
 }
 
 func leaderPause(publicIP, electionKey string, etcd *etcdconf.Config) error {

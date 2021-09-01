@@ -46,12 +46,14 @@ build: | $(ASSETDIR) $(GOCACHE)
 			COREDNS_VER=$(COREDNS_VER) \
 			CNI_VER=$(CNI_VER) \
 			FLANNEL_VER=$(FLANNEL_VER) \
+			SERF_VER=$(SERF_VER) \
 			NODE_PROBLEM_DETECTOR_VER=$(NODE_PROBLEM_DETECTOR_VER) \
 			DOCKER_VER=$(DOCKER_VER) \
 			ETCD_VER="$(ETCD_VER)" \
 			ETCD_LATEST_VER=$(ETCD_LATEST_VER) \
 			PLANET_UID=$(PLANET_UID) \
 			PLANET_GID=$(PLANET_GID) \
+			DISTRIBUTION_VER=$(DISTRIBUTION_VER) \
 			-C /assets/makefiles -f planet.mk
 	$(MAKE) -C $(ASSETS)/makefiles/master/k8s-master -e -f containers.mk
 

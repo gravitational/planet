@@ -29,7 +29,6 @@
             "name": "version-helm3",
             "value": "REPLACE_HELM3_LATEST_VERSION"
         },
-
         {
             "name": "version-coredns",
             "value": "REPLACE_COREDNS_LATEST_VERSION"

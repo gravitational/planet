@@ -1,0 +1,20 @@
+[Unit]
+Description=Serf agent
+Documentation=https://github.com/hashicorp/serf
+
+[Service]
+Restart=always
+RestartSec=5
+StartLimitInterval=3600
+StartLimitBurst=720
+
+EnvironmentFile=/etc/container-environment
+ExecStart=/usr/bin/serf agent \
+	-bind=${PLANET_PUBLIC_IP}:7496 \
+	-node=${PLANET_AGENT_NAME} \
+	-snapshot=/ext/state/serf-snapshot \
+	-protocol=4 \
+	-tag role=${PLANET_ROLE} \
+	-tag publicip=${PLANET_PUBLIC_IP}
+User=planet
+Group=planet
