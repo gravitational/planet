@@ -140,6 +140,9 @@ type Config struct {
 	// HighAvailability enables kubernetes high availability mode. If enabled,
 	// control plane components will be enabled on all master nodes.
 	HighAvailability bool
+	// UpgradeFrom is the version of the existing cluster during the upgrade
+	// operation
+	UpgradeFrom string
 }
 
 // DNS describes DNS server configuration

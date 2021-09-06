@@ -137,6 +137,7 @@ func start(config *Config) (*runtimeContext, error) {
 	}
 
 	config.Env = append(config.Env,
+		box.EnvPair{Name: EnvUpgradeFrom, Val: config.UpgradeFrom},
 		box.EnvPair{Name: EnvMasterIP, Val: config.MasterIP},
 		box.EnvPair{Name: EnvCloudProvider, Val: config.CloudProvider},
 		box.EnvPair{Name: EnvServiceSubnet, Val: config.ServiceCIDR.String()},

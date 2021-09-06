@@ -506,6 +506,14 @@
                 "cli": {
                     "name": "high-availability"
                 }
+            },
+            {
+                "type": "String",
+                "name": "upgrade-from",
+                "env": "PLANET_UPGRADE_FROM",
+                "cli": {
+                    "name": "upgrade-from"
+                }
             }
         ]
     }

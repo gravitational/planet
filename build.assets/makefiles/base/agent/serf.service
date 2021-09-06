@@ -7,7 +7,7 @@ Restart=always
 RestartSec=5
 StartLimitInterval=3600
 StartLimitBurst=720
-
+ConditionEnvironment=PLANET_UPGRADE_FROM
 EnvironmentFile=/etc/container-environment
 ExecStart=/usr/bin/serf agent \
 	-bind=${PLANET_PUBLIC_IP}:7496 \
