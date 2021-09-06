@@ -44,8 +44,11 @@ import (
 
 // Config defines satellite configuration.
 type Config struct {
-	// Name is the name assigned to this node my Kubernetes.
+	// Name is the name assigned to this node by Kubernetes.
 	Name string
+	// AgentName identifies the agent. This is the agent name
+	// as used in a 7.x Gravity cluster for backwards compatibility.
+	AgentName string
 
 	// RPCAddrs is a list of addresses agent binds to for RPC traffic.
 	//
@@ -182,7 +185,7 @@ type agent struct {
 }
 
 // New creates an instance of an agent based on configuration options given in config.
-func New(config *Config) (*agent, error) {
+func New(config *Config) (result *agent, err error) {
 	if err := config.CheckAndSetDefaults(); err != nil {
 		return nil, trace.Wrap(err)
 	}
@@ -231,13 +234,13 @@ func New(config *Config) (*agent, error) {
 		LocalTimeline:           localTimeline,
 		dialRPC:                 config.DialRPC,
 		statusQueryReplyTimeout: statusQueryReplyTimeout,
-		localStatus:             emptyNodeStatus(config.Name),
 		metricsListener:         metricsListener,
 		debugListener:           debugListener,
 		lastSeen:                lastSeen,
 		cancel:                  cancel,
 		g:                       g,
 	}
+	agent.localStatus = agent.emptyNodeStatus()
 
 	agent.rpc, err = newRPCServer(agent, config.CAFile, config.CertFile, config.KeyFile, config.RPCAddrs)
 	if err != nil {
@@ -363,7 +366,7 @@ func (r *agent) runChecks(ctx context.Context) *pb.NodeStatus {
 			go runChecker(ctxChecks, c, probeCh, semaphoreCh)
 		case <-ctx.Done():
 			log.Warnf("Timed out running tests: %v.", ctx.Err())
-			return emptyNodeStatus(r.Name)
+			return r.emptyNodeStatus()
 		}
 	}
 
@@ -383,9 +386,10 @@ func (r *agent) runChecks(ctx context.Context) *pb.NodeStatus {
 	}
 
 	return &pb.NodeStatus{
-		Name:   r.Name,
-		Status: probes.Status(),
-		Probes: probes.GetProbes(),
+		Name:     r.Config.AgentName,
+		NodeName: r.Name,
+		Status:   probes.Status(),
+		Probes:   probes.GetProbes(),
 	}
 }
 
@@ -514,7 +518,8 @@ func (r *agent) updateStatus(ctx context.Context) error {
 
 func (r *agent) defaultUnknownStatus() *pb.NodeStatus {
 	return &pb.NodeStatus{
-		Name: r.Name,
+		Name:     r.AgentName,
+		NodeName: r.Name,
 		MemberStatus: &pb.MemberStatus{
 			Name: r.Name,
 		},

@@ -167,6 +167,10 @@ func start(config *Config) (*runtimeContext, error) {
 		box.EnvPair{Name: EnvServiceGID, Val: config.ServiceUser.GID},
 		box.EnvPair{Name: EnvHighAvailability, Val: strconv.FormatBool(config.HighAvailability)},
 	)
+	if config.UpgradeFrom7 {
+		config.Env = append(config.Env, box.EnvPair{Name: EnvUpgradeFrom7, Val: fmt.Sprint(config.UpgradeFrom7)})
+		config.Files = append(config.Files, box.File{Path: "/etc/planet/upgrade-from-7", Contents: strings.NewReader("")})
+	}
 
 	// Setup http_proxy / no_proxy environment configuration
 	configureProxy(config)

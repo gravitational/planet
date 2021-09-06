@@ -112,7 +112,7 @@ func run() error {
 		cstartServiceUID              = cstart.Flag("service-uid", "Service user ID. Service user is used for services that do not require elevated permissions").OverrideDefaultFromEnvar(EnvServiceUID).String()
 		cstartServiceGID              = cstart.Flag("service-gid", "Service user group ID").OverrideDefaultFromEnvar(EnvServiceGID).String()
 		cstartEtcdProxy               = cstart.Flag("etcd-proxy", "Etcd proxy mode: 'off', 'on' or 'readonly'").OverrideDefaultFromEnvar("PLANET_ETCD_PROXY").String()
-		cstartEtcdMemberName          = cstart.Flag("etcd-member-name", "Etcd member name").OverrideDefaultFromEnvar("PLANET_ETCD_MEMBER_NAME").String()
+		cstartEtcdMemberName          = cstart.Flag("etcd-member-name", "Etcd member name").OverrideDefaultFromEnvar(EnvEtcdMemberName).String()
 		cstartEtcdInitialCluster      = KeyValueList(cstart.Flag("etcd-initial-cluster", "Initial etcd cluster configuration (list of peers)").OverrideDefaultFromEnvar("PLANET_ETCD_INITIAL_CLUSTER"))
 		cstartEtcdInitialClusterState = cstart.Flag("etcd-initial-cluster-state", "Etcd initial cluster state: 'new' or 'existing'").OverrideDefaultFromEnvar("PLANET_ETCD_INITIAL_CLUSTER_STATE").String()
 		cstartEtcdOptions             = cstart.Flag("etcd-options", "Additional command line options to pass to etcd").OverrideDefaultFromEnvar("PLANET_ETCD_OPTIONS").String()
@@ -139,6 +139,7 @@ func run() error {
 		cstartAllowPrivileged  = cstart.Flag("allow-privileged", "Allow privileged containers").OverrideDefaultFromEnvar(EnvPlanetAllowPrivileged).Bool()
 		cstartSELinux          = cstart.Flag("selinux", "Run with SELinux support").Envar(EnvPlanetSELinux).Bool()
 		cstartHighAvailability = cstart.Flag("high-availability", "Boolean flag to enable/disable kubernetes high availability mode.").OverrideDefaultFromEnvar(EnvHighAvailability).Bool()
+		cstartUpgradeFrom7     = cstart.Flag("upgrade-from7", "Indicate that the upgrade from 7.x is in progress.").OverrideDefaultFromEnvar(EnvUpgradeFrom7).Hidden().Bool()
 
 		// start the planet agent
 		cagent                 = app.Command("agent", "Start Planet Agent")
@@ -151,6 +152,7 @@ func run() error {
 		cagentRPCAddrs         = List(cagent.Flag("rpc-addr", "Address to bind the RPC listener to.  Can be specified multiple times").Default("127.0.0.1:7575"))
 		cagentMetricsAddr      = cagent.Flag("metrics-addr", "Address to listen on for web interface and telemetry for Prometheus metrics").Default("127.0.0.1:7580").String()
 		cagentKubeAddr         = cagent.Flag("kube-addr", "Address of the kubernetes API server.  Will default to apiserver-dns:8080").String()
+		cagentName             = cagent.Flag("name", "Agent name. Must be the same as the name of the local etcd member").OverrideDefaultFromEnvar(EnvAgentName).Hidden().String()
 		cagentNodeName         = cagent.Flag("node-name", "Kubernetes node name").OverrideDefaultFromEnvar(EnvNodeName).String()
 		cagentInitialCluster   = KeyValueList(cagent.Flag("initial-cluster", "Initial planet cluster configuration as a comma-separated list of peers").OverrideDefaultFromEnvar(EnvInitialCluster))
 		cagentRegistryAddr     = cagent.Flag("docker-registry-addr",
@@ -325,6 +327,7 @@ func run() error {
 		config := agentConfig{
 			agent: &agent.Config{
 				Name:        *cagentNodeName,
+				AgentName:   *cagentName,
 				RPCAddrs:    *cagentRPCAddrs,
 				MetricsAddr: *cagentMetricsAddr,
 				Cache:       cache,
@@ -464,6 +467,7 @@ func run() error {
 			AllowPrivileged:  *cstartAllowPrivileged,
 			SELinux:          *cstartSELinux,
 			HighAvailability: *cstartHighAvailability,
+			UpgradeFrom7:     *cstartUpgradeFrom7,
 		}
 		err = startAndWait(config)
 

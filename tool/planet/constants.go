@@ -271,6 +271,10 @@ const (
 	// availability mode.
 	EnvHighAvailability = "KUBE_HIGH_AVAILABILITY"
 
+	// EnvUpgradeFrom7 names the environment variable that indicates that
+	// the cluster is being upgraded from 7.x
+	EnvUpgradeFrom7 = "PLANET_UPGRADE_FROM7"
+
 	// DefaultDNSListenAddr is the default IP address CoreDNS will listen on
 	DefaultDNSListenAddr = "127.0.0.2"
 

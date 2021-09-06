@@ -28,17 +28,21 @@ import (
 func unknownNodeStatus(member *pb.MemberStatus) *pb.NodeStatus {
 	return &pb.NodeStatus{
 		Name:         member.Name,
+		NodeName:     member.Name,
 		Status:       pb.NodeStatus_Unknown,
 		MemberStatus: member,
 	}
 }
 
 // emptyNodeStatus creates an empty node status.
-func emptyNodeStatus(name string) *pb.NodeStatus {
+func (r *agent) emptyNodeStatus() *pb.NodeStatus {
 	return &pb.NodeStatus{
-		Name:         name,
-		Status:       pb.NodeStatus_Unknown,
-		MemberStatus: &pb.MemberStatus{Name: name},
+		Name:     r.Config.AgentName,
+		NodeName: r.Name,
+		Status:   pb.NodeStatus_Unknown,
+		MemberStatus: &pb.MemberStatus{
+			Name: r.Name,
+		},
 	}
 }
 

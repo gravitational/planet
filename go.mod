@@ -14,7 +14,6 @@ require (
 	github.com/containerd/containerd v1.3.3 // indirect
 	github.com/coreos/bbolt v1.3.2 // indirect
 	github.com/coreos/etcd v3.3.22+incompatible // indirect
-	github.com/coreos/go-semver v0.3.0 // indirect
 	github.com/coreos/go-systemd v0.0.0-20190321100706-95778dfbb74e // indirect
 	github.com/coreos/go-systemd/v22 v22.1.0
 	github.com/coreos/pkg v0.0.0-20180928190104-399ea9e2e55f // indirect
@@ -86,7 +85,7 @@ replace (
 	github.com/coreos/pkg => github.com/coreos/pkg v0.0.0-20180108230652-97fdf19511ea
 	github.com/docker/docker => github.com/docker/engine v17.12.0-ce-rc1.0.20200204220554-5f6d6f3f2203+incompatible
 	github.com/google/uuid => github.com/google/uuid v1.0.0
-	github.com/gravitational/satellite => github.com/a-palchikov/satellite v0.0.9-0.20210902111427-a129257b3602
+	github.com/gravitational/satellite => github.com/a-palchikov/satellite v0.0.9-0.20210909105808-2daa707cde63
 	github.com/json-iterator/go => github.com/json-iterator/go v1.1.5
 	github.com/sirupsen/logrus => github.com/gravitational/logrus v1.4.3
 	go.etcd.io/etcd => go.etcd.io/etcd v0.5.0-alpha.5.0.20200401174654-e694b7bb0875
