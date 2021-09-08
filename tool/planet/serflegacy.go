@@ -23,7 +23,7 @@ import (
 	log "github.com/sirupsen/logrus"
 )
 
-func joinSerfClusterIfPossible(config agentConfig) {
+func joinSerfClusterIfNecessary(config agentConfig) {
 	path, err := exec.LookPath("serf")
 	if err != nil {
 		if execErr, ok := err.(*exec.Error); ok && execErr.Err == exec.ErrNotFound {

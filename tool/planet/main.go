@@ -139,7 +139,7 @@ func run() error {
 		cstartAllowPrivileged  = cstart.Flag("allow-privileged", "Allow privileged containers").OverrideDefaultFromEnvar(EnvPlanetAllowPrivileged).Bool()
 		cstartSELinux          = cstart.Flag("selinux", "Run with SELinux support").Envar(EnvPlanetSELinux).Bool()
 		cstartHighAvailability = cstart.Flag("high-availability", "Boolean flag to enable/disable kubernetes high availability mode.").OverrideDefaultFromEnvar(EnvHighAvailability).Bool()
-		cstartUpgradeFrom      = cstart.Flag("upgrade-from", "Version of the existing cluster during upgrades as a semver.").OverrideDefaultFromEnvar(EnvUpgradeFrom).String()
+		cstartUpgradeFrom7     = cstart.Flag("upgrade-from7", "Indicate that the upgrade from 7.x is in progress.").OverrideDefaultFromEnvar(EnvUpgradeFrom7).Hidden().Bool()
 
 		// start the planet agent
 		cagent                 = app.Command("agent", "Start Planet Agent")
@@ -176,7 +176,6 @@ func run() error {
 		cagentServiceCIDR            = cidrFlag(cagent.Flag("service-subnet", "IP range from which to assign service cluster IPs. This must not overlap with any IP ranges assigned to nodes for pods.").Default(DefaultServiceSubnet).Envar(EnvServiceSubnet))
 		cagentCriticalNamespaces     = List(cagent.Flag("critical-namespaces", "List of Kubernetes namespaces to search for critical system pods").Default(DefaultCriticalNamespaces).OverrideDefaultFromEnvar(EnvCriticalNamespaces))
 		cagentHighAvailability       = cagent.Flag("high-availability", "Boolean flag to enable/disable kubernetes high availability mode.").OverrideDefaultFromEnvar(EnvHighAvailability).Bool()
-		cagentUpgradeFrom            = cagent.Flag("upgrade-from", "Version of the existing cluster during upgrade as a semver.").OverrideDefaultFromEnvar(EnvUpgradeFrom).String()
 
 		// stop a running container
 		cstop        = app.Command("stop", "Stop planet container")
@@ -339,7 +338,6 @@ func run() error {
 					DBPath:            *cagentTimelineDir,
 					RetentionDuration: *cagentRetention,
 				},
-				UpgradeFrom: *cagentUpgradeFrom,
 			},
 			monitoring: &monitoring.Config{
 				Role:                  agent.Role(*cagentRole),
@@ -469,7 +467,7 @@ func run() error {
 			AllowPrivileged:  *cstartAllowPrivileged,
 			SELinux:          *cstartSELinux,
 			HighAvailability: *cstartHighAvailability,
-			UpgradeFrom:      *cstartUpgradeFrom,
+			UpgradeFrom7:     *cstartUpgradeFrom7,
 		}
 		err = startAndWait(config)
 
@@ -683,7 +681,7 @@ func emptyIP(addr *net.IP) bool {
 
 // InitLogger configures the global logger for a given purpose / verbosity level
 func initLogging(debug bool) {
-	level := log.WarnLevel
+	level := log.InfoLevel
 	trace.SetDebug(debug)
 	if debug {
 		level = log.DebugLevel

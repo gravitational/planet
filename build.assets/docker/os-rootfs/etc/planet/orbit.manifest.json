@@ -508,11 +508,11 @@
                 }
             },
             {
-                "type": "String",
-                "name": "upgrade-from",
-                "env": "PLANET_UPGRADE_FROM",
+                "type": "Bool",
+                "name": "upgrade-from7",
+                "env": "PLANET_UPGRADE_FROM7",
                 "cli": {
-                    "name": "upgrade-from"
+                    "name": "upgrade-from7"
                 }
             }
         ]
