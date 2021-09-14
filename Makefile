@@ -27,10 +27,12 @@
 .DEFAULT_GOAL := all
 
 PWD := $(shell pwd)
-ASSETS := $(PWD)/build.assets
-BUILD_ASSETS := $(PWD)/build/assets
-BUILDDIR ?= $(PWD)/build
-BUILDDIR := $(realpath $(BUILDDIR))
+# Since realpath(3) only works on existing paths, compute the absolute path
+# of the current location and use it to derive other locations
+CURDIR := $(realpath $(PWD))
+ASSETS := $(CURDIR)/build.assets
+BUILD_ASSETS := $(CURDIR)/build/assets
+BUILDDIR ?= $(CURDIR)/build
 OUTPUTDIR := $(BUILDDIR)/planet
 
 include versions.mk
