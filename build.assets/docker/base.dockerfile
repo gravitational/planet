@@ -97,7 +97,7 @@ RUN curl -L https://github.com/containerd/containerd/releases/download/v1.2.10/c
     cp /tmp/containerd/bin/containerd /tmp/containerd/bin/containerd-shim /tmp/containerd/bin/ctr /usr/bin/ && \
     rm -rf /tmp/containerd
 
-RUN curl https://ghcr.io/helm//helm-$HELM_VER-linux-amd64.tar.gz -o /tmp/helm-$HELM_VER.tar.gz && \
+RUN curl https://ghcr.io/helm/helm-$HELM_VER-linux-amd64.tar.gz -o /tmp/helm-$HELM_VER.tar.gz && \
     mkdir -p /tmp/helm && tar -xvzf /tmp/helm-$HELM_VER.tar.gz -C /tmp/helm && \
     cp /tmp/helm/linux-amd64/helm /usr/bin && \
     rm -rf /tmp/helm*
