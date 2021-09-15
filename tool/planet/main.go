@@ -176,6 +176,7 @@ func run() error {
 		cagentServiceCIDR            = cidrFlag(cagent.Flag("service-subnet", "IP range from which to assign service cluster IPs. This must not overlap with any IP ranges assigned to nodes for pods.").Default(DefaultServiceSubnet).Envar(EnvServiceSubnet))
 		cagentCriticalNamespaces     = List(cagent.Flag("critical-namespaces", "List of Kubernetes namespaces to search for critical system pods").Default(DefaultCriticalNamespaces).OverrideDefaultFromEnvar(EnvCriticalNamespaces))
 		cagentHighAvailability       = cagent.Flag("high-availability", "Boolean flag to enable/disable kubernetes high availability mode.").OverrideDefaultFromEnvar(EnvHighAvailability).Bool()
+		cagentUpgradeFrom7           = cagent.Flag("upgrade-from7", "Indicate that the upgrade from 7.x is in progress.").OverrideDefaultFromEnvar(EnvUpgradeFrom7).Hidden().Bool()
 
 		// stop a running container
 		cstop        = app.Command("stop", "Stop planet container")
@@ -327,7 +328,7 @@ func run() error {
 		config := agentConfig{
 			agent: &agent.Config{
 				Name:        *cagentNodeName,
-				AgentName:   *cagentName,
+				AgentName:   *cagentNodeName,
 				RPCAddrs:    *cagentRPCAddrs,
 				MetricsAddr: *cagentMetricsAddr,
 				Cache:       cache,
@@ -372,6 +373,9 @@ func run() error {
 			},
 			peers:       toAddrList(*cagentInitialCluster),
 			serviceCIDR: cagentServiceCIDR.ipNet,
+		}
+		if *cagentUpgradeFrom7 {
+			config.agent.AgentName = *cagentName
 		}
 		err = runAgent(config)
 
