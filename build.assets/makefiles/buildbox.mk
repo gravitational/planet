@@ -52,6 +52,7 @@ build: | $(ASSETDIR) $(GOCACHE)
 			ETCD_LATEST_VER=$(ETCD_LATEST_VER) \
 			PLANET_UID=$(PLANET_UID) \
 			PLANET_GID=$(PLANET_GID) \
+			DISTRIBUTION_VER=$(DISTRIBUTION_VER) \
 			-C /assets/makefiles -f planet.mk
 	$(MAKE) -C $(ASSETS)/makefiles/master/k8s-master -e -f containers.mk
 
