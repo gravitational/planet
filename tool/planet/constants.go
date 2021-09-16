@@ -22,6 +22,7 @@ import (
 	"time"
 
 	"github.com/gravitational/planet/lib/utils"
+	"github.com/gravitational/satellite/monitoring"
 
 	"github.com/syndtr/gocapability/capability"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -506,8 +507,8 @@ var KubeletConfig = kubeletconfig.KubeletConfiguration{
 	Address:                "0.0.0.0",
 	Port:                   10250,
 	MakeIPTablesUtilChains: utils.BoolPtr(true),
-	HealthzBindAddress:     "0.0.0.0",
-	HealthzPort:            utils.Int32Ptr(10248),
+	HealthzBindAddress:     "127.0.0.1",
+	HealthzPort:            utils.Int32Ptr(monitoring.DefaultKubeletHealthzPort),
 	ClusterDomain:          "cluster.local",
 	EventRecordQPS:         utils.Int32Ptr(0),
 	FailSwapOn:             utils.BoolPtr(false),
@@ -559,8 +560,8 @@ var KubeletConfigOverrides = kubeletconfig.KubeletConfiguration{
 	Address:                "0.0.0.0",
 	Port:                   10250,
 	MakeIPTablesUtilChains: utils.BoolPtr(true),
-	HealthzBindAddress:     "0.0.0.0",
-	HealthzPort:            utils.Int32Ptr(10248),
+	HealthzBindAddress:     "127.0.0.1",
+	HealthzPort:            utils.Int32Ptr(monitoring.DefaultKubeletHealthzPort),
 	ClusterDomain:          "cluster.local",
 	TLSCertFile:            APIServerCertPath,
 	TLSPrivateKeyFile:      APIServerKeyPath,
