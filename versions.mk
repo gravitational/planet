@@ -1,5 +1,5 @@
 
-KUBE_VER ?= v1.19.12
+KUBE_VER ?= v1.19.15
 SECCOMP_VER ?= 2.3.1-2.1+deb9u1
 DOCKER_VER ?= 20.10.7
 # we currently use our own flannel fork: gravitational/flannel
