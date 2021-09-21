@@ -102,6 +102,9 @@ const (
 
 	// ContainerInitProcessLabel specifies the SELinux label for the init process
 	ContainerInitProcessLabel = "system_u:system_r:gravity_container_init_t:s0"
+
+	// EncryptionProviderConfig specifies the path to the encryption provider configuration.
+	EncryptionProviderConfig = "/etc/kubernetes/encryption-configuration.yaml"
 )
 
 var (

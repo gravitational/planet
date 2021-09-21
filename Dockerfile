@@ -235,6 +235,16 @@ RUN --mount=target=/root/.cache,type=cache --mount=target=/go/pkg/mod,type=cache
 	cd /go/src/github.com/coreos/flannel && \
 	go build -mod=vendor -o /flanneld .
 
+FROM gobase AS aws-encryption-builder
+RUN --mount=target=/root/.cache,type=cache --mount=target=/go/pkg/mod,type=cache \
+	set -ex && \
+	mkdir -p /go/src/github.com/kubernetes-sigs && \
+	cd /go/src/github.com/kubernetes-sigs && \
+	git clone https://github.com/kubernetes-sigs/aws-encryption-provider --depth 1 && \
+	cd /go/src/github.com/kubernetes-sigs/aws-encryption-provider && \
+	make build-server && \
+	cp /go/src/github.com/kubernetes-sigs/aws-encryption-provider/bin/aws-encryption-provider /aws-encryption-provider
+
 FROM gobase AS distribution-builder
 ARG DISTRIBUTION_VER
 ENV GOOS=linux GOARCH=amd64 CGO_ENABLED=0 GO111MODULE=off 
@@ -348,6 +358,10 @@ RUN --mount=target=/host \
 	install -m 0755 /host/build.assets/makefiles/base/network/wait-for-etcd.sh /usr/bin/scripts && \
 	install -m 0755 /host/build.assets/makefiles/base/network/wait-for-flannel.sh /usr/bin/scripts && \
 	install -m 0755 /host/build.assets/makefiles/base/network/setup-etc.sh /usr/bin/scripts
+
+# encryption.mk
+COPY --from=aws-encryption-builder /aws-encryption-provider /usr/bin/aws-encryption-provider
+COPY ./build.assets/makefiles/encryption/aws-encryption-provider.service /lib/systemd/system/
 
 # node-problem-detector.mk
 COPY --from=node-problem-detector-downloader /tmp/bin/ /usr/bin

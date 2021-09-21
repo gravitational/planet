@@ -275,6 +275,21 @@ const (
 	// EnvFlannelBackend specifies the flannel backend.
 	EnvFlannelBackend = "FLANNEL_BACKEND"
 
+	// EnvEncryptionProvider specifies the Kubernetes encryption provider.
+	EnvEncryptionProvider = "ENCRYPTION_PROVIDER"
+
+	// EnvAWSAccountID specifies the AWS Account ID to use for the AWS
+	// encryption provider configuration.
+	EnvAWSAccountID = "AWS_ACCOUNT_ID"
+
+	// EnvAWSKeyID specifies the AWS KMS key ID to use for the AWS encryption
+	// provider configuration.
+	EnvAWSKeyID = "AWS_KEY_ID"
+
+	// EnvAWSKeyRegion specifies the AWS KMS key region to use for the AWS
+	// encryption provider configuration.
+	EnvAWSKeyRegion = "AWS_KEY_REGION"
+
 	// DefaultDNSListenAddr is the default IP address CoreDNS will listen on
 	DefaultDNSListenAddr = "127.0.0.2"
 

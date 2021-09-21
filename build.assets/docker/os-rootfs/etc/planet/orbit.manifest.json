@@ -515,6 +515,38 @@
                 "cli": {
                     "name": "flannel-backend"
                 }
+            },
+            {
+                "type": "String",
+                "name": "encryption-provider",
+                "env": "ENCRYPTION_PROVIDER",
+                "cli": {
+                    "name": "encryption-provider"
+                }
+            },
+            {
+                "type": "String",
+                "name": "aws-account-id",
+                "env": "AWS_ACCOUNT_ID",
+                "cli": {
+                    "name": "aws-account-id"
+                }
+            },
+            {
+                "type": "String",
+                "name": "aws-key-id",
+                "env": "AWS_KEY_ID",
+                "cli": {
+                    "name": "aws-key-id"
+                }
+            },
+            {
+                "type": "String",
+                "name": "aws-key-region",
+                "env": "AWS_KEY_REGION",
+                "cli": {
+                    "name": "aws-key-region"
+                }
             }
         ]
     }
