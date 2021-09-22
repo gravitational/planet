@@ -33,7 +33,7 @@ require (
 	github.com/gravitational/coordinate v0.0.0-20200227044100-12af3c0f9593
 	github.com/gravitational/etcd-backup v0.0.0-20201012185408-87328521981c
 	github.com/gravitational/go-udev v0.0.0-20160615210516-4cc8baba3689
-	github.com/gravitational/satellite v0.0.9-0.20210518231730-758163e22217
+	github.com/gravitational/satellite v0.0.9-0.20210921221923-7afcf687510e
 	github.com/gravitational/trace v1.1.11
 	github.com/gravitational/version v0.0.2-0.20170324200323-95d33ece5ce1
 	github.com/grpc-ecosystem/go-grpc-middleware v1.2.0 // indirect
@@ -85,7 +85,6 @@ replace (
 	github.com/coreos/pkg => github.com/coreos/pkg v0.0.0-20180108230652-97fdf19511ea
 	github.com/docker/docker => github.com/docker/engine v17.12.0-ce-rc1.0.20200204220554-5f6d6f3f2203+incompatible
 	github.com/google/uuid => github.com/google/uuid v1.0.0
-	github.com/gravitational/satellite => github.com/a-palchikov/satellite v0.0.9-0.20210914152750-65d63644230b
 	github.com/json-iterator/go => github.com/json-iterator/go v1.1.5
 	github.com/sirupsen/logrus => github.com/gravitational/logrus v1.4.3
 	go.etcd.io/etcd => go.etcd.io/etcd v0.5.0-alpha.5.0.20200401174654-e694b7bb0875
