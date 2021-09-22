@@ -399,6 +399,10 @@ func runAgent(config agentConfig) error {
 		return trace.Wrap(err)
 	}
 
+	// Join the serf cluster so we can still be part of the serf cluster
+	// during the upgrade from 7.x
+	joinSerfClusterIfNecessary(config)
+
 	errorC := make(chan error, 10)
 	client, err := startLeaderClient(config, monitoringAgent, errorC)
 	if err != nil {

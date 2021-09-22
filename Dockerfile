@@ -10,6 +10,7 @@ ARG HELM3_VER=3.3.4
 ARG COREDNS_VER=1.7.0
 ARG NODE_PROBLEM_DETECTOR_VER=v0.6.4
 ARG CNI_VER=0.8.6
+ARG SERF_VER=v0.8.5
 ARG IPTABLES_VER=v1.8.5
 ARG PLANET_UID=980665
 ARG PLANET_GID=980665
@@ -244,6 +245,15 @@ RUN --mount=target=/root/.cache,type=cache --mount=target=/go/pkg/mod,type=cache
 	git clone https://github.com/gravitational/distribution -b ${DISTRIBUTION_VER} --depth 1 . && \
 	go build -a -installsuffix cgo -o /registry -ldflags "-X `go list ./version`.Version=${DISTRIBUTION_VER} -X `go list ./version`.Package=planet/docker/distribution -w" ./cmd/registry
 
+FROM gobase AS serf-builder
+ARG SERF_VER
+RUN set -ex && \
+	mkdir -p /go/src/github.com/hashicorp && \
+	cd /go/src/github.com/hashicorp && \
+	git clone https://github.com/hashicorp/serf -b ${SERF_VER} --depth 1 && \
+	cd /go/src/github.com/hashicorp/serf && \
+	GOOS=linux GOARCH=amd64 CGO_ENABLED=0 go build -o /serf ./cmd/serf
+
 FROM downloader AS cni-downloader
 ARG CNI_VER
 RUN set -ex && \
@@ -377,9 +387,12 @@ RUN --mount=target=/host \
 COPY --from=docker-downloader /docker/ /usr/bin/
 
 # agent.mk
+COPY --from=serf-builder /serf /usr/bin/
 COPY ./build.assets/makefiles/base/agent/planet-agent.service /lib/systemd/system
+COPY ./build.assets/makefiles/base/agent/serf.service /lib/systemd/system
 RUN set -ex && \
-	ln -sf /lib/systemd/system/planet-agent.service /lib/systemd/system/multi-user.target.wants/
+	ln -sf /lib/systemd/system/planet-agent.service /lib/systemd/system/multi-user.target.wants/ && \
+	ln -sf /lib/systemd/system/serf.service /lib/systemd/system/multi-user.target.wants/
 
 # kubernetes.mk
 COPY --from=k8s-downloader /tmp/ /usr/bin/

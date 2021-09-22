@@ -14,7 +14,6 @@ require (
 	github.com/containerd/containerd v1.3.3 // indirect
 	github.com/coreos/bbolt v1.3.2 // indirect
 	github.com/coreos/etcd v3.3.22+incompatible // indirect
-	github.com/coreos/go-semver v0.3.0 // indirect
 	github.com/coreos/go-systemd v0.0.0-20190321100706-95778dfbb74e // indirect
 	github.com/coreos/go-systemd/v22 v22.1.0
 	github.com/coreos/pkg v0.0.0-20180928190104-399ea9e2e55f // indirect
@@ -34,7 +33,7 @@ require (
 	github.com/gravitational/coordinate v0.0.0-20200227044100-12af3c0f9593
 	github.com/gravitational/etcd-backup v0.0.0-20201012185408-87328521981c
 	github.com/gravitational/go-udev v0.0.0-20160615210516-4cc8baba3689
-	github.com/gravitational/satellite v0.0.9-0.20210518231730-758163e22217
+	github.com/gravitational/satellite v0.0.9-0.20210921221923-7afcf687510e
 	github.com/gravitational/trace v1.1.11
 	github.com/gravitational/version v0.0.2-0.20170324200323-95d33ece5ce1
 	github.com/grpc-ecosystem/go-grpc-middleware v1.2.0 // indirect
