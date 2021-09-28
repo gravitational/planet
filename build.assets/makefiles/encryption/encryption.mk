@@ -8,6 +8,8 @@ all: $(BIN) aws-encryption-provider.service
 	cp -af $(BIN) $(ROOTFS)/usr/bin/aws-encryption-provider
 	cp -af ./aws-encryption-provider.service $(ROOTFS)/lib/systemd/system
 	mkdir -p $(ROOTFS)/etc/kmsplugin
+	chmod o+t $(ROOTFS)/etc/kmsplugin
+	chmod a+rwx $(ROOTFS)/etc/kmsplugin
 
 $(BIN):
 	mkdir /tmp/kubernetes-sigs
