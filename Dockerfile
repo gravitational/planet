@@ -362,6 +362,9 @@ RUN --mount=target=/host \
 # encryption.mk
 COPY --from=aws-encryption-builder /aws-encryption-provider /usr/bin/aws-encryption-provider
 COPY ./build.assets/makefiles/encryption/aws-encryption-provider.service /lib/systemd/system/
+RUN set -ex mkdir -p /etc/kmsplugin
+RUN chmod o+t /etc/kmsplugin
+RUN chmod a+rwx /etc/kmsplugin
 
 # node-problem-detector.mk
 COPY --from=node-problem-detector-downloader /tmp/bin/ /usr/bin
