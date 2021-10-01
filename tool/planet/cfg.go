@@ -28,6 +28,7 @@ import (
 	"github.com/gravitational/planet/lib/box"
 	"github.com/gravitational/planet/lib/constants"
 	"github.com/gravitational/planet/lib/user"
+	"github.com/gravitational/planet/lib/utils"
 	"github.com/gravitational/trace"
 
 	kv "github.com/gravitational/configure"
@@ -372,7 +373,11 @@ func (r *AWSEncryptionConfig) CheckAndSetDefaults() error {
 		return trace.BadParameter("KeyID is required")
 	}
 	if r.Region == "" {
-		return trace.BadParameter("Region is required")
+		region, err := utils.GetRegion()
+		if err != nil {
+			return trace.BadParameter("unable to query region metadata; Region is required")
+		}
+		r.Region = region
 	}
 	return nil
 }
