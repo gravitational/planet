@@ -31,7 +31,7 @@ require (
 	github.com/gravitational/coordinate/v4 v4.0.0
 	github.com/gravitational/etcd-backup v0.0.0-20210730122523-5067e2c92759
 	github.com/gravitational/go-udev v0.0.0-20160615210516-4cc8baba3689
-	github.com/gravitational/satellite v0.0.9-0.20210729145708-842725cda188
+	github.com/gravitational/satellite v0.0.9-0.20211001145055-fae4abf39d92
 	github.com/gravitational/trace v1.1.11
 	github.com/gravitational/version v0.0.2-0.20170324200323-95d33ece5ce1
 	github.com/grpc-ecosystem/go-grpc-middleware v1.2.0 // indirect
