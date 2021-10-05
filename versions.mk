@@ -12,6 +12,8 @@ CNI_VER := 0.8.6
 IPTABLES_VER := v1.8.5
 BUILDBOX_GO_VER ?= 1.13.8
 DISTRIBUTION_VER=v2.7.1-gravitational
+# aws-encryption-provider repo does not currently provide tagged releases
+AWS_ENCRYPTION_PROVIDER_VER := c4abcb30b4c1ab1961369e1e50a98da2cedb765d
 
 # planet user to use inside the rootfs tarball. This serves as a placeholder
 # and the files will be owned by the actual planet user after extraction

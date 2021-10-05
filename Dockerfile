@@ -17,6 +17,7 @@ ARG GO_VERSION=1.16.3
 ARG ALPINE_VERSION=3.12
 ARG DEBIAN_IMAGE=quay.io/gravitational/debian-mirror@sha256:4b6ec644c29e4964a6f74543a5bf8c12bed6dec3d479e039936e4a37a8af9116
 ARG GO_BUILDER_VERSION=go1.13.8-stretch
+ARG AWS_ENCRYPTION_PROVIDER_VER=c4abcb30b4c1ab1961369e1e50a98da2cedb765d
 # TODO(dima): update to 2.7.2 release once available
 # ARG DISTRIBUTION_VER=release/2.7
 ARG DISTRIBUTION_VER=v2.7.1-gravitational
@@ -236,12 +237,14 @@ RUN --mount=target=/root/.cache,type=cache --mount=target=/go/pkg/mod,type=cache
 	go build -mod=vendor -o /flanneld .
 
 FROM gobase AS aws-encryption-builder
+ARG AWS_ENCRYPTION_PROVIDER_VER
 RUN --mount=target=/root/.cache,type=cache --mount=target=/go/pkg/mod,type=cache \
 	set -ex && \
 	mkdir -p /go/src/github.com/kubernetes-sigs && \
 	cd /go/src/github.com/kubernetes-sigs && \
-	git clone https://github.com/kubernetes-sigs/aws-encryption-provider --depth 1 && \
+	git clone https://github.com/kubernetes-sigs/aws-encryption-provider && \
 	cd /go/src/github.com/kubernetes-sigs/aws-encryption-provider && \
+	git checkout ${AWS_ENCRYPTION_PROVIDER_VER} && \
 	make build-server && \
 	cp /go/src/github.com/kubernetes-sigs/aws-encryption-provider/bin/aws-encryption-provider /aws-encryption-provider
 
