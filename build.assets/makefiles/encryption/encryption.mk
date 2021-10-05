@@ -8,6 +8,7 @@ all: $(BIN) aws-encryption-provider.service
 	cp -af $(BIN) $(ROOTFS)/usr/bin/aws-encryption-provider
 	cp -af ./aws-encryption-provider.service $(ROOTFS)/lib/systemd/system
 	mkdir -p $(ROOTFS)/etc/kmsplugin
+# These permissions allow the encryption-provider.sock socket file to be created with planet ownership.
 	chmod o+t $(ROOTFS)/etc/kmsplugin
 	chmod a+rwx $(ROOTFS)/etc/kmsplugin
 
