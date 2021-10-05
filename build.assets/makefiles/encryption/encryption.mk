@@ -14,10 +14,7 @@ all: $(BIN) aws-encryption-provider.service
 
 $(BIN):
 	mkdir /tmp/kubernetes-sigs
-	cd /tmp/kubernetes-sigs
-	git clone https://github.com/kubernetes-sigs/aws-encryption-provider
-	cd /tmp/kubernetes-sigs/aws-encryption-provider
-	git checkout $(AWS_ENCRYPTION_PROVIDER_VER)
-	make build-server
+	cd /tmp/kubernetes-sigs && git clone https://github.com/kubernetes-sigs/aws-encryption-provider
+	cd /tmp/kubernetes-sigs/aws-encryption-provider && git checkout $(AWS_ENCRYPTION_PROVIDER_VER) && make build-server
 	cp /tmp/kubernetes-sigs/aws-encryption-provider/bin/aws-encryption-provider $@
 	rm -rf /tmp/kubernetes-sigs
