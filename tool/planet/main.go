@@ -129,17 +129,21 @@ func run() error {
 					OverrideDefaultFromEnvar(EnvPlanetKubeletOptions).String()
 		cstartAPIServerOptions = cstart.Flag("apiserver-options", "Additional command line options to pass to API server").
 					OverrideDefaultFromEnvar(EnvPlanetAPIServerOptions).String()
-		cstartDNSListenAddrs   = List(cstart.Flag("dns-listen-addr", "Comma-separated list of addresses for CoreDNS to listen on").OverrideDefaultFromEnvar(EnvPlanetDNSListenAddr).Default(DefaultDNSListenAddr))
-		cstartDNSPort          = cstart.Flag("dns-port", "DNS port for CoreDNS").OverrideDefaultFromEnvar(EnvPlanetDNSPort).Default(strconv.Itoa(DNSPort)).Int()
-		cstartTaints           = List(cstart.Flag("taint", "Kubernetes taints to apply to the node during creation").OverrideDefaultFromEnvar(EnvPlanetTaints))
-		cstartNodeLabels       = List(cstart.Flag("node-label", "Kubernetes node label to apply upon node registration").OverrideDefaultFromEnvar(EnvPlanetNodeLabels))
-		cstartDisableFlannel   = cstart.Flag("disable-flannel", "Disable flannel within the planet container").OverrideDefaultFromEnvar(EnvDisableFlannel).Bool()
-		cstartKubeletConfig    = cstart.Flag("kubelet-config", "Kubelet configuration as base64-encoded JSON payload").OverrideDefaultFromEnvar(EnvPlanetKubeletConfig).String()
-		cstartCloudConfig      = cstart.Flag("cloud-config", "Cloud configuration as base64-encoded payload").OverrideDefaultFromEnvar(EnvPlanetCloudConfig).String()
-		cstartAllowPrivileged  = cstart.Flag("allow-privileged", "Allow privileged containers").OverrideDefaultFromEnvar(EnvPlanetAllowPrivileged).Bool()
-		cstartSELinux          = cstart.Flag("selinux", "Run with SELinux support").Envar(EnvPlanetSELinux).Bool()
-		cstartHighAvailability = cstart.Flag("high-availability", "Boolean flag to enable/disable kubernetes high availability mode.").OverrideDefaultFromEnvar(EnvHighAvailability).Bool()
-		cstartFlannelBackend   = cstart.Flag("flannel-backend", "Flannel backend: 'aws-vpc', 'gce', or 'vxlan'").Envar(EnvFlannelBackend).String()
+		cstartDNSListenAddrs     = List(cstart.Flag("dns-listen-addr", "Comma-separated list of addresses for CoreDNS to listen on").OverrideDefaultFromEnvar(EnvPlanetDNSListenAddr).Default(DefaultDNSListenAddr))
+		cstartDNSPort            = cstart.Flag("dns-port", "DNS port for CoreDNS").OverrideDefaultFromEnvar(EnvPlanetDNSPort).Default(strconv.Itoa(DNSPort)).Int()
+		cstartTaints             = List(cstart.Flag("taint", "Kubernetes taints to apply to the node during creation").OverrideDefaultFromEnvar(EnvPlanetTaints))
+		cstartNodeLabels         = List(cstart.Flag("node-label", "Kubernetes node label to apply upon node registration").OverrideDefaultFromEnvar(EnvPlanetNodeLabels))
+		cstartDisableFlannel     = cstart.Flag("disable-flannel", "Disable flannel within the planet container").OverrideDefaultFromEnvar(EnvDisableFlannel).Bool()
+		cstartKubeletConfig      = cstart.Flag("kubelet-config", "Kubelet configuration as base64-encoded JSON payload").OverrideDefaultFromEnvar(EnvPlanetKubeletConfig).String()
+		cstartCloudConfig        = cstart.Flag("cloud-config", "Cloud configuration as base64-encoded payload").OverrideDefaultFromEnvar(EnvPlanetCloudConfig).String()
+		cstartAllowPrivileged    = cstart.Flag("allow-privileged", "Allow privileged containers").OverrideDefaultFromEnvar(EnvPlanetAllowPrivileged).Bool()
+		cstartSELinux            = cstart.Flag("selinux", "Run with SELinux support").Envar(EnvPlanetSELinux).Bool()
+		cstartHighAvailability   = cstart.Flag("high-availability", "Boolean flag to enable/disable kubernetes high availability mode.").OverrideDefaultFromEnvar(EnvHighAvailability).Bool()
+		cstartFlannelBackend     = cstart.Flag("flannel-backend", "Flannel backend: 'aws-vpc', 'gce', or 'vxlan'").Envar(EnvFlannelBackend).String()
+		cstartEncryptionProvider = cstart.Flag("encryption-provider", "Kubernetes encryption provder: 'aws'").Envar(EnvEncryptionProvider).String()
+		cstartAWSAccountID       = cstart.Flag("aws-account-id", "AWS account ID").Envar(EnvAWSAccountID).String()
+		cstartAWSKeyID           = cstart.Flag("aws-key-id", "AWS KMS key ID").Envar(EnvAWSKeyID).String()
+		cstartAWSKeyRegion       = cstart.Flag("aws-key-region", "AWS KMS key region").Envar(EnvAWSKeyRegion).String()
 
 		// start the planet agent
 		cagent                 = app.Command("agent", "Start Planet Agent")
@@ -455,17 +459,23 @@ func run() error {
 				ListenAddrs: *cstartDNSListenAddrs,
 				Port:        *cstartDNSPort,
 			},
-			KubeletOptions:   *cstartKubeletOptions,
-			APIServerOptions: *cstartAPIServerOptions,
-			Taints:           *cstartTaints,
-			NodeLabels:       *cstartNodeLabels,
-			DisableFlannel:   *cstartDisableFlannel,
-			KubeletConfig:    *cstartKubeletConfig,
-			CloudConfig:      *cstartCloudConfig,
-			AllowPrivileged:  *cstartAllowPrivileged,
-			SELinux:          *cstartSELinux,
-			HighAvailability: *cstartHighAvailability,
-			FlannelBackend:   *cstartFlannelBackend,
+			KubeletOptions:     *cstartKubeletOptions,
+			APIServerOptions:   *cstartAPIServerOptions,
+			Taints:             *cstartTaints,
+			NodeLabels:         *cstartNodeLabels,
+			DisableFlannel:     *cstartDisableFlannel,
+			KubeletConfig:      *cstartKubeletConfig,
+			CloudConfig:        *cstartCloudConfig,
+			AllowPrivileged:    *cstartAllowPrivileged,
+			SELinux:            *cstartSELinux,
+			HighAvailability:   *cstartHighAvailability,
+			FlannelBackend:     *cstartFlannelBackend,
+			EncryptionProvider: *cstartEncryptionProvider,
+			AWSEncryptionConfig: AWSEncryptionConfig{
+				AccountID: *cstartAWSAccountID,
+				KeyID:     *cstartAWSKeyID,
+				Region:    *cstartAWSKeyRegion,
+			},
 		}
 		err = startAndWait(config)
 

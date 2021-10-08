@@ -53,6 +53,7 @@ build: | $(ASSETDIR) $(GOCACHE)
 			PLANET_UID=$(PLANET_UID) \
 			PLANET_GID=$(PLANET_GID) \
 			DISTRIBUTION_VER=$(DISTRIBUTION_VER) \
+			AWS_ENCRYPTION_PROVIDER_VER=$(AWS_ENCRYPTION_PROVIDER_VER) \
 			-C /assets/makefiles -f planet.mk
 	$(MAKE) -C $(ASSETS)/makefiles/master/k8s-master -e -f containers.mk
 

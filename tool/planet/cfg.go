@@ -28,6 +28,7 @@ import (
 	"github.com/gravitational/planet/lib/box"
 	"github.com/gravitational/planet/lib/constants"
 	"github.com/gravitational/planet/lib/user"
+	"github.com/gravitational/planet/lib/utils"
 	"github.com/gravitational/trace"
 
 	kv "github.com/gravitational/configure"
@@ -142,6 +143,11 @@ type Config struct {
 	HighAvailability bool
 	// FlannelBackend specifies the backend to pair with flannel.
 	FlannelBackend string
+	// EncryptionProvider specifies the encryption provider used to encrypt
+	// Kubernetes resources.
+	EncryptionProvider string
+	// AWSEncryptionConfig specifies configuration for aws encryption provider.
+	AWSEncryptionConfig AWSEncryptionConfig
 }
 
 // DNS describes DNS server configuration
@@ -347,3 +353,31 @@ contexts:
     cluster: default
     user: default
     namespace: default`))
+
+// AWSEncryptionConfig specifies AWS encryption config.
+type AWSEncryptionConfig struct {
+	// AccountID specifies the AWS account ID.
+	AccountID string
+	// Key specifies the key ID.
+	KeyID string
+	// Region specifies the region of the key.
+	Region string
+}
+
+// CheckAndSetDefaults checks and sets default configuration.
+func (r *AWSEncryptionConfig) CheckAndSetDefaults() error {
+	if r.AccountID == "" {
+		return trace.BadParameter("AccountID is required")
+	}
+	if r.KeyID == "" {
+		return trace.BadParameter("KeyID is required")
+	}
+	if r.Region == "" {
+		region, err := utils.GetRegion()
+		if err != nil {
+			return trace.BadParameter("unable to query region metadata; Region is required")
+		}
+		r.Region = region
+	}
+	return nil
+}

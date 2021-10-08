@@ -1,0 +1,17 @@
+[Unit]
+Description=AWS Encryption Provider
+Documentation=https://github.com/kubernetes-sigs/aws-encryption-provider
+
+[Service]
+EnvironmentFile=/etc/container-environment
+ExecStartPre=-/bin/rm /etc/kmsplugin/encryption-provider.sock
+ExecStart=/usr/bin/aws-encryption-provider \
+	--key=arn:aws:kms:${AWS_KEY_REGION}:${AWS_ACCOUNT_ID}:key/${AWS_KEY_ID} \
+	--region=${AWS_KEY_REGION} \
+	--listen=/etc/kmsplugin/encryption-provider.sock
+Restart=always
+RestartSec=5
+StartLimitInterval=3600
+StartLimitBurst=720
+User=planet
+Group=planet

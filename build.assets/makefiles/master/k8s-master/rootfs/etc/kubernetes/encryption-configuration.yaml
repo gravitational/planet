@@ -1,0 +1,14 @@
+# Documentation: https://kubernetes.io/docs/tasks/administer-cluster/encrypt-data/#understanding-the-encryption-at-rest-configuration
+
+apiVersion: apiserver.config.k8s.io/v1
+kind: EncryptionConfiguration
+resources:
+  - resources:
+    - secrets
+    providers:
+    - kms:
+        name: kms-encryption-provider
+        endpoint: unix:///etc/kmsplugin/encryption-provider.sock
+        cachesize: 1000
+        timeout: 3s
+    - identity: {}

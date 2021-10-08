@@ -171,6 +171,9 @@ func start(config *Config) (*runtimeContext, error) {
 	// Setup http_proxy / no_proxy environment configuration
 	configureProxy(config)
 
+	if err := setupEncryptionProvider(config); err != nil {
+		return nil, trace.Wrap(err)
+	}
 	if err = addDockerOptions(config); err != nil {
 		return nil, trace.Wrap(err)
 	}
@@ -539,6 +542,10 @@ func addComponentOptions(config *Config) error {
 	} else {
 		config.Env.Append(EnvAPIServerOptions, "--endpoint-reconciler-type=master-count")
 		config.Env.Append(EnvAPIServerOptions, "--apiserver-count=1")
+	}
+	if config.EncryptionProvider != "" {
+		config.Env.Append(EnvAPIServerOptions,
+			fmt.Sprintf("--encryption-provider-config=%s", constants.EncryptionProviderConfig))
 	}
 	if config.ProxyPortRange != "" {
 		config.Env.Append(EnvKubeProxyOptions,
@@ -942,6 +949,47 @@ var flannelConflist = `
 	]
 }
 `
+
+// setupEncryptionProvider setups Kubernetes encryption provider.
+func setupEncryptionProvider(config *Config) error {
+	_ = os.Remove(path.Join(config.Rootfs, "/lib/systemd/system/multi-user.target.wants/aws-encryption-provider.service"))
+
+	if config.EncryptionProvider == "" {
+		return nil
+	}
+
+	switch config.EncryptionProvider {
+	case "aws":
+		config.Env.Upsert(EnvEncryptionProvider, config.EncryptionProvider)
+		if err := setupAWSEncryptionProvider(config); err != nil {
+			return trace.Wrap(err)
+		}
+	default:
+		return trace.BadParameter("unsupported encryption provider was specified: %v", config.EncryptionProvider)
+	}
+
+	return nil
+}
+
+// setupAWSEncryptionProvider enables the aws-encryption-provider service.
+func setupAWSEncryptionProvider(config *Config) error {
+	if err := config.AWSEncryptionConfig.CheckAndSetDefaults(); err != nil {
+		return trace.Wrap(err, "invalid AWS encryption provider configuration provided")
+	}
+
+	config.Env.Upsert(EnvAWSAccountID, config.AWSEncryptionConfig.AccountID)
+	config.Env.Upsert(EnvAWSKeyID, config.AWSEncryptionConfig.KeyID)
+	config.Env.Upsert(EnvAWSKeyRegion, config.AWSEncryptionConfig.Region)
+
+	err := os.Symlink(
+		"/lib/systemd/system/aws-encryption-provider.service",
+		path.Join(config.Rootfs, "/lib/systemd/system/multi-user.target.wants/aws-encryption-provider.service"),
+	)
+	if err != nil && !os.IsExist(err) {
+		return trace.ConvertSystemError(err)
+	}
+	return nil
+}
 
 const (
 	ETCDWorkDir              = "/ext/etcd"
