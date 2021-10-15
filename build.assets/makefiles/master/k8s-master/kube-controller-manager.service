@@ -20,6 +20,8 @@ ExecStart=/usr/bin/kube-controller-manager \
         --cluster-cidr=${KUBE_POD_SUBNET} \
         --allocate-node-cidrs=${KUBE_ENABLE_IPAM} \
         --use-service-account-credentials=true \
+        --tls-cert-file=/var/state/controller-manager.cert \
+        --tls-private-key-file=/var/state/controller-manager.key \
         --tls-cipher-suites=TLS_ECDHE_ECDSA_WITH_AES_128_GCM_SHA256,TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256,TLS_ECDHE_ECDSA_WITH_AES_256_GCM_SHA384,TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384,TLS_RSA_WITH_AES_128_GCM_SHA256,TLS_RSA_WITH_AES_256_GCM_SHA384,TLS_RSA_WITH_AES_128_GCM_SHA256,TLS_RSA_WITH_AES_256_GCM_SHA384 \
         --tls-min-version=VersionTLS12 \
         $KUBE_CONTROLLER_MANAGER_FLAGS \
