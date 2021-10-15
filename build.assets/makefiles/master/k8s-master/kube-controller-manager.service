@@ -18,6 +18,7 @@ ExecStart=/usr/bin/kube-controller-manager \
         --authorization-kubeconfig=/etc/kubernetes/scheduler.kubeconfig \
         --profiling=false \
         --terminated-pod-gc-threshold=500 \
+        --port=0 \
         --cluster-cidr=${KUBE_POD_SUBNET} \
         --allocate-node-cidrs=${KUBE_ENABLE_IPAM} \
         --use-service-account-credentials=true \
