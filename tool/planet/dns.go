@@ -215,20 +215,9 @@ func newUnlimitedExponentialBackoff(maxInterval time.Duration) *backoff.Exponent
 	return b
 }
 
-func mustLabelSelector(labels ...string) labels.Selector {
-	if len(labels)%2 != 0 {
-		panic("must have even number of labels")
-	}
-	m := make(map[string]string)
-	for i := 0; i < len(labels); i += 2 {
-		m[labels[i]] = labels[i+1]
-	}
+func mustLabelSelector(m map[string]string) labels.Selector {
 	selector, err := metav1.LabelSelectorAsSelector(
-		&metav1.LabelSelector{
-			MatchLabels: map[string]string{
-				"k8s-app": "kube-dns",
-			},
-		},
+		metav1.SetAsLabelSelector(m),
 	)
 	if err != nil {
 		panic(err.Error())
@@ -261,7 +250,11 @@ func statusHasCause(status metav1.Status, field, messagePattern string) bool {
 }
 
 // dnsServiceSelector defines label selector to query DNS service
-var dnsServiceSelector = mustLabelSelector("k8s-app", "kube-dns")
+var dnsServiceSelector = mustLabelSelector(map[string]string{
+	"k8s-app": "kube-dns",
+})
 
 // dnsWorkerServiceSelector defines label selector to query DNS worker service
-var dnsWorkerServiceSelector = mustLabelSelector("k8s-app", "kube-dns-worker")
+var dnsWorkerServiceSelector = mustLabelSelector(map[string]string{
+	"k8s-app": "kube-dns-worker",
+})
