@@ -13,10 +13,10 @@ ARG CNI_VER=0.8.6
 ARG IPTABLES_VER=v1.8.5
 ARG PLANET_UID=980665
 ARG PLANET_GID=980665
-ARG GO_VERSION=1.16.3
+ARG GO_VERSION=1.17.5
 ARG ALPINE_VERSION=3.12
 ARG DEBIAN_IMAGE=quay.io/gravitational/debian-mirror@sha256:4b6ec644c29e4964a6f74543a5bf8c12bed6dec3d479e039936e4a37a8af9116
-ARG GO_BUILDER_VERSION=go1.13.8-stretch
+ARG GO_BUILDER_VERSION=go1.17.5-stretch
 ARG AWS_ENCRYPTION_PROVIDER_VER=c4abcb30b4c1ab1961369e1e50a98da2cedb765d
 # TODO(dima): update to 2.7.2 release once available
 # ARG DISTRIBUTION_VER=release/2.7
@@ -70,7 +70,7 @@ RUN set -ex && \
 ARG GO_BUILDER_VERSION
 FROM quay.io/gravitational/debian-venti:${GO_BUILDER_VERSION} AS planet-builder-base
 RUN apt-get update && apt-get install -y libc6-dev libudev-dev && mkdir -p /tmp && \
-	GO111MODULE=on go install github.com/gravitational/version/cmd/linkflags
+	GO111MODULE=on go install github.com/gravitational/version/cmd/linkflags@0.0.2
 
 FROM planet-builder-base AS planet-builder
 ENV PATH="$PATH:/gopath/bin"
