@@ -34,7 +34,7 @@ $(BINARIES):
 	cd $(REPODIR) && git clone https://github.com/gravitational/distribution -b $(DISTRIBUTION_VER) --depth 1
 	cd $(REPODIR)/distribution && \
 	echo "$$VERSION_PACKAGE" > version/version.go && \
-	GOOS=linux GOARCH=amd64 CGO_ENABLED=0 go build -tags "$(DOCKER_BUILDTAGS)" -a -installsuffix cgo -o $@ $(GO_LDFLAGS) ./cmd/registry
+	GO111MODULE=off GOOS=linux GOARCH=amd64 CGO_ENABLED=0 go build -tags "$(DOCKER_BUILDTAGS)" -a -installsuffix cgo -o $@ $(GO_LDFLAGS) ./cmd/registry
 
 install: registry.mk $(BINARIES)
 	@echo "\n---> Installing docker registry:\n"
