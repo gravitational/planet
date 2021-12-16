@@ -10,7 +10,7 @@ COREDNS_VER := 1.7.0
 NODE_PROBLEM_DETECTOR_VER := v0.6.4
 CNI_VER := 0.8.6
 IPTABLES_VER := v1.8.5
-BUILDBOX_GO_VER ?= 1.13.8
+BUILDBOX_GO_VER ?= 1.17.5
 DISTRIBUTION_VER=v2.7.1-gravitational
 # aws-encryption-provider repo does not currently provide tagged releases
 AWS_ENCRYPTION_PROVIDER_VER := c4abcb30b4c1ab1961369e1e50a98da2cedb765d
