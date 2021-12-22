@@ -248,11 +248,8 @@ RUN --mount=target=/root/.cache,type=cache --mount=target=/go/pkg/mod,type=cache
 FROM gobase AS serf-builder
 ARG SERF_VER
 RUN set -ex && \
-	mkdir -p /go/src/github.com/hashicorp && \
-	cd /go/src/github.com/hashicorp && \
-	git clone https://github.com/hashicorp/serf -b ${SERF_VER} --depth 1 && \
-	cd /go/src/github.com/hashicorp/serf && \
-	GOOS=linux GOARCH=amd64 CGO_ENABLED=0 go build -o /serf ./cmd/serf
+	GOOS=linux GOARCH=amd64 CGO_ENABLED=0 go install github.com/hashicorp/serf/cmd/serf@${SERF_VER} && \
+	cp ${GOPATH}/bin/serf /serf
 
 FROM downloader AS cni-downloader
 ARG CNI_VER
