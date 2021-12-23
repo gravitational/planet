@@ -1,7 +1,7 @@
 ARG PLANET_BASE_IMAGE=planet/base:latest
 FROM $PLANET_BASE_IMAGE
 
-ARG GOVERSION=go1.10.7
+ARG GOVERSION=go1.17.5
 
 ENV GOPATH /gopath
 ENV GOROOT /opt/go
@@ -15,7 +15,8 @@ COPY passwd /etc/passwd
 RUN apt-get update && apt-get -t stretch-backports install -y libc6-dev libudev-dev && \
 	apt-get install -y curl make git gcc tar gzip vim screen dumb-init
 RUN mkdir -p /opt && cd /opt && curl https://storage.googleapis.com/golang/go$GOVERSION.linux-amd64.tar.gz | tar xz
-RUN mkdir -p $GOPATH/src $GOPATH/bin ${GOVERSION};go get github.com/tools/godep
-RUN go get github.com/gravitational/version/cmd/linkflags
+RUN mkdir -p $GOPATH/src $GOPATH/bin ${GOVERSION}
+RUN GO111MODULE=off go get github.com/tools/godep
+RUN GO111MODULE=off go get github.com/gravitational/version/cmd/linkflags
 RUN chmod a+w $GOPATH -R
 RUN chmod a+w $GOROOT -R
