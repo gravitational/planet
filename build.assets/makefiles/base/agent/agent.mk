@@ -1,6 +1,5 @@
 .PHONY: all
 
-REPODIR := $(GOPATH)/src/github.com/hashicorp/serf
 OUT := $(ASSETDIR)/serf-$(SERF_VER)
 BINARIES := $(ROOTFS)/usr/bin/serf
 
@@ -8,11 +7,8 @@ all: agent.mk planet-agent.service $(OUT) $(BINARIES)
 
 $(OUT):
 	@echo "\n---> Building Serf:\n"
-	mkdir -p $(GOPATH)/src/github.com/hashicorp
-	cd $(GOPATH)/src/github.com/hashicorp && git clone https://github.com/hashicorp/serf -b $(SERF_VER) --depth 1
-	cd $(REPODIR) && \
-	go get -t -d ./... && \
-	GOOS=linux GOARCH=amd64 CGO_ENABLED=0 go build -o $@ ./cmd/serf
+	GOOS=linux GOARCH=amd64 CGO_ENABLED=0 go install github.com/hashicorp/serf/cmd/serf@$(SERF_VER)
+	cp $(GOPATH)/bin/serf $@
 
 $(BINARIES): serf.service planet-agent.service
 	@echo "\n---> Installing services for Serf/Planet agent:\n"
