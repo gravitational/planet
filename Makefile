@@ -71,7 +71,7 @@ ETCD_VER := v3.3.12 v3.3.15 v3.3.20 v3.3.22 v3.4.3 v3.4.7 v3.4.9
 #   - Modify build.go and run the etcd upgrade integration test (go run mage.go ci:testEtcdUpgrade)
 ETCD_LATEST_VER := v3.4.9
 
-BUILDBOX_GO_VER ?= 1.12.9
+BUILDBOX_GO_VER ?= 1.17.5
 PLANET_BUILD_TAG ?= $(shell git describe --tags)
 PLANET_IMAGE_NAME ?= planet/base
 PLANET_IMAGE ?= $(PLANET_IMAGE_NAME):$(PLANET_BUILD_TAG)
@@ -101,7 +101,7 @@ build: $(BUILD_ASSETS)/planet $(BUILDDIR)/planet.tar.gz
 
 .PHONY: planet-bin
 planet-bin:
-	go build -o $(BUILDDIR)/planet github.com/gravitational/planet/tool/planet
+	GO111MODULE=off go build -o $(BUILDDIR)/planet github.com/gravitational/planet/tool/planet
 
 # Deploys the build artifacts to Amazon S3
 .PHONY: dev-deploy
