@@ -49,7 +49,7 @@ ETCD_VER := v2.3.8 v3.3.4 v3.3.9 v3.3.11 v3.3.20 v3.3.22
 # This is the version of etcd we should upgrade to (from the version list)
 ETCD_LATEST_VER := v3.3.22
 
-BUILDBOX_GO_VER ?= 1.12.9
+BUILDBOX_GO_VER ?= 1.17.5
 PLANET_BUILD_TAG ?= $(shell git describe --tags)
 PLANET_IMAGE_NAME ?= planet/base
 PLANET_IMAGE ?= $(PLANET_IMAGE_NAME):$(PLANET_BUILD_TAG)
@@ -79,7 +79,7 @@ build: $(BUILD_ASSETS)/planet $(BUILDDIR)/planet.tar.gz
 
 .PHONY: planet-bin
 planet-bin:
-	go build -o $(OUTPUTDIR)/planet github.com/gravitational/planet/tool/planet
+	GO111MODULE=off go build -o $(OUTPUTDIR)/planet github.com/gravitational/planet/tool/planet
 
 # Deploys the build artifacts to Amazon S3
 .PHONY: dev-deploy
