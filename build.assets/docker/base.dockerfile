@@ -89,7 +89,7 @@ RUN curl https://download.docker.com/linux/static/stable/x86_64/docker-$DOCKER_V
     cp /tmp/docker/* /usr/bin && \
     rm -rf /tmp/docker*
 
-RUN curl https://get.helm.sh/helm-$HELM_VER-linux-amd64.tar.gz -o /tmp/helm-$HELM_VER.tar.gz && \
+RUN curl https://storage.googleapis.com/kubernetes-helm/helm-$HELM_VER-linux-amd64.tar.gz -o /tmp/helm-$HELM_VER.tar.gz && \
     mkdir -p /tmp/helm && tar -xvzf /tmp/helm-$HELM_VER.tar.gz -C /tmp/helm && \
     cp /tmp/helm/linux-amd64/helm /usr/bin && \
     # make symlink for helm for backward compatibility
