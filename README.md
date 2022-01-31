@@ -1,4 +1,4 @@
-# Planet
+# Planet is Rad
 
 Planet is a containerized [Kubernetes](https://kubernetes.io/) environment. It is a self-containerizing Debian image with
 Kubernetes services running inside. [Gravity](https://github.com/gravitational/gravity) is the
