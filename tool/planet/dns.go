@@ -225,9 +225,7 @@ func mustLabelSelector(labels ...string) labels.Selector {
 	}
 	selector, err := metav1.LabelSelectorAsSelector(
 		&metav1.LabelSelector{
-			MatchLabels: map[string]string{
-				"k8s-app": "kube-dns",
-			},
+			MatchLabels: m,
 		},
 	)
 	if err != nil {
