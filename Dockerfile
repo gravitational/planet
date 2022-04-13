@@ -18,6 +18,7 @@ ARG ALPINE_VERSION=3.12
 ARG DEBIAN_IMAGE=quay.io/gravitational/debian-mirror@sha256:4b6ec644c29e4964a6f74543a5bf8c12bed6dec3d479e039936e4a37a8af9116
 ARG GO_BUILDER_VERSION=go1.17.5-stretch
 ARG AWS_ENCRYPTION_PROVIDER_VER=c4abcb30b4c1ab1961369e1e50a98da2cedb765d
+ARG AWS_ECR_CREDENTIAL_PROVIDER_VER=94ab99f0db55f0f8d708c1b999fbdbaf1c405b24
 # TODO(dima): update to 2.7.2 release once available
 # ARG DISTRIBUTION_VER=release/2.7
 ARG DISTRIBUTION_VER=v2.7.1-gravitational
@@ -248,6 +249,18 @@ RUN --mount=target=/root/.cache,type=cache --mount=target=/go/pkg/mod,type=cache
 	make build-server && \
 	cp /go/src/github.com/kubernetes-sigs/aws-encryption-provider/bin/aws-encryption-provider /aws-encryption-provider
 
+FROM gobase AS ecr-credential-provider-builder
+ARG AWS_ECR_CREDENTIAL_PROVIDER_VER
+RUN --mount=target=/root/.cache,type=cache --mount=target=/go/pkg/mod,type=cache \
+	set -ex && \
+	mkdir -p /go/src/github.com/kubernetes && \
+	cd /go/src/github.com/kubernetes && \
+	git clone https://github.com/kubernetes/cloud-provider-aws.git && \
+	cd /go/src/github.com/kubernetes/cloud-provider-aws && \
+	git checkout ${AWS_ECR_CREDENTIAL_PROVIDER_VER} && \
+	make ecr-credential-provider && \
+	cp /go/src/github.com/kubernetes/cloud-provider-aws/ecr-credential-provider /ecr-credential-provider
+
 FROM gobase AS distribution-builder
 ARG DISTRIBUTION_VER
 ENV GOOS=linux GOARCH=amd64 CGO_ENABLED=0 GO111MODULE=off 
@@ -369,6 +382,10 @@ RUN set -ex && \
 	mkdir -p /etc/kmsplugin && \
 	chmod o+t /etc/kmsplugin && \
 	chmod a+rwx /etc/kmsplugin
+
+# credential-provider.mk
+RUN set -ex && mkdir -p /opt/ecr-credential-provider/bin /etc/ecr-credential-provider
+COPY --from=ecr-credential-provider-builder /ecr-credential-provider /opt/ecr-credential-provider/bin/ecr-credential-provider
 
 # node-problem-detector.mk
 COPY --from=node-problem-detector-downloader /tmp/bin/ /usr/bin
