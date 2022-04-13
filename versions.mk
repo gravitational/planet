@@ -14,6 +14,7 @@ BUILDBOX_GO_VER ?= 1.17.5
 DISTRIBUTION_VER=v2.7.1-gravitational
 # aws-encryption-provider repo does not currently provide tagged releases
 AWS_ENCRYPTION_PROVIDER_VER := c4abcb30b4c1ab1961369e1e50a98da2cedb765d
+AWS_ECR_CREDENTIAL_PROVIDER_VER := 94ab99f0db55f0f8d708c1b999fbdbaf1c405b24
 
 # planet user to use inside the rootfs tarball. This serves as a placeholder
 # and the files will be owned by the actual planet user after extraction
