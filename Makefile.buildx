@@ -25,7 +25,8 @@ DOCKER_BUILD_ARGS := --build-arg=ARTEFACTS_DIR="$(ARTEFACTS_DIR)" \
       --build-arg=ETCD_VER="$(ETCD_VER)" \
       --build-arg=ETCD_LATEST_VER="$(ETCD_LATEST_VER)" \
       --build-arg=GO_BUILDER_VERSION="$(GO_BUILDER_VERSION)" \
-      --build-arg=AWS_ENCRYPTION_PROVIDER_VER="$(AWS_ENCRYPTION_PROVIDER_VER)"
+      --build-arg=AWS_ENCRYPTION_PROVIDER_VER="$(AWS_ENCRYPTION_PROVIDER_VER)" \
+      --build-arg=AWS_ECR_CREDENTIAL_PROVIDER_VER="$(AWS_ECR_CREDENTIAL_PROVIDER_VER)"
 
 .PHONY: all binaries tarball rootfs-shell clean
 all: tarball
