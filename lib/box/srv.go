@@ -33,11 +33,11 @@ import (
 	"github.com/gravitational/planet/lib/constants"
 	"github.com/gravitational/planet/lib/defaults"
 
-	"github.com/gravitational/go-udev"
 	"github.com/gravitational/trace"
 	"github.com/opencontainers/runc/libcontainer"
 	"github.com/opencontainers/runc/libcontainer/cgroups/systemd"
 	"github.com/opencontainers/runc/libcontainer/configs"
+	"github.com/opencontainers/runc/libcontainer/devices"
 	"github.com/pborman/uuid"
 	log "github.com/sirupsen/logrus"
 )
@@ -230,35 +230,22 @@ func getLibcontainerConfig(containerID, rootfs string, cfg Config) (*configs.Con
 		return nil, trace.Wrap(err, "failed to get hostname")
 	}
 
-	// Enumerate all known block devices of type disk/partition
-	udev := udev.Udev{}
-	enum := udev.NewEnumerate()
-
-	devices, err := enum.Devices()
+	devs, err := devices.HostDevices()
 	if err != nil {
-		return nil, trace.Wrap(err, "failed to enumerate available devices")
+		return nil, trace.Wrap(err, "failed to get host devices")
+	}
+
+	var disks []*configs.Device
+	for _, device := range devs {
+		if device.Type == 'b' {
+			disks = append(disks, device)
+		}
 	}
 
 	// find all existing loop devices on a host and re-create them inside the container
 	hostLoops, err := filepath.Glob("/dev/loop?")
 	if err != nil {
 		return nil, trace.Wrap(err)
-	}
-
-	var disks []*configs.Device
-	for _, device := range devices {
-		deviceType := device.Devtype()
-		if deviceType == "disk" || deviceType == "partition" {
-			devnum := device.Devnum()
-			disks = append(disks, &configs.Device{
-				Type:        'b',
-				Path:        device.Devnode(),
-				Major:       int64(devnum.Major()),
-				Minor:       int64(devnum.Minor()),
-				Permissions: constants.DeviceReadWritePerms,
-				FileMode:    constants.GroupReadWriteMask,
-			})
-		}
 	}
 
 	loopDevices := make([]*configs.Device, len(hostLoops))
@@ -386,9 +373,9 @@ func getLibcontainerConfig(containerID, rootfs string, cfg Config) (*configs.Con
 			Resources: &configs.Resources{
 				AllowAllDevices:  &allowAllDevices,
 				AllowedDevices:   configs.DefaultAllowedDevices,
-				MemorySwappiness: nil, // nil means "machine-default" and that's what we need because we don't care
-				CpuShares:        2,   // set planet to minimum cpu shares relative to host services
-				PidsLimit:        2000000,  // override systemd defaults and set planet scope to unlimited pids
+				MemorySwappiness: nil,     // nil means "machine-default" and that's what we need because we don't care
+				CpuShares:        2,       // set planet to minimum cpu shares relative to host services
+				PidsLimit:        2000000, // override systemd defaults and set planet scope to unlimited pids
 			},
 		},
 		Devices:  append(configs.DefaultAutoCreatedDevices, append(loopDevices, disks...)...),
