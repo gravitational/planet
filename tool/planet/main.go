@@ -46,7 +46,7 @@ import (
 	"github.com/gravitational/satellite/lib/history/sqlite"
 	"github.com/gravitational/trace"
 	"github.com/gravitational/version"
-	"github.com/opencontainers/runc/libcontainer/configs"
+	"github.com/opencontainers/runc/libcontainer/devices"
 	"github.com/opencontainers/selinux/go-selinux"
 	log "github.com/sirupsen/logrus"
 	logsyslog "github.com/sirupsen/logrus/hooks/syslog"
@@ -535,7 +535,7 @@ func run() error {
 		err = e2e.RunTests(config, extraArgs)
 
 	case cdeviceAdd.FullCommand():
-		var device configs.Device
+		var device devices.Device
 		if err = json.Unmarshal([]byte(*cdeviceAddData), &device); err != nil {
 			break
 		}

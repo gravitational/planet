@@ -18,6 +18,7 @@ package box
 
 import (
 	"bytes"
+	"errors"
 	"io"
 	"io/ioutil"
 	"os"
@@ -265,7 +266,7 @@ func getContainer(dataDir string) (libcontainer.Container, error) {
 	for _, dir := range dirs {
 		container, err = factory.Load(dir.Name())
 		if err != nil {
-			if isErrorContainerNotFound(err) {
+			if errors.Is(err, libcontainer.ErrNotExist) {
 				log.WithError(err).WithField("dir", dir.Name()).Warn("Container state directory is empty - will skip.")
 				continue
 			}
@@ -294,11 +295,7 @@ func getContainer(dataDir string) (libcontainer.Container, error) {
 }
 
 func isErrorContainerNotFound(err error) bool {
-	errLibc, ok := err.(libcontainer.Error)
-	if !ok {
-		return false
-	}
-	return errLibc.Code() == libcontainer.ContainerNotExists
+	return errors.Is(err, libcontainer.ErrNotExist)
 }
 
 func setupTTYIO(process *libcontainer.Process, rootuid, rootgid int) (*tty, error) {

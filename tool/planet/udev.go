@@ -25,7 +25,6 @@ import (
 
 	"github.com/gravitational/go-udev"
 	"github.com/gravitational/trace"
-	"github.com/opencontainers/runc/libcontainer/configs"
 	"github.com/opencontainers/runc/libcontainer/devices"
 	log "github.com/sirupsen/logrus"
 )
@@ -106,7 +105,7 @@ func (r *udevListener) loop() {
 }
 
 // createDevice dispatches a command to add a new device in the container
-func (r *udevListener) createDevice(device *configs.Device) error {
+func (r *udevListener) createDevice(device *devices.Device) error {
 	log.Infof("createDevice: %v", device)
 
 	deviceJson, err := json.Marshal(device)

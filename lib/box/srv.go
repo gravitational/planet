@@ -38,6 +38,8 @@ import (
 	"github.com/opencontainers/runc/libcontainer"
 	"github.com/opencontainers/runc/libcontainer/cgroups/systemd"
 	"github.com/opencontainers/runc/libcontainer/configs"
+	"github.com/opencontainers/runc/libcontainer/devices"
+	"github.com/opencontainers/runc/libcontainer/specconv"
 	"github.com/pborman/uuid"
 	log "github.com/sirupsen/logrus"
 )
@@ -89,7 +91,7 @@ func (b *Box) Wait() (*os.ProcessState, error) {
 }
 
 func getLibContainerFactory(dataDir string) (libcontainer.Factory, error) {
-	if !systemd.UseSystemd() {
+	if !systemd.IsRunningSystemd() {
 		return nil, trace.BadParameter("unable to use systemd for container creation")
 	}
 
@@ -106,7 +108,6 @@ func getLibContainerFactory(dataDir string) (libcontainer.Factory, error) {
 	}
 
 	factory, err := libcontainer.New(dataDir,
-		libcontainer.SystemdCgroups,
 		libcontainer.NewuidmapPath(newuidmap),
 		libcontainer.NewgidmapPath(newgidmap),
 	)
@@ -234,7 +235,7 @@ func getLibcontainerConfig(containerID, rootfs string, cfg Config) (*configs.Con
 	udev := udev.Udev{}
 	enum := udev.NewEnumerate()
 
-	devices, err := enum.Devices()
+	devs, err := enum.Devices()
 	if err != nil {
 		return nil, trace.Wrap(err, "failed to enumerate available devices")
 	}
@@ -245,33 +246,37 @@ func getLibcontainerConfig(containerID, rootfs string, cfg Config) (*configs.Con
 		return nil, trace.Wrap(err)
 	}
 
-	var disks []*configs.Device
-	for _, device := range devices {
+	var disks []*devices.Device
+	for _, device := range devs {
 		deviceType := device.Devtype()
 		if deviceType == "disk" || deviceType == "partition" {
 			devnum := device.Devnum()
-			disks = append(disks, &configs.Device{
-				Type:        'b',
-				Path:        device.Devnode(),
-				Major:       int64(devnum.Major()),
-				Minor:       int64(devnum.Minor()),
-				Permissions: constants.DeviceReadWritePerms,
-				FileMode:    constants.GroupReadWriteMask,
+			disks = append(disks, &devices.Device{
+				Rule: devices.Rule{
+					Type:        devices.Type('b'),
+					Major:       int64(devnum.Major()),
+					Minor:       int64(devnum.Minor()),
+					Permissions: constants.DeviceReadWritePerms,
+				},
+				Path:     device.Devnode(),
+				FileMode: constants.GroupReadWriteMask,
 			})
 		}
 	}
 
-	loopDevices := make([]*configs.Device, len(hostLoops))
+	loopDevices := make([]*devices.Device, len(hostLoops))
 	for i := range hostLoops {
-		loopDevices[i] = &configs.Device{
-			Type:        'b',
-			Path:        fmt.Sprintf("/dev/loop%d", i),
-			Major:       7,
-			Minor:       int64(i),
-			Uid:         0,
-			Gid:         0,
-			Permissions: constants.DeviceReadWritePerms,
-			FileMode:    constants.GroupReadWriteMask,
+		loopDevices[i] = &devices.Device{
+			Rule: devices.Rule{
+				Type:        devices.Type('b'),
+				Major:       7,
+				Minor:       int64(i),
+				Permissions: constants.DeviceReadWritePerms,
+			},
+			Path:     fmt.Sprintf("/dev/loop%d", i),
+			Uid:      0,
+			Gid:      0,
+			FileMode: constants.GroupReadWriteMask,
 		}
 	}
 
@@ -283,7 +288,11 @@ func getLibcontainerConfig(containerID, rootfs string, cfg Config) (*configs.Con
 		Ambient:     cfg.Capabilities,
 	}
 
-	allowAllDevices := true
+	var allowedDevs []*devices.Rule
+	for _, device := range specconv.AllowedDevices {
+		allowedDevs = append(allowedDevs, &device.Rule)
+	}
+
 	config := &configs.Config{
 		Rootfs:       rootfs,
 		Capabilities: &capabilities,
@@ -382,16 +391,16 @@ func getLibcontainerConfig(containerID, rootfs string, cfg Config) (*configs.Con
 			},
 		},
 		Cgroups: &configs.Cgroup{
-			Name: fmt.Sprintf("planet-%v", containerID),
+			Name:    fmt.Sprintf("planet-%v", containerID),
+			Systemd: true,
 			Resources: &configs.Resources{
-				AllowAllDevices:  &allowAllDevices,
-				AllowedDevices:   configs.DefaultAllowedDevices,
-				MemorySwappiness: nil, // nil means "machine-default" and that's what we need because we don't care
-				CpuShares:        2,   // set planet to minimum cpu shares relative to host services
-				PidsLimit:        2000000,  // override systemd defaults and set planet scope to unlimited pids
+				Devices:          allowedDevs,
+				MemorySwappiness: nil,     // nil means "machine-default" and that's what we need because we don't care
+				CpuShares:        2,       // set planet to minimum cpu shares relative to host services
+				PidsLimit:        2000000, // override systemd defaults and set planet scope to unlimited pids
 			},
 		},
-		Devices:  append(configs.DefaultAutoCreatedDevices, append(loopDevices, disks...)...),
+		Devices:  append(specconv.AllowedDevices, append(loopDevices, disks...)...),
 		Hostname: hostname,
 	}
 	if cfg.SELinux {
@@ -479,17 +488,17 @@ func getLibcontainerConfig(containerID, rootfs string, cfg Config) (*configs.Con
 	}
 
 	for _, d := range cfg.Devices {
-		devices, err := convertToDevices(d)
+		devs, err := convertToDevices(d)
 		if err != nil {
 			return nil, trace.Wrap(err)
 		}
-		config.Devices = append(config.Devices, devices...)
+		config.Devices = append(config.Devices, devs...)
 	}
 
 	return config, nil
 }
 
-func convertToDevices(device Device) (devices []*configs.Device, err error) {
+func convertToDevices(device Device) (devs []*devices.Device, err error) {
 	// each device path passed on CLI is treated as a glob
 	devicePaths, err := filepath.Glob(device.Path)
 	if err != nil {
@@ -501,16 +510,16 @@ func convertToDevices(device Device) (devices []*configs.Device, err error) {
 			return nil, trace.Wrap(err)
 		}
 		// fill in other fields from the parameters passed on CLI
-		deviceInfo.Permissions = device.Permissions
+		deviceInfo.Permissions = devices.Permissions(device.Permissions)
 		deviceInfo.FileMode = device.FileMode
 		deviceInfo.Uid = device.UID
 		deviceInfo.Gid = device.GID
-		devices = append(devices, deviceInfo)
+		devs = append(devs, deviceInfo)
 	}
-	return devices, nil
+	return devs, nil
 }
 
-func getDeviceInfo(devicePath string) (*configs.Device, error) {
+func getDeviceInfo(devicePath string) (*devices.Device, error) {
 	stat := syscall.Stat_t{}
 	if err := syscall.Stat(devicePath, &stat); err != nil {
 		return nil, trace.Wrap(err)
@@ -525,11 +534,13 @@ func getDeviceInfo(devicePath string) (*configs.Device, error) {
 	default:
 		return nil, trace.BadParameter("unsupported device type: %q", devicePath)
 	}
-	return &configs.Device{
-		Type:  deviceType,
-		Path:  devicePath,
-		Major: int64(stat.Rdev / 256),
-		Minor: int64(stat.Rdev % 256),
+	return &devices.Device{
+		Rule: devices.Rule{
+			Type:  devices.Type(deviceType),
+			Major: int64(stat.Rdev / 256),
+			Minor: int64(stat.Rdev % 256),
+		},
+		Path: devicePath,
 	}, nil
 }
 
