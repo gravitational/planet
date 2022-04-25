@@ -105,6 +105,12 @@ const (
 
 	// EncryptionProviderConfig specifies the path to the encryption provider configuration.
 	EncryptionProviderConfig = "/etc/kubernetes/encryption-configuration.yaml"
+
+	// CredentialProviderConfig specifies the path to the credential provider configuration.
+	CredentialProviderConfig = "/etc/kubernetes/credential-provider-configuration.yaml"
+
+	// CredentialProviderBinDir specifies the path to the directory with credential provider plugin binaries.
+	CredentialProviderBinDir = "/opt/ecr-credential-provider/bin/"
 )
 
 var (

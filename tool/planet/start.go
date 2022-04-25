@@ -559,6 +559,12 @@ func addComponentOptions(config *Config) error {
 
 // addKubeletOptions sets extra kubelet command line arguments in environment
 func addKubeletOptions(config *Config) error {
+	config.Env.Append(EnvKubeletOptions,
+		fmt.Sprintf("--image-credential-provider-config=%v", constants.CredentialProviderConfig))
+	config.Env.Append(EnvKubeletOptions,
+		fmt.Sprintf("--image-credential-provider-bin-dir=%v", constants.CredentialProviderBinDir))
+	config.Env.Append(EnvKubeletOptions, "--feature-gates=KubeletCredentialProviders=true")
+
 	if config.KubeletOptions != "" {
 		config.Env.Append(EnvKubeletOptions, config.KubeletOptions)
 	}
