@@ -11,5 +11,5 @@ $(BIN):
 	mkdir /tmp/kubernetes
 	cd /tmp/kubernetes && git clone https://github.com/kubernetes/cloud-provider-aws
 	cd /tmp/kubernetes/cloud-provider-aws && git checkout $(AWS_ECR_CREDENTIAL_PROVIDER_VER) && make ecr-credential-provider
-	cp /tmp/kubernetes/cloud-provider-aws/bin/ecr-credential-provider $@
+	cp /tmp/kubernetes/cloud-provider-aws/ecr-credential-provider $@
 	rm -rf /tmp/kubernetes
