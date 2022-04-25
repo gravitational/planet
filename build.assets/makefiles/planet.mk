@@ -10,4 +10,5 @@ all:
 	make -C $(ASSETS)/makefiles/base/docker -f registry.mk
 	make -C $(ASSETS)/makefiles/master/k8s-master -f k8s-master.mk
 	make -C $(ASSETS)/makefiles/encryption -f encryption.mk
+	make -C $(ASSETS)/makefiles/credential-provider -f credential-provider.mk
 	make -e ROOTFS=$(ROOTFS) -C $(ASSETS)/makefiles -f shrink-rootfs.mk
