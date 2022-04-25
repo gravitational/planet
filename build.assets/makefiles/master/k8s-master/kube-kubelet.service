@@ -24,6 +24,9 @@ ExecStart=/usr/bin/kubelet \
         --config=/etc/kubernetes/kubelet.yaml \
         --image-pull-progress-deadline=15m \
         --tls-min-version=VersionTLS12 \
+        --image-credential-provider-config=/etc/kubernetes/credential-provider-configuration.yaml
+        --image-credential-provider-bin-dir=/opt/ecr-credential-provider/bin/
+        --feature-gates=KubeletCredentialProviders=true
         $KUBE_KUBELET_FLAGS \
         $KUBE_CLOUD_FLAGS \
         $KUBE_COMPONENT_FLAGS
