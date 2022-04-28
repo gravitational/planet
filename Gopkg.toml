@@ -90,7 +90,7 @@ ignored = ["github.com/gravitational/planet/build/*"]
 
 [[constraint]]
   branch = "master"
-  name = "github.com/gravitational/go-udev"
+  name = "github.com/jochenvg/go-udev"
 
 [[constraint]]
   name = "github.com/gravitational/satellite"

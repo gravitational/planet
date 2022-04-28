@@ -17,14 +17,15 @@ limitations under the License.
 package main
 
 import (
+	"context"
 	"encoding/json"
 	"os"
 
 	"github.com/gravitational/planet/lib/box"
 	"github.com/gravitational/planet/lib/constants"
 
-	"github.com/gravitational/go-udev"
 	"github.com/gravitational/trace"
+	"github.com/jochenvg/go-udev"
 	"github.com/opencontainers/runc/libcontainer/configs"
 	"github.com/opencontainers/runc/libcontainer/devices"
 	log "github.com/sirupsen/logrus"
@@ -38,20 +39,22 @@ func newUdevListener(seLinux bool) (*udevListener, error) {
 	if monitor == nil {
 		return nil, trace.BadParameter("failed to create udev monitor")
 	}
-	doneC := make(chan struct{})
 
 	monitor.FilterAddMatchSubsystemDevtype("block", "disk")
 	monitor.FilterAddMatchSubsystemDevtype("block", "partition")
 	monitor.FilterAddMatchTag("systemd")
 
-	recvC, err := monitor.DeviceChan(doneC)
+	ctx, cancel := context.WithCancel(context.Background())
+
+	recvC, err := monitor.DeviceChan(ctx)
 	if err != nil {
 		return nil, trace.Wrap(err)
 	}
 
 	listener := &udevListener{
 		monitor: monitor,
-		doneC:   doneC,
+		ctx:     ctx,
+		cancel:  cancel,
 		recvC:   recvC,
 		seLinux: seLinux,
 	}
@@ -66,7 +69,7 @@ func (r *udevListener) Close() error {
 		r.monitor.FilterRemove()
 		r.monitor.FilterUpdate()
 	}
-	close(r.doneC)
+	r.cancel()
 	removeFilters()
 	return nil
 }
@@ -75,7 +78,8 @@ func (r *udevListener) Close() error {
 // and dispatching corresponding device commands into the planet container
 type udevListener struct {
 	monitor *udev.Monitor
-	doneC   chan struct{}
+	ctx     context.Context
+	cancel  context.CancelFunc
 	recvC   <-chan *udev.Device
 	seLinux bool
 }
@@ -84,23 +88,29 @@ type udevListener struct {
 func (r *udevListener) loop() {
 	const cgroupPermissions = "rwm"
 
-	for device := range r.recvC {
-		switch device.Action() {
-		case "add":
-			deviceData, err := devices.DeviceFromPath(device.Devnode(), cgroupPermissions)
-			if err != nil {
-				log.Infof("failed to query device: %v", err)
-				continue
+	for {
+		select {
+		case device := <-r.recvC:
+			switch device.Action() {
+			case "add":
+				deviceData, err := devices.DeviceFromPath(device.Devnode(), cgroupPermissions)
+				if err != nil {
+					log.Warnf("failed to query device: %v", err)
+					continue
+				}
+				if err := r.createDevice(deviceData); err != nil {
+					log.Warnf("failed to create device `%v` in container: %v", device.Devnode(), err)
+				}
+			case "remove":
+				if err := r.removeDevice(device.Devnode()); err != nil {
+					log.Warnf("failed to remove device `%v` in container: %v", device.Devnode(), err)
+				}
+			default:
+				log.Warnf("unknown action %v for %v", device.Action(), device.Devnode())
 			}
-			if err := r.createDevice(deviceData); err != nil {
-				log.Infof("failed to create device `%v` in container: %v", device.Devnode(), err)
-			}
-		case "remove":
-			if err := r.removeDevice(device.Devnode()); err != nil {
-				log.Infof("failed to remove device `%v` in container: %v", device.Devnode(), err)
-			}
-		default:
-			log.Infof("unknown action %v for %v", device.Action(), device.Devnode())
+		case <-r.ctx.Done():
+			log.Warnf("Udev listener stopped")
+			return
 		}
 	}
 }

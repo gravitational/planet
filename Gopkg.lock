@@ -554,6 +554,14 @@
   version = "v0.3.6"
 
 [[projects]]
+  branch = "master"
+  digest = "1:96e2e68cc63ed2010448ebbad799e16d25bcdc997a23dc7722bb5fb70d950be6"
+  name = "github.com/jkeiser/iter"
+  packages = ["."]
+  pruneopts = "UT"
+  revision = "c8aa0ae784d15ad3cb2a1f1579768e46f6e87fe5"
+
+[[projects]]
   digest = "1:e22af8c7518e1eab6f2eab2b7d7558927f816262586cd6ed9f349c97a6c285c4"
   name = "github.com/jmespath/go-jmespath"
   packages = ["."]
@@ -570,6 +578,14 @@
   pruneopts = "UT"
   revision = "d161d7a76b5661016ad0b085869f77fd410f3e6a"
   version = "v1.2.0"
+
+[[projects]]
+  branch = "master"
+  digest = "1:4b57f0f5cbfc1d9ea2bce2f32eff6137fe19d14182732e395dfca7f85494ce83"
+  name = "github.com/jochenvg/go-udev"
+  packages = ["."]
+  pruneopts = "UT"
+  revision = "d6b62d56d37b941d93a199f9cb6f0250636fd4ab"
 
 [[projects]]
   digest = "1:35f49695a600c368ad7811a672d583b3e004b44fe883a0a1eb2a6c0d75eaeb1b"
@@ -1523,6 +1539,7 @@
     "github.com/gravitational/version",
     "github.com/hashicorp/serf/client",
     "github.com/imdario/mergo",
+    "github.com/jochenvg/go-udev",
     "github.com/kylelemons/godebug/diff",
     "github.com/magefile/mage/mage",
     "github.com/magefile/mage/mg",
