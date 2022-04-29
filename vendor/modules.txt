@@ -156,8 +156,6 @@ github.com/gravitational/coordinate/v4/config
 github.com/gravitational/coordinate/v4/leader
 # github.com/gravitational/etcd-backup v0.0.0-20210730122523-5067e2c92759
 github.com/gravitational/etcd-backup/lib/etcd
-# github.com/gravitational/go-udev v0.0.0-20160615210516-4cc8baba3689
-github.com/gravitational/go-udev
 # github.com/gravitational/roundtrip v1.0.0
 github.com/gravitational/roundtrip
 # github.com/gravitational/satellite v0.0.9-0.20211001145055-fae4abf39d92
@@ -192,11 +190,15 @@ github.com/hashicorp/golang-lru
 github.com/hashicorp/golang-lru/simplelru
 # github.com/imdario/mergo v0.3.6
 github.com/imdario/mergo
+# github.com/jkeiser/iter v0.0.0-20200628201005-c8aa0ae784d1
+github.com/jkeiser/iter
 # github.com/jmespath/go-jmespath v0.0.0-20180206201540-c2b33e8439af
 github.com/jmespath/go-jmespath
 # github.com/jmoiron/sqlx v1.2.0
 github.com/jmoiron/sqlx
 github.com/jmoiron/sqlx/reflectx
+# github.com/jochenvg/go-udev v0.0.0-20171110120927-d6b62d56d37b
+github.com/jochenvg/go-udev
 # github.com/jonboulle/clockwork v0.2.2
 github.com/jonboulle/clockwork
 # github.com/json-iterator/go v1.1.10 => github.com/json-iterator/go v1.1.5
@@ -375,7 +377,7 @@ golang.org/x/oauth2
 golang.org/x/oauth2/internal
 # golang.org/x/sync v0.0.0-20190911185100-cd5d95a43a6e
 golang.org/x/sync/errgroup
-# golang.org/x/sys v0.0.0-20201112073958-5cba982894dd
+# golang.org/x/sys v0.0.0-20220422013727-9388b58f7150
 golang.org/x/sys/internal/unsafeheader
 golang.org/x/sys/unix
 golang.org/x/sys/windows

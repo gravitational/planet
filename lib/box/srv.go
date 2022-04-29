@@ -33,8 +33,8 @@ import (
 	"github.com/gravitational/planet/lib/constants"
 	"github.com/gravitational/planet/lib/defaults"
 
-	"github.com/gravitational/go-udev"
 	"github.com/gravitational/trace"
+	"github.com/jochenvg/go-udev"
 	"github.com/opencontainers/runc/libcontainer"
 	"github.com/opencontainers/runc/libcontainer/cgroups/systemd"
 	"github.com/opencontainers/runc/libcontainer/configs"
@@ -386,9 +386,9 @@ func getLibcontainerConfig(containerID, rootfs string, cfg Config) (*configs.Con
 			Resources: &configs.Resources{
 				AllowAllDevices:  &allowAllDevices,
 				AllowedDevices:   configs.DefaultAllowedDevices,
-				MemorySwappiness: nil, // nil means "machine-default" and that's what we need because we don't care
-				CpuShares:        2,   // set planet to minimum cpu shares relative to host services
-				PidsLimit:        2000000,  // override systemd defaults and set planet scope to unlimited pids
+				MemorySwappiness: nil,     // nil means "machine-default" and that's what we need because we don't care
+				CpuShares:        2,       // set planet to minimum cpu shares relative to host services
+				PidsLimit:        2000000, // override systemd defaults and set planet scope to unlimited pids
 			},
 		},
 		Devices:  append(configs.DefaultAutoCreatedDevices, append(loopDevices, disks...)...),

@@ -31,13 +31,14 @@ require (
 	github.com/gravitational/coordinate v0.0.0-20210729105737-9889f283ee4f
 	github.com/gravitational/coordinate/v4 v4.0.0
 	github.com/gravitational/etcd-backup v0.0.0-20210730122523-5067e2c92759
-	github.com/gravitational/go-udev v0.0.0-20160615210516-4cc8baba3689
 	github.com/gravitational/satellite v0.0.9-0.20211001145055-fae4abf39d92
 	github.com/gravitational/trace v1.1.11
 	github.com/gravitational/version v0.0.2-0.20170324200323-95d33ece5ce1
 	github.com/grpc-ecosystem/go-grpc-middleware v1.2.0 // indirect
 	github.com/grpc-ecosystem/grpc-gateway v1.14.5 // indirect
 	github.com/imdario/mergo v0.3.6
+	github.com/jkeiser/iter v0.0.0-20200628201005-c8aa0ae784d1 // indirect
+	github.com/jochenvg/go-udev v0.0.0-20171110120927-d6b62d56d37b
 	github.com/jonboulle/clockwork v0.2.2 // indirect
 	github.com/konsorten/go-windows-terminal-sequences v1.0.3 // indirect
 	github.com/kylelemons/godebug v0.0.0-20170820004349-d65d576e9348
@@ -64,7 +65,7 @@ require (
 	golang.org/x/crypto v0.0.0-20201012173705-84dcc777aaee // indirect
 	golang.org/x/lint v0.0.0-20200130185559-910be7a94367 // indirect
 	golang.org/x/oauth2 v0.0.0-20200107190931-bf48bf16ab8d // indirect
-	golang.org/x/sys v0.0.0-20201112073958-5cba982894dd
+	golang.org/x/sys v0.0.0-20220422013727-9388b58f7150
 	golang.org/x/tools v0.0.0-20200225230052-807dcd883420 // indirect
 	gopkg.in/alecthomas/kingpin.v2 v2.2.6
 	gopkg.in/check.v1 v1.0.0-20200227125254-8fa46927fb4f
