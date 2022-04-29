@@ -109,7 +109,7 @@ func (r *udevListener) loop() {
 				log.Warnf("unknown action %v for %v", device.Action(), device.Devnode())
 			}
 		case <-r.ctx.Done():
-			log.Warnf("Udev listener stopped")
+			log.Warn("Udev listener stopped")
 			return
 		}
 	}
