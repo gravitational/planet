@@ -4,7 +4,7 @@ BIN := $(ASSETDIR)/ecr-credential-provider
 
 all: $(BIN)
 	@echo "\n---> Installing ecr-credential-provider:\n"
-	mkdir -p /opt/ecr-credential-provider/bin /etc/ecr-credential-provider
+	mkdir -p $(ROOTFS)/opt/ecr-credential-provider/bin $(ROOTFS)/etc/ecr-credential-provider
 	cp -af $(BIN) $(ROOTFS)/opt/ecr-credential-provider/bin/ecr-credential-provider
 
 $(BIN):
