@@ -506,6 +506,14 @@
                 "cli": {
                     "name": "high-availability"
                 }
+            },
+            {
+                "type": "String",
+                "name": "serf-encryption-key",
+                "env": "SERF_ENCRYPTION_KEY",
+                "cli": {
+                    "name": "serf-encryption-key"
+                }
             }
         ]
     }

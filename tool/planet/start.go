@@ -166,6 +166,7 @@ func start(config *Config) (*runtimeContext, error) {
 		box.EnvPair{Name: EnvServiceUID, Val: config.ServiceUser.UID},
 		box.EnvPair{Name: EnvServiceGID, Val: config.ServiceUser.GID},
 		box.EnvPair{Name: EnvHighAvailability, Val: strconv.FormatBool(config.HighAvailability)},
+		box.EnvPair{Name: EnvSerfEncryptionKey, Val: config.SerfEncryptionKey},
 	)
 
 	// Setup http_proxy / no_proxy environment configuration

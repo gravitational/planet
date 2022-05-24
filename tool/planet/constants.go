@@ -271,6 +271,9 @@ const (
 	// availability mode.
 	EnvHighAvailability = "KUBE_HIGH_AVAILABILITY"
 
+	// EnvSerfEncryptionKey specifies the serf encryption key.
+	EnvSerfEncryptionKey = "SERF_ENCRYPTION_KEY"
+
 	// DefaultDNSListenAddr is the default IP address CoreDNS will listen on
 	DefaultDNSListenAddr = "127.0.0.2"
 
