@@ -130,16 +130,17 @@ func run() error {
 					OverrideDefaultFromEnvar(EnvPlanetKubeletOptions).String()
 		cstartAPIServerOptions = cstart.Flag("apiserver-options", "Additional command line options to pass to API server").
 					OverrideDefaultFromEnvar(EnvPlanetAPIServerOptions).String()
-		cstartDNSListenAddrs   = List(cstart.Flag("dns-listen-addr", "Comma-separated list of addresses for CoreDNS to listen on").OverrideDefaultFromEnvar(EnvPlanetDNSListenAddr).Default(DefaultDNSListenAddr))
-		cstartDNSPort          = cstart.Flag("dns-port", "DNS port for CoreDNS").OverrideDefaultFromEnvar(EnvPlanetDNSPort).Default(strconv.Itoa(DNSPort)).Int()
-		cstartTaints           = List(cstart.Flag("taint", "Kubernetes taints to apply to the node during creation").OverrideDefaultFromEnvar(EnvPlanetTaints))
-		cstartNodeLabels       = List(cstart.Flag("node-label", "Kubernetes node label to apply upon node registration").OverrideDefaultFromEnvar(EnvPlanetNodeLabels))
-		cstartDisableFlannel   = cstart.Flag("disable-flannel", "Disable flannel within the planet container").OverrideDefaultFromEnvar(EnvDisableFlannel).Bool()
-		cstartKubeletConfig    = cstart.Flag("kubelet-config", "Kubelet configuration as base64-encoded JSON payload").OverrideDefaultFromEnvar(EnvPlanetKubeletConfig).String()
-		cstartCloudConfig      = cstart.Flag("cloud-config", "Cloud configuration as base64-encoded payload").OverrideDefaultFromEnvar(EnvPlanetCloudConfig).String()
-		cstartAllowPrivileged  = cstart.Flag("allow-privileged", "Allow privileged containers").OverrideDefaultFromEnvar(EnvPlanetAllowPrivileged).Bool()
-		cstartSELinux          = cstart.Flag("selinux", "Run with SELinux support").Envar(EnvPlanetSELinux).Bool()
-		cstartHighAvailability = cstart.Flag("high-availability", "Boolean flag to enable/disable kubernetes high availability mode.").OverrideDefaultFromEnvar(EnvHighAvailability).Bool()
+		cstartDNSListenAddrs    = List(cstart.Flag("dns-listen-addr", "Comma-separated list of addresses for CoreDNS to listen on").OverrideDefaultFromEnvar(EnvPlanetDNSListenAddr).Default(DefaultDNSListenAddr))
+		cstartDNSPort           = cstart.Flag("dns-port", "DNS port for CoreDNS").OverrideDefaultFromEnvar(EnvPlanetDNSPort).Default(strconv.Itoa(DNSPort)).Int()
+		cstartTaints            = List(cstart.Flag("taint", "Kubernetes taints to apply to the node during creation").OverrideDefaultFromEnvar(EnvPlanetTaints))
+		cstartNodeLabels        = List(cstart.Flag("node-label", "Kubernetes node label to apply upon node registration").OverrideDefaultFromEnvar(EnvPlanetNodeLabels))
+		cstartDisableFlannel    = cstart.Flag("disable-flannel", "Disable flannel within the planet container").OverrideDefaultFromEnvar(EnvDisableFlannel).Bool()
+		cstartKubeletConfig     = cstart.Flag("kubelet-config", "Kubelet configuration as base64-encoded JSON payload").OverrideDefaultFromEnvar(EnvPlanetKubeletConfig).String()
+		cstartCloudConfig       = cstart.Flag("cloud-config", "Cloud configuration as base64-encoded payload").OverrideDefaultFromEnvar(EnvPlanetCloudConfig).String()
+		cstartAllowPrivileged   = cstart.Flag("allow-privileged", "Allow privileged containers").OverrideDefaultFromEnvar(EnvPlanetAllowPrivileged).Bool()
+		cstartSELinux           = cstart.Flag("selinux", "Run with SELinux support").Envar(EnvPlanetSELinux).Bool()
+		cstartHighAvailability  = cstart.Flag("high-availability", "Boolean flag to enable/disable kubernetes high availability mode.").OverrideDefaultFromEnvar(EnvHighAvailability).Bool()
+		cstartSerfEncryptionKey = cstart.Flag("serf-encryption-key", "32-byte base64-encoded serf encryption key.").Envar(EnvSerfEncryptionKey).String()
 
 		// start the planet agent
 		cagent                 = app.Command("agent", "Start Planet Agent")
@@ -452,16 +453,17 @@ func run() error {
 				ListenAddrs: *cstartDNSListenAddrs,
 				Port:        *cstartDNSPort,
 			},
-			KubeletOptions:   *cstartKubeletOptions,
-			APIServerOptions: *cstartAPIServerOptions,
-			Taints:           *cstartTaints,
-			NodeLabels:       *cstartNodeLabels,
-			DisableFlannel:   *cstartDisableFlannel,
-			KubeletConfig:    *cstartKubeletConfig,
-			CloudConfig:      *cstartCloudConfig,
-			AllowPrivileged:  *cstartAllowPrivileged,
-			SELinux:          *cstartSELinux,
-			HighAvailability: *cstartHighAvailability,
+			KubeletOptions:    *cstartKubeletOptions,
+			APIServerOptions:  *cstartAPIServerOptions,
+			Taints:            *cstartTaints,
+			NodeLabels:        *cstartNodeLabels,
+			DisableFlannel:    *cstartDisableFlannel,
+			KubeletConfig:     *cstartKubeletConfig,
+			CloudConfig:       *cstartCloudConfig,
+			AllowPrivileged:   *cstartAllowPrivileged,
+			SELinux:           *cstartSELinux,
+			HighAvailability:  *cstartHighAvailability,
+			SerfEncryptionKey: *cstartSerfEncryptionKey,
 		}
 		err = startAndWait(config)
 
