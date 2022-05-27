@@ -274,6 +274,9 @@ const (
 	// EnvSerfEncryptionKey specifies the serf encryption key.
 	EnvSerfEncryptionKey = "SERF_ENCRYPTION_KEY"
 
+	// EnvPlanetEtcdHealthz is a bool flag to enable/disable etcd-healthz check.
+	EnvPlanetEtcdHealthz = "PLANET_ETCD_HEALTHZ"
+
 	// DefaultDNSListenAddr is the default IP address CoreDNS will listen on
 	DefaultDNSListenAddr = "127.0.0.2"
 

@@ -141,6 +141,7 @@ func run() error {
 		cstartSELinux           = cstart.Flag("selinux", "Run with SELinux support").Envar(EnvPlanetSELinux).Bool()
 		cstartHighAvailability  = cstart.Flag("high-availability", "Boolean flag to enable/disable kubernetes high availability mode.").OverrideDefaultFromEnvar(EnvHighAvailability).Bool()
 		cstartSerfEncryptionKey = cstart.Flag("serf-encryption-key", "32-byte base64-encoded serf encryption key.").Envar(EnvSerfEncryptionKey).String()
+		cstartEtcdHealthz       = cstart.Flag("etcd-healthz", "Boolean flag to enable/disable etcd-healthz check.").Envar(EnvPlanetEtcdHealthz).Bool()
 
 		// start the planet agent
 		cagent                 = app.Command("agent", "Start Planet Agent")
@@ -178,6 +179,7 @@ func run() error {
 		cagentServiceCIDR            = cidrFlag(cagent.Flag("service-subnet", "IP range from which to assign service cluster IPs. This must not overlap with any IP ranges assigned to nodes for pods.").Default(DefaultServiceSubnet).Envar(EnvServiceSubnet))
 		cagentCriticalNamespaces     = List(cagent.Flag("critical-namespaces", "List of Kubernetes namespaces to search for critical system pods").Default(DefaultCriticalNamespaces).OverrideDefaultFromEnvar(EnvCriticalNamespaces))
 		cagentHighAvailability       = cagent.Flag("high-availability", "Boolean flag to enable/disable kubernetes high availability mode.").OverrideDefaultFromEnvar(EnvHighAvailability).Bool()
+		cagentEtcdHealthz            = cagent.Flag("etcd-healthz", "Boolean flag to enable/disable etcd-healthz checks.").Envar(EnvPlanetEtcdHealthz).Bool()
 
 		// stop a running container
 		cstop        = app.Command("stop", "Stop planet container")
@@ -354,6 +356,7 @@ func run() error {
 				NodeName:              *cagentNodeName,
 				HTTPTimeout:           *cagentHTTPTimeout,
 				CriticalNamespaces:    *cagentCriticalNamespaces,
+				EtcdHealthzCheck:      *cagentEtcdHealthz,
 			},
 			leader: &LeaderConfig{
 				PublicIP:         cagentPublicIP.String(),
@@ -464,6 +467,7 @@ func run() error {
 			SELinux:           *cstartSELinux,
 			HighAvailability:  *cstartHighAvailability,
 			SerfEncryptionKey: *cstartSerfEncryptionKey,
+			EtcdHealthz:       *cstartEtcdHealthz,
 		}
 		err = startAndWait(config)
 
