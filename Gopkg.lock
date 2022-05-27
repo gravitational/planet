@@ -414,14 +414,6 @@
   version = "0.0.4"
 
 [[projects]]
-  branch = "master"
-  digest = "1:170cc0c8108af9dd49569867e2d41097f9578ac65e7d02be098e301893d9b9ef"
-  name = "github.com/gravitational/go-udev"
-  packages = ["."]
-  pruneopts = "UT"
-  revision = "4cc8baba3689adc2d4ec4cf0e8e6be7bb136a3d2"
-
-[[projects]]
   digest = "1:e025b0f4997273273c5dc46a17caddb27ab7dc8b8aa9ffb50d326e7aeb4059c7"
   name = "github.com/gravitational/roundtrip"
   packages = ["."]
@@ -430,7 +422,8 @@
   version = "v1.0.0"
 
 [[projects]]
-  digest = "1:6e6cf48f5c01f76822140c446dc88282eb5418a39a6e87ba3360b171a8131ab2"
+  branch = "bernard/7.0.x/etcd-healthz"
+  digest = "1:e8e5f0b1adec7b280f06d897b431cbbf0f5010acbdb74282147e2004e4877c96"
   name = "github.com/gravitational/satellite"
   packages = [
     "agent",
@@ -451,8 +444,7 @@
     "utils",
   ]
   pruneopts = "UT"
-  revision = "321d645d9f7113f776c8a64f2e952651e823dd21"
-  version = "7.0.25"
+  revision = "8ff014f14369bb56ab60cf897eb23d0b0ec17aa5"
 
 [[projects]]
   digest = "1:5639168299375c369a68748214586e3b25bbc17e7ec9c64564f43f4635097bfc"
@@ -1525,7 +1517,6 @@
     "github.com/gravitational/coordinate/config",
     "github.com/gravitational/coordinate/leader",
     "github.com/gravitational/etcd-backup/lib/etcd",
-    "github.com/gravitational/go-udev",
     "github.com/gravitational/satellite/agent",
     "github.com/gravitational/satellite/agent/backend/inmemory",
     "github.com/gravitational/satellite/agent/health",
