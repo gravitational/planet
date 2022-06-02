@@ -142,6 +142,8 @@ type Config struct {
 	HighAvailability bool
 	// SerfEncryptionKey specifies the serf encryption key.
 	SerfEncryptionKey string
+	// EtcdHealthz enables etcd-healthz check.
+	EtcdHealthz bool
 }
 
 // DNS describes DNS server configuration

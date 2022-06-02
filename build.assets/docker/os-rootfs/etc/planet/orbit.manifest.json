@@ -514,6 +514,14 @@
                 "cli": {
                     "name": "serf-encryption-key"
                 }
+            },
+            {
+                "type": "Bool",
+                "name": "etcd-healthz",
+                "env": "PLANET_ETCD_HEALTHZ",
+                "cli": {
+                    "name": "etcd-healthz"
+                }
             }
         ]
     }

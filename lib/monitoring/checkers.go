@@ -79,6 +79,8 @@ type Config struct {
 	HTTPTimeout time.Duration
 	// CriticalNamespaces lists the namespaces of critical system pods.
 	CriticalNamespaces []string
+	// EtcdHealthzCheck enables/disables etcd-healthz check
+	EtcdHealthzCheck bool
 }
 
 // CheckAndSetDefaults validates monitoring configuration
@@ -206,9 +208,12 @@ func addToMaster(node agent.Agent, config *Config, etcdConfig *monitoring.ETCDCo
 		Timeout:   config.HTTPTimeout,
 	}
 
-	etcdChecker, err := monitoring.EtcdHealth(etcdConfig)
-	if err != nil {
-		return trace.Wrap(err)
+	if config.EtcdHealthzCheck {
+		etcdChecker, err := monitoring.EtcdHealth(etcdConfig)
+		if err != nil {
+			return trace.Wrap(err)
+		}
+		node.AddChecker(etcdChecker)
 	}
 
 	client, err := GetKubeClient()
@@ -226,7 +231,6 @@ func addToMaster(node agent.Agent, config *Config, etcdConfig *monitoring.ETCDCo
 	node.AddChecker(monitoring.KubeAPIServerHealth(monitoring.KubeConfig{Client: apiServerClient}))
 	node.AddChecker(monitoring.DockerHealth("/var/run/docker.sock"))
 	node.AddChecker(dockerRegistryHealth(config.RegistryAddr, localClient))
-	node.AddChecker(etcdChecker)
 	node.AddChecker(monitoring.SystemdHealth())
 	node.AddChecker(monitoring.NewIPForwardChecker())
 	node.AddChecker(monitoring.NewBridgeNetfilterChecker())
@@ -326,11 +330,13 @@ func addToMaster(node agent.Agent, config *Config, etcdConfig *monitoring.ETCDCo
 }
 
 func addToNode(node agent.Agent, config *Config, etcdConfig *monitoring.ETCDConfig) error {
-	etcdChecker, err := monitoring.EtcdHealth(etcdConfig)
-	if err != nil {
-		return trace.Wrap(err)
+	if config.EtcdHealthzCheck {
+		etcdChecker, err := monitoring.EtcdHealth(etcdConfig)
+		if err != nil {
+			return trace.Wrap(err)
+		}
+		node.AddChecker(etcdChecker)
 	}
-
 	// Create a different client for nodes to be able to query node information
 	nodeClient, err := getKubeClientFromPath(constants.KubeletConfigPath)
 	if err != nil {
@@ -340,7 +346,6 @@ func addToNode(node agent.Agent, config *Config, etcdConfig *monitoring.ETCDConf
 	nodeConfig := monitoring.KubeConfig{Client: nodeClient}
 	node.AddChecker(monitoring.KubeletHealth("http://127.0.0.1:10248"))
 	node.AddChecker(monitoring.DockerHealth("/var/run/docker.sock"))
-	node.AddChecker(etcdChecker)
 	node.AddChecker(monitoring.SystemdHealth())
 	node.AddChecker(NewVersionCollector())
 	node.AddChecker(monitoring.NewIPForwardChecker())
