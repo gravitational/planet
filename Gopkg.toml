@@ -94,8 +94,7 @@ ignored = ["github.com/gravitational/planet/build/*"]
 
 [[constraint]]
   name = "github.com/gravitational/satellite"
-  # version = "=7.0.25"
-  branch = "bernard/7.0.x/etcd-healthz"
+  version = "=7.0.26"
 
 [[override]]
   name = "github.com/gravitational/trace"

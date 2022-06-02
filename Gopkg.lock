@@ -422,7 +422,6 @@
   version = "v1.0.0"
 
 [[projects]]
-  branch = "bernard/7.0.x/etcd-healthz"
   digest = "1:e8e5f0b1adec7b280f06d897b431cbbf0f5010acbdb74282147e2004e4877c96"
   name = "github.com/gravitational/satellite"
   packages = [
@@ -444,7 +443,8 @@
     "utils",
   ]
   pruneopts = "UT"
-  revision = "8ff014f14369bb56ab60cf897eb23d0b0ec17aa5"
+  revision = "108079ef26978664a61fd6c7bb263b0ea0ecb9cd"
+  version = "7.0.26"
 
 [[projects]]
   digest = "1:5639168299375c369a68748214586e3b25bbc17e7ec9c64564f43f4635097bfc"
