@@ -63,6 +63,31 @@ steps:
     image: docker:git
     commands:
       - git fetch --tags
+  - name: assume aws role
+    image: amazon/aws-cli
+    environment:
+      AWS_ACCESS_KEY_ID:
+        from_secret: AWS_ACCESS_KEY_ID
+      AWS_SECRET_ACCESS_KEY:
+        from_secret: AWS_SECRET_ACCESS_KEY
+      AWS_ROLE:
+        from_secret: AWS_ROLE
+    commands:
+    - aws sts get-caller-identity
+    - SESSION_NAME=$(echo "drone-${DRONE_REPO}/${DRONE_BUILD_NUMBER}" | sed "s|/|-|g")
+    - |
+        printf "[default]\naws_access_key_id = %s\naws_secret_access_key = %s\naws_session_token = %s" \
+          $(aws sts assume-role \
+            --role-arn "$AWS_ROLE" \
+            --role-session-name "$SESSION_NAME" \
+            --query "Credentials.[AccessKeyId,SecretAccessKey,SessionToken]" \
+            --output text) \
+            > /root/.aws/credentials
+    - unset AWS_ACCESS_KEY_ID AWS_SECRET_ACCESS_KEY
+    - aws sts get-caller-identity
+    volumes:
+      - name: awsconfig
+        path: /root/.aws
   - name: wait for docker
     image: docker
     commands:
@@ -94,16 +119,14 @@ steps:
         from_secret: QUAY_USERNAME
       REGISTRY_PASSWORD:
         from_secret: QUAY_PASSWORD
-      AWS_ACCESS_KEY_ID:
-        from_secret: AWS_ACCESS_KEY_ID
-      AWS_SECRET_ACCESS_KEY:
-        from_secret: AWS_SECRET_ACCESS_KEY
       AWS_DEFAULT_REGION: us-east-1
     commands:
       - apk add --no-cache make aws-cli
       - docker login -u="$REGISTRY_USERNAME" -p="$REGISTRY_PASSWORD" quay.io
       - make deploy
     volumes:
+      - name: awsconfig
+        path: /root/.aws
       - name: dockersock
         path: /var/run
 
@@ -117,6 +140,8 @@ services:
 
 volumes:
   - name: dockersock
+    temp: {}
+  - name: awsconfig
     temp: {}
 
 ---
@@ -133,6 +158,31 @@ steps:
     image: docker:git
     commands:
       - git fetch --tags
+  - name: assume aws role
+    image: amazon/aws-cli
+    environment:
+      AWS_ACCESS_KEY_ID:
+        from_secret: AWS_ACCESS_KEY_ID
+      AWS_SECRET_ACCESS_KEY:
+        from_secret: AWS_SECRET_ACCESS_KEY
+      AWS_ROLE:
+        from_secret: AWS_ROLE
+    commands:
+    - aws sts get-caller-identity
+    - SESSION_NAME=$(echo "drone-${DRONE_REPO}/${DRONE_BUILD_NUMBER}" | sed "s|/|-|g")
+    - |
+        printf "[default]\naws_access_key_id = %s\naws_secret_access_key = %s\naws_session_token = %s" \
+          $(aws sts assume-role \
+            --role-arn "$AWS_ROLE" \
+            --role-session-name "$SESSION_NAME" \
+            --query "Credentials.[AccessKeyId,SecretAccessKey,SessionToken]" \
+            --output text) \
+            > /root/.aws/credentials
+    - unset AWS_ACCESS_KEY_ID AWS_SECRET_ACCESS_KEY
+    - aws sts get-caller-identity
+    volumes:
+      - name: awsconfig
+        path: /root/.aws
   - name: wait for docker
     image: docker
     commands:
@@ -160,15 +210,13 @@ steps:
   - name: publish to s3
     image: docker:git
     environment:
-      AWS_ACCESS_KEY_ID:
-        from_secret: AWS_ACCESS_KEY_ID
-      AWS_SECRET_ACCESS_KEY:
-        from_secret: AWS_SECRET_ACCESS_KEY
       AWS_DEFAULT_REGION: us-east-1
     commands:
       - apk add --no-cache make aws-cli
       - make dev-deploy
     volumes:
+      - name: awsconfig
+        path: /root/.aws
       - name: dockersock
         path: /var/run
 
@@ -183,9 +231,11 @@ services:
 volumes:
   - name: dockersock
     temp: {}
+  - name: awsconfig
+    temp: {}
 
 ---
 kind: signature
-hmac: 5be62ef6affc6418f1fd2fa295110292308c85867e9f191f0fcbc4cd78426464
+hmac: 2539529605c773083914b67f78654523c153392d55907966ce3fe1b7cea7905c
 
 ...
