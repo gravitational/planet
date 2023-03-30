@@ -1,44 +1,59 @@
 package ebpf
 
 import (
-	"github.com/cilium/ebpf/asm"
-	"github.com/cilium/ebpf/internal/btf"
+	"fmt"
 
-	"golang.org/x/xerrors"
+	"github.com/cilium/ebpf/asm"
 )
 
 // link resolves bpf-to-bpf calls.
 //
 // Each library may contain multiple functions / labels, and is only linked
-// if the program being edited references one of these functions.
+// if prog references one of these functions.
 //
-// Libraries must not require linking themselves.
+// Libraries also linked.
 func link(prog *ProgramSpec, libs []*ProgramSpec) error {
-	for _, lib := range libs {
-		insns, err := linkSection(prog.Instructions, lib.Instructions)
-		if err != nil {
-			return xerrors.Errorf("linking %s: %w", lib.Name, err)
-		}
+	var (
+		linked  = make(map[*ProgramSpec]bool)
+		pending = []asm.Instructions{prog.Instructions}
+		insns   asm.Instructions
+	)
+	for len(pending) > 0 {
+		insns, pending = pending[0], pending[1:]
+		for _, lib := range libs {
+			if linked[lib] {
+				continue
+			}
 
-		if len(insns) == len(prog.Instructions) {
-			continue
-		}
+			needed, err := needSection(insns, lib.Instructions)
+			if err != nil {
+				return fmt.Errorf("linking %s: %w", lib.Name, err)
+			}
 
-		prog.Instructions = insns
-		if prog.BTF != nil && lib.BTF != nil {
-			if err := btf.ProgramAppend(prog.BTF, lib.BTF); err != nil {
-				return xerrors.Errorf("linking BTF of %s: %w", lib.Name, err)
+			if !needed {
+				continue
+			}
+
+			linked[lib] = true
+			prog.Instructions = append(prog.Instructions, lib.Instructions...)
+			pending = append(pending, lib.Instructions)
+
+			if prog.BTF != nil && lib.BTF != nil {
+				if err := prog.BTF.Append(lib.BTF); err != nil {
+					return fmt.Errorf("linking BTF of %s: %w", lib.Name, err)
+				}
 			}
 		}
 	}
+
 	return nil
 }
 
-func linkSection(insns, section asm.Instructions) (asm.Instructions, error) {
+func needSection(insns, section asm.Instructions) (bool, error) {
 	// A map of symbols to the libraries which contain them.
 	symbols, err := section.SymbolOffsets()
 	if err != nil {
-		return nil, err
+		return false, err
 	}
 
 	for _, ins := range insns {
@@ -61,11 +76,84 @@ func linkSection(insns, section asm.Instructions) (asm.Instructions, error) {
 		}
 
 		// At this point we know that at least one function in the
-		// library is called from insns. Merge the two sections.
-		// The rewrite of ins.Constant happens in asm.Instruction.Marshal.
-		return append(insns, section...), nil
+		// library is called from insns, so we have to link it.
+		return true, nil
 	}
 
-	// None of the functions in the section are called. Do nothing.
-	return insns, nil
+	// None of the functions in the section are called.
+	return false, nil
+}
+
+func fixupJumpsAndCalls(insns asm.Instructions) error {
+	symbolOffsets := make(map[string]asm.RawInstructionOffset)
+	iter := insns.Iterate()
+	for iter.Next() {
+		ins := iter.Ins
+
+		if ins.Symbol == "" {
+			continue
+		}
+
+		if _, ok := symbolOffsets[ins.Symbol]; ok {
+			return fmt.Errorf("duplicate symbol %s", ins.Symbol)
+		}
+
+		symbolOffsets[ins.Symbol] = iter.Offset
+	}
+
+	iter = insns.Iterate()
+	for iter.Next() {
+		i := iter.Index
+		offset := iter.Offset
+		ins := iter.Ins
+
+		if ins.Reference == "" {
+			continue
+		}
+
+		switch {
+		case ins.IsFunctionCall() && ins.Constant == -1:
+			// Rewrite bpf to bpf call
+			callOffset, ok := symbolOffsets[ins.Reference]
+			if !ok {
+				return fmt.Errorf("call at %d: reference to missing symbol %q", i, ins.Reference)
+			}
+
+			ins.Constant = int64(callOffset - offset - 1)
+
+		case ins.OpCode.Class() == asm.JumpClass && ins.Offset == -1:
+			// Rewrite jump to label
+			jumpOffset, ok := symbolOffsets[ins.Reference]
+			if !ok {
+				return fmt.Errorf("jump at %d: reference to missing symbol %q", i, ins.Reference)
+			}
+
+			ins.Offset = int16(jumpOffset - offset - 1)
+
+		case ins.IsLoadFromMap() && ins.MapPtr() == -1:
+			return fmt.Errorf("map %s: %w", ins.Reference, errUnsatisfiedReference)
+		}
+	}
+
+	// fixupBPFCalls replaces bpf_probe_read_{kernel,user}[_str] with bpf_probe_read[_str] on older kernels
+	// https://github.com/libbpf/libbpf/blob/master/src/libbpf.c#L6009
+	iter = insns.Iterate()
+	for iter.Next() {
+		ins := iter.Ins
+		if !ins.IsBuiltinCall() {
+			continue
+		}
+		switch asm.BuiltinFunc(ins.Constant) {
+		case asm.FnProbeReadKernel, asm.FnProbeReadUser:
+			if err := haveProbeReadKernel(); err != nil {
+				ins.Constant = int64(asm.FnProbeRead)
+			}
+		case asm.FnProbeReadKernelStr, asm.FnProbeReadUserStr:
+			if err := haveProbeReadKernel(); err != nil {
+				ins.Constant = int64(asm.FnProbeReadStr)
+			}
+		}
+	}
+
+	return nil
 }
