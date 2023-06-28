@@ -1,14 +1,13 @@
 # Planet
 
+> **Warning**
+> Planet was archived 2023-07-01.
+>
+> Please see the [Gravity](https://github.com/gravitational/gravity) README.md for more information.
+
 Planet is a containerized [Kubernetes](https://kubernetes.io/) environment. It is a self-containerizing Debian image with
 Kubernetes services running inside. [Gravity](https://github.com/gravitational/gravity) is the
 recommended way to deploy planet containers.
-
-Compared to [official ways](https://kubernetes.io/docs/setup/) to install and manage a Kubernetes cluster, `planet` is different because:
-
-* Planet creates a "bubble of consistency" for every cluster.
-* Planet packages services running under/alongside Kubernetes.
-* Planet facilitates easier remote updating of itself and Kubernetes.
 
 ## Installation
 
@@ -68,11 +67,6 @@ Commands:
   leader view --leader-key=LEADER-KEY
     Display the IP address of the active master
 ```
-
-## Hacking on Planet
-
-We follow a [Code of Conduct](./CODE_OF_CONDUCT.md). We also have [contributing guidelines](./CONTRIBUTING.md)
-with information about filing bugs and submitting patches.
 
 ### Building (installing from source)
 
